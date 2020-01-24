@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.deislabs.osiris.examples.logs";
+option java_outer_classname = "LogsProto";
+
+package projects;
+
+service Projects {
+  rpc CreateProject(CreateProjectRequest) returns (CreateProjectResponse) {}
+  rpc GetProjects(GetProjectsRequest) returns (GetProjectsResponse) {}
+  rpc GetProject(GetProjectRequest) returns (GetProjectResponse) {}
+  rpc UpdateProject(UpdateProjectRequest) returns (UpdateProjectResponse) {}
+  rpc DeleteProject(DeleteProjectRequest) returns (DeleteProjectResponse) {}
+}
+
+message CreateProjectRequest {
+  Project project = 1;
+}
+
+message CreateProjectResponse {
+  Project project = 1;
+}
+
+message GetProjectsRequest {
+}
+
+message GetProjectsResponse {
+  repeated Project projects = 1;
+}
+
+message GetProjectRequest {
+  string projectName = 1;
+}
+
+message GetProjectResponse {
+  Project project = 1;
+}
+
+message UpdateProjectRequest {
+  Project project = 1;
+}
+
+message UpdateProjectResponse {
+  Project project = 1;
+}
+
+message DeleteProjectRequest {
+  string projectName = 1;
+}
+
+message DeleteProjectResponse{
+}
+
+message Project {
+  string name = 1;
+  Repo repo = 2;
+  string defaultScript = 3;
+  string defaultScriptName = 4;
+  Kubernetes kubernetes = 5;
+  string sharedSecret = 6;
+  Github github = 7;
+  map<string, string> secrets = 8;
+  WorkerConfig Worker = 9;
+  bool initGitSubmodules = 10;
+  bool allowPrivilegedJobs = 11;
+  bool allowHostMounts = 12;
+  string imagePullSecrets = 13;
+  string workerCommand = 14;
+  string BrigadejsPath = 15;
+  string BrigadeConfigPath = 16;
+  string GenericGatewaySecret = 17;
+}
+
+message Repo {
+  string name = 1;
+  string cloneURL = 2;
+  string sshKey = 3;
+  string sshCert = 4;
+}
+
+message Kubernetes {
+  string namespace = 1;
+  string vcsSidecar = 2;
+  string buildStorageSize = 3;
+  string buildStorageClass = 4;
+  string cacheStorageClass = 5;
+  bool allowSecretKeyRef = 6;
+  string serviceAccount = 7;
+}
+
+message Github {
+  string token = 1;
+  string baseURL = 2;
+  string uploadURL = 3;
+}
+
+message WorkerConfig {
+  string registry = 1;
+  string name = 2;
+  string tag = 3;
+  string pullPolicy = 4;
+}

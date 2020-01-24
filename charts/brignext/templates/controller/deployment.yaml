@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "brignext.controller.fullname" . }}
+  labels:
+    {{- include "brignext.labels" . | nindent 4 }}
+    {{- include "brignext.controller.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "brignext.selectorLabels" . | nindent 6 }}
+      {{- include "brignext.controller.labels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "brignext.selectorLabels" . | nindent 8 }}
+        {{- include "brignext.controller.labels" . | nindent 8 }}
+    spec:
+      serviceAccount: {{ include "brignext.controller.fullname" . }}
+      containers:
+      - name: controller
+        image: {{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag }}
+        imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
+        args:
+        - --logtostderr=true
+        env:
+        - name: MONGODB_HOST
+          value: {{ include "call-nested" (list . "mongodb" "mongodb.fullname") }}.{{ .Release.Namespace }}.svc.cluster.local
+        - name: MONGODB_PORT
+          value: {{ quote .Values.mongodb.service.port }}
+        - name: MONGODB_DATABASE
+          value: {{ .Values.mongodb.mongodbDatabase }}
+        - name: MONGODB_USERNAME
+          value: {{ .Values.mongodb.mongodbUsername }}
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "call-nested" (list . "mongodb" "mongodb.fullname") }}
+              key: mongodb-password
+      {{- with .Values.controller.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.controller.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

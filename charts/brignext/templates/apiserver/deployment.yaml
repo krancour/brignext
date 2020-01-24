@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "brignext.apiserver.fullname" . }}
+  labels:
+    {{- include "brignext.labels" . | nindent 4 }}
+    {{- include "brignext.apiserver.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.apiserver.replicas }}
+  selector:
+    matchLabels:
+      {{- include "brignext.selectorLabels" . | nindent 6 }}
+      {{- include "brignext.apiserver.labels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "brignext.selectorLabels" . | nindent 8 }}
+        {{- include "brignext.apiserver.labels" . | nindent 8 }}
+    spec:
+      serviceAccount: {{ include "brignext.apiserver.fullname" . }}
+      containers:
+      - name: apiserver
+        image: {{ .Values.apiserver.image.repository }}:{{ .Values.apiserver.image.tag }}
+        imagePullPolicy: {{ .Values.apiserver.image.pullPolicy }}
+        args:
+        - --logtostderr=true
+        env:
+        - name: MONGODB_HOST
+          value: {{ include "call-nested" (list . "mongodb" "mongodb.fullname") }}.{{ .Release.Namespace }}.svc.cluster.local
+        - name: MONGODB_PORT
+          value: {{ quote .Values.mongodb.service.port }}
+        - name: MONGODB_DATABASE
+          value: {{ .Values.mongodb.mongodbDatabase }}
+        - name: MONGODB_USERNAME
+          value: {{ .Values.mongodb.mongodbUsername }}
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "call-nested" (list . "mongodb" "mongodb.fullname") }}
+              key: mongodb-password
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      {{- with .Values.apiserver.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.apiserver.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
