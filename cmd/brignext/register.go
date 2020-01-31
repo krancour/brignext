@@ -1,18 +1,18 @@
 package main
 
 import (
-	"context"
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"net/http"
 
-	"github.com/krancour/brignext/pkg/users"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
 func register(c *cli.Context) error {
 	// Inputs
-	host := c.Args()[0]
-	port := c.Int(flagPort)
+	address := c.Args()[0]
 	username := c.String(flagUsername)
 	password := c.String(flagPassword)
 
@@ -20,25 +20,40 @@ func register(c *cli.Context) error {
 	// if not specified, otherwise username and password could show up in shell
 	// history, which users may not want in some cases.
 
-	// Connect to the API server
-	conn, err := getRegistrationConnection(host, port)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	client := users.NewUsersClient(conn)
-
-	if _, err = client.Register(
-		context.Background(),
-		&users.RegistrationRequest{
+	requestBody, err := json.Marshal(
+		struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		}{
 			Username: username,
 			Password: password,
 		},
-	); err != nil {
-		return errors.Wrap(err, "error registering with the API server")
+	)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling request body")
+	}
+
+	req, err := http.NewRequest(
+		http.MethodPost,
+		fmt.Sprintf("%s/v2/users", address),
+		bytes.NewBuffer(requestBody),
+	)
+	if err != nil {
+		return errors.Wrap(err, "error creating HTTP request")
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	fmt.Println("Registration was successful.")
 
-	return doLogin(host, port, username, password)
+	return doLogin(address, username, password)
 }

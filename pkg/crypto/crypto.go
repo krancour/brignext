@@ -11,7 +11,7 @@ var seededRand = rand.NewSeeded()
 
 func ShortSHA(salt, input string) string {
 	if salt != "" {
-		input = fmt.Sprintf("%s:%s")
+		input = fmt.Sprintf("%s:%s", salt, input)
 	}
 	sum := sha256.Sum256([]byte(input))
 	return fmt.Sprintf("%x", sum)[0:54]

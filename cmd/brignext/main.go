@@ -59,10 +59,6 @@ func main() {
 					Usage:     "list builds",
 					ArgsUsage: "[PROJECT]",
 					Flags: []cli.Flag{
-						cli.IntFlag{
-							Name:  flagsCount,
-							Usage: "The maximum number of builds to return. 0 for all",
-						},
 						cli.StringFlag{
 							Name: flagsOutput,
 							Usage: "Return output in another format. Supported formats: " +
@@ -72,26 +68,26 @@ func main() {
 					},
 					Action: buildList,
 				},
-				{
-					Name:      "logs",
-					Usage:     "show build logs",
-					ArgsUsage: "BUILD",
-					Flags: []cli.Flag{
-						cli.BoolFlag{
-							Name:  flagsInit,
-							Usage: "Show init container logs as well as the worker log",
-						},
-						cli.BoolFlag{
-							Name:  flagsJobs,
-							Usage: "Show job logs as well as the worker log",
-						},
-						cli.BoolFlag{
-							Name:  flagsLast,
-							Usage: "Show last build's log (ignores BUILD_ID)",
-						},
-					},
-					Action: buildLogs,
-				},
+				// {
+				// 	Name:      "logs",
+				// 	Usage:     "show build logs",
+				// 	ArgsUsage: "BUILD",
+				// 	Flags: []cli.Flag{
+				// 		cli.BoolFlag{
+				// 			Name:  flagsInit,
+				// 			Usage: "Show init container logs as well as the worker log",
+				// 		},
+				// 		cli.BoolFlag{
+				// 			Name:  flagsJobs,
+				// 			Usage: "Show job logs as well as the worker log",
+				// 		},
+				// 		cli.BoolFlag{
+				// 			Name:  flagsLast,
+				// 			Usage: "Show last build's log (ignores BUILD_ID)",
+				// 		},
+				// 	},
+				// 	Action: buildLogs,
+				// },
 			},
 		},
 		{
@@ -99,11 +95,6 @@ func main() {
 			Usage:     "Log in to Brigade",
 			ArgsUsage: "HOST",
 			Flags: []cli.Flag{
-				cli.IntFlag{
-					Name:  flagsPort,
-					Usage: "Specify the API server port to connect to",
-					Value: 8080,
-				},
 				cli.StringFlag{
 					Name:  flagsUsername,
 					Usage: "Username",
@@ -177,13 +168,8 @@ func main() {
 		{
 			Name:      "register",
 			Usage:     "Register as a new Brigade user",
-			ArgsUsage: "HOST",
+			ArgsUsage: "API_SERVER_ADDRESS",
 			Flags: []cli.Flag{
-				cli.IntFlag{
-					Name:  flagsPort,
-					Usage: "Specify the API server port to connect to",
-					Value: 8080,
-				},
 				cli.StringFlag{
 					Name:  flagsUsername,
 					Usage: "Desired username",
@@ -203,7 +189,7 @@ func main() {
 				cli.BoolFlag{
 					Name: flagsBackground,
 					Usage: "Trigger the event and exit. Let the job run in the " +
-						"sbackground.",
+						"background.",
 				},
 				cli.StringFlag{
 					Name:  flagsCommit,

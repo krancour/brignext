@@ -41,11 +41,10 @@ $ go build -o bin/brignext ./cmd/brignext/
 
 ## Try BrigNext
 
-The `brignext` CLI works, _mostly_ like the `brig` CLI you might already be
-used to. The biggest difference is that it no longer communicates directly
-with Kubernetes. Instead, it talks to an API server through gRPC. This API
-server requires you to authenticate. Fortunately creating and using credentials
-is easy.
+The `brignext` CLI works, _mostly_ like the `brig` CLI you might already be used
+to. The biggest difference is that it no longer communicates directly with
+Kubernetes. Instead, it talks to an API server. This API server requires you to
+authenticate. Fortunately creating and using credentials is easy.
 
 (Note that authentication is implemented, but authorization is not. Any
 registered user can do anything! **_We DID warn you not to run this in

@@ -11,9 +11,8 @@ import (
 )
 
 type config struct {
-	APIHost  string `json:"apiHost"`
-	APIPort  int    `json:"apiPort"`
-	APIToken string `json:"apiToken"`
+	APIAddress string `json:"apiAddress"`
+	APIToken   string `json:"apiToken"`
 }
 
 func getConfig() (*config, error) {

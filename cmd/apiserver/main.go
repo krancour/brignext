@@ -2,20 +2,15 @@ package main
 
 import (
 	"flag"
-	"net"
+	"log"
 
 	"github.com/brigadecore/brigade/pkg/storage/kube"
 	"github.com/golang/glog"
-	grpcAuth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
-	"github.com/krancour/brignext/pkg/auth"
-	"github.com/krancour/brignext/pkg/builds"
+	"github.com/krancour/brignext/pkg/api"
 	"github.com/krancour/brignext/pkg/kubernetes"
 	mongodbUtils "github.com/krancour/brignext/pkg/mongodb"
-	"github.com/krancour/brignext/pkg/projects"
 	"github.com/krancour/brignext/pkg/storage/mongodb"
-	"github.com/krancour/brignext/pkg/users"
 	"github.com/krancour/brignext/pkg/version"
-	"google.golang.org/grpc"
 )
 
 func main() {
@@ -28,6 +23,12 @@ func main() {
 		version.Commit(),
 	)
 
+	// API server config
+	config, err := api.GetConfigFromEnvironment()
+	if err != nil {
+		glog.Fatal(err)
+	}
+
 	// Old datastore (Kubernetes)
 	kubeClient, err := kubernetes.Client()
 	if err != nil {
@@ -37,7 +38,7 @@ func main() {
 	if err != nil {
 		glog.Fatal(err)
 	}
-	oldStore := kube.New(kubeClient, brigadeNamespace)
+	oldProjectStore := kube.New(kubeClient, brigadeNamespace)
 
 	// New datastores (Mongo)
 	database, err := mongodbUtils.Database()
@@ -48,36 +49,13 @@ func main() {
 	logStore := mongodb.NewLogStore(database)
 	userStore := mongodb.NewUserStore(database)
 
-	// gRPC server
-
-	authenticator := auth.NewAuthenticator(userStore)
-
-	grpcServer := grpc.NewServer(
-		grpc.StreamInterceptor(
-			grpcAuth.StreamServerInterceptor(authenticator.Authenticate),
-		),
-		grpc.UnaryInterceptor(
-			grpcAuth.UnaryServerInterceptor(authenticator.Authenticate),
-		),
+	log.Println(
+		api.NewServer(
+			config,
+			userStore,
+			oldProjectStore,
+			projectStore,
+			logStore,
+		).ListenAndServe(),
 	)
-
-	users.RegisterUsersServer(
-		grpcServer,
-		users.NewServer(userStore),
-	)
-	projects.RegisterProjectsServer(
-		grpcServer,
-		projects.NewServer(oldStore, projectStore),
-	)
-	builds.RegisterBuildsServer(
-		grpcServer,
-		builds.NewServer(oldStore, projectStore, logStore),
-	)
-
-	lis, err := net.Listen("tcp", ":8080")
-	if err != nil {
-		glog.Fatalf("failed to listen: %s", err)
-	}
-
-	grpcServer.Serve(lis)
 }

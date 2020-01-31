@@ -1,13 +1,13 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 
 	"github.com/gosuri/uitable"
 	"github.com/krancour/brignext/pkg/brignext"
-	"github.com/krancour/brignext/pkg/projects"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -23,26 +23,35 @@ func projectList(c *cli.Context) error {
 		return errors.Errorf("unknown output format %q", output)
 	}
 
-	// Connect to the API server
-	conn, err := getConnection()
+	req, err := getRequest(http.MethodGet, "v2/projects", nil)
 	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	client := projects.NewProjectsClient(conn)
-
-	// Get the projects
-	response, err := client.GetProjects(
-		context.Background(),
-		&projects.GetProjectsRequest{},
-	)
-	if err != nil {
-		return errors.Wrap(err, "error listing projects")
+		return errors.Wrap(err, "error creating HTTP request")
 	}
 
-	projs := make([]*brignext.Project, len(response.Projects))
-	for i, wireProject := range response.Projects {
-		projs[i] = projects.WireProjectToBrignextProject(wireProject)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "error reading response body")
+	}
+
+	projs := []*brignext.Project{}
+	if err := json.Unmarshal(respBodyBytes, &projs); err != nil {
+		return errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	if len(projs) == 0 {
+		fmt.Println("No projects found.")
+		return nil
 	}
 
 	switch output {

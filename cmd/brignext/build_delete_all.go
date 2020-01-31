@@ -1,10 +1,9 @@
 package main
 
 import (
-	"context"
 	"fmt"
+	"net/http"
 
-	"github.com/krancour/brignext/pkg/builds"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -14,20 +13,27 @@ func buildDeleteAll(c *cli.Context) error {
 	projectName := c.Args()[0]
 	force := c.Bool(flagForce)
 
-	conn, err := getConnection()
+	req, err := getRequest(
+		http.MethodDelete,
+		fmt.Sprintf("v2/projects/%s/builds", projectName),
+		nil,
+	)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating HTTP request")
 	}
-	defer conn.Close()
-	client := builds.NewBuildsClient(conn)
-	if _, err = client.DeleteAllBuilds(
-		context.Background(),
-		&builds.DeleteAllBuildsRequest{
-			ProjectName: projectName,
-			Force:       force,
-		},
-	); err != nil {
-		return errors.Wrap(err, "error deleting all builds")
+	if force {
+		req.URL.Query().Set("force", "true")
+	}
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	fmt.Printf("All builds for project %s deleted.\n", projectName)

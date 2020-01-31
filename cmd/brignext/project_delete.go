@@ -1,10 +1,9 @@
 package main
 
 import (
-	"context"
 	"fmt"
+	"net/http"
 
-	"github.com/krancour/brignext/pkg/projects"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -13,22 +12,24 @@ func projectDelete(c *cli.Context) error {
 	// Inputs
 	projectName := c.Args()[0]
 
-	// Connect to the API server
-	conn, err := getConnection()
+	req, err := getRequest(
+		http.MethodDelete,
+		fmt.Sprintf("v2/projects/%s", projectName),
+		nil,
+	)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error creating HTTP request")
 	}
-	defer conn.Close()
-	client := projects.NewProjectsClient(conn)
 
-	// Delete the project
-	if _, err = client.DeleteProject(
-		context.Background(),
-		&projects.DeleteProjectRequest{
-			ProjectName: projectName,
-		},
-	); err != nil {
-		return errors.Wrap(err, "error deleting project")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	fmt.Printf("Project %q deleted.\n", projectName)

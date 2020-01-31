@@ -1,12 +1,14 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+
+	"github.com/krancour/brignext/pkg/brignext"
 
 	"github.com/gosuri/uitable"
-	"github.com/krancour/brignext/pkg/projects"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -23,43 +25,52 @@ func projectGet(c *cli.Context) error {
 		return errors.Errorf("unknown output format %q", output)
 	}
 
-	// Connect to the API server
-	conn, err := getConnection()
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	client := projects.NewProjectsClient(conn)
-
-	// Get the project
-	response, err := client.GetProject(
-		context.Background(),
-		&projects.GetProjectRequest{
-			ProjectName: projectName,
-		},
+	req, err := getRequest(
+		http.MethodGet,
+		fmt.Sprintf("v2/projects/%s", projectName),
+		nil,
 	)
 	if err != nil {
-		return errors.Wrapf(err, "error getting project %q", projectName)
+		return errors.Wrap(err, "error creating HTTP request")
 	}
 
-	if response.Project == nil {
-		return nil
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	proj := projects.WireProjectToBrignextProject(response.Project)
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "error reading response body")
+	}
+
+	project := &brignext.Project{}
+	if err := json.Unmarshal(respBodyBytes, project); err != nil {
+		return errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	if project.Name == "" {
+		return errors.Errorf("Project %q not found.", projectName)
+	}
 
 	switch output {
 	case "table":
 		table := uitable.New()
 		table.AddRow("NAME", "REPO")
 		table.AddRow(
-			proj.Name,
-			proj.Repo.Name,
+			project.Name,
+			project.Repo.Name,
 		)
 		fmt.Println(table)
 
 	case "json":
-		projectJSON, err := json.MarshalIndent(proj, "", "  ")
+		projectJSON, err := json.MarshalIndent(project, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,

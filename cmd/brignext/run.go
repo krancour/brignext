@@ -1,13 +1,14 @@
 package main
 
 import (
-	"context"
+	"bufio"
+	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 
-	"github.com/krancour/brignext/pkg/builds"
+	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -15,7 +16,7 @@ import (
 func run(c *cli.Context) error {
 	// Inputs
 	projectName := c.Args()[0]
-	background := c.Bool(flagBackground)
+	// background := c.Bool(flagBackground)
 	commit := c.String(flagCommit)
 	configFile := c.String(flagConfig)
 	event := c.String(flagEvent)
@@ -51,57 +52,86 @@ func run(c *cli.Context) error {
 		}
 	}
 
-	conn, err := getConnection()
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	client := builds.NewBuildsClient(conn)
-	response, err := client.CreateBuild(
-		context.Background(),
-		&builds.CreateBuildRequest{
-			Build: &builds.Build{
-				ProjectName: projectName,
-				Type:        event,
-				Provider:    "brigade-cli",
-				Revision: &builds.Revision{
-					Commit: commit,
-					Ref:    ref,
-				},
-				Payload:  payloadBytes,
-				Script:   scriptBytes,
-				Config:   configBytes,
-				LogLevel: level,
-			},
+	build := &brignext.Build{
+		ProjectName: projectName,
+		Type:        event,
+		Provider:    "brigade-cli",
+		Revision: &brignext.Revision{
+			Commit: commit,
+			Ref:    ref,
 		},
-	)
+		Payload:  payloadBytes,
+		Script:   scriptBytes,
+		Config:   configBytes,
+		LogLevel: level,
+	}
+
+	buildBytes, err := json.Marshal(build)
 	if err != nil {
-		return errors.Wrap(err, "error creating build")
+		return errors.Wrap(err, "error marshaling build")
 	}
 
-	buildID := response.Build.Id
+	req, err := getRequest(http.MethodPost, "v2/builds", buildBytes)
+	if err != nil {
+		return errors.Wrap(err, "error creating HTTP request")
+	}
 
-	if !background {
-		stream, err := client.StreamBuildLogs(
-			context.Background(),
-			&builds.StreamBuildLogsRequest{
-				Id: buildID,
-			},
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "error reading response body")
+	}
+
+	build = &brignext.Build{}
+	if err := json.Unmarshal(respBodyBytes, build); err != nil {
+		return errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	// Pretty print the response
+	buildJSON, err := json.MarshalIndent(build, "", "  ")
+	if err != nil {
+		return errors.Wrap(
+			err,
+			"error marshaling output from project creation operation",
 		)
-		if err != nil {
-			log.Fatalf("error getting log stream for build %q: %s", buildID, err)
-		}
-		for {
-			logEntry, err := stream.Recv()
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				log.Fatalf("error reading stream for build %q: %s", buildID, err)
-			}
-			fmt.Print(logEntry.Message)
-		}
+	}
+	fmt.Println(string(buildJSON))
+
+	// Now stream the logs
+
+	if req, err = getRequest(
+		http.MethodGet,
+		fmt.Sprintf("v2/builds/%s/logs", build.ID),
+		nil,
+	); err != nil {
+		return errors.Wrap(err, "error creating HTTP request")
 	}
 
-	return nil
+	logsResp, err := client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer logsResp.Body.Close()
+
+	bufferedReader := bufio.NewReader(logsResp.Body)
+	logsBuffer := make([]byte, 4*1024)
+	for {
+		len, err := bufferedReader.Read(logsBuffer)
+		if err != nil {
+			return errors.Wrap(err, "error streaming logs from API")
+		}
+		if len > 0 {
+			log.Println(string(logsBuffer[:len]))
+		}
+	}
 }

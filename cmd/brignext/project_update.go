@@ -1,13 +1,12 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 
 	"github.com/krancour/brignext/pkg/brignext"
-	"github.com/krancour/brignext/pkg/projects"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -17,38 +16,45 @@ func projectUpdate(c *cli.Context) error {
 	filename := c.Args()[0]
 
 	// Read and parse the file
-	bytes, err := ioutil.ReadFile(filename)
+	projectBytes, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return errors.Wrapf(err, "error reading project file %s", filename)
 	}
 
 	project := &brignext.Project{}
-	if err := json.Unmarshal(bytes, project); err != nil {
+	if err := json.Unmarshal(projectBytes, project); err != nil {
 		return errors.Wrapf(err, "error parsing project file %s", filename)
 	}
 
-	wireProject := projects.BrignextProjectToWireProject(project)
-
-	// Connect to the API server
-	conn, err := getConnection()
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	client := projects.NewProjectsClient(conn)
-
-	// Update the project
-	response, err := client.UpdateProject(
-		context.Background(),
-		&projects.UpdateProjectRequest{
-			Project: wireProject,
-		},
+	req, err := getRequest(
+		http.MethodPut,
+		fmt.Sprintf("v2/projects/%s", project.Name),
+		projectBytes,
 	)
 	if err != nil {
-		return errors.Wrapf(err, "error updating project from file %s", filename)
+		return errors.Wrap(err, "error creating HTTP request")
 	}
 
-	project = projects.WireProjectToBrignextProject(response.Project)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "error reading response body")
+	}
+
+	project = &brignext.Project{}
+	if err := json.Unmarshal(respBodyBytes, project); err != nil {
+		return errors.Wrap(err, "error unmarshaling response body")
+	}
 
 	// Pretty print the response
 	projectJSON, err := json.MarshalIndent(project, "", "  ")

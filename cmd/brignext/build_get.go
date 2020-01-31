@@ -1,14 +1,14 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"time"
 
 	"github.com/gosuri/uitable"
 	"github.com/krancour/brignext/pkg/brignext"
-	"github.com/krancour/brignext/pkg/builds"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -26,27 +26,39 @@ func buildGet(c *cli.Context) error {
 		return errors.Errorf("unknown output format %q", output)
 	}
 
-	conn, err := getConnection()
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	client := builds.NewBuildsClient(conn)
-	response, err := client.GetBuild(
-		context.Background(),
-		&builds.GetBuildRequest{
-			Id: id,
-		},
+	req, err := getRequest(
+		http.MethodGet,
+		fmt.Sprintf("v2/builds/%s", id),
+		nil,
 	)
 	if err != nil {
-		return errors.Wrap(err, "error getting build")
+		return errors.Wrap(err, "error creating HTTP request")
 	}
 
-	if response.Build == nil {
-		return nil
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	build := builds.WireBuildToBrignextBuild(response.Build)
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "error reading response body")
+	}
+
+	build := &brignext.Build{}
+	if err := json.Unmarshal(respBodyBytes, build); err != nil {
+		return errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	if build.ID == "" {
+		return errors.Errorf("Build %q not found.", id)
+	}
 
 	switch output {
 	case "table":

@@ -1,18 +1,18 @@
 package main
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 
-	"github.com/krancour/brignext/pkg/users"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
 func login(c *cli.Context) error {
 	// Inputs
-	host := c.Args()[0]
-	port := c.Int(flagPort)
+	address := c.Args()[0]
 	username := c.String(flagUsername)
 	password := c.String(flagPassword)
 
@@ -22,31 +22,47 @@ func login(c *cli.Context) error {
 
 	// TODO: Log out of any API server we're already logged into
 
-	return doLogin(host, port, username, password)
+	return doLogin(address, username, password)
 }
 
-func doLogin(host string, port int, username, password string) error {
-	// Connect to the API server
-	conn, err := getLoginConnection(host, port, username, password)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	client := users.NewUsersClient(conn)
-
-	resp, err := client.Login(
-		context.Background(),
-		&users.LoginRequest{},
+func doLogin(address, username, password string) error {
+	req, err := http.NewRequest(
+		http.MethodPost,
+		fmt.Sprintf("%s/v2/users/%s/tokens", address, username),
+		nil,
 	)
 	if err != nil {
-		return errors.Wrap(err, "error logging in to the API server")
+		return errors.Wrap(err, "error creating HTTP request")
+	}
+	req.SetBasicAuth(username, password)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "error reading response body")
+	}
+
+	respStruct := struct {
+		Token string `json:"token"`
+	}{}
+	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
+		return errors.Wrap(err, "error unmarshaling response body")
 	}
 
 	if err := saveConfig(
 		&config{
-			APIHost:  host,
-			APIPort:  port,
-			APIToken: resp.Token,
+			APIAddress: address,
+			APIToken:   respStruct.Token,
 		},
 	); err != nil {
 		return errors.Wrap(err, "error persisting configuration")
