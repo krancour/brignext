@@ -19,12 +19,11 @@ func ShortSHA(salt, input string) string {
 
 // TODO: These aren't guaranteed unique, although a collision would be
 // extraordinary. Do something more secure!
-func NewToken() string {
+func NewToken(tokenLength int) string {
 	const (
 		tokenChars = "abcdefghijklmnopqrstuvwxyz" +
 			"ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
 			"0123456789"
-		tokenLength = 256
 	)
 	b := make([]byte, tokenLength)
 	for i := 0; i < tokenLength; i++ {

@@ -14,6 +14,7 @@ import (
 func projectUpdate(c *cli.Context) error {
 	// Inputs
 	filename := c.Args()[0]
+	allowInsecure := c.GlobalBool(flagInsecure)
 
 	// Read and parse the file
 	projectBytes, err := ioutil.ReadFile(filename)
@@ -26,7 +27,7 @@ func projectUpdate(c *cli.Context) error {
 		return errors.Wrapf(err, "error parsing project file %s", filename)
 	}
 
-	req, err := getRequest(
+	req, err := buildRequest(
 		http.MethodPut,
 		fmt.Sprintf("v2/projects/%s", project.Name),
 		projectBytes,
@@ -35,8 +36,7 @@ func projectUpdate(c *cli.Context) error {
 		return errors.Wrap(err, "error creating HTTP request")
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := getHTTPClient(allowInsecure).Do(req)
 	if err != nil {
 		return errors.Wrap(err, "error invoking API")
 	}

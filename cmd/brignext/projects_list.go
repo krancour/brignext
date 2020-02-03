@@ -15,6 +15,7 @@ import (
 func projectList(c *cli.Context) error {
 	// Inputs
 	output := c.String(flagOutput)
+	allowInsecure := c.GlobalBool(flagInsecure)
 
 	switch output {
 	case "table":
@@ -23,13 +24,12 @@ func projectList(c *cli.Context) error {
 		return errors.Errorf("unknown output format %q", output)
 	}
 
-	req, err := getRequest(http.MethodGet, "v2/projects", nil)
+	req, err := buildRequest(http.MethodGet, "v2/projects", nil)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := getHTTPClient(allowInsecure).Do(req)
 	if err != nil {
 		return errors.Wrap(err, "error invoking API")
 	}

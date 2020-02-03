@@ -9,6 +9,7 @@ import (
 	"github.com/krancour/brignext/pkg/api"
 	"github.com/krancour/brignext/pkg/kubernetes"
 	mongodbUtils "github.com/krancour/brignext/pkg/mongodb"
+	"github.com/krancour/brignext/pkg/oidc"
 	"github.com/krancour/brignext/pkg/storage/mongodb"
 	"github.com/krancour/brignext/pkg/version"
 )
@@ -24,7 +25,14 @@ func main() {
 	)
 
 	// API server config
-	config, err := api.GetConfigFromEnvironment()
+	apiConfig, err := api.GetConfigFromEnvironment()
+	if err != nil {
+		glog.Fatal(err)
+	}
+
+	// OpenID Connect config
+	oauth2Config, oidcIdentityVerifier, err :=
+		oidc.GetConfigAndVerifierFromEnvironment()
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -48,11 +56,15 @@ func main() {
 	projectStore := mongodb.NewProjectStore(database)
 	logStore := mongodb.NewLogStore(database)
 	userStore := mongodb.NewUserStore(database)
+	sessionStore := mongodb.NewSessionStore(database)
 
 	log.Println(
 		api.NewServer(
-			config,
+			apiConfig,
+			oauth2Config,
+			oidcIdentityVerifier,
 			userStore,
+			sessionStore,
 			oldProjectStore,
 			projectStore,
 			logStore,

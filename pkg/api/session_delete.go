@@ -8,22 +8,22 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *server) tokenDelete(w http.ResponseWriter, r *http.Request) {
+func (s *server) sessionDelete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	token := auth.UserTokenFromContext(r.Context())
-	if token == "" {
+	sessionID := auth.SessionIDFromContext(r.Context())
+	if sessionID == "" {
 		log.Println(
-			"error: delete token request authenticated, but no token found in " +
-				"request context",
+			"error: delete session request authenticated, but no session ID found " +
+				"in request context",
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
 	}
 
-	if err := s.userStore.DeleteUserToken(token); err != nil {
+	if err := s.sessionStore.DeleteSession(sessionID); err != nil {
 		log.Println(
-			errors.Wrap(err, "error deleting user token"),
+			errors.Wrap(err, "error deleting session"),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

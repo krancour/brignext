@@ -8,7 +8,11 @@ metadata:
 spec:
   type: {{ .Values.apiserver.service.type }}
   ports:
-    - port: {{ .Values.apiserver.service.port }}
+    {{- if .Values.apiserver.tls.enabled }}
+    - port: 443
+    {{- else }}
+    - port: 80
+    {{- end }}
       targetPort: 8080
       protocol: TCP
   selector:

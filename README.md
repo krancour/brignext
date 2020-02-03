@@ -58,10 +58,8 @@ $ kubectl get svc brignext-apiserver -n brigade \
 ```
 
 ```
-$ bin/brignext register <public IP here> -u <username> -p <password>
+$ bin/brignext login <public IP here>
 ```
-
-Besides registering you, this will also automatically log you in.
 
 Unlike the `brig` you may be used to, `brignext` does not create projects
 using an interactive process. You create projects by submitting JSON. (Perhaps

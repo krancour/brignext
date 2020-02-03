@@ -4,26 +4,24 @@ import (
 	"context"
 
 	"github.com/krancour/brignext/pkg/brignext"
-	"github.com/krancour/brignext/pkg/crypto"
 	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type userStore struct {
-	usersCollection      *mongo.Collection
-	userTokensCollection *mongo.Collection
+	usersCollection *mongo.Collection
 }
 
 func NewUserStore(database *mongo.Database) storage.UserStore {
 	return &userStore{
-		usersCollection:      database.Collection("users"),
-		userTokensCollection: database.Collection("userTokens"),
+		usersCollection: database.Collection("users"),
 	}
 }
 
-func (u *userStore) CreateUser(username, password string) error {
+func (u *userStore) CreateUser(username string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
@@ -35,33 +33,35 @@ func (u *userStore) CreateUser(username, password string) error {
 		},
 	)
 	if result.Err() == nil {
-		return errors.Errorf(
-			"a user %q already exists",
+		return "", errors.Errorf(
+			"a user with the username %q already exists",
 			username,
 		)
 	} else if result.Err() != mongo.ErrNoDocuments {
-		return errors.Wrapf(
+		return "", errors.Wrapf(
 			result.Err(),
-			"error checking for existing user %q",
+			"error checking for existing user with the username %q",
 			username,
 		)
 	}
+
+	id := uuid.NewV4().String()
 
 	if _, err :=
 		u.usersCollection.InsertOne(
 			ctx,
 			bson.M{
-				"username":       username,
-				"hashedpassword": crypto.ShortSHA(username, password),
+				"id":       id,
+				"username": username,
 			},
 		); err != nil {
-		return errors.Wrapf(
+		return "", errors.Wrapf(
 			err,
 			"error creating user %q",
 			username,
 		)
 	}
-	return nil
+	return id, nil
 }
 
 func (u *userStore) GetUsers() ([]*brignext.User, error) {
@@ -84,7 +84,37 @@ func (u *userStore) GetUsers() ([]*brignext.User, error) {
 	return users, nil
 }
 
-func (u *userStore) GetUser(username string) (*brignext.User, error) {
+func (u *userStore) GetUser(id string) (*brignext.User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	result := u.usersCollection.FindOne(
+		ctx,
+		bson.M{
+			"id": id,
+		},
+	)
+	if result.Err() == mongo.ErrNoDocuments {
+		return nil, nil
+	} else if result.Err() != nil {
+		return nil, errors.Wrapf(
+			result.Err(),
+			"error retrieving user %q",
+			id,
+		)
+	}
+	user := &brignext.User{}
+	if err := result.Decode(user); err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"error decoding user %q",
+			id,
+		)
+	}
+	return user, nil
+}
+
+func (u *userStore) GetUserByUsername(username string) (*brignext.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
@@ -99,7 +129,7 @@ func (u *userStore) GetUser(username string) (*brignext.User, error) {
 	} else if result.Err() != nil {
 		return nil, errors.Wrapf(
 			result.Err(),
-			"error retrieving user %q",
+			"error retrieving user with username %q",
 			username,
 		)
 	}
@@ -107,99 +137,11 @@ func (u *userStore) GetUser(username string) (*brignext.User, error) {
 	if err := result.Decode(user); err != nil {
 		return nil, errors.Wrapf(
 			err,
-			"error decoding user %q",
+			"error decoding user with username %q",
 			username,
 		)
 	}
 	return user, nil
-}
-
-func (u *userStore) GetUserByUsernameAndPassword(
-	username string,
-	password string,
-) (*brignext.User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	result := u.usersCollection.FindOne(
-		ctx,
-		bson.M{
-			"username":       username,
-			"hashedpassword": crypto.ShortSHA(username, password),
-		},
-	)
-	if result.Err() == mongo.ErrNoDocuments {
-		return nil, nil
-	} else if result.Err() != nil {
-		return nil, errors.Wrapf(
-			result.Err(),
-			"error retrieving user %q with password [REDACTED]",
-			username,
-		)
-	}
-	user := &brignext.User{}
-	if err := result.Decode(user); err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"error decoding user %q",
-			username,
-		)
-	}
-	return user, nil
-}
-
-func (u *userStore) GetUserByToken(token string) (*brignext.User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	result := u.userTokensCollection.FindOne(
-		ctx,
-		bson.M{
-			// TODO: What can we use as a salt?
-			"hashedtoken": crypto.ShortSHA("", token),
-		},
-	)
-	if result.Err() == mongo.ErrNoDocuments {
-		return nil, nil
-	} else if result.Err() != nil {
-		return nil, errors.Wrap(
-			result.Err(),
-			"error retrieving user token [REDACTED]",
-		)
-	}
-	userToken := &brignext.UserToken{}
-	if err := result.Decode(userToken); err != nil {
-		return nil, errors.Wrap(
-			err,
-			"error decoding user token [REDACTED] ",
-		)
-	}
-	return u.GetUser(userToken.Username)
-}
-
-func (u *userStore) UpdateUserPassword(username, password string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	if _, err :=
-		u.usersCollection.UpdateOne(
-			ctx,
-			bson.M{
-				"username": username,
-			},
-			bson.M{
-				"$set": bson.M{
-					"hashedpassword": crypto.ShortSHA(username, password),
-				},
-			},
-		); err != nil {
-		return errors.Wrapf(
-			err,
-			"error updating user %q hashed password",
-			username,
-		)
-	}
-	return nil
 }
 
 func (u *userStore) DeleteUser(username string) error {
@@ -217,50 +159,6 @@ func (u *userStore) DeleteUser(username string) error {
 			err,
 			"error deleting user %q",
 			username,
-		)
-	}
-	return nil
-}
-
-func (u *userStore) CreateUserToken(username string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	token := crypto.NewToken()
-
-	if _, err :=
-		u.userTokensCollection.InsertOne(
-			ctx,
-			bson.M{
-				"username": username,
-				// TODO: What can we use as a salt?
-				"hashedtoken": crypto.ShortSHA("", token),
-			},
-		); err != nil {
-		return "", errors.Wrapf(
-			err,
-			"error creating new token for user %q",
-			username,
-		)
-	}
-	return token, nil
-}
-
-func (u *userStore) DeleteUserToken(token string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	if _, err :=
-		u.userTokensCollection.DeleteOne(
-			ctx,
-			bson.M{
-				// TODO: What can we use as a salt?
-				"hashedtoken": crypto.ShortSHA("", token),
-			},
-		); err != nil {
-		return errors.Wrap(
-			err,
-			"error deleting user token [REDACTED]",
 		)
 	}
 	return nil

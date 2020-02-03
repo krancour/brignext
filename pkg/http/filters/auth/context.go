@@ -8,7 +8,7 @@ import (
 
 type userContextKey struct{}
 
-type userTokenContextKey struct{}
+type sessionIDContextKey struct{}
 
 func UserFromContext(ctx context.Context) *brignext.User {
 	user := ctx.Value(userContextKey{})
@@ -18,8 +18,8 @@ func UserFromContext(ctx context.Context) *brignext.User {
 	return user.(*brignext.User)
 }
 
-func UserTokenFromContext(ctx context.Context) string {
-	token := ctx.Value(userTokenContextKey{})
+func SessionIDFromContext(ctx context.Context) string {
+	token := ctx.Value(sessionIDContextKey{})
 	if token == nil {
 		return ""
 	}

@@ -5,14 +5,15 @@ import (
 )
 
 type User struct {
-	Username       string
-	HashedPassword string
+	ID       string
+	Username string
 }
 
-type UserToken struct {
-	Username    string
-	HashedToken string
-	// TODO: Tokens should expire!!!!
+type Session struct {
+	ID            string
+	Authenticated bool
+	UserID        string
+	ExpiresAt     time.Time
 }
 
 type Project struct {

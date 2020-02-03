@@ -12,8 +12,9 @@ func buildDeleteAll(c *cli.Context) error {
 	// Inputs
 	projectName := c.Args()[0]
 	force := c.Bool(flagForce)
+	allowInsecure := c.GlobalBool(flagInsecure)
 
-	req, err := getRequest(
+	req, err := buildRequest(
 		http.MethodDelete,
 		fmt.Sprintf("v2/projects/%s/builds", projectName),
 		nil,
@@ -25,8 +26,7 @@ func buildDeleteAll(c *cli.Context) error {
 		req.URL.Query().Set("force", "true")
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := getHTTPClient(allowInsecure).Do(req)
 	if err != nil {
 		return errors.Wrap(err, "error invoking API")
 	}

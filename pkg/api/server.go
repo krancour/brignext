@@ -6,14 +6,15 @@ import (
 	"net/http"
 
 	oldStorage "github.com/brigadecore/brigade/pkg/storage"
+	"github.com/coreos/go-oidc"
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/krancour/brignext/pkg/file"
 	"github.com/krancour/brignext/pkg/http/filter"
 	"github.com/krancour/brignext/pkg/http/filters/auth"
 	"github.com/krancour/brignext/pkg/storage"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
+	"golang.org/x/oauth2"
 )
 
 // Server is an interface for the component that responds to HTTP API requests
@@ -24,65 +25,66 @@ type Server interface {
 }
 
 type server struct {
-	apiServerConfig Config
-	userStore       storage.UserStore
-	oldProjectStore oldStorage.Store
-	projectStore    storage.ProjectStore
-	logStore        storage.LogStore
-	filterChain     filter.Filter
-	router          *mux.Router
+	apiServerConfig   Config
+	oauth2Config      oauth2.Config
+	oidcTokenVerifier oidc.IDTokenVerifier
+	userStore         storage.UserStore
+	sessionStore      storage.SessionStore
+	oldProjectStore   oldStorage.Store
+	projectStore      storage.ProjectStore
+	logStore          storage.LogStore
+	filterChain       filter.Filter
+	router            *mux.Router
 }
 
 // NewServer returns an HTTP router
 func NewServer(
 	apiServerConfig Config,
+	oauth2Config oauth2.Config,
+	oidcTokenVerifier oidc.IDTokenVerifier,
 	userStore storage.UserStore,
+	sessionStore storage.SessionStore,
 	oldProjectStore oldStorage.Store,
 	projectStore storage.ProjectStore,
 	logStore storage.LogStore,
 ) Server {
 	s := &server{
-		apiServerConfig: apiServerConfig,
-		userStore:       userStore,
-		oldProjectStore: oldProjectStore,
-		projectStore:    projectStore,
-		logStore:        logStore,
-		router:          mux.NewRouter(),
+		apiServerConfig:   apiServerConfig,
+		oauth2Config:      oauth2Config,
+		oidcTokenVerifier: oidcTokenVerifier,
+		userStore:         userStore,
+		sessionStore:      sessionStore,
+		oldProjectStore:   oldProjectStore,
+		projectStore:      projectStore,
+		logStore:          logStore,
+		router:            mux.NewRouter(),
 	}
 
-	basicAuthFilterChain := filter.NewChain(
-		auth.NewBasicAuthFilter(
-			func(username, password string) (*brignext.User, error) {
-				return userStore.GetUserByUsernameAndPassword(username, password)
-			},
-		),
-	)
 	tokenAuthChain := filter.NewChain(
 		auth.NewTokenAuthFilter(
-			func(token string) (*brignext.User, error) {
-				return userStore.GetUserByToken(token)
-			},
+			sessionStore.GetSessionByToken,
+			userStore.GetUser,
 		),
 	)
 
 	s.router.StrictSlash(true)
 
-	// Create user
+	// Create session
 	s.router.HandleFunc(
-		"/v2/users",
-		s.userCreate, // No filter chain applied to this request
+		"/v2/sessions",
+		s.sessionCreate, // No filter chain applied to this request
 	).Methods(http.MethodPost)
 
-	// Create token
+	// OIDC callback
 	s.router.HandleFunc(
-		"/v2/users/{username}/tokens",
-		basicAuthFilterChain.GetHandler(s.tokenCreate),
-	).Methods(http.MethodPost)
+		"/auth/oidc/callback",
+		s.oidcAuthComplete, // No filter chain applied to this request
+	).Methods(http.MethodGet)
 
-	// Delete token
+	// Delete session
 	s.router.HandleFunc(
-		"/v2/user/token",
-		tokenAuthChain.GetHandler(s.tokenDelete),
+		"/v2/session",
+		tokenAuthChain.GetHandler(s.sessionDelete),
 	).Methods(http.MethodDelete)
 
 	// Create project

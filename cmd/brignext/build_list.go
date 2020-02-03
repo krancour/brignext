@@ -21,6 +21,7 @@ func buildList(c *cli.Context) error {
 		projectName = c.Args()[0]
 	}
 	output := c.String(flagOutput)
+	allowInsecure := c.GlobalBool(flagInsecure)
 
 	switch output {
 	case "table":
@@ -33,13 +34,12 @@ func buildList(c *cli.Context) error {
 	if projectName != "" {
 		path = fmt.Sprintf("v2/projects/%s/builds", projectName)
 	}
-	req, err := getRequest(http.MethodGet, path, nil)
+	req, err := buildRequest(http.MethodGet, path, nil)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := getHTTPClient(allowInsecure).Do(req)
 	if err != nil {
 		return errors.Wrap(err, "error invoking API")
 	}

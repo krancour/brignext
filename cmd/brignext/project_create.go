@@ -15,6 +15,7 @@ import (
 func projectCreate(c *cli.Context) error {
 	// Inputs
 	filename := c.Args()[0]
+	allowInsecure := c.GlobalBool(flagInsecure)
 
 	// Read and parse the file
 	projectBytes, err := ioutil.ReadFile(filename)
@@ -22,13 +23,12 @@ func projectCreate(c *cli.Context) error {
 		return errors.Wrapf(err, "error reading project file %s", filename)
 	}
 
-	req, err := getRequest(http.MethodPost, "v2/projects", projectBytes)
+	req, err := buildRequest(http.MethodPost, "v2/projects", projectBytes)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := getHTTPClient(allowInsecure).Do(req)
 	if err != nil {
 		return errors.Wrap(err, "error invoking API")
 	}

@@ -17,6 +17,7 @@ func projectGet(c *cli.Context) error {
 	// Inputs
 	projectName := c.Args()[0]
 	output := c.String(flagOutput)
+	allowInsecure := c.GlobalBool(flagInsecure)
 
 	switch output {
 	case "table":
@@ -25,7 +26,7 @@ func projectGet(c *cli.Context) error {
 		return errors.Errorf("unknown output format %q", output)
 	}
 
-	req, err := getRequest(
+	req, err := buildRequest(
 		http.MethodGet,
 		fmt.Sprintf("v2/projects/%s", projectName),
 		nil,
@@ -34,8 +35,7 @@ func projectGet(c *cli.Context) error {
 		return errors.Wrap(err, "error creating HTTP request")
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := getHTTPClient(allowInsecure).Do(req)
 	if err != nil {
 		return errors.Wrap(err, "error invoking API")
 	}

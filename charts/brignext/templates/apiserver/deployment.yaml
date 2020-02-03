@@ -16,6 +16,10 @@ spec:
       labels:
         {{- include "brignext.selectorLabels" . | nindent 8 }}
         {{- include "brignext.apiserver.labels" . | nindent 8 }}
+      {{- if .Values.apiserver.tls.enabled }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/apiserver/cert-secret.yaml") . | sha256sum }}
+      {{- end }}
     spec:
       serviceAccount: {{ include "brignext.apiserver.fullname" . }}
       containers:
@@ -25,6 +29,27 @@ spec:
         args:
         - --logtostderr=true
         env:
+        {{- if .Values.apiserver.tls.enabled }}
+        - name: API_SERVER_TLS_CERT_PATH
+          value: /app/certs/tls.crt
+        - name: API_SERVER_TLS_KEY_PATH
+          value: /app/certs/tls.key
+        {{- end }}
+        - name: OIDC_PROVIDER_URL
+          value: {{ .Values.apiserver.oidc.providerURL }}
+        - name: OIDC_CLIENT_ID
+          value: {{ .Values.apiserver.oidc.clientID }}
+        - name: OIDC_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "brignext.apiserver.fullname" . }}
+              key: oidc-client-secret
+        - name: OIDC_REDIRECT_URL_BASE
+          {{- if or (and (not .Values.apiserver.ingress.enabled) .Values.apiserver.tls.enabled) (and .Values.apiserver.ingress.enabled .Values.apiserver.ingress.tls.enabled) }}
+          value: https://{{ .Values.apiserver.host }}
+          {{- else }}
+          value: http://{{ .Values.apiserver.host }}
+          {{- end }}
         - name: MONGODB_HOST
           value: {{ include "call-nested" (list . "mongodb" "mongodb.fullname") }}.{{ .Release.Namespace }}.svc.cluster.local
         - name: MONGODB_PORT
@@ -38,16 +63,40 @@ spec:
             secretKeyRef:
               name: {{ include "call-nested" (list . "mongodb" "mongodb.fullname") }}
               key: mongodb-password
+        {{- if .Values.apiserver.tls.enabled }}
+        volumeMounts:
+        - name: cert
+          mountPath: /app/certs
+          readOnly: true
+        {{- end }}
         readinessProbe:
-          tcpSocket:
+          httpGet:
             port: 8080
+            path: /healthz
+            {{- if .Values.apiserver.tls.enabled }}
+            scheme: HTTPS
+            {{- else }}
+            scheme: HTTP
+            {{- end }}
           initialDelaySeconds: 5
           periodSeconds: 10
         livenessProbe:
-          tcpSocket:
+          httpGet:
             port: 8080
+            path: /healthz
+            {{- if .Values.apiserver.tls.enabled }}
+            scheme: HTTPS
+            {{- else }}
+            scheme: HTTP
+            {{- end }}
           initialDelaySeconds: 15
           periodSeconds: 20
+      {{- if .Values.apiserver.tls.enabled }}
+      volumes:
+      - name: cert
+        secret:
+          secretName: {{ include "brignext.apiserver.fullname" . }}-cert
+      {{- end }}
       {{- with .Values.apiserver.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

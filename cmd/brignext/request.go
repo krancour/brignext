@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func getRequest(method, path string, body []byte) (*http.Request, error) {
+func buildRequest(method, path string, body []byte) (*http.Request, error) {
 	config, err := getConfig()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving configuration")

@@ -24,6 +24,7 @@ func run(c *cli.Context) error {
 	level := c.String(flagLevel)
 	payloadFile := c.String(flagPayload)
 	ref := c.String(flagRef)
+	allowInsecure := c.GlobalBool(flagInsecure)
 
 	var configBytes []byte
 	if configFile != "" {
@@ -71,13 +72,12 @@ func run(c *cli.Context) error {
 		return errors.Wrap(err, "error marshaling build")
 	}
 
-	req, err := getRequest(http.MethodPost, "v2/builds", buildBytes)
+	req, err := buildRequest(http.MethodPost, "v2/builds", buildBytes)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := getHTTPClient(allowInsecure).Do(req)
 	if err != nil {
 		return errors.Wrap(err, "error invoking API")
 	}
@@ -109,7 +109,7 @@ func run(c *cli.Context) error {
 
 	// Now stream the logs
 
-	if req, err = getRequest(
+	if req, err = buildRequest(
 		http.MethodGet,
 		fmt.Sprintf("v2/builds/%s/logs", build.ID),
 		nil,
@@ -117,7 +117,7 @@ func run(c *cli.Context) error {
 		return errors.Wrap(err, "error creating HTTP request")
 	}
 
-	logsResp, err := client.Do(req)
+	logsResp, err := getHTTPClient(allowInsecure).Do(req)
 	if err != nil {
 		return errors.Wrap(err, "error invoking API")
 	}

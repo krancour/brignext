@@ -11,6 +11,12 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "brignext"
 	app.Usage = "Is this what Brigade 2.0 looks like?"
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  flagsInsecure,
+			Usage: "Allow insecure API server connections when using TLS",
+		},
+	}
 	app.Commands = []cli.Command{
 		{
 			Name:  "build",
@@ -95,13 +101,10 @@ func main() {
 			Usage:     "Log in to Brigade",
 			ArgsUsage: "HOST",
 			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  flagsUsername,
-					Usage: "Username",
-				},
-				cli.StringFlag{
-					Name:  flagsPassword,
-					Usage: "Password",
+				cli.BoolFlag{
+					Name: flagsOpen,
+					Usage: "Use the system's default web browser to navigate to the " +
+						"authentication URL",
 				},
 			},
 			Action: login,
@@ -164,22 +167,6 @@ func main() {
 					Action:    projectUpdate,
 				},
 			},
-		},
-		{
-			Name:      "register",
-			Usage:     "Register as a new Brigade user",
-			ArgsUsage: "API_SERVER_ADDRESS",
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  flagsUsername,
-					Usage: "Desired username",
-				},
-				cli.StringFlag{
-					Name:  flagsPassword,
-					Usage: "Desired password",
-				},
-			},
-			Action: register,
 		},
 		{
 			Name:      "run",

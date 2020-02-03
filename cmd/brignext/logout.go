@@ -9,13 +9,15 @@ import (
 )
 
 func logout(c *cli.Context) error {
-	req, err := getRequest(http.MethodDelete, "v2/user/token", nil)
+	// Inputs
+	allowInsecure := c.GlobalBool(flagInsecure)
+
+	req, err := buildRequest(http.MethodDelete, "v2/session", nil)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := getHTTPClient(allowInsecure).Do(req)
 	if err != nil {
 		return errors.Wrap(err, "error invoking API")
 	}
