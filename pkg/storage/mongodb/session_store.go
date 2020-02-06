@@ -45,6 +45,28 @@ func (s *sessionStore) CreateSession() (string, string, error) {
 	return oauth2State, token, nil
 }
 
+func (s *sessionStore) CreateRootSession() (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	token := crypto.NewToken(256)
+
+	if _, err := s.sessionsCollection.InsertOne(
+		ctx,
+		bson.M{
+			"id":            uuid.NewV4().String(),
+			"root":          true,
+			"hashedtoken":   crypto.ShortSHA("", token),
+			"authenticated": true,
+			"expiresat":     time.Now().Add(10 * time.Minute),
+		},
+	); err != nil {
+		return "", errors.Wrap(err, "error creating new root session")
+	}
+
+	return token, nil
+}
+
 func (s *sessionStore) GetSessionByOAuth2State(
 	oauth2State string,
 ) (*brignext.Session, error) {

@@ -102,9 +102,18 @@ func main() {
 			ArgsUsage: "HOST",
 			Flags: []cli.Flag{
 				cli.BoolFlag{
+					Name:  flagsRoot,
+					Usage: "Log in as the root user",
+				},
+				cli.StringFlag{
+					Name: flagsPassword,
+					Usage: "Specify the password for root user login " +
+						"non-interactively; only applicaple when --root is used",
+				},
+				cli.BoolFlag{
 					Name: flagsOpen,
 					Usage: "Use the system's default web browser to navigate to the " +
-						"authentication URL",
+						"authentication URL; not applicable when --root is used",
 				},
 			},
 			Action: login,

@@ -9,7 +9,6 @@ import (
 	"github.com/coreos/go-oidc"
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/pkg/file"
-	"github.com/krancour/brignext/pkg/http/filter"
 	"github.com/krancour/brignext/pkg/http/filters/auth"
 	"github.com/krancour/brignext/pkg/storage"
 	"golang.org/x/net/http2"
@@ -26,22 +25,21 @@ type Server interface {
 
 type server struct {
 	apiServerConfig   Config
-	oauth2Config      oauth2.Config
-	oidcTokenVerifier oidc.IDTokenVerifier
+	oauth2Config      *oauth2.Config
+	oidcTokenVerifier *oidc.IDTokenVerifier
 	userStore         storage.UserStore
 	sessionStore      storage.SessionStore
 	oldProjectStore   oldStorage.Store
 	projectStore      storage.ProjectStore
 	logStore          storage.LogStore
-	filterChain       filter.Filter
 	router            *mux.Router
 }
 
 // NewServer returns an HTTP router
 func NewServer(
 	apiServerConfig Config,
-	oauth2Config oauth2.Config,
-	oidcTokenVerifier oidc.IDTokenVerifier,
+	oauth2Config *oauth2.Config,
+	oidcTokenVerifier *oidc.IDTokenVerifier,
 	userStore storage.UserStore,
 	sessionStore storage.SessionStore,
 	oldProjectStore oldStorage.Store,
@@ -60,11 +58,11 @@ func NewServer(
 		router:            mux.NewRouter(),
 	}
 
-	tokenAuthChain := filter.NewChain(
-		auth.NewTokenAuthFilter(
-			sessionStore.GetSessionByToken,
-			userStore.GetUser,
-		),
+	// Most requests are authenticated with a bearer token
+	tokenAuthFilter := auth.NewTokenAuthFilter(
+		sessionStore.GetSessionByToken,
+		userStore.GetUser,
+		apiServerConfig.RootUserEnabled(),
 	)
 
 	s.router.StrictSlash(true)
@@ -72,122 +70,123 @@ func NewServer(
 	// Create session
 	s.router.HandleFunc(
 		"/v2/sessions",
-		s.sessionCreate, // No filter chain applied to this request
+		s.sessionCreate, // No filters applied to this request
 	).Methods(http.MethodPost)
 
-	// OIDC callback
-	s.router.HandleFunc(
-		"/auth/oidc/callback",
-		s.oidcAuthComplete, // No filter chain applied to this request
-	).Methods(http.MethodGet)
+	if oauth2Config != nil && oidcTokenVerifier != nil {
+		// OIDC callback
+		s.router.HandleFunc(
+			"/auth/oidc/callback",
+			s.oidcAuthComplete, // No filters applied to this request
+		).Methods(http.MethodGet)
+	}
 
 	// Delete session
 	s.router.HandleFunc(
 		"/v2/session",
-		tokenAuthChain.GetHandler(s.sessionDelete),
+		tokenAuthFilter.Decorate(s.sessionDelete),
 	).Methods(http.MethodDelete)
 
 	// Create project
 	s.router.HandleFunc(
 		"/v2/projects",
-		tokenAuthChain.GetHandler(s.projectCreate),
+		tokenAuthFilter.Decorate(s.projectCreate),
 	).Methods(http.MethodPost)
 
 	// List projects
 	s.router.HandleFunc(
 		"/v2/projects",
-		tokenAuthChain.GetHandler(s.projectList),
+		tokenAuthFilter.Decorate(s.projectList),
 	).Methods(http.MethodGet)
 
 	// Get project
 	s.router.HandleFunc(
 		"/v2/projects/{name}",
-		tokenAuthChain.GetHandler(s.projectGet),
+		tokenAuthFilter.Decorate(s.projectGet),
 	).Methods(http.MethodGet)
 
 	// List project's builds
 	s.router.HandleFunc(
 		"/v2/projects/{projectName}/builds",
-		tokenAuthChain.GetHandler(s.buildList),
+		tokenAuthFilter.Decorate(s.buildList),
 	).Methods(http.MethodGet)
 
 	// Update project
 	s.router.HandleFunc(
 		"/v2/projects/{name}",
-		tokenAuthChain.GetHandler(s.projectUpdate),
+		tokenAuthFilter.Decorate(s.projectUpdate),
 	).Methods(http.MethodPut)
 
 	// Delete project
 	s.router.HandleFunc(
 		"/v2/projects/{name}",
-		tokenAuthChain.GetHandler(s.projectDelete),
+		tokenAuthFilter.Decorate(s.projectDelete),
 	).Methods(http.MethodDelete)
 
 	// List project's builds
 	s.router.HandleFunc(
 		"/v2/projects/{projectName}/builds",
-		tokenAuthChain.GetHandler(s.buildDeleteAll),
+		tokenAuthFilter.Decorate(s.buildDeleteAll),
 	).Methods(http.MethodDelete)
 
 	// Create build
 	s.router.HandleFunc(
 		"/v2/builds",
-		tokenAuthChain.GetHandler(s.buildCreate),
+		tokenAuthFilter.Decorate(s.buildCreate),
 	).Methods(http.MethodPost)
 
 	// List builds
 	s.router.HandleFunc(
 		"/v2/builds",
-		tokenAuthChain.GetHandler(s.buildList),
+		tokenAuthFilter.Decorate(s.buildList),
 	).Methods(http.MethodGet)
 
 	// Get build
 	s.router.HandleFunc(
 		"/v2/builds/{id}",
-		tokenAuthChain.GetHandler(s.buildGet),
+		tokenAuthFilter.Decorate(s.buildGet),
 	).Methods(http.MethodGet)
 
 	// Stream logs
 	s.router.HandleFunc(
 		"/v2/builds/{id}/logs",
-		tokenAuthChain.GetHandler(s.buildLogs),
+		tokenAuthFilter.Decorate(s.buildLogs),
 	).Methods(http.MethodGet)
 
 	// Delete build
 	s.router.HandleFunc(
 		"/v2/builds/{id}",
-		tokenAuthChain.GetHandler(s.buildDelete),
+		tokenAuthFilter.Decorate(s.buildDelete),
 	).Methods(http.MethodDelete)
 
 	// Health check
 	s.router.HandleFunc(
 		"/healthz",
-		s.healthCheck, // No filter chain applied to this request
+		s.healthCheck, // No filters applied to this request
 	).Methods(http.MethodGet)
 
 	return s
 }
 
 func (s *server) ListenAndServe() error {
-	address := fmt.Sprintf(":%d", s.apiServerConfig.Port)
-	if s.apiServerConfig.TLSCertPath != "" &&
-		s.apiServerConfig.TLSKeyPath != "" &&
-		file.Exists(s.apiServerConfig.TLSCertPath) &&
-		file.Exists(s.apiServerConfig.TLSKeyPath) {
+	address := fmt.Sprintf(":%d", s.apiServerConfig.Port())
+	if s.apiServerConfig.TLSEnabled() &&
+		file.Exists(s.apiServerConfig.TLSCertPath()) &&
+		file.Exists(s.apiServerConfig.TLSKeyPath()) {
 		log.Printf(
 			"API server is listening with TLS enabled on 0.0.0.0:%d",
-			s.apiServerConfig.Port,
+			s.apiServerConfig.Port(),
 		)
 		return http.ListenAndServeTLS(
 			address,
-			s.apiServerConfig.TLSCertPath,
-			s.apiServerConfig.TLSKeyPath,
+			s.apiServerConfig.TLSCertPath(),
+			s.apiServerConfig.TLSKeyPath(),
 			s.router,
 		)
 	}
 	log.Printf(
 		"API server is listening without TLS on 0.0.0.0:%d",
-		s.apiServerConfig.Port,
+		s.apiServerConfig.Port(),
 	)
 	return http.ListenAndServe(
 		address,

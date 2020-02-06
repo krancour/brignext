@@ -11,6 +11,7 @@ type User struct {
 
 type Session struct {
 	ID            string
+	Root          bool
 	Authenticated bool
 	UserID        string
 	ExpiresAt     time.Time

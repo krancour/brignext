@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestExists(t *testing.T) {
@@ -18,10 +18,10 @@ func TestExists(t *testing.T) {
 		"%s/src/github.com/krancour/brignext/pkg/file/file_test.go",
 		gopath,
 	)
-	assert.True(t, Exists(file))
+	require.True(t, Exists(file))
 	file = fmt.Sprintf(
 		"%s/src/github.com/krancour/brignext/pkg/file/bogus.go",
 		gopath,
 	)
-	assert.False(t, Exists(file))
+	require.False(t, Exists(file))
 }

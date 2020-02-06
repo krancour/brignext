@@ -20,6 +20,11 @@ apiserver:
     tag: latest
     pullPolicy: Always
 
+  rootUser:
+    enabled: true
+    # TODO: This should probably be generated
+    password: F00Bar!!!
+
   oidc:
     ## Whether to enable OpenID Connect. OpenID Connect (an authentication
     ## protocol built on top of OAuth2) delegates authentication to a trusted
@@ -27,7 +32,7 @@ apiserver:
     ## installation of Brigade with an anticipated user base of n > 1.
     ##
     ## OpenID Connect support REQUIRES TLS to be enabled.
-    enabled: true
+    enabled: false
     ## ProviderURL examples:
     ##
     ##   Google Identity Platform:

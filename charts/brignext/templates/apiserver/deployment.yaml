@@ -29,12 +29,18 @@ spec:
         args:
         - --logtostderr=true
         env:
-        {{- if .Values.apiserver.tls.enabled }}
-        - name: API_SERVER_TLS_CERT_PATH
-          value: /app/certs/tls.crt
-        - name: API_SERVER_TLS_KEY_PATH
-          value: /app/certs/tls.key
+        - name: API_SERVER_ROOT_USER_ENABLED
+          value: {{ quote .Values.apiserver.rootUser.enabled }}
+        {{- if .Values.apiserver.rootUser.enabled }}
+        - name: API_SERVER_ROOT_USER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "brignext.apiserver.fullname" . }}
+              key: root-user-password
         {{- end }}
+        - name: API_SERVER_OIDC_ENABLED
+          value: {{ quote .Values.apiserver.oidc.enabled }}
+        {{- if .Values.apiserver.oidc.enabled }}
         - name: OIDC_PROVIDER_URL
           value: {{ .Values.apiserver.oidc.providerURL }}
         - name: OIDC_CLIENT_ID
@@ -50,6 +56,15 @@ spec:
           {{- else }}
           value: http://{{ .Values.apiserver.host }}
           {{- end }}
+        {{- end }}
+        - name: API_SERVER_TLS_ENABLED
+          value: {{ quote .Values.apiserver.tls.enabled }}
+        {{- if .Values.apiserver.tls.enabled }}
+        - name: API_SERVER_TLS_CERT_PATH
+          value: /app/certs/tls.crt
+        - name: API_SERVER_TLS_KEY_PATH
+          value: /app/certs/tls.key
+        {{- end }}
         - name: MONGODB_HOST
           value: {{ include "call-nested" (list . "mongodb" "mongodb.fullname") }}.{{ .Release.Namespace }}.svc.cluster.local
         - name: MONGODB_PORT

@@ -3,7 +3,7 @@ ARG VERSION
 ARG COMMIT
 ENV CGO_ENABLED=0
 WORKDIR /go/src/github.com/krancour/brignext
-COPY cmd/ cmd/
+COPY cmd/apiserver cmd/apiserver
 COPY pkg/ pkg/
 COPY vendor/ vendor/
 RUN go build \

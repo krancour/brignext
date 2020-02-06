@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -22,6 +25,8 @@ func login(c *cli.Context) error {
 	address := c.Args()[0]
 	browseToAuthURL := c.Bool(flagOpen)
 	allowInsecure := c.GlobalBool(flagInsecure)
+	rootLogin := c.Bool(flagRoot)
+	password := c.String(flagPassword)
 
 	req, err := http.NewRequest(
 		http.MethodPost,
@@ -30,6 +35,26 @@ func login(c *cli.Context) error {
 	)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
+	}
+
+	if rootLogin {
+		q := req.URL.Query()
+		q.Set("root", "true")
+		req.URL.RawQuery = q.Encode()
+
+		reader := bufio.NewReader(os.Stdin)
+		for {
+			password = strings.TrimSpace(password)
+			if password != "" {
+				fmt.Println()
+				break
+			}
+			fmt.Print("Root user password? ")
+			if password, err = reader.ReadString('\n'); err != nil {
+				return errors.Wrap(err, "error reading password from stdin")
+			}
+		}
+		req.SetBasicAuth("root", password)
 	}
 
 	resp, err := getHTTPClient(allowInsecure).Do(req)
@@ -62,6 +87,11 @@ func login(c *cli.Context) error {
 		},
 	); err != nil {
 		return errors.Wrap(err, "error persisting configuration")
+	}
+
+	if rootLogin {
+		fmt.Println("You are logged in as the root user.")
+		return nil
 	}
 
 	if browseToAuthURL {

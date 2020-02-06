@@ -28,8 +28,12 @@ const (
 	flagsOpen       = "open, o"
 	flagOutput      = "output"
 	flagsOutput     = "output, o"
+	flagPassword    = "password"
+	flagsPassword   = "password, p"
 	flagPayload     = "payload"
 	flagsPayload    = "payload, p"
 	flagRef         = "ref"
 	flagsRef        = "ref, r"
+	flagRoot        = "root"
+	flagsRoot       = "root, r"
 )
