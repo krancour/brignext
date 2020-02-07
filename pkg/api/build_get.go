@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 )
 
@@ -15,7 +14,7 @@ func (s *server) buildGet(w http.ResponseWriter, r *http.Request) {
 
 	buildID := mux.Vars(r)["id"]
 
-	build, err := s.projectStore.GetBuild(buildID)
+	build, ok, err := s.projectStore.GetBuild(buildID)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error retrieving build"),
@@ -23,28 +22,12 @@ func (s *server) buildGet(w http.ResponseWriter, r *http.Request) {
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
 	}
-
-	if build == nil {
+	if !ok {
 		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}
 
-	project, err := s.projectStore.GetProject(build.ProjectID)
-	if err != nil {
-		log.Println(
-			errors.Wrapf(
-				err,
-				"error retrieving project with id %q",
-				build.ProjectID,
-			),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-
-	brignextBuild := brignext.BrigadeBuildToBrigNextBuild(build, project.Name)
-
-	responseBytes, err := json.Marshal(brignextBuild)
+	responseBytes, err := json.Marshal(build)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error marshaling get build response"),

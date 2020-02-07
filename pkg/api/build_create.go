@@ -8,6 +8,7 @@ import (
 
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 )
 
 func (s *server) buildCreate(w http.ResponseWriter, r *http.Request) {
@@ -22,38 +23,31 @@ func (s *server) buildCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	build := &brignext.Build{}
-	if err := json.Unmarshal(bodyBytes, build); err != nil {
+	build := brignext.Build{}
+	if err := json.Unmarshal(bodyBytes, &build); err != nil {
 		log.Println(
 			errors.Wrap(err, "error unmarshaling body of create build request"),
 		)
 		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
 		return
 	}
+	build.ID = uuid.NewV4().String()
 
 	// TODO: We should do some kind of validation!
 
-	brigadeBuild := brignext.BrigNextBuildToBrigadeBuild(build)
-
-	if err := s.oldProjectStore.CreateBuild(brigadeBuild); err != nil {
-		log.Println(
-			errors.Wrap(err, "error storing new build in old store"),
-		)
-		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
+	if err := s.projectStore.CreateBuild(build); err != nil {
+		log.Println(errors.Wrap(err, "error creating new build"))
+		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
 	}
 
-	// We DON'T write to the new store here. Gateways all still write to the old
-	// store only. We'll use a controller to intercept all those old-style build
-	// creations and echo them to the new store. Which means we don't have to
-	// write to the new store here-- in fact, if we did, we'd end up with a
-	// duplicate.
-
-	// This is how we'll be certain to return the build ID that is assigned
-	// by the write to the old store.
-	build = brignext.BrigadeBuildToBrigNextBuild(brigadeBuild, build.ProjectName)
-
-	responseBytes, err := json.Marshal(build)
+	responseBytes, err := json.Marshal(
+		struct {
+			ID string `json:"id"`
+		}{
+			ID: build.ID,
+		},
+	)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error marshaling create build response"),
@@ -62,5 +56,6 @@ func (s *server) buildCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.writeResponse(w, http.StatusOK, responseBytes)
+	s.writeResponse(w, http.StatusCreated, responseBytes)
+	return
 }

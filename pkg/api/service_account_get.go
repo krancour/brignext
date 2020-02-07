@@ -15,16 +15,15 @@ func (s *server) serviceAccountGet(w http.ResponseWriter, r *http.Request) {
 
 	name := mux.Vars(r)["name"]
 
-	serviceAccount, err := s.userStore.GetServiceAccountByName(name)
+	serviceAccount, ok, err := s.userStore.GetServiceAccount(name)
 	if err != nil {
 		log.Println(
-			errors.Wrap(err, "error retrieving service account"),
+			errors.Wrapf(err, "error retrieving service account %q", name),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
 	}
-
-	if serviceAccount == nil {
+	if !ok {
 		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}

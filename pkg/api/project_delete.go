@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/brigadecore/brigade/pkg/brigade"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -12,19 +11,11 @@ import (
 func (s *server) projectDelete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	projectName := mux.Vars(r)["name"]
-	projectID := brigade.ProjectID(projectName)
+	name := mux.Vars(r)["name"]
 
-	if err := s.projectStore.DeleteProject(projectID); err != nil {
+	if err := s.projectStore.DeleteProject(name); err != nil {
 		log.Println(
-			errors.Wrap(err, "error deleting project"),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-	if err := s.oldProjectStore.DeleteProject(projectID); err != nil {
-		log.Println(
-			errors.Wrap(err, "error deleting project from old store"),
+			errors.Wrapf(err, "error deleting project %q", name),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

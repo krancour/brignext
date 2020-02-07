@@ -47,6 +47,9 @@ func buildGet(c *cli.Context) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return errors.Errorf("Build %q not found.", id)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
@@ -56,13 +59,9 @@ func buildGet(c *cli.Context) error {
 		return errors.Wrap(err, "error reading response body")
 	}
 
-	build := &brignext.Build{}
-	if err := json.Unmarshal(respBodyBytes, build); err != nil {
+	build := brignext.Build{}
+	if err := json.Unmarshal(respBodyBytes, &build); err != nil {
 		return errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	if build.ID == "" {
-		return errors.Errorf("Build %q not found.", id)
 	}
 
 	switch output {

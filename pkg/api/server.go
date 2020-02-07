@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	oldStorage "github.com/brigadecore/brigade/pkg/storage"
 	"github.com/coreos/go-oidc"
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/pkg/file"
@@ -29,7 +28,6 @@ type server struct {
 	oidcTokenVerifier *oidc.IDTokenVerifier
 	userStore         storage.UserStore
 	sessionStore      storage.SessionStore
-	oldProjectStore   oldStorage.Store
 	projectStore      storage.ProjectStore
 	logStore          storage.LogStore
 	router            *mux.Router
@@ -42,7 +40,6 @@ func NewServer(
 	oidcTokenVerifier *oidc.IDTokenVerifier,
 	userStore storage.UserStore,
 	sessionStore storage.SessionStore,
-	oldProjectStore oldStorage.Store,
 	projectStore storage.ProjectStore,
 	logStore storage.LogStore,
 ) Server {
@@ -52,7 +49,6 @@ func NewServer(
 		oidcTokenVerifier: oidcTokenVerifier,
 		userStore:         userStore,
 		sessionStore:      sessionStore,
-		oldProjectStore:   oldProjectStore,
 		projectStore:      projectStore,
 		logStore:          logStore,
 		router:            mux.NewRouter(),
@@ -159,10 +155,6 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.buildDelete),
 	).Methods(http.MethodDelete)
 
-	// TODO: Figure out what order I actually want to list these endpoints
-
-	// ---------------------------------------------------------------------------
-
 	// List users
 	s.router.HandleFunc(
 		"/v2/users",
@@ -180,8 +172,6 @@ func NewServer(
 		"/v2/users/{username}",
 		tokenAuthFilter.Decorate(s.userDelete),
 	).Methods(http.MethodDelete)
-
-	// ---------------------------------------------------------------------------
 
 	// Create service account
 	s.router.HandleFunc(
@@ -206,8 +196,6 @@ func NewServer(
 		"/v2/service-accounts/{name}",
 		tokenAuthFilter.Decorate(s.serviceAccountDelete),
 	).Methods(http.MethodDelete)
-
-	// ---------------------------------------------------------------------------
 
 	// Health check
 	s.router.HandleFunc(

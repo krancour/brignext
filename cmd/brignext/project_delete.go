@@ -10,12 +10,12 @@ import (
 
 func projectDelete(c *cli.Context) error {
 	// Inputs
-	projectName := c.Args()[0]
+	name := c.Args()[0]
 	allowInsecure := c.GlobalBool(flagInsecure)
 
 	req, err := buildRequest(
 		http.MethodDelete,
-		fmt.Sprintf("v2/projects/%s", projectName),
+		fmt.Sprintf("v2/projects/%s", name),
 		nil,
 	)
 	if err != nil {
@@ -32,7 +32,7 @@ func projectDelete(c *cli.Context) error {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	fmt.Printf("Project %q deleted.\n", projectName)
+	fmt.Printf("Project %q deleted.\n", name)
 
 	return nil
 }

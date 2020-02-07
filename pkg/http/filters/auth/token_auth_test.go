@@ -97,7 +97,7 @@ func TestTokenAuthFilterWithAuthenticatedSession(t *testing.T) {
 			return &brignext.Session{
 				ID:            sessionID,
 				Authenticated: true,
-				ExpiresAt:     time.Now().Add(time.Minute),
+				Expires:       time.Now().Add(time.Minute),
 			}, nil
 		},
 		func(string) (*brignext.User, error) {

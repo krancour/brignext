@@ -53,7 +53,7 @@ func run(c *cli.Context) error {
 		}
 	}
 
-	build := &brignext.Build{
+	build := brignext.Build{
 		ProjectName: projectName,
 		Type:        event,
 		Provider:    "brigade-cli",
@@ -83,7 +83,7 @@ func run(c *cli.Context) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusCreated {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
@@ -92,26 +92,23 @@ func run(c *cli.Context) error {
 		return errors.Wrap(err, "error reading response body")
 	}
 
-	build = &brignext.Build{}
-	if err := json.Unmarshal(respBodyBytes, build); err != nil {
+	respStruct := struct {
+		ID string `json:"id"`
+	}{}
+	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
 		return errors.Wrap(err, "error unmarshaling response body")
 	}
+	buildID := respStruct.ID
 
-	// Pretty print the response
-	buildJSON, err := json.MarshalIndent(build, "", "  ")
-	if err != nil {
-		return errors.Wrap(
-			err,
-			"error marshaling output from project creation operation",
-		)
-	}
-	fmt.Println(string(buildJSON))
+	fmt.Printf("Created build %q.\n\n", buildID)
+
+	fmt.Println("Streaming build logs...\n")
 
 	// Now stream the logs
 
 	if req, err = buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/builds/%s/logs", build.ID),
+		fmt.Sprintf("v2/builds/%s/logs", buildID),
 		nil,
 	); err != nil {
 		return errors.Wrap(err, "error creating HTTP request")

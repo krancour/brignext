@@ -6,8 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/krancour/brignext/pkg/brignext"
-
+	"github.com/brigadecore/brigade/pkg/brigade"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -23,6 +22,11 @@ func projectCreate(c *cli.Context) error {
 		return errors.Wrapf(err, "error reading project file %s", filename)
 	}
 
+	project := brigade.Project{}
+	if err := json.Unmarshal(projectBytes, &project); err != nil {
+		return errors.Wrapf(err, "error unmarshaling project file %s", filename)
+	}
+
 	req, err := buildRequest(http.MethodPost, "v2/projects", projectBytes)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
@@ -34,29 +38,17 @@ func projectCreate(c *cli.Context) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode == http.StatusConflict {
+		return errors.Errorf(
+			"a project named %q already exists",
+			project.Name,
+		)
+	}
+	if resp.StatusCode != http.StatusCreated {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "error reading response body")
-	}
-
-	project := &brignext.Project{}
-	if err := json.Unmarshal(respBodyBytes, project); err != nil {
-		return errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	// Pretty print the response
-	projectJSON, err := json.MarshalIndent(project, "", "  ")
-	if err != nil {
-		return errors.Wrap(
-			err,
-			"error marshaling output from project creation operation",
-		)
-	}
-	fmt.Println(string(projectJSON))
+	fmt.Printf("Created project %q.\n", project.Name)
 
 	return nil
 }

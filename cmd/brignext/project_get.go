@@ -20,7 +20,7 @@ func projectGet(c *cli.Context) error {
 			"project get requires one parameter-- a project name",
 		)
 	}
-	projectName := c.Args()[0]
+	name := c.Args()[0]
 	output := c.String(flagOutput)
 	allowInsecure := c.GlobalBool(flagInsecure)
 
@@ -33,7 +33,7 @@ func projectGet(c *cli.Context) error {
 
 	req, err := buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/projects/%s", projectName),
+		fmt.Sprintf("v2/projects/%s", name),
 		nil,
 	)
 	if err != nil {
@@ -46,6 +46,9 @@ func projectGet(c *cli.Context) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return errors.Errorf("Project %q not found.", name)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
@@ -55,13 +58,9 @@ func projectGet(c *cli.Context) error {
 		return errors.Wrap(err, "error reading response body")
 	}
 
-	project := &brignext.Project{}
-	if err := json.Unmarshal(respBodyBytes, project); err != nil {
+	project := brignext.Project{}
+	if err := json.Unmarshal(respBodyBytes, &project); err != nil {
 		return errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	if project.Name == "" {
-		return errors.Errorf("Project %q not found.", projectName)
 	}
 
 	switch output {

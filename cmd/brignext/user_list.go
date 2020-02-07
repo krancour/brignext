@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/gosuri/uitable"
+	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -44,10 +44,7 @@ func userList(c *cli.Context) error {
 		return errors.Wrap(err, "error reading response body")
 	}
 
-	users := []struct {
-		Username  string    `json:"username"`
-		FirstSeen time.Time `json:"firstSeen"`
-	}{}
+	users := []brignext.User{}
 	if err := json.Unmarshal(respBodyBytes, &users); err != nil {
 		return errors.Wrap(err, "error unmarshaling response body")
 	}
@@ -60,10 +57,11 @@ func userList(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("USERNAME", "FIRST SEEN")
+		table.AddRow("USERNAME", "NAME", "FIRST SEEN")
 		for _, user := range users {
 			table.AddRow(
 				user.Username,
+				user.Name,
 				user.FirstSeen,
 			)
 		}

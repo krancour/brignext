@@ -22,9 +22,9 @@ func projectUpdate(c *cli.Context) error {
 		return errors.Wrapf(err, "error reading project file %s", filename)
 	}
 
-	project := &brignext.Project{}
-	if err := json.Unmarshal(projectBytes, project); err != nil {
-		return errors.Wrapf(err, "error parsing project file %s", filename)
+	project := brignext.Project{}
+	if err := json.Unmarshal(projectBytes, &project); err != nil {
+		return errors.Wrapf(err, "error unmarshaling project file %s", filename)
 	}
 
 	req, err := buildRequest(
@@ -46,25 +46,7 @@ func projectUpdate(c *cli.Context) error {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "error reading response body")
-	}
-
-	project = &brignext.Project{}
-	if err := json.Unmarshal(respBodyBytes, project); err != nil {
-		return errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	// Pretty print the response
-	projectJSON, err := json.MarshalIndent(project, "", "  ")
-	if err != nil {
-		return errors.Wrap(
-			err,
-			"error marshaling output from project creation operation",
-		)
-	}
-	fmt.Println(string(projectJSON))
+	fmt.Printf("Updated project %q.\n", project.Name)
 
 	return nil
 }

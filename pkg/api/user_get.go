@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -15,29 +14,20 @@ func (s *server) userGet(w http.ResponseWriter, r *http.Request) {
 
 	username := mux.Vars(r)["username"]
 
-	user, err := s.userStore.GetUserByUsername(username)
+	user, ok, err := s.userStore.GetUser(username)
 	if err != nil {
 		log.Println(
-			errors.Wrap(err, "error retrieving user"),
+			errors.Wrapf(err, "error retrieving user %q", username),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
 	}
-
-	if user == nil {
+	if !ok {
 		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}
 
-	responseBytes, err := json.Marshal(
-		struct {
-			Username  string    `json:"username"`
-			FirstSeen time.Time `json:"firstSeen"`
-		}{
-			Username:  user.Username,
-			FirstSeen: user.FirstSeen,
-		},
-	)
+	responseBytes, err := json.Marshal(user)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error marshaling get user response"),

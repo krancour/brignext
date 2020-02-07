@@ -3,12 +3,12 @@ package mongodb
 import (
 	"context"
 
-	"github.com/brigadecore/brigade/pkg/brigade"
-	brigStorage "github.com/brigadecore/brigade/pkg/storage"
+	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type projectStore struct {
@@ -17,54 +17,88 @@ type projectStore struct {
 	jobsCollection     *mongo.Collection
 }
 
-func NewProjectStore(database *mongo.Database) storage.ProjectStore {
-	return &projectStore{
-		projectsCollection: database.Collection("projects"),
-		buildsCollection:   database.Collection("builds"),
-		jobsCollection:     database.Collection("jobs"),
-	}
-}
-
-func (p *projectStore) CreateProject(project *brigade.Project) error {
+func NewProjectStore(database *mongo.Database) (storage.ProjectStore, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	// Prevent duplicate IDs
-	// TODO: Do this with a unique index instead?
-	result := p.projectsCollection.FindOne(
+	unique := true
+
+	projectsCollection := database.Collection("projects")
+	if _, err := projectsCollection.Indexes().CreateOne(
 		ctx,
-		bson.M{
-			"id": project.ID,
+		mongo.IndexModel{
+			Keys: bson.M{
+				"name": 1,
+			},
+			Options: &options.IndexOptions{
+				Unique: &unique,
+			},
 		},
-	)
-	if result.Err() == nil {
-		return errors.Errorf(
-			"a project with the id %q already exists",
-			project.ID,
-		)
-	} else if result.Err() != mongo.ErrNoDocuments {
-		return errors.Wrapf(
-			result.Err(),
-			"error checking for existing project with id %q",
-			project.ID,
-		)
+	); err != nil {
+		return nil, errors.Wrap(err, "error adding index to projects collection")
 	}
 
-	if _, err :=
-		p.projectsCollection.InsertOne(
-			ctx,
-			project,
-		); err != nil {
-		return errors.Wrapf(
-			err,
-			"error creating project with id %q",
-			project.ID,
-		)
+	buildsCollection := database.Collection("builds")
+	if _, err := buildsCollection.Indexes().CreateMany(
+		ctx,
+		[]mongo.IndexModel{
+			{
+				Keys: bson.M{
+					"id": 1,
+				},
+				Options: &options.IndexOptions{
+					Unique: &unique,
+				},
+			},
+			{
+				Keys: bson.M{
+					"projectName": 1,
+				},
+			},
+		},
+	); err != nil {
+		return nil, errors.Wrap(err, "error adding indexes to builds collection")
+	}
+
+	jobsCollection := database.Collection("jobs")
+	if _, err := jobsCollection.Indexes().CreateMany(
+		ctx,
+		[]mongo.IndexModel{
+			{
+				Keys: bson.M{
+					"id": 1,
+				},
+				Options: &options.IndexOptions{
+					Unique: &unique,
+				},
+			},
+			{
+				Keys: bson.M{
+					"buildID": 1,
+				},
+			},
+		},
+	); err != nil {
+		return nil, errors.Wrap(err, "error adding indexes to builds collection")
+	}
+
+	return &projectStore{
+		projectsCollection: projectsCollection,
+		buildsCollection:   buildsCollection,
+		jobsCollection:     jobsCollection,
+	}, nil
+}
+
+func (p *projectStore) CreateProject(project brignext.Project) error {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+	if _, err := p.projectsCollection.InsertOne(ctx, project); err != nil {
+		return errors.Wrapf(err, "error creating project %q", project.Name)
 	}
 	return nil
 }
 
-func (p *projectStore) GetProjects() ([]*brigade.Project, error) {
+func (p *projectStore) GetProjects() ([]brignext.Project, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
@@ -72,10 +106,10 @@ func (p *projectStore) GetProjects() ([]*brigade.Project, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "error retrieving projects")
 	}
-	projects := []*brigade.Project{}
+	projects := []brignext.Project{}
 	for cur.Next(ctx) {
-		project := &brigade.Project{}
-		err := cur.Decode(project)
+		project := brignext.Project{}
+		err := cur.Decode(&project)
 		if err != nil {
 			return nil, errors.Wrap(err, "error decoding projects")
 		}
@@ -84,37 +118,30 @@ func (p *projectStore) GetProjects() ([]*brigade.Project, error) {
 	return projects, nil
 }
 
-func (p *projectStore) GetProject(id string) (*brigade.Project, error) {
+func (p *projectStore) GetProject(name string) (brignext.Project, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	result := p.projectsCollection.FindOne(
-		ctx,
-		bson.M{
-			"id": id,
-		},
-	)
+	project := brignext.Project{}
+
+	result := p.projectsCollection.FindOne(ctx, bson.M{"name": name})
 	if result.Err() == mongo.ErrNoDocuments {
-		return nil, nil
-	} else if result.Err() != nil {
-		return nil, errors.Wrapf(
+		return project, false, nil
+	}
+	if result.Err() != nil {
+		return project, false, errors.Wrapf(
 			result.Err(),
-			"error retrieving project with id %q",
-			id,
+			"error retrieving project %q",
+			name,
 		)
 	}
-	project := &brigade.Project{}
-	if err := result.Decode(project); err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"error decoding project with id %q",
-			id,
-		)
+	if err := result.Decode(&project); err != nil {
+		return project, false, errors.Wrapf(err, "error decoding project %q", name)
 	}
-	return project, nil
+	return project, true, nil
 }
 
-func (p *projectStore) UpdateProject(project *brigade.Project) error {
+func (p *projectStore) UpdateProject(project brignext.Project) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
@@ -122,76 +149,36 @@ func (p *projectStore) UpdateProject(project *brigade.Project) error {
 		p.projectsCollection.ReplaceOne(
 			ctx,
 			bson.M{
-				"id": project.ID,
+				"name": project.Name,
 			},
 			project,
 		); err != nil {
-		return errors.Wrapf(
-			err,
-			"error updating project with id %q",
-			project.ID,
-		)
+		return errors.Wrapf(err, "error updating project %q", project.Name)
 	}
 	return nil
 }
 
-func (p *projectStore) DeleteProject(id string) error {
+func (p *projectStore) DeleteProject(name string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	if _, err :=
-		p.projectsCollection.DeleteOne(
-			ctx,
-			bson.M{
-				"id": id,
-			},
-		); err != nil {
-		return errors.Wrapf(
-			err,
-			"error deleting project with id %q",
-			id,
-		)
+		p.projectsCollection.DeleteOne(ctx, bson.M{"name": name}); err != nil {
+		return errors.Wrapf(err, "error deleting project %q", name)
 	}
 	return nil
 }
 
-func (p *projectStore) CreateBuild(build *brigade.Build) error {
+func (p *projectStore) CreateBuild(build brignext.Build) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
-
-	// Prevent duplicate IDs
-	// TODO: Do this with a unique index instead?
-	result := p.buildsCollection.FindOne(
-		ctx,
-		bson.M{
-			"id": build.ID,
-		},
-	)
-	if result.Err() == nil {
-		return errors.Errorf("a build with the id %q already exists", build.ID)
-	} else if result.Err() != mongo.ErrNoDocuments {
-		return errors.Wrapf(
-			result.Err(),
-			"error checking for existing build %q",
-			build.ID,
-		)
-	}
-
-	if _, err :=
-		p.buildsCollection.InsertOne(
-			ctx,
-			build,
-		); err != nil {
-		return errors.Wrapf(
-			err,
-			"error creating build %q",
-			build.ID,
-		)
+	if _, err := p.buildsCollection.InsertOne(ctx, build); err != nil {
+		return errors.Wrapf(err, "error creating build %q", build.ID)
 	}
 	return nil
 }
 
-func (p *projectStore) GetBuilds() ([]*brigade.Build, error) {
+func (p *projectStore) GetBuilds() ([]brignext.Build, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
@@ -199,10 +186,10 @@ func (p *projectStore) GetBuilds() ([]*brigade.Build, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "error retrieving builds")
 	}
-	builds := []*brigade.Build{}
+	builds := []brignext.Build{}
 	for cur.Next(ctx) {
-		build := &brigade.Build{}
-		err := cur.Decode(build)
+		build := brignext.Build{}
+		err := cur.Decode(&build)
 		if err != nil {
 			return nil, errors.Wrap(err, "error decoding builds")
 		}
@@ -211,32 +198,29 @@ func (p *projectStore) GetBuilds() ([]*brigade.Build, error) {
 	return builds, nil
 }
 
-func (p *projectStore) GetProjectBuilds(projectID string) ([]*brigade.Build, error) {
+func (p *projectStore) GetBuildsByProjectName(
+	projectName string,
+) ([]brignext.Build, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	cur, err := p.buildsCollection.Find(
-		ctx,
-		bson.M{
-			"projectid": projectID,
-		},
-	)
+	cur, err := p.buildsCollection.Find(ctx, bson.M{"projectname": projectName})
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
 			"error retrieving builds for project %q",
-			projectID,
+			projectName,
 		)
 	}
-	builds := []*brigade.Build{}
+	builds := []brignext.Build{}
 	for cur.Next(ctx) {
-		build := &brigade.Build{}
-		err := cur.Decode(build)
+		build := brignext.Build{}
+		err := cur.Decode(&build)
 		if err != nil {
 			return nil, errors.Wrapf(
 				err,
 				"error decoding builds for project %q",
-				projectID,
+				projectName,
 			)
 		}
 		builds = append(builds, build)
@@ -244,39 +228,32 @@ func (p *projectStore) GetProjectBuilds(projectID string) ([]*brigade.Build, err
 	return builds, nil
 }
 
-func (p *projectStore) GetBuild(id string) (*brigade.Build, error) {
+func (p *projectStore) GetBuild(id string) (brignext.Build, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	result := p.buildsCollection.FindOne(
-		ctx,
-		bson.M{
-			"id": id,
-		},
-	)
+	build := brignext.Build{}
+
+	result := p.buildsCollection.FindOne(ctx, bson.M{"id": id})
 	if result.Err() == mongo.ErrNoDocuments {
-		return nil, nil
-	} else if result.Err() != nil {
-		return nil, errors.Wrapf(
+		return build, false, nil
+	}
+	if result.Err() != nil {
+		return build, false, errors.Wrapf(
 			result.Err(),
 			"error retrieving build %q",
 			id,
 		)
 	}
-	build := &brigade.Build{}
-	if err := result.Decode(build); err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"error decoding build %q",
-			id,
-		)
+	if err := result.Decode(&build); err != nil {
+		return build, false, errors.Wrapf(err, "error decoding build %q", id)
 	}
-	return build, nil
+	return build, true, nil
 }
 
 func (p *projectStore) DeleteBuild(
 	id string,
-	options brigStorage.DeleteBuildOptions,
+	options storage.DeleteBuildOptions,
 ) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
@@ -284,21 +261,21 @@ func (p *projectStore) DeleteBuild(
 	criteria := bson.M{
 		"id": id,
 	}
-	if options.SkipRunningBuilds {
+	if !options.DeleteRunningBuilds {
 		// TODO: Amend the criteria appropriately
 	}
 	if _, err :=
 		p.buildsCollection.DeleteOne(ctx, criteria); err != nil {
-		return errors.Wrapf(
-			err,
-			"error deleting build %q",
-			id,
-		)
+		return errors.Wrapf(err, "error deleting build %q", id)
 	}
+
 	return nil
 }
 
-func (p *projectStore) UpdateWorker(worker *brigade.Worker) error {
+func (p *projectStore) UpdateWorker(
+	buildID string,
+	worker brignext.Worker,
+) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
@@ -306,7 +283,7 @@ func (p *projectStore) UpdateWorker(worker *brigade.Worker) error {
 		p.buildsCollection.UpdateOne(
 			ctx,
 			bson.M{
-				"id": worker.BuildID,
+				"id": buildID,
 			},
 			bson.M{
 				"$set": bson.M{
@@ -314,86 +291,39 @@ func (p *projectStore) UpdateWorker(worker *brigade.Worker) error {
 				},
 			},
 		); err != nil {
-		return errors.Wrapf(
-			err,
-			"error updating worker for build %q",
-			worker.BuildID,
-		)
+		return errors.Wrapf(err, "error updating worker for build %q", buildID)
+	}
+
+	return nil
+}
+
+func (p *projectStore) CreateJob(job brignext.Job) error {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+	if _, err := p.jobsCollection.InsertOne(ctx, job); err != nil {
+		return errors.Wrapf(err, "error creating job %q", job.ID)
 	}
 	return nil
 }
 
-func (p *projectStore) CreateJob(buildID string, job *brigade.Job) error {
+func (p *projectStore) GetJobsByBuildID(buildID string) ([]brignext.Job, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	// Prevent duplicate IDs
-	// TODO: Do this with a unique index instead?
-	result := p.jobsCollection.FindOne(
-		ctx,
-		bson.M{
-			"id": job.ID,
-		},
-	)
-	if result.Err() == nil {
-		return errors.Errorf("a job with the id %q already exists", job.ID)
-	} else if result.Err() != mongo.ErrNoDocuments {
-		return errors.Wrapf(
-			result.Err(),
-			"error checking for existing job %q",
-			job.ID,
-		)
-	}
-
-	brigNextJob := &brigNextJob{
-		Job:     job,
-		BuildID: buildID,
-	}
-	if _, err :=
-		p.jobsCollection.InsertOne(
-			ctx,
-			brigNextJob,
-		); err != nil {
-		return errors.Wrapf(
-			err,
-			"error creating job %q",
-			job.ID,
-		)
-	}
-	return nil
-}
-
-func (p *projectStore) GetBuildJobs(buildID string) ([]*brigade.Job, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	cur, err := p.jobsCollection.Find(
-		ctx,
-		bson.M{
-			"buildid": buildID,
-		},
-	)
+	cur, err := p.jobsCollection.Find(ctx, bson.M{"buildid": buildID})
 	if err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"error retrieving jobs for build %q",
-			buildID,
-		)
+		return nil, errors.Wrapf(err, "error retrieving jobs for build %q", buildID)
 	}
-	jobs := []*brigade.Job{}
+	jobs := []brignext.Job{}
 	for cur.Next(ctx) {
-		job := &brigade.Job{}
-		err := cur.Decode(job)
+		job := brignext.Job{}
+		err := cur.Decode(&job)
 		if err != nil {
-			return nil, errors.Wrapf(
-				err,
-				"error decoding builds for build %q",
-				buildID,
-			)
+			return nil, errors.Wrapf(err, "error decoding job for build %q", buildID)
 		}
-
 		jobs = append(jobs, job)
 	}
+
 	return jobs, nil
 }
 
@@ -411,60 +341,39 @@ func (p *projectStore) UpdateJobStatus(jobID string, status string) error {
 				"$set": bson.M{"status": status},
 			},
 		); err != nil {
-		return errors.Wrapf(
-			err,
-			"error updating job %q status",
-			jobID,
-		)
+		return errors.Wrapf(err, "error updating status for job %q", jobID)
 	}
 	return nil
 }
 
-func (p *projectStore) GetWorker(buildID string) (*brigade.Worker, error) {
-	build, err := p.GetBuild(buildID)
-	if err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"error retrieving worker for build %q",
-			buildID,
-		)
-	}
-	return build.Worker, nil
-}
-
-func (p *projectStore) GetJob(id string) (*brigade.Job, error) {
+func (p *projectStore) GetJob(id string) (brignext.Job, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	result := p.jobsCollection.FindOne(
-		ctx,
-		bson.M{
-			"id": id,
-		},
-	)
+	job := brignext.Job{}
+
+	result := p.jobsCollection.FindOne(ctx, bson.M{"id": id})
 	if result.Err() == mongo.ErrNoDocuments {
-		return nil, nil
-	} else if result.Err() != nil {
-		return nil, errors.Wrapf(
-			result.Err(),
-			"error retrieving build %q",
-			id,
-		)
+		return job, false, nil
 	}
-	job := &brigade.Job{}
-	if err := result.Decode(job); err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"error retrieving job %q",
-			id,
-		)
+	if result.Err() != nil {
+		return job, false, errors.Wrapf(result.Err(), "error retrieving job %q", id)
 	}
-	return job, nil
+
+	if err := result.Decode(&job); err != nil {
+		return job, false, errors.Wrapf(err, "error retrieving job %q", id)
+	}
+	return job, true, nil
 }
 
-// This is a hack to associate jobs to builds. Current brigade doesn't do
-// a good job of this.
-type brigNextJob struct {
-	*brigade.Job `bson:",inline"`
-	BuildID      string
+func (p *projectStore) DeleteJobsByBuildID(buildID string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	if _, err :=
+		p.buildsCollection.DeleteMany(ctx, bson.M{"buildid": buildID}); err != nil {
+		return errors.Wrapf(err, "error deleting jobs for build %q", buildID)
+	}
+
+	return nil
 }

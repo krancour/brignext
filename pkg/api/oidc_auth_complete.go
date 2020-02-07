@@ -3,6 +3,9 @@ package api
 import (
 	"log"
 	"net/http"
+	"time"
+
+	"github.com/krancour/brignext/pkg/brignext"
 
 	"github.com/pkg/errors"
 )
@@ -12,100 +15,73 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 
 	oauth2State := r.URL.Query().Get("state")
 	if oauth2State == "" {
-		http.Error(
-			w,
-			`query parameter "state" is missing from the request`,
-			http.StatusBadRequest,
-		)
+		s.writeResponse(w, http.StatusBadRequest, responseOIDCAuthError)
 		return
 	}
 
 	oidcCode := r.URL.Query().Get("code")
 	if oidcCode == "" {
-		http.Error(
-			w,
-			`query parameter "code" is missing from the request`,
-			http.StatusBadRequest,
-		)
+		s.writeResponse(w, http.StatusBadRequest, responseOIDCAuthError)
 		return
 	}
 
-	session, err := s.sessionStore.GetSessionByOAuth2State(oauth2State)
+	session, ok, err := s.sessionStore.GetSessionByOAuth2State(oauth2State)
 	if err != nil {
-		http.Error(
-			w,
-			`could not locate a session matching the "state" query parameter`,
-			http.StatusBadRequest,
-		)
+		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
+		return
+	}
+	if !ok {
+		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
 		return
 	}
 
 	oauth2Token, err := s.oauth2Config.Exchange(r.Context(), oidcCode)
 	if err != nil {
-		http.Error(
-			w,
-			"failed to exchange code for token",
-			http.StatusInternalServerError,
-		)
+		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
 		return
 	}
 
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
-		http.Error(
-			w,
-			"no id_token field in oauth2 token",
-			http.StatusInternalServerError,
-		)
+		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
 		return
 	}
 
 	idToken, err := s.oidcTokenVerifier.Verify(r.Context(), rawIDToken)
 	if err != nil {
-		http.Error(w, "could not verify ID token", http.StatusInternalServerError)
+		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
 		return
 	}
 
 	claims := struct {
-		GivenName  string `json:"given_name"`
-		FamilyName string `json:"family_name"`
-		Email      string `json:"email"`
+		Name  string `json:"name"`
+		Email string `json:"email"`
 	}{}
 	if err := idToken.Claims(&claims); err != nil {
-		http.Error(w, "could not decode claims", http.StatusInternalServerError)
+		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
 		return
 	}
 
-	user, err := s.userStore.GetUserByUsername(claims.Email)
+	user, ok, err := s.userStore.GetUser(claims.Email)
 	if err != nil {
-		http.Error(
-			w,
-			"error searching for existing user",
-			http.StatusInternalServerError,
-		)
+		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
 		return
 	}
-
-	var userID string
-	if user == nil {
-		if userID, err = s.userStore.CreateUser(claims.Email); err != nil {
-			http.Error(
-				w,
-				"error creating user",
-				http.StatusInternalServerError,
-			)
+	if !ok {
+		user = brignext.User{
+			Username:  claims.Email,
+			Name:      claims.Name,
+			FirstSeen: time.Now(),
+		}
+		if s.userStore.CreateUser(user); err != nil {
+			s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
 			return
 		}
-	} else {
-		userID = user.ID
 	}
 
-	if err := s.sessionStore.AuthenticateSession(session.ID, userID); err != nil {
-		http.Error(
-			w,
-			"error updating session",
-			http.StatusInternalServerError,
-		)
+	if err :=
+		s.sessionStore.AuthenticateSession(session.ID, user.Username); err != nil {
+		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
 		return
 	}
 

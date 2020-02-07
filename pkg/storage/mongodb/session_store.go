@@ -8,126 +8,158 @@ import (
 	"github.com/krancour/brignext/pkg/crypto"
 	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type sessionStore struct {
 	sessionsCollection *mongo.Collection
 }
 
-func NewSessionStore(database *mongo.Database) storage.SessionStore {
+func NewSessionStore(database *mongo.Database) (storage.SessionStore, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	unique := true
+
+	sessionsCollection := database.Collection("sessions")
+	if _, err := sessionsCollection.Indexes().CreateMany(
+		ctx,
+		[]mongo.IndexModel{
+			{
+				Keys: bson.M{
+					"id": 1,
+				},
+				Options: &options.IndexOptions{
+					Unique: &unique,
+				},
+			},
+			{
+				Keys: bson.M{
+					"hashedOAuth2State": 1,
+				},
+				Options: &options.IndexOptions{
+					Unique: &unique,
+					PartialFilterExpression: bson.M{
+						"hashedOAuth2State": bson.M{"exists": true},
+					},
+				},
+			},
+			{
+				Keys: bson.M{
+					"hashedToken": 1,
+				},
+				Options: &options.IndexOptions{
+					Unique: &unique,
+				},
+			},
+		},
+	); err != nil {
+		return nil, errors.Wrap(err, "error adding indexes to sessions collection")
+	}
+
 	return &sessionStore{
-		sessionsCollection: database.Collection("sessions"),
-	}
+		sessionsCollection: sessionsCollection,
+	}, nil
 }
 
-func (s *sessionStore) CreateSession() (string, string, error) {
+func (s *sessionStore) CreateSession(session brignext.Session) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	oauth2State := crypto.NewToken(30)
-	token := crypto.NewToken(256)
+	var hashedOAuth2State string
+	if session.OAuth2State != "" {
+		hashedOAuth2State = crypto.ShortSHA("", session.OAuth2State)
+	}
+	// The bson struct tags should stop this clear text field from being
+	// persisted, but this is here for good measure.
+	session.OAuth2State = ""
+
+	hashedToken := crypto.ShortSHA("", session.Token)
+	// The bson struct tags should stop this clear text field from being
+	// persisted, but this is here for good measure.
+	session.Token = ""
 
 	if _, err := s.sessionsCollection.InsertOne(
 		ctx,
-		bson.M{
-			"id":                uuid.NewV4().String(),
-			"hashedoauth2state": crypto.ShortSHA("", oauth2State),
-			"hashedtoken":       crypto.ShortSHA("", token),
-			"authenticated":     false,
+		struct {
+			brignext.Session  `bson:",inline"`
+			HashedOAuth2State string `bson:"hashedOAuth2State,omitempty"`
+			HashedToken       string `bson:"hashedToken"`
+		}{
+			Session:           session,
+			HashedOAuth2State: hashedOAuth2State,
+			HashedToken:       hashedToken,
 		},
 	); err != nil {
-		return "", "", errors.Wrap(err, "error creating new session")
+		return errors.Wrap(err, "error creating new session")
 	}
 
-	return oauth2State, token, nil
-}
-
-func (s *sessionStore) CreateRootSession() (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	token := crypto.NewToken(256)
-
-	if _, err := s.sessionsCollection.InsertOne(
-		ctx,
-		bson.M{
-			"id":            uuid.NewV4().String(),
-			"root":          true,
-			"hashedtoken":   crypto.ShortSHA("", token),
-			"authenticated": true,
-			"expiresat":     time.Now().Add(10 * time.Minute),
-		},
-	); err != nil {
-		return "", errors.Wrap(err, "error creating new root session")
-	}
-
-	return token, nil
+	return nil
 }
 
 func (s *sessionStore) GetSessionByOAuth2State(
 	oauth2State string,
-) (*brignext.Session, error) {
+) (brignext.Session, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
+	session := brignext.Session{}
+
 	result := s.sessionsCollection.FindOne(
 		ctx,
-		bson.M{
-			"hashedoauth2state": crypto.ShortSHA("", oauth2State),
-		},
+		bson.M{"hashedOAuth2State": crypto.ShortSHA("", oauth2State)},
 	)
 	if result.Err() == mongo.ErrNoDocuments {
-		return nil, nil
-	} else if result.Err() != nil {
-		return nil, errors.Wrap(
+		return session, false, nil
+	}
+	if result.Err() != nil {
+		return session, false, errors.Wrap(
 			result.Err(),
-			"error retrieving session by OAuth2 state",
+			"error retrieving session with OAuth2 state [REDACTED]",
 		)
 	}
-	session := &brignext.Session{}
-	if err := result.Decode(session); err != nil {
-		return nil, errors.Wrap(
+	if err := result.Decode(&session); err != nil {
+		return session, false, errors.Wrap(
 			err,
-			"error decoding session",
+			"error decoding session with OAuth2 state [REDACTED]",
 		)
 	}
-	return session, nil
+	return session, true, nil
 }
 
 func (s *sessionStore) GetSessionByToken(
 	token string,
-) (*brignext.Session, error) {
+) (brignext.Session, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
+	session := brignext.Session{}
+
 	result := s.sessionsCollection.FindOne(
 		ctx,
-		bson.M{
-			"hashedtoken": crypto.ShortSHA("", token),
-		},
+		bson.M{"hashedToken": crypto.ShortSHA("", token)},
 	)
 	if result.Err() == mongo.ErrNoDocuments {
-		return nil, nil
-	} else if result.Err() != nil {
-		return nil, errors.Wrap(
+		return session, false, nil
+	}
+	if result.Err() != nil {
+		return session, false, errors.Wrap(
 			result.Err(),
-			"error retrieving session by token",
+			"error retrieving session with token [REDACTED]",
 		)
 	}
-	session := &brignext.Session{}
-	if err := result.Decode(session); err != nil {
-		return nil, errors.Wrap(
+	if err := result.Decode(&session); err != nil {
+		return session, false, errors.Wrap(
 			err,
-			"error decoding session",
+			"error decoding session with token [REDACTED]",
 		)
 	}
-	return session, nil
+	return session, true, nil
 }
 
-func (s *sessionStore) AuthenticateSession(sessionID, userID string) error {
+func (s *sessionStore) AuthenticateSession(sessionID, username string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
@@ -139,9 +171,9 @@ func (s *sessionStore) AuthenticateSession(sessionID, userID string) error {
 			},
 			bson.M{
 				"$set": bson.M{
-					"userid":        userID,
+					"username":      username,
 					"authenticated": true,
-					"expiresat":     time.Now().Add(time.Hour),
+					"expires":       time.Now().Add(time.Hour),
 				},
 			},
 		); err != nil {
@@ -155,12 +187,7 @@ func (s *sessionStore) DeleteSession(id string) error {
 	defer cancel()
 
 	if _, err :=
-		s.sessionsCollection.DeleteOne(
-			ctx,
-			bson.M{
-				"id": id,
-			},
-		); err != nil {
+		s.sessionsCollection.DeleteOne(ctx, bson.M{"id": id}); err != nil {
 		return errors.Wrap(
 			err,
 			"error deleting session",

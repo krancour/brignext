@@ -79,7 +79,13 @@ func serviceAccountCreate(c *cli.Context) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode == http.StatusConflict {
+		return errors.Errorf(
+			"a service account named %q already exists",
+			name,
+		)
+	}
+	if resp.StatusCode != http.StatusCreated {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 

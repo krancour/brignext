@@ -5,8 +5,10 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/krancour/brignext/pkg/brignext"
+	"github.com/krancour/brignext/pkg/crypto"
 	"github.com/pkg/errors"
 )
 
@@ -22,8 +24,8 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	serviceAccount := &brignext.ServiceAccount{}
-	if err := json.Unmarshal(bodyBytes, serviceAccount); err != nil {
+	serviceAccount := brignext.ServiceAccount{}
+	if err := json.Unmarshal(bodyBytes, &serviceAccount); err != nil {
 		log.Println(
 			errors.Wrap(
 				err,
@@ -36,25 +38,32 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: We should do some kind of validation!
 
-	if existingServiceAccount, err :=
-		s.userStore.GetServiceAccountByName(serviceAccount.Name); err != nil {
+	if _, ok, err :=
+		s.userStore.GetServiceAccount(serviceAccount.Name); err != nil {
 		log.Println(
-			errors.Wrap(err, "error checking for existing service account"),
+			errors.Wrapf(
+				err,
+				"error checking for existing service account named %q",
+				serviceAccount.Name,
+			),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
-	} else if existingServiceAccount != nil {
-		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
+	} else if ok {
+		s.writeResponse(w, http.StatusConflict, responseEmptyJSON)
 		return
 	}
 
-	_, token, err := s.userStore.CreateServiceAccount(
-		serviceAccount.Name,
-		serviceAccount.Description,
-	)
-	if err != nil {
+	serviceAccount.Token = crypto.NewToken(256)
+	serviceAccount.Created = time.Now()
+
+	if err := s.userStore.CreateServiceAccount(serviceAccount); err != nil {
 		log.Println(
-			errors.Wrap(err, "error creating new service account"),
+			errors.Wrapf(
+				err,
+				"error creating new service account %q",
+				serviceAccount.Name,
+			),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
@@ -64,7 +73,7 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 		struct {
 			Token string `json:"token"`
 		}{
-			Token: token,
+			Token: serviceAccount.Token,
 		},
 	)
 	if err != nil {
@@ -75,5 +84,5 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.writeResponse(w, http.StatusOK, responseBytes)
+	s.writeResponse(w, http.StatusCreated, responseBytes)
 }

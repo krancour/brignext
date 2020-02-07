@@ -5,14 +5,13 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 )
 
 func (s *server) projectList(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	projs, err := s.projectStore.GetProjects()
+	projects, err := s.projectStore.GetProjects()
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error retrieving all projects"),
@@ -21,12 +20,7 @@ func (s *server) projectList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	brignextProjects := make([]*brignext.Project, len(projs))
-	for i, project := range projs {
-		brignextProjects[i] = brignext.BrigadeProjectToBrigNextProject(project)
-	}
-
-	responseBytes, err := json.Marshal(brignextProjects)
+	responseBytes, err := json.Marshal(projects)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error marshaling list projects response"),

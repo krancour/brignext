@@ -1,13 +1,9 @@
 package main
 
 import (
-	"flag"
 	"log"
 
-	"github.com/brigadecore/brigade/pkg/storage/kube"
-	"github.com/golang/glog"
 	"github.com/krancour/brignext/pkg/api"
-	"github.com/krancour/brignext/pkg/kubernetes"
 	mongodbUtils "github.com/krancour/brignext/pkg/mongodb"
 	"github.com/krancour/brignext/pkg/oidc"
 	"github.com/krancour/brignext/pkg/storage/mongodb"
@@ -15,10 +11,7 @@ import (
 )
 
 func main() {
-	// We need to parse flags for glog-related options to take effect
-	flag.Parse()
-
-	glog.Infof(
+	log.Printf(
 		"Starting BrigNext API Server -- version %s -- commit %s",
 		version.Version(),
 		version.Commit(),
@@ -27,36 +20,38 @@ func main() {
 	// API server config
 	apiConfig, err := api.GetConfigFromEnvironment()
 	if err != nil {
-		glog.Fatal(err)
+		log.Fatal(err)
 	}
 
 	// OpenID Connect config
 	oauth2Config, oidcIdentityVerifier, err :=
 		oidc.GetConfigAndVerifierFromEnvironment()
 	if err != nil {
-		glog.Fatal(err)
+		log.Fatal(err)
 	}
 
-	// Old datastore (Kubernetes)
-	kubeClient, err := kubernetes.Client()
-	if err != nil {
-		glog.Fatal(err)
-	}
-	brigadeNamespace, err := kubernetes.BrigadeNamespace()
-	if err != nil {
-		glog.Fatal(err)
-	}
-	oldProjectStore := kube.New(kubeClient, brigadeNamespace)
-
-	// New datastores (Mongo)
+	// Datastores (Mongo)
 	database, err := mongodbUtils.Database()
 	if err != nil {
-		glog.Fatal(err)
+		log.Fatal(err)
 	}
-	projectStore := mongodb.NewProjectStore(database)
+
+	userStore, err := mongodb.NewUserStore(database)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	sessionStore, err := mongodb.NewSessionStore(database)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	projectStore, err := mongodb.NewProjectStore(database)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	logStore := mongodb.NewLogStore(database)
-	userStore := mongodb.NewUserStore(database)
-	sessionStore := mongodb.NewSessionStore(database)
 
 	log.Println(
 		api.NewServer(
@@ -65,7 +60,6 @@ func main() {
 			oidcIdentityVerifier,
 			userStore,
 			sessionStore,
-			oldProjectStore,
 			projectStore,
 			logStore,
 		).ListenAndServe(),

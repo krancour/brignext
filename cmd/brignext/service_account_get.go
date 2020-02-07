@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
+
+	"github.com/krancour/brignext/pkg/brignext"
 
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
@@ -45,6 +46,9 @@ func serviceAccountGet(c *cli.Context) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return errors.Errorf("Service account %q not found.", name)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
@@ -54,17 +58,9 @@ func serviceAccountGet(c *cli.Context) error {
 		return errors.Wrap(err, "error reading response body")
 	}
 
-	serviceAccount := struct {
-		Name        string    `json:"name"`
-		Description string    `json:"description"`
-		Created     time.Time `json:"created"`
-	}{}
+	serviceAccount := brignext.ServiceAccount{}
 	if err := json.Unmarshal(respBodyBytes, &serviceAccount); err != nil {
 		return errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	if serviceAccount.Name == "" {
-		return errors.Errorf("Service account %q not found.", name)
 	}
 
 	switch output {

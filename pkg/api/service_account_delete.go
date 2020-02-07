@@ -13,9 +13,9 @@ func (s *server) serviceAccountDelete(w http.ResponseWriter, r *http.Request) {
 
 	name := mux.Vars(r)["name"]
 
-	if err := s.userStore.DeleteServiceAccountByName(name); err != nil {
+	if err := s.userStore.DeleteServiceAccount(name); err != nil {
 		log.Println(
-			errors.Wrap(err, "error deleting service account"),
+			errors.Wrapf(err, "error deleting service account %q", name),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/gosuri/uitable"
+	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -45,6 +45,9 @@ func userGet(c *cli.Context) error {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusNotFound {
+		return errors.Errorf("User %q not found.", username)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
@@ -54,24 +57,18 @@ func userGet(c *cli.Context) error {
 		return errors.Wrap(err, "error reading response body")
 	}
 
-	user := struct {
-		Username  string    `json:"username"`
-		FirstSeen time.Time `json:"firstSeen"`
-	}{}
+	user := brignext.User{}
 	if err := json.Unmarshal(respBodyBytes, &user); err != nil {
 		return errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	if user.Username == "" {
-		return errors.Errorf("User %q not found.", username)
 	}
 
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("USERNAME", "FIRST SEEN")
+		table.AddRow("USERNAME", "NAME", "FIRST SEEN")
 		table.AddRow(
 			user.Username,
+			user.Name,
 			user.FirstSeen,
 		)
 		fmt.Println(table)

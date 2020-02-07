@@ -1,27 +1,31 @@
 package storage
 
 import (
-	"github.com/brigadecore/brigade/pkg/brigade"
-	"github.com/brigadecore/brigade/pkg/storage"
+	"github.com/krancour/brignext/pkg/brignext"
 )
 
 type ProjectStore interface {
-	CreateProject(project *brigade.Project) error
-	GetProjects() ([]*brigade.Project, error)
-	GetProject(id string) (*brigade.Project, error)
-	UpdateProject(project *brigade.Project) error
-	DeleteProject(id string) error
+	CreateProject(project brignext.Project) error
+	GetProjects() ([]brignext.Project, error)
+	GetProject(name string) (brignext.Project, bool, error)
+	UpdateProject(project brignext.Project) error
+	DeleteProject(name string) error
 
-	CreateBuild(build *brigade.Build) error
-	GetBuilds() ([]*brigade.Build, error)
-	GetProjectBuilds(projectID string) ([]*brigade.Build, error)
-	GetBuild(id string) (*brigade.Build, error)
-	DeleteBuild(id string, options storage.DeleteBuildOptions) error
+	CreateBuild(build brignext.Build) error
+	GetBuilds() ([]brignext.Build, error)
+	GetBuildsByProjectName(projectName string) ([]brignext.Build, error)
+	GetBuild(id string) (brignext.Build, bool, error)
+	DeleteBuild(id string, options DeleteBuildOptions) error
 
-	UpdateWorker(worker *brigade.Worker) error
+	UpdateWorker(buildID string, worker brignext.Worker) error
 
-	CreateJob(buildID string, job *brigade.Job) error
-	GetBuildJobs(buildID string) ([]*brigade.Job, error)
+	CreateJob(job brignext.Job) error
+	GetJobsByBuildID(buildID string) ([]brignext.Job, error)
+	GetJob(id string) (brignext.Job, bool, error)
 	UpdateJobStatus(jobID string, status string) error
-	GetJob(id string) (*brigade.Job, error)
+	DeleteJobsByBuildID(buildID string) error
+}
+
+type DeleteBuildOptions struct {
+	DeleteRunningBuilds bool
 }

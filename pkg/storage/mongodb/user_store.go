@@ -2,15 +2,14 @@ package mongodb
 
 import (
 	"context"
-	"time"
 
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/krancour/brignext/pkg/crypto"
 	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type userStore struct {
@@ -18,59 +17,72 @@ type userStore struct {
 	serviceAccountsCollection *mongo.Collection
 }
 
-func NewUserStore(database *mongo.Database) storage.UserStore {
-	return &userStore{
-		usersCollection:           database.Collection("users"),
-		serviceAccountsCollection: database.Collection("service-accounts"),
-	}
-}
-
-func (u *userStore) CreateUser(username string) (string, error) {
+func NewUserStore(database *mongo.Database) (storage.UserStore, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	// Prevent duplicate username
-	// TODO: Do this with a unique index instead?
-	result := u.usersCollection.FindOne(
+	unique := true
+
+	usersCollection := database.Collection("users")
+	if _, err := usersCollection.Indexes().CreateOne(
 		ctx,
-		bson.M{
-			"username": username,
-		},
-	)
-	if result.Err() == nil {
-		return "", errors.Errorf(
-			"a user with the username %q already exists",
-			username,
-		)
-	} else if result.Err() != mongo.ErrNoDocuments {
-		return "", errors.Wrapf(
-			result.Err(),
-			"error checking for existing user with the username %q",
-			username,
-		)
-	}
-
-	id := uuid.NewV4().String()
-
-	if _, err :=
-		u.usersCollection.InsertOne(
-			ctx,
-			bson.M{
-				"id":        id,
-				"username":  username,
-				"firstseen": time.Now(),
+		mongo.IndexModel{
+			Keys: bson.M{
+				"username": 1,
 			},
-		); err != nil {
-		return "", errors.Wrapf(
+			Options: &options.IndexOptions{
+				Unique: &unique,
+			},
+		},
+	); err != nil {
+		return nil, errors.Wrap(err, "error adding indexes to users collection")
+	}
+
+	serviceAccountsCollection := database.Collection("service-accounts")
+	if _, err := serviceAccountsCollection.Indexes().CreateMany(
+		ctx,
+		[]mongo.IndexModel{
+			{
+				Keys: bson.M{
+					"name": 1,
+				},
+				Options: &options.IndexOptions{
+					Unique: &unique,
+				},
+			},
+			{
+				Keys: bson.M{
+					"hashedToken": 1,
+				},
+				Options: &options.IndexOptions{
+					Unique: &unique,
+				},
+			},
+		},
+	); err != nil {
+		return nil, errors.Wrap(
 			err,
-			"error creating user with username %q",
-			username,
+			"error adding indexes to service accounts collection",
 		)
 	}
-	return id, nil
+
+	return &userStore{
+		usersCollection:           usersCollection,
+		serviceAccountsCollection: serviceAccountsCollection,
+	}, nil
 }
 
-func (u *userStore) GetUsers() ([]*brignext.User, error) {
+func (u *userStore) CreateUser(user brignext.User) error {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+	if _, err :=
+		u.usersCollection.InsertOne(ctx, user); err != nil {
+		return errors.Wrapf(err, "error creating user %q", user.Username)
+	}
+	return nil
+}
+
+func (u *userStore) GetUsers() ([]brignext.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
@@ -78,10 +90,10 @@ func (u *userStore) GetUsers() ([]*brignext.User, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "error retrieving users")
 	}
-	users := []*brignext.User{}
+	users := []brignext.User{}
 	for cur.Next(ctx) {
-		user := &brignext.User{}
-		err := cur.Decode(user)
+		user := brignext.User{}
+		err := cur.Decode(&user)
 		if err != nil {
 			return nil, errors.Wrap(err, "error decoding users")
 		}
@@ -90,150 +102,72 @@ func (u *userStore) GetUsers() ([]*brignext.User, error) {
 	return users, nil
 }
 
-func (u *userStore) GetUser(id string) (*brignext.User, error) {
+func (u *userStore) GetUser(username string) (brignext.User, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	result := u.usersCollection.FindOne(
-		ctx,
-		bson.M{
-			"id": id,
-		},
-	)
+	user := brignext.User{}
+
+	result := u.usersCollection.FindOne(ctx, bson.M{"username": username})
 	if result.Err() == mongo.ErrNoDocuments {
-		return nil, nil
-	} else if result.Err() != nil {
-		return nil, errors.Wrapf(
+		return user, false, nil
+	}
+	if result.Err() != nil {
+		return user, false, errors.Wrapf(
 			result.Err(),
 			"error retrieving user %q",
-			id,
-		)
-	}
-	user := &brignext.User{}
-	if err := result.Decode(user); err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"error decoding user %q",
-			id,
-		)
-	}
-	return user, nil
-}
-
-func (u *userStore) GetUserByUsername(username string) (*brignext.User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	result := u.usersCollection.FindOne(
-		ctx,
-		bson.M{
-			"username": username,
-		},
-	)
-	if result.Err() == mongo.ErrNoDocuments {
-		return nil, nil
-	} else if result.Err() != nil {
-		return nil, errors.Wrapf(
-			result.Err(),
-			"error retrieving user with username %q",
 			username,
 		)
 	}
-	user := &brignext.User{}
-	if err := result.Decode(user); err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"error decoding user with username %q",
-			username,
-		)
+	if err := result.Decode(&user); err != nil {
+		return user, false, errors.Wrapf(err, "error decoding user %q", username)
 	}
-	return user, nil
+	return user, true, nil
 }
 
-func (u *userStore) DeleteUser(id string) error {
+func (u *userStore) DeleteUser(username string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	if _, err :=
-		u.usersCollection.DeleteOne(
-			ctx,
-			bson.M{
-				"id": id,
-			},
-		); err != nil {
-		return errors.Wrapf(err, "error deleting user %q", id)
-	}
-	return nil
-}
-
-func (u *userStore) DeleteUserByUsername(username string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	if _, err :=
-		u.usersCollection.DeleteOne(
-			ctx,
-			bson.M{
-				"username": username,
-			},
-		); err != nil {
-		return errors.Wrapf(err, "error deleting user with username %q", username)
+		u.usersCollection.DeleteOne(ctx, bson.M{"username": username}); err != nil {
+		return errors.Wrapf(err, "error deleting user %q", username)
 	}
 	return nil
 }
 
 func (u *userStore) CreateServiceAccount(
-	name string,
-	description string,
-) (string, string, error) {
+	serviceAccount brignext.ServiceAccount,
+) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	// Prevent duplicate name
-	// TODO: Do this with a unique index instead?
-	result := u.serviceAccountsCollection.FindOne(
-		ctx,
-		bson.M{
-			"name": name,
-		},
-	)
-	if result.Err() == nil {
-		return "", "", errors.Errorf(
-			"a service account with the name %q already exists",
-			name,
-		)
-	} else if result.Err() != mongo.ErrNoDocuments {
-		return "", "", errors.Wrapf(
-			result.Err(),
-			"error checking for existing service account with the name %q",
-			name,
-		)
-	}
-
-	id := uuid.NewV4().String()
-	token := crypto.NewToken(256)
+	hashedToken := crypto.ShortSHA("", serviceAccount.Token)
+	// The bson struct tags should stop this clear text field from being
+	// persisted, but this is here for good measure.
+	serviceAccount.Token = ""
 
 	if _, err :=
 		u.serviceAccountsCollection.InsertOne(
 			ctx,
-			bson.M{
-				"id":          id,
-				"name":        name,
-				"description": description,
-				"hashedtoken": crypto.ShortSHA("", token),
-				"created":     time.Now(),
+			struct {
+				brignext.ServiceAccount `bson:",inline"`
+				HashedToken             string `bson:"hashedToken"`
+			}{
+				ServiceAccount: serviceAccount,
+				HashedToken:    hashedToken,
 			},
 		); err != nil {
-		return "", "", errors.Wrapf(
+		return errors.Wrapf(
 			err,
-			"error creating service account with name %q",
-			name,
+			"error creating service account %q",
+			serviceAccount.Name,
 		)
 	}
-	return id, token, nil
+	return nil
 }
 
-func (u *userStore) GetServiceAccounts() ([]*brignext.ServiceAccount, error) {
+func (u *userStore) GetServiceAccounts() ([]brignext.ServiceAccount, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
@@ -241,10 +175,10 @@ func (u *userStore) GetServiceAccounts() ([]*brignext.ServiceAccount, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "error retrieving service accounts")
 	}
-	serviceAccounts := []*brignext.ServiceAccount{}
+	serviceAccounts := []brignext.ServiceAccount{}
 	for cur.Next(ctx) {
-		serviceAccount := &brignext.ServiceAccount{}
-		err := cur.Decode(serviceAccount)
+		serviceAccount := brignext.ServiceAccount{}
+		err := cur.Decode(&serviceAccount)
 		if err != nil {
 			return nil, errors.Wrap(err, "error decoding service accounts")
 		}
@@ -254,101 +188,76 @@ func (u *userStore) GetServiceAccounts() ([]*brignext.ServiceAccount, error) {
 }
 
 func (u *userStore) GetServiceAccount(
-	id string,
-) (*brignext.ServiceAccount, error) {
+	name string,
+) (brignext.ServiceAccount, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	result := u.serviceAccountsCollection.FindOne(
-		ctx,
-		bson.M{
-			"id": id,
-		},
-	)
+	serviceAccount := brignext.ServiceAccount{}
+
+	result := u.serviceAccountsCollection.FindOne(ctx, bson.M{"name": name})
 	if result.Err() == mongo.ErrNoDocuments {
-		return nil, nil
-	} else if result.Err() != nil {
-		return nil, errors.Wrapf(
+		return serviceAccount, false, nil
+	}
+	if result.Err() != nil {
+		return serviceAccount, false, errors.Wrapf(
 			result.Err(),
 			"error retrieving service account %q",
-			id,
+			name,
 		)
 	}
-	serviceAccount := &brignext.ServiceAccount{}
-	if err := result.Decode(serviceAccount); err != nil {
-		return nil, errors.Wrapf(
+	if err := result.Decode(&serviceAccount); err != nil {
+		return serviceAccount, false, errors.Wrapf(
 			err,
 			"error decoding service account %q",
-			id,
+			name,
 		)
 	}
-	return serviceAccount, nil
+
+	return serviceAccount, true, nil
 }
 
-func (u *userStore) GetServiceAccountByName(
-	name string,
-) (*brignext.ServiceAccount, error) {
+func (u *userStore) GetServiceAccountByToken(
+	token string,
+) (brignext.ServiceAccount, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
+
+	serviceAccount := brignext.ServiceAccount{}
 
 	result := u.serviceAccountsCollection.FindOne(
 		ctx,
-		bson.M{
-			"name": name,
-		},
+		bson.M{"hashedToken": crypto.ShortSHA("", token)},
 	)
 	if result.Err() == mongo.ErrNoDocuments {
-		return nil, nil
-	} else if result.Err() != nil {
-		return nil, errors.Wrapf(
+		return serviceAccount, false, nil
+	}
+	if result.Err() != nil {
+		return serviceAccount, false, errors.Wrap(
 			result.Err(),
-			"error retrieving service account with name %q",
-			name,
+			"error retrieving service account with token [REDACTED]",
 		)
 	}
-	serviceAccount := &brignext.ServiceAccount{}
-	if err := result.Decode(serviceAccount); err != nil {
-		return nil, errors.Wrapf(
+	if err := result.Decode(&serviceAccount); err != nil {
+		return serviceAccount, false, errors.Wrap(
 			err,
-			"error decoding service account with name %q",
-			name,
+			"error decoding service account with token [REDACTED]",
 		)
 	}
-	return serviceAccount, nil
+
+	return serviceAccount, true, nil
 }
 
-func (u *userStore) DeleteServiceAccount(id string) error {
+func (u *userStore) DeleteServiceAccount(name string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	if _, err :=
 		u.serviceAccountsCollection.DeleteOne(
 			ctx,
-			bson.M{
-				"id": id,
-			},
+			bson.M{"name": name},
 		); err != nil {
-		return errors.Wrapf(err, "error deleting service account %q", id)
-	}
-	return nil
-}
-
-func (u *userStore) DeleteServiceAccountByName(name string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	if _, err :=
-		u.serviceAccountsCollection.DeleteOne(
-			ctx,
-			bson.M{
-				"name": name,
-			},
-		); err != nil {
-		return errors.Wrapf(
-			err,
-			"error deleting service account with name %q",
-			name,
-		)
+		return errors.Wrapf(err, "error deleting service account %q", name)
 	}
 	return nil
 }

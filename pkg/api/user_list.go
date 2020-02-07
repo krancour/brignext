@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/pkg/errors"
 )
@@ -21,19 +20,7 @@ func (s *server) userList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseUsers := make(
-		[]struct {
-			Username  string    `json:"username"`
-			FirstSeen time.Time `json:"firstSeen"`
-		},
-		len(users),
-	)
-	for i, user := range users {
-		responseUsers[i].Username = user.Username
-		responseUsers[i].FirstSeen = user.FirstSeen
-	}
-
-	responseBytes, err := json.Marshal(responseUsers)
+	responseBytes, err := json.Marshal(users)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error marshaling list users response"),

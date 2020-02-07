@@ -5,35 +5,29 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/brigadecore/brigade/pkg/brigade"
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 )
 
 func (s *server) projectGet(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	projectName := mux.Vars(r)["name"]
-	projectID := brigade.ProjectID(projectName)
+	name := mux.Vars(r)["name"]
 
-	project, err := s.projectStore.GetProject(projectID)
+	project, ok, err := s.projectStore.GetProject(name)
 	if err != nil {
 		log.Println(
-			errors.Wrap(err, "error retrieving project"),
+			errors.Wrapf(err, "error retrieving project %q", name),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
 	}
-
-	if project == nil {
+	if !ok {
 		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}
 
-	brignextProject := brignext.BrigadeProjectToBrigNextProject(project)
-
-	responseBytes, err := json.Marshal(brignextProject)
+	responseBytes, err := json.Marshal(project)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error marshaling get project response"),

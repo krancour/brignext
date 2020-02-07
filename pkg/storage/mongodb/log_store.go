@@ -3,9 +3,9 @@ package mongodb
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
@@ -109,12 +109,16 @@ func (l *logStore) streamLogs(
 			cursor, err = collection.Find(
 				ctx,
 				&bson.D{},
-				&options.FindOptions{
-					CursorType: &cursorType,
-				},
+				&options.FindOptions{CursorType: &cursorType},
 			)
 			if err != nil {
-				glog.Errorf("error getting cursor for collection %q", collectionName)
+				log.Println(
+					errors.Wrapf(
+						err,
+						"error getting cursor for collection %q",
+						collectionName,
+					),
+				)
 				return
 			}
 			if cursor.ID() != 0 {
@@ -142,10 +146,12 @@ func (l *logStore) streamLogs(
 			result := bson.M{}
 			err = cursor.Decode(&result)
 			if err != nil {
-				glog.Errorf(
-					"error decoding entry from collection %q: %s",
-					collectionName,
-					err,
+				log.Println(
+					errors.Wrapf(
+						err,
+						"error decoding log entry from collection %q",
+						collectionName,
+					),
 				)
 				return
 			}
