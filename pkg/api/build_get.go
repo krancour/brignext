@@ -25,7 +25,7 @@ func (s *server) buildGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if build == nil {
-		s.writeResponse(w, http.StatusOK, responseEmptyJSON)
+		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}
 

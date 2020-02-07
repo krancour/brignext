@@ -29,7 +29,8 @@ func (p *projectStore) CreateProject(project *brigade.Project) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	// Prevent duplicate ID
+	// Prevent duplicate IDs
+	// TODO: Do this with a unique index instead?
 	result := p.projectsCollection.FindOne(
 		ctx,
 		bson.M{
@@ -159,6 +160,7 @@ func (p *projectStore) CreateBuild(build *brigade.Build) error {
 	defer cancel()
 
 	// Prevent duplicate IDs
+	// TODO: Do this with a unique index instead?
 	result := p.buildsCollection.FindOne(
 		ctx,
 		bson.M{
@@ -326,6 +328,7 @@ func (p *projectStore) CreateJob(buildID string, job *brigade.Job) error {
 	defer cancel()
 
 	// Prevent duplicate IDs
+	// TODO: Do this with a unique index instead?
 	result := p.jobsCollection.FindOne(
 		ctx,
 		bson.M{

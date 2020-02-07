@@ -8,20 +8,18 @@ import (
 	"time"
 
 	"github.com/gosuri/uitable"
-	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
-	"k8s.io/apimachinery/pkg/util/duration"
 )
 
-func buildGet(c *cli.Context) error {
+func userGet(c *cli.Context) error {
 	// Inputs
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"build get requires one parameter-- a build ID",
+			"user get requires one parameter-- a username",
 		)
 	}
-	id := c.Args()[0]
+	username := c.Args()[0]
 	output := c.String(flagOutput)
 	allowInsecure := c.GlobalBool(flagInsecure)
 
@@ -34,7 +32,7 @@ func buildGet(c *cli.Context) error {
 
 	req, err := buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/builds/%s", id),
+		fmt.Sprintf("v2/users/%s", username),
 		nil,
 	)
 	if err != nil {
@@ -56,48 +54,37 @@ func buildGet(c *cli.Context) error {
 		return errors.Wrap(err, "error reading response body")
 	}
 
-	build := &brignext.Build{}
-	if err := json.Unmarshal(respBodyBytes, build); err != nil {
+	user := struct {
+		Username  string    `json:"username"`
+		FirstSeen time.Time `json:"firstSeen"`
+	}{}
+	if err := json.Unmarshal(respBodyBytes, &user); err != nil {
 		return errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	if build.ID == "" {
-		return errors.Errorf("Build %q not found.", id)
+	if user.Username == "" {
+		return errors.Errorf("User %q not found.", username)
 	}
 
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "PROJECT", "PROVIDER", "TYPE", "STATUS", "AGE")
-		var status brignext.JobStatus = "???"
-		since := "???"
-		if build.Worker != nil {
-			status = build.Worker.Status
-			if status == brignext.JobSucceeded || status == brignext.JobFailed {
-				since = duration.ShortHumanDuration(
-					time.Since(build.Worker.StartTime),
-				)
-			}
-		}
+		table.AddRow("USERNAME", "FIRST SEEN")
 		table.AddRow(
-			build.ID,
-			build.ProjectName,
-			build.Provider,
-			build.Type,
-			status,
-			since,
+			user.Username,
+			user.FirstSeen,
 		)
 		fmt.Println(table)
 
 	case "json":
-		buildJSON, err := json.MarshalIndent(build, "", "  ")
+		projectJSON, err := json.MarshalIndent(user, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,
-				"error formatting output from get build operation",
+				"error formatting output from get project operation",
 			)
 		}
-		fmt.Println(string(buildJSON))
+		fmt.Println(string(projectJSON))
 	}
 
 	return nil

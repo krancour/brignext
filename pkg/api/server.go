@@ -159,6 +159,56 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.buildDelete),
 	).Methods(http.MethodDelete)
 
+	// TODO: Figure out what order I actually want to list these endpoints
+
+	// ---------------------------------------------------------------------------
+
+	// List users
+	s.router.HandleFunc(
+		"/v2/users",
+		tokenAuthFilter.Decorate(s.userList),
+	).Methods(http.MethodGet)
+
+	// Get user
+	s.router.HandleFunc(
+		"/v2/users/{username}",
+		tokenAuthFilter.Decorate(s.userGet),
+	).Methods(http.MethodGet)
+
+	// Delete user
+	s.router.HandleFunc(
+		"/v2/users/{username}",
+		tokenAuthFilter.Decorate(s.userDelete),
+	).Methods(http.MethodDelete)
+
+	// ---------------------------------------------------------------------------
+
+	// Create service account
+	s.router.HandleFunc(
+		"/v2/service-accounts",
+		tokenAuthFilter.Decorate(s.serviceAccountCreate),
+	).Methods(http.MethodPost)
+
+	// List service accounts
+	s.router.HandleFunc(
+		"/v2/service-accounts",
+		tokenAuthFilter.Decorate(s.serviceAccountList),
+	).Methods(http.MethodGet)
+
+	// Get service account
+	s.router.HandleFunc(
+		"/v2/service-accounts/{name}",
+		tokenAuthFilter.Decorate(s.serviceAccountGet),
+	).Methods(http.MethodGet)
+
+	// Delete service account
+	s.router.HandleFunc(
+		"/v2/service-accounts/{name}",
+		tokenAuthFilter.Decorate(s.serviceAccountDelete),
+	).Methods(http.MethodDelete)
+
+	// ---------------------------------------------------------------------------
+
 	// Health check
 	s.router.HandleFunc(
 		"/healthz",

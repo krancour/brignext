@@ -46,7 +46,6 @@ func login(c *cli.Context) error {
 		for {
 			password = strings.TrimSpace(password)
 			if password != "" {
-				fmt.Println()
 				break
 			}
 			fmt.Print("Root user password? ")
@@ -90,7 +89,7 @@ func login(c *cli.Context) error {
 	}
 
 	if rootLogin {
-		fmt.Println("You are logged in as the root user.")
+		fmt.Println("\nYou are logged in as the root user.")
 		return nil
 	}
 

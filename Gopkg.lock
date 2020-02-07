@@ -658,7 +658,6 @@
     "github.com/mitchellh/go-homedir",
     "github.com/pkg/errors",
     "github.com/satori/go.uuid",
-    "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
     "github.com/urfave/cli",
     "go.mongodb.org/mongo-driver/bson",

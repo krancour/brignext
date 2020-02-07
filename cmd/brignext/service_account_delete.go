@@ -8,24 +8,18 @@ import (
 	"github.com/urfave/cli"
 )
 
-func buildDelete(c *cli.Context) error {
+func serviceAccountDelete(c *cli.Context) error {
 	// Inputs
-	id := c.Args()[0]
-	force := c.Bool(flagForce)
+	name := c.Args()[0]
 	allowInsecure := c.GlobalBool(flagInsecure)
 
 	req, err := buildRequest(
 		http.MethodDelete,
-		fmt.Sprintf("v2/builds/%s", id),
+		fmt.Sprintf("v2/service-accounts/%s", name),
 		nil,
 	)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
-	}
-	if force {
-		q := req.URL.Query()
-		q.Set("force", "true")
-		req.URL.RawQuery = q.Encode()
 	}
 
 	resp, err := getHTTPClient(allowInsecure).Do(req)
@@ -38,7 +32,7 @@ func buildDelete(c *cli.Context) error {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	fmt.Printf("Build %s deleted.\n", id)
+	fmt.Printf("Service account %q deleted.\n", name)
 
 	return nil
 }

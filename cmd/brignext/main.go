@@ -24,8 +24,8 @@ func main() {
 			Subcommands: []cli.Command{
 				{
 					Name:      "delete",
-					Usage:     "deletes build",
-					ArgsUsage: "BUILD",
+					Usage:     "deletes a build by ID",
+					ArgsUsage: "BUILD_ID",
 					Flags: []cli.Flag{
 						cli.BoolFlag{
 							Name:  flagsForce,
@@ -36,8 +36,8 @@ func main() {
 				},
 				{
 					Name:      "delete-all",
-					Usage:     "deletes all builds for a project",
-					ArgsUsage: "PROJECT",
+					Usage:     "deletes all builds for a given project",
+					ArgsUsage: "PROJECT_NAME",
 					Flags: []cli.Flag{
 						cli.BoolFlag{
 							Name:  flagsForce,
@@ -49,7 +49,7 @@ func main() {
 				{
 					Name:      "get",
 					Usage:     "get a build",
-					ArgsUsage: "BUILD",
+					ArgsUsage: "BUILD_ID",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name: flagsOutput,
@@ -62,8 +62,8 @@ func main() {
 				},
 				{
 					Name:      "list",
-					Usage:     "list builds",
-					ArgsUsage: "[PROJECT]",
+					Usage:     "list all builds or builds for a given project",
+					ArgsUsage: "[PROJECT_NAME]",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name: flagsOutput,
@@ -99,11 +99,13 @@ func main() {
 		{
 			Name:      "login",
 			Usage:     "Log in to Brigade",
-			ArgsUsage: "HOST",
+			ArgsUsage: "API_SERVER_ADDRESS",
 			Flags: []cli.Flag{
 				cli.BoolFlag{
-					Name:  flagsRoot,
-					Usage: "Log in as the root user",
+					Name: flagsOpen,
+					Usage: "Use the system's default web browser to navigate to the " +
+						"URL to begin authentication using OpenID Connect " +
+						"(if supported); not applicable when --root is used",
 				},
 				cli.StringFlag{
 					Name: flagsPassword,
@@ -111,9 +113,8 @@ func main() {
 						"non-interactively; only applicaple when --root is used",
 				},
 				cli.BoolFlag{
-					Name: flagsOpen,
-					Usage: "Use the system's default web browser to navigate to the " +
-						"authentication URL; not applicable when --root is used",
+					Name:  flagsRoot,
+					Usage: "Log in as the root user",
 				},
 			},
 			Action: login,
@@ -131,20 +132,18 @@ func main() {
 					Name:      "create",
 					Usage:     "create a new project",
 					ArgsUsage: "FILE",
-					Flags:     []cli.Flag{},
 					Action:    projectCreate,
 				},
 				{
 					Name:      "delete",
 					Usage:     "delete a project",
-					ArgsUsage: "PROJECT",
-					Flags:     []cli.Flag{},
+					ArgsUsage: "PROJECT_NAME",
 					Action:    projectDelete,
 				},
 				{
 					Name:      "get",
 					Usage:     "get a project",
-					ArgsUsage: "PROJECT",
+					ArgsUsage: "PROJECT_NAME",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name: flagsOutput,
@@ -172,7 +171,6 @@ func main() {
 					Name:      "update",
 					Usage:     "update a project",
 					ArgsUsage: "FILE",
-					Flags:     []cli.Flag{},
 					Action:    projectUpdate,
 				},
 			},
@@ -180,7 +178,7 @@ func main() {
 		{
 			Name:      "run",
 			Usage:     "Kick off a build",
-			ArgsUsage: "PROJECT",
+			ArgsUsage: "PROJECT_NAME",
 			Flags: []cli.Flag{
 				cli.BoolFlag{
 					Name: flagsBackground,
@@ -220,6 +218,96 @@ func main() {
 				},
 			},
 			Action: run,
+		},
+		{
+			Name:  "service-account",
+			Usage: "Manage service accounts",
+			Subcommands: []cli.Command{
+				{
+					Name:      "create",
+					Usage:     "create a new service account",
+					ArgsUsage: "[SERVICE_ACCOUNT_NAME]",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  flagsDescription,
+							Usage: "A description of the service account",
+						},
+					},
+					Action: serviceAccountCreate,
+				},
+				{
+					Name:      "delete",
+					Usage:     "delete a service account",
+					ArgsUsage: "SERVICE_ACCOUNT_NAME",
+					Action:    serviceAccountDelete,
+				},
+				{
+					Name:      "get",
+					Usage:     "get a service account",
+					ArgsUsage: "SERVICE_ACCOUNT_NAME",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name: flagsOutput,
+							Usage: "Return output in another format. Supported formats: " +
+								"table, json",
+							Value: "table",
+						},
+					},
+					Action: serviceAccountGet,
+				},
+				{
+					Name:  "list",
+					Usage: "list service accounts",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name: flagsOutput,
+							Usage: "Return output in another format. Supported formats: " +
+								"table, json",
+							Value: "table",
+						},
+					},
+					Action: serviceAccountList,
+				},
+			},
+		},
+		{
+			Name:  "user",
+			Usage: "Manage users",
+			Subcommands: []cli.Command{
+				{
+					Name:      "delete",
+					Usage:     "delete a user",
+					ArgsUsage: "USERNAME",
+					Action:    userDelete,
+				},
+				{
+					Name:      "get",
+					Usage:     "get a user",
+					ArgsUsage: "USERNAME",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name: flagsOutput,
+							Usage: "Return output in another format. Supported formats: " +
+								"table, json",
+							Value: "table",
+						},
+					},
+					Action: userGet,
+				},
+				{
+					Name:  "list",
+					Usage: "list users",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name: flagsOutput,
+							Usage: "Return output in another format. Supported formats: " +
+								"table, json",
+							Value: "table",
+						},
+					},
+					Action: userList,
+				},
+			},
 		},
 	}
 	fmt.Println()

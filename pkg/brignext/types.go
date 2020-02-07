@@ -5,16 +5,24 @@ import (
 )
 
 type User struct {
-	ID       string
-	Username string
+	ID        string    `json:"id"`
+	Username  string    `json:"username"`
+	FirstSeen time.Time `json:"firstSeen"`
+}
+
+type ServiceAccount struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Created     time.Time `json:"created"`
 }
 
 type Session struct {
-	ID            string
-	Root          bool
-	Authenticated bool
-	UserID        string
-	ExpiresAt     time.Time
+	ID            string    `json:"id"`
+	Root          bool      `json:"root"`
+	Authenticated bool      `json:"authenticated"`
+	UserID        string    `json:"userID"`
+	ExpiresAt     time.Time `json:"expiresAt"`
 }
 
 type Project struct {

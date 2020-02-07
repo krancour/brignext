@@ -38,7 +38,7 @@ spec:
               name: {{ include "brignext.apiserver.fullname" . }}
               key: root-user-password
         {{- end }}
-        - name: API_SERVER_OIDC_ENABLED
+        - name: OIDC_ENABLED
           value: {{ quote .Values.apiserver.oidc.enabled }}
         {{- if .Values.apiserver.oidc.enabled }}
         - name: OIDC_PROVIDER_URL

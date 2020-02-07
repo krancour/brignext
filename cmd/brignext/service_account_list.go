@@ -5,22 +5,16 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-
-	"github.com/krancour/brignext/pkg/brignext"
+	"time"
 
 	"github.com/gosuri/uitable"
+
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
-func projectGet(c *cli.Context) error {
+func serviceAccountList(c *cli.Context) error {
 	// Inputs
-	if len(c.Args()) != 1 {
-		return errors.New(
-			"project get requires one parameter-- a project name",
-		)
-	}
-	projectName := c.Args()[0]
 	output := c.String(flagOutput)
 	allowInsecure := c.GlobalBool(flagInsecure)
 
@@ -31,11 +25,7 @@ func projectGet(c *cli.Context) error {
 		return errors.Errorf("unknown output format %q", output)
 	}
 
-	req, err := buildRequest(
-		http.MethodGet,
-		fmt.Sprintf("v2/projects/%s", projectName),
-		nil,
-	)
+	req, err := buildRequest(http.MethodGet, "v2/service-accounts", nil)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
 	}
@@ -55,34 +45,42 @@ func projectGet(c *cli.Context) error {
 		return errors.Wrap(err, "error reading response body")
 	}
 
-	project := &brignext.Project{}
-	if err := json.Unmarshal(respBodyBytes, project); err != nil {
+	serviceAccounts := []struct {
+		Name        string    `json:"name"`
+		Description string    `json:"description"`
+		Created     time.Time `json:"created"`
+	}{}
+	if err := json.Unmarshal(respBodyBytes, &serviceAccounts); err != nil {
 		return errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	if project.Name == "" {
-		return errors.Errorf("Project %q not found.", projectName)
+	if len(serviceAccounts) == 0 {
+		fmt.Println("No service accounts found.")
+		return nil
 	}
 
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("NAME", "REPO")
-		table.AddRow(
-			project.Name,
-			project.Repo.Name,
-		)
+		table.AddRow("NAME", "DESCRIPTION", "CREATED")
+		for _, serviceAccount := range serviceAccounts {
+			table.AddRow(
+				serviceAccount.Name,
+				serviceAccount.Description,
+				serviceAccount.Created,
+			)
+		}
 		fmt.Println(table)
 
 	case "json":
-		projectJSON, err := json.MarshalIndent(project, "", "  ")
+		responseJSON, err := json.MarshalIndent(serviceAccounts, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,
-				"error formatting output from get project operation",
+				"error formatting output from get service accounts operation",
 			)
 		}
-		fmt.Println(string(projectJSON))
+		fmt.Println(string(responseJSON))
 	}
 
 	return nil

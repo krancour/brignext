@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/gosuri/uitable"
-	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
-func projectList(c *cli.Context) error {
+func userList(c *cli.Context) error {
 	// Inputs
 	output := c.String(flagOutput)
 	allowInsecure := c.GlobalBool(flagInsecure)
@@ -24,7 +24,7 @@ func projectList(c *cli.Context) error {
 		return errors.Errorf("unknown output format %q", output)
 	}
 
-	req, err := buildRequest(http.MethodGet, "v2/projects", nil)
+	req, err := buildRequest(http.MethodGet, "v2/users", nil)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
 	}
@@ -44,38 +44,40 @@ func projectList(c *cli.Context) error {
 		return errors.Wrap(err, "error reading response body")
 	}
 
-	projs := []*brignext.Project{}
-	if err := json.Unmarshal(respBodyBytes, &projs); err != nil {
+	users := []struct {
+		Username  string    `json:"username"`
+		FirstSeen time.Time `json:"firstSeen"`
+	}{}
+	if err := json.Unmarshal(respBodyBytes, &users); err != nil {
 		return errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	if len(projs) == 0 {
-		fmt.Println("No projects found.")
+	if len(users) == 0 {
+		fmt.Println("No users found.")
 		return nil
 	}
 
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("NAME", "REPO")
-		for _, project := range projs {
+		table.AddRow("USERNAME", "FIRST SEEN")
+		for _, user := range users {
 			table.AddRow(
-				project.Name,
-				project.Repo.Name,
+				user.Username,
+				user.FirstSeen,
 			)
 		}
 		fmt.Println(table)
 
 	case "json":
-		responseJSON, err := json.MarshalIndent(projs, "", "  ")
+		responseJSON, err := json.MarshalIndent(users, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,
-				"error formatting output from get projects operation",
+				"error formatting output from get users operation",
 			)
 		}
 		fmt.Println(string(responseJSON))
-
 	}
 
 	return nil

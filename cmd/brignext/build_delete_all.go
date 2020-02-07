@@ -23,7 +23,9 @@ func buildDeleteAll(c *cli.Context) error {
 		return errors.Wrap(err, "error creating HTTP request")
 	}
 	if force {
-		req.URL.Query().Set("force", "true")
+		q := req.URL.Query()
+		q.Set("force", "true")
+		req.URL.RawQuery = q.Encode()
 	}
 
 	resp, err := getHTTPClient(allowInsecure).Do(req)

@@ -27,7 +27,7 @@ func (s *server) projectGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if project == nil {
-		s.writeResponse(w, http.StatusOK, responseEmptyJSON)
+		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}
 
