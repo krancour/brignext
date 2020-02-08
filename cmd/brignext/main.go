@@ -19,37 +19,39 @@ func main() {
 	}
 	app.Commands = []cli.Command{
 		{
-			Name:  "build",
-			Usage: "Manage builds",
+			Name:  "event",
+			Usage: "Manage events",
 			Subcommands: []cli.Command{
 				{
 					Name:      "delete",
-					Usage:     "deletes a build by ID",
-					ArgsUsage: "BUILD_ID",
+					Usage:     "deletes an event by ID",
+					ArgsUsage: "EVENT_ID",
 					Flags: []cli.Flag{
 						cli.BoolFlag{
-							Name:  flagsForce,
-							Usage: "If set, will also delete running builds. Default: false",
+							Name: flagsForce,
+							Usage: "If set, will also delete events with running workers. " +
+								"Default: false",
 						},
 					},
-					Action: buildDelete,
+					Action: eventDelete,
 				},
 				{
 					Name:      "delete-all",
-					Usage:     "deletes all builds for a given project",
+					Usage:     "deletes all events for a given project",
 					ArgsUsage: "PROJECT_NAME",
 					Flags: []cli.Flag{
 						cli.BoolFlag{
-							Name:  flagsForce,
-							Usage: "If set, will also delete running builds. Default: false",
+							Name: flagsForce,
+							Usage: "If set, will also delete events with running workers. " +
+								"Default: false",
 						},
 					},
-					Action: buildDeleteAll,
+					Action: eventDeleteAll,
 				},
 				{
 					Name:      "get",
-					Usage:     "get a build",
-					ArgsUsage: "BUILD_ID",
+					Usage:     "get an event",
+					ArgsUsage: "EVENT_ID",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name: flagsOutput,
@@ -58,11 +60,11 @@ func main() {
 							Value: "table",
 						},
 					},
-					Action: buildGet,
+					Action: eventGet,
 				},
 				{
 					Name:      "list",
-					Usage:     "list all builds or builds for a given project",
+					Usage:     "list all events or events for a given project",
 					ArgsUsage: "[PROJECT_NAME]",
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -72,12 +74,12 @@ func main() {
 							Value: "table",
 						},
 					},
-					Action: buildList,
+					Action: eventList,
 				},
 				// {
 				// 	Name:      "logs",
-				// 	Usage:     "show build logs",
-				// 	ArgsUsage: "BUILD",
+				// 	Usage:     "show event logs",
+				// 	ArgsUsage: "EVENT_ID",
 				// 	Flags: []cli.Flag{
 				// 		cli.BoolFlag{
 				// 			Name:  flagsInit,
@@ -89,10 +91,10 @@ func main() {
 				// 		},
 				// 		cli.BoolFlag{
 				// 			Name:  flagsLast,
-				// 			Usage: "Show last build's log (ignores BUILD_ID)",
+				// 			Usage: "Show last event's log (ignores EVENT_ID)",
 				// 		},
 				// 	},
-				// 	Action: buildLogs,
+				// 	Action: eventLogs,
 				// },
 			},
 		},
@@ -177,7 +179,7 @@ func main() {
 		},
 		{
 			Name:      "run",
-			Usage:     "Kick off a build",
+			Usage:     "Crete a new event",
 			ArgsUsage: "PROJECT_NAME",
 			Flags: []cli.Flag{
 				// cli.BoolFlag{

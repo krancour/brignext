@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/duration"
 )
 
-func buildList(c *cli.Context) error {
+func eventList(c *cli.Context) error {
 	// Inputs
 	var projectName string
 	if len(c.Args()) > 0 {
@@ -30,9 +30,9 @@ func buildList(c *cli.Context) error {
 		return errors.Errorf("unknown output format %q", output)
 	}
 
-	path := "v2/builds"
+	path := "v2/events"
 	if projectName != "" {
-		path = fmt.Sprintf("v2/projects/%s/builds", projectName)
+		path = fmt.Sprintf("v2/projects/%s/events", projectName)
 	}
 	req, err := buildRequest(http.MethodGet, path, nil)
 	if err != nil {
@@ -54,13 +54,13 @@ func buildList(c *cli.Context) error {
 		return errors.Wrap(err, "error reading response body")
 	}
 
-	builds := []*brignext.Build{}
-	if err := json.Unmarshal(respBodyBytes, &builds); err != nil {
+	events := []brignext.Event{}
+	if err := json.Unmarshal(respBodyBytes, &events); err != nil {
 		return errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	if len(builds) == 0 {
-		fmt.Println("No builds found.")
+	if len(events) == 0 {
+		fmt.Println("No events found.")
 		return nil
 	}
 
@@ -68,22 +68,22 @@ func buildList(c *cli.Context) error {
 	case "table":
 		table := uitable.New()
 		table.AddRow("ID", "PROJECT", "PROVIDER", "TYPE", "STATUS", "AGE")
-		for _, build := range builds {
+		for _, event := range events {
 			var status brignext.JobStatus = "???"
 			since := "???"
-			if build.Worker != nil {
-				status = build.Worker.Status
+			if event.Worker != nil {
+				status = event.Worker.Status
 				if status == brignext.JobSucceeded || status == brignext.JobFailed {
 					since = duration.ShortHumanDuration(
-						time.Since(build.Worker.StartTime),
+						time.Since(event.Worker.StartTime),
 					)
 				}
 			}
 			table.AddRow(
-				build.ID,
-				build.ProjectName,
-				build.Provider,
-				build.Type,
+				event.ID,
+				event.ProjectName,
+				event.Provider,
+				event.Type,
 				status,
 				since,
 			)
@@ -91,11 +91,11 @@ func buildList(c *cli.Context) error {
 		fmt.Println(table)
 
 	case "json":
-		responseJSON, err := json.MarshalIndent(builds, "", "  ")
+		responseJSON, err := json.MarshalIndent(events, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,
-				"error formatting output from get builds operation",
+				"error formatting output from get events operation",
 			)
 		}
 		fmt.Println(string(responseJSON))

@@ -9,15 +9,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *server) buildGet(w http.ResponseWriter, r *http.Request) {
+func (s *server) eventGet(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	buildID := mux.Vars(r)["id"]
+	id := mux.Vars(r)["id"]
 
-	build, ok, err := s.projectStore.GetBuild(buildID)
+	event, ok, err := s.projectStore.GetEvent(id)
 	if err != nil {
 		log.Println(
-			errors.Wrap(err, "error retrieving build"),
+			errors.Wrapf(err, "error retrieving event %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
@@ -27,10 +27,10 @@ func (s *server) buildGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBytes, err := json.Marshal(build)
+	responseBytes, err := json.Marshal(event)
 	if err != nil {
 		log.Println(
-			errors.Wrap(err, "error marshaling get build response"),
+			errors.Wrap(err, "error marshaling get event response"),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

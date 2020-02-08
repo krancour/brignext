@@ -13,7 +13,7 @@ import (
 
 type projectStore struct {
 	projectsCollection *mongo.Collection
-	buildsCollection   *mongo.Collection
+	eventsCollection   *mongo.Collection
 	jobsCollection     *mongo.Collection
 }
 
@@ -38,8 +38,8 @@ func NewProjectStore(database *mongo.Database) (storage.ProjectStore, error) {
 		return nil, errors.Wrap(err, "error adding index to projects collection")
 	}
 
-	buildsCollection := database.Collection("builds")
-	if _, err := buildsCollection.Indexes().CreateMany(
+	eventsCollection := database.Collection("events")
+	if _, err := eventsCollection.Indexes().CreateMany(
 		ctx,
 		[]mongo.IndexModel{
 			{
@@ -57,7 +57,7 @@ func NewProjectStore(database *mongo.Database) (storage.ProjectStore, error) {
 			},
 		},
 	); err != nil {
-		return nil, errors.Wrap(err, "error adding indexes to builds collection")
+		return nil, errors.Wrap(err, "error adding indexes to events collection")
 	}
 
 	jobsCollection := database.Collection("jobs")
@@ -74,17 +74,17 @@ func NewProjectStore(database *mongo.Database) (storage.ProjectStore, error) {
 			},
 			{
 				Keys: bson.M{
-					"buildID": 1,
+					"eventID": 1,
 				},
 			},
 		},
 	); err != nil {
-		return nil, errors.Wrap(err, "error adding indexes to builds collection")
+		return nil, errors.Wrap(err, "error adding indexes to jobs collection")
 	}
 
 	return &projectStore{
 		projectsCollection: projectsCollection,
-		buildsCollection:   buildsCollection,
+		eventsCollection:   eventsCollection,
 		jobsCollection:     jobsCollection,
 	}, nil
 }
@@ -169,91 +169,91 @@ func (p *projectStore) DeleteProject(name string) error {
 	return nil
 }
 
-func (p *projectStore) CreateBuild(build brignext.Build) error {
+func (p *projectStore) CreateEvent(event brignext.Event) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
-	if _, err := p.buildsCollection.InsertOne(ctx, build); err != nil {
-		return errors.Wrapf(err, "error creating build %q", build.ID)
+	if _, err := p.eventsCollection.InsertOne(ctx, event); err != nil {
+		return errors.Wrapf(err, "error creating event %q", event.ID)
 	}
 	return nil
 }
 
-func (p *projectStore) GetBuilds() ([]brignext.Build, error) {
+func (p *projectStore) GetEvents() ([]brignext.Event, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	cur, err := p.buildsCollection.Find(ctx, bson.M{})
+	cur, err := p.eventsCollection.Find(ctx, bson.M{})
 	if err != nil {
-		return nil, errors.Wrap(err, "error retrieving builds")
+		return nil, errors.Wrap(err, "error retrieving events")
 	}
-	builds := []brignext.Build{}
+	events := []brignext.Event{}
 	for cur.Next(ctx) {
-		build := brignext.Build{}
-		err := cur.Decode(&build)
+		event := brignext.Event{}
+		err := cur.Decode(&event)
 		if err != nil {
-			return nil, errors.Wrap(err, "error decoding builds")
+			return nil, errors.Wrap(err, "error decoding events")
 		}
-		builds = append(builds, build)
+		events = append(events, event)
 	}
-	return builds, nil
+	return events, nil
 }
 
-func (p *projectStore) GetBuildsByProjectName(
+func (p *projectStore) GetEventsByProjectName(
 	projectName string,
-) ([]brignext.Build, error) {
+) ([]brignext.Event, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	cur, err := p.buildsCollection.Find(ctx, bson.M{"projectname": projectName})
+	cur, err := p.eventsCollection.Find(ctx, bson.M{"projectname": projectName})
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
-			"error retrieving builds for project %q",
+			"error retrieving events for project %q",
 			projectName,
 		)
 	}
-	builds := []brignext.Build{}
+	events := []brignext.Event{}
 	for cur.Next(ctx) {
-		build := brignext.Build{}
-		err := cur.Decode(&build)
+		event := brignext.Event{}
+		err := cur.Decode(&event)
 		if err != nil {
 			return nil, errors.Wrapf(
 				err,
-				"error decoding builds for project %q",
+				"error decoding events for project %q",
 				projectName,
 			)
 		}
-		builds = append(builds, build)
+		events = append(events, event)
 	}
-	return builds, nil
+	return events, nil
 }
 
-func (p *projectStore) GetBuild(id string) (brignext.Build, bool, error) {
+func (p *projectStore) GetEvent(id string) (brignext.Event, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	build := brignext.Build{}
+	event := brignext.Event{}
 
-	result := p.buildsCollection.FindOne(ctx, bson.M{"id": id})
+	result := p.eventsCollection.FindOne(ctx, bson.M{"id": id})
 	if result.Err() == mongo.ErrNoDocuments {
-		return build, false, nil
+		return event, false, nil
 	}
 	if result.Err() != nil {
-		return build, false, errors.Wrapf(
+		return event, false, errors.Wrapf(
 			result.Err(),
-			"error retrieving build %q",
+			"error retrieving event %q",
 			id,
 		)
 	}
-	if err := result.Decode(&build); err != nil {
-		return build, false, errors.Wrapf(err, "error decoding build %q", id)
+	if err := result.Decode(&event); err != nil {
+		return event, false, errors.Wrapf(err, "error decoding event %q", id)
 	}
-	return build, true, nil
+	return event, true, nil
 }
 
-func (p *projectStore) DeleteBuild(
+func (p *projectStore) DeleteEvent(
 	id string,
-	options storage.DeleteBuildOptions,
+	options storage.DeleteEventOptions,
 ) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
@@ -261,29 +261,29 @@ func (p *projectStore) DeleteBuild(
 	criteria := bson.M{
 		"id": id,
 	}
-	if !options.DeleteRunningBuilds {
+	if !options.DeleteEventsWithRunningWorkers {
 		// TODO: Amend the criteria appropriately
 	}
 	if _, err :=
-		p.buildsCollection.DeleteOne(ctx, criteria); err != nil {
-		return errors.Wrapf(err, "error deleting build %q", id)
+		p.eventsCollection.DeleteOne(ctx, criteria); err != nil {
+		return errors.Wrapf(err, "error deleting event %q", id)
 	}
 
 	return nil
 }
 
 func (p *projectStore) UpdateWorker(
-	buildID string,
+	eventID string,
 	worker brignext.Worker,
 ) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	if _, err :=
-		p.buildsCollection.UpdateOne(
+		p.eventsCollection.UpdateOne(
 			ctx,
 			bson.M{
-				"id": buildID,
+				"id": eventID,
 			},
 			bson.M{
 				"$set": bson.M{
@@ -291,7 +291,7 @@ func (p *projectStore) UpdateWorker(
 				},
 			},
 		); err != nil {
-		return errors.Wrapf(err, "error updating worker for build %q", buildID)
+		return errors.Wrapf(err, "error updating worker for event %q", eventID)
 	}
 
 	return nil
@@ -306,20 +306,22 @@ func (p *projectStore) CreateJob(job brignext.Job) error {
 	return nil
 }
 
-func (p *projectStore) GetJobsByBuildID(buildID string) ([]brignext.Job, error) {
+func (p *projectStore) GetJobsByEventID(
+	eventID string,
+) ([]brignext.Job, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	cur, err := p.jobsCollection.Find(ctx, bson.M{"buildid": buildID})
+	cur, err := p.jobsCollection.Find(ctx, bson.M{"eventID": eventID})
 	if err != nil {
-		return nil, errors.Wrapf(err, "error retrieving jobs for build %q", buildID)
+		return nil, errors.Wrapf(err, "error retrieving jobs for event %q", eventID)
 	}
 	jobs := []brignext.Job{}
 	for cur.Next(ctx) {
 		job := brignext.Job{}
 		err := cur.Decode(&job)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error decoding job for build %q", buildID)
+			return nil, errors.Wrapf(err, "error decoding job for event %q", eventID)
 		}
 		jobs = append(jobs, job)
 	}
@@ -366,13 +368,13 @@ func (p *projectStore) GetJob(id string) (brignext.Job, bool, error) {
 	return job, true, nil
 }
 
-func (p *projectStore) DeleteJobsByBuildID(buildID string) error {
+func (p *projectStore) DeleteJobsByEventID(eventID string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	if _, err :=
-		p.buildsCollection.DeleteMany(ctx, bson.M{"buildid": buildID}); err != nil {
-		return errors.Wrapf(err, "error deleting jobs for build %q", buildID)
+		p.eventsCollection.DeleteMany(ctx, bson.M{"everntID": eventID}); err != nil {
+		return errors.Wrapf(err, "error deleting jobs for event %q", eventID)
 	}
 
 	return nil

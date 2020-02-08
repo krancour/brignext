@@ -35,7 +35,7 @@ type server struct {
 	router                     *mux.Router
 	serviceAccountSchemaLoader gojsonschema.JSONLoader
 	projectSchemaLoader        gojsonschema.JSONLoader
-	buildSchemaLoader          gojsonschema.JSONLoader
+	eventSchemaLoader          gojsonschema.JSONLoader
 }
 
 // NewServer returns an HTTP router
@@ -59,7 +59,7 @@ func NewServer(
 		router:                     mux.NewRouter(),
 		serviceAccountSchemaLoader: gojsonschema.NewBytesLoader(serviceAccountSchemaBytes), // nolint: lll
 		projectSchemaLoader:        gojsonschema.NewBytesLoader(projectSchemaBytes),
-		buildSchemaLoader:          gojsonschema.NewBytesLoader(buildSchemaBytes),
+		eventSchemaLoader:          gojsonschema.NewBytesLoader(eventSchemaBytes),
 	}
 
 	// Most requests are authenticated with a bearer token
@@ -109,10 +109,10 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.projectGet),
 	).Methods(http.MethodGet)
 
-	// List project's builds
+	// List project's events
 	s.router.HandleFunc(
-		"/v2/projects/{projectName}/builds",
-		tokenAuthFilter.Decorate(s.buildList),
+		"/v2/projects/{projectName}/events",
+		tokenAuthFilter.Decorate(s.eventList),
 	).Methods(http.MethodGet)
 
 	// Update project
@@ -127,40 +127,40 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.projectDelete),
 	).Methods(http.MethodDelete)
 
-	// List project's builds
+	// List project's events
 	s.router.HandleFunc(
-		"/v2/projects/{projectName}/builds",
-		tokenAuthFilter.Decorate(s.buildDeleteAll),
+		"/v2/projects/{projectName}/events",
+		tokenAuthFilter.Decorate(s.eventDeleteAll),
 	).Methods(http.MethodDelete)
 
-	// Create build
+	// Create event
 	s.router.HandleFunc(
-		"/v2/builds",
-		tokenAuthFilter.Decorate(s.buildCreate),
+		"/v2/events",
+		tokenAuthFilter.Decorate(s.eventCreate),
 	).Methods(http.MethodPost)
 
-	// List builds
+	// List events
 	s.router.HandleFunc(
-		"/v2/builds",
-		tokenAuthFilter.Decorate(s.buildList),
+		"/v2/events",
+		tokenAuthFilter.Decorate(s.eventList),
 	).Methods(http.MethodGet)
 
-	// Get build
+	// Get event
 	s.router.HandleFunc(
-		"/v2/builds/{id}",
-		tokenAuthFilter.Decorate(s.buildGet),
+		"/v2/events/{id}",
+		tokenAuthFilter.Decorate(s.eventGet),
 	).Methods(http.MethodGet)
 
 	// Stream logs
 	s.router.HandleFunc(
-		"/v2/builds/{id}/logs",
-		tokenAuthFilter.Decorate(s.buildLogs),
+		"/v2/events/{id}/logs",
+		tokenAuthFilter.Decorate(s.eventLogs),
 	).Methods(http.MethodGet)
 
-	// Delete build
+	// Delete event
 	s.router.HandleFunc(
-		"/v2/builds/{id}",
-		tokenAuthFilter.Decorate(s.buildDelete),
+		"/v2/events/{id}",
+		tokenAuthFilter.Decorate(s.eventDelete),
 	).Methods(http.MethodDelete)
 
 	// List users

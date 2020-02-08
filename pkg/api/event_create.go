@@ -12,20 +12,20 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-func (s *server) buildCreate(w http.ResponseWriter, r *http.Request) {
+func (s *server) eventCreate(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println(
-			errors.Wrap(err, "error reading body of create build request"),
+			errors.Wrap(err, "error reading body of create event request"),
 		)
 		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
 		return
 	}
 
 	if validationResult, err := gojsonschema.Validate(
-		s.buildSchemaLoader,
+		s.eventSchemaLoader,
 		gojsonschema.NewBytesLoader(bodyBytes),
 	); err != nil {
 		log.Println(errors.Wrap(err, "error validating request"))
@@ -36,18 +36,18 @@ func (s *server) buildCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	build := brignext.Build{}
-	if err := json.Unmarshal(bodyBytes, &build); err != nil {
+	event := brignext.Event{}
+	if err := json.Unmarshal(bodyBytes, &event); err != nil {
 		log.Println(
-			errors.Wrap(err, "error unmarshaling body of create build request"),
+			errors.Wrap(err, "error unmarshaling body of create event request"),
 		)
 		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
 		return
 	}
-	build.ID = uuid.NewV4().String()
+	event.ID = uuid.NewV4().String()
 
-	if err := s.projectStore.CreateBuild(build); err != nil {
-		log.Println(errors.Wrap(err, "error creating new build"))
+	if err := s.projectStore.CreateEvent(event); err != nil {
+		log.Println(errors.Wrap(err, "error creating new event"))
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
 	}
@@ -56,12 +56,12 @@ func (s *server) buildCreate(w http.ResponseWriter, r *http.Request) {
 		struct {
 			ID string `json:"id"`
 		}{
-			ID: build.ID,
+			ID: event.ID,
 		},
 	)
 	if err != nil {
 		log.Println(
-			errors.Wrap(err, "error marshaling create build response"),
+			errors.Wrap(err, "error marshaling create event response"),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

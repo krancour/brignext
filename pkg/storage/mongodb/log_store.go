@@ -25,13 +25,15 @@ func NewLogStore(database *mongo.Database) storage.LogStore {
 	}
 }
 
-func (l *logStore) GetWorkerLogs(buildID string) ([]brignext.LogEntry, error) {
-	collectionName := fmt.Sprintf("build.%s.brigade-runner", buildID)
+func (l *logStore) GetWorkerLogs(eventID string) ([]brignext.LogEntry, error) {
+	collectionName := fmt.Sprintf("event.%s.brigade-runner", eventID)
 	return l.getLogs(collectionName)
 }
 
-func (l *logStore) GetWorkerInitLogs(buildID string) ([]brignext.LogEntry, error) {
-	collectionName := fmt.Sprintf("build.%s.vcs-sidecar", buildID)
+func (l *logStore) GetWorkerInitLogs(
+	eventID string,
+) ([]brignext.LogEntry, error) {
+	collectionName := fmt.Sprintf("event.%s.vcs-sidecar", eventID)
 	return l.getLogs(collectionName)
 }
 
@@ -45,17 +47,17 @@ func (l *logStore) GetJobLogs(
 
 func (l *logStore) StreamWorkerLogs(
 	ctx context.Context,
-	buildID string,
+	eventID string,
 ) (<-chan brignext.LogEntry, error) {
-	collectionName := fmt.Sprintf("build.%s.brigade-runner", buildID)
+	collectionName := fmt.Sprintf("event.%s.brigade-runner", eventID)
 	return l.streamLogs(ctx, collectionName)
 }
 
 func (l *logStore) StreamWorkerInitLogs(
 	ctx context.Context,
-	buildID string,
+	eventID string,
 ) (<-chan brignext.LogEntry, error) {
-	collectionName := fmt.Sprintf("build.%s.vcs-sidecar", buildID)
+	collectionName := fmt.Sprintf("event.%s.vcs-sidecar", eventID)
 	return l.streamLogs(ctx, collectionName)
 }
 

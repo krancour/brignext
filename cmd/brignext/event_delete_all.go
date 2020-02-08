@@ -8,7 +8,7 @@ import (
 	"github.com/urfave/cli"
 )
 
-func buildDeleteAll(c *cli.Context) error {
+func eventDeleteAll(c *cli.Context) error {
 	// Inputs
 	projectName := c.Args()[0]
 	force := c.Bool(flagForce)
@@ -16,7 +16,7 @@ func buildDeleteAll(c *cli.Context) error {
 
 	req, err := buildRequest(
 		http.MethodDelete,
-		fmt.Sprintf("v2/projects/%s/builds", projectName),
+		fmt.Sprintf("v2/projects/%s/events", projectName),
 		nil,
 	)
 	if err != nil {
@@ -38,7 +38,7 @@ func buildDeleteAll(c *cli.Context) error {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	fmt.Printf("All builds for project %s deleted.\n", projectName)
+	fmt.Printf("All events for project %q deleted.\n", projectName)
 
 	return nil
 }

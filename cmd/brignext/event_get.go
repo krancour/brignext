@@ -14,11 +14,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/duration"
 )
 
-func buildGet(c *cli.Context) error {
+func eventGet(c *cli.Context) error {
 	// Inputs
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"build get requires one parameter-- a build ID",
+			"event get requires one parameter-- an event ID",
 		)
 	}
 	id := c.Args()[0]
@@ -34,7 +34,7 @@ func buildGet(c *cli.Context) error {
 
 	req, err := buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/builds/%s", id),
+		fmt.Sprintf("v2/events/%s", id),
 		nil,
 	)
 	if err != nil {
@@ -48,7 +48,7 @@ func buildGet(c *cli.Context) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return errors.Errorf("Build %q not found.", id)
+		return errors.Errorf("Event %q not found.", id)
 	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
@@ -59,8 +59,8 @@ func buildGet(c *cli.Context) error {
 		return errors.Wrap(err, "error reading response body")
 	}
 
-	build := brignext.Build{}
-	if err := json.Unmarshal(respBodyBytes, &build); err != nil {
+	event := brignext.Event{}
+	if err := json.Unmarshal(respBodyBytes, &event); err != nil {
 		return errors.Wrap(err, "error unmarshaling response body")
 	}
 
@@ -70,33 +70,33 @@ func buildGet(c *cli.Context) error {
 		table.AddRow("ID", "PROJECT", "PROVIDER", "TYPE", "STATUS", "AGE")
 		var status brignext.JobStatus = "???"
 		since := "???"
-		if build.Worker != nil {
-			status = build.Worker.Status
+		if event.Worker != nil {
+			status = event.Worker.Status
 			if status == brignext.JobSucceeded || status == brignext.JobFailed {
 				since = duration.ShortHumanDuration(
-					time.Since(build.Worker.StartTime),
+					time.Since(event.Worker.StartTime),
 				)
 			}
 		}
 		table.AddRow(
-			build.ID,
-			build.ProjectName,
-			build.Provider,
-			build.Type,
+			event.ID,
+			event.ProjectName,
+			event.Provider,
+			event.Type,
 			status,
 			since,
 		)
 		fmt.Println(table)
 
 	case "json":
-		buildJSON, err := json.MarshalIndent(build, "", "  ")
+		eventJSON, err := json.MarshalIndent(event, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,
-				"error formatting output from get build operation",
+				"error formatting output from get event operation",
 			)
 		}
-		fmt.Println(string(buildJSON))
+		fmt.Println(string(eventJSON))
 	}
 
 	return nil

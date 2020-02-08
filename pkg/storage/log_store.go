@@ -7,13 +7,13 @@ import (
 )
 
 type LogStore interface {
-	GetWorkerLogs(buildID string) ([]brignext.LogEntry, error)
-	GetWorkerInitLogs(buildID string) ([]brignext.LogEntry, error)
+	GetWorkerLogs(eventID string) ([]brignext.LogEntry, error)
+	GetWorkerInitLogs(eventID string) ([]brignext.LogEntry, error)
 	GetJobLogs(jobID string, containerName string) ([]brignext.LogEntry, error)
-	StreamWorkerLogs(ctx context.Context, buildID string) (<-chan brignext.LogEntry, error)
+	StreamWorkerLogs(ctx context.Context, eventID string) (<-chan brignext.LogEntry, error)
 	StreamWorkerInitLogs(
 		ctx context.Context,
-		buildID string,
+		eventID string,
 	) (<-chan brignext.LogEntry, error)
 	StreamJobLogs(
 		ctx context.Context,

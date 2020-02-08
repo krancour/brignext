@@ -10,8 +10,8 @@ package main
 // 	"github.com/urfave/cli"
 // )
 
-// func buildLogs(c *cli.Context) error {
-// 	buildID := c.Args()[0]
+// func eventLogs(c *cli.Context) error {
+// 	eventID := c.Args()[0]
 // 	// init := c.Bool(flagInit)
 // 	// jobs := c.Bool(flagJobs)
 // 	// last := c.Bool(flagLast)
@@ -21,15 +21,15 @@ package main
 // 		return err
 // 	}
 // 	defer conn.Close()
-// 	client := builds.NewBuildsClient(conn)
+// 	client := events.NewBuildsClient(conn)
 // 	stream, err := client.StreamBuildLogs(
 // 		context.Background(),
-// 		&builds.StreamBuildLogsRequest{
-// 			Id: buildID,
+// 		&events.StreamBuildLogsRequest{
+// 			Id: eventID,
 // 		},
 // 	)
 // 	if err != nil {
-// 		log.Fatalf("error getting log stream for build %q: %s", buildID, err)
+// 		log.Fatalf("error getting log stream for event %q: %s", eventID, err)
 // 	}
 // 	for {
 // 		logEntry, err := stream.Recv()
@@ -37,7 +37,7 @@ package main
 // 			break
 // 		}
 // 		if err != nil {
-// 			log.Fatalf("error reading stream for build %q: %s", buildID, err)
+// 			log.Fatalf("error reading stream for event %q: %s", eventID, err)
 // 		}
 // 		fmt.Print(logEntry.Message)
 // 	}

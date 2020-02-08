@@ -11,36 +11,36 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *server) buildList(w http.ResponseWriter, r *http.Request) {
+func (s *server) eventList(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
 	projectName := mux.Vars(r)["projectName"]
 
-	var builds []brignext.Build
+	var events []brignext.Event
 	var err error
 	if projectName == "" {
-		if builds, err = s.projectStore.GetBuilds(); err != nil {
+		if events, err = s.projectStore.GetEvents(); err != nil {
 			log.Println(
-				errors.Wrap(err, "error retrieving all builds"),
+				errors.Wrap(err, "error retrieving all events"),
 			)
 			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 			return
 		}
 	} else {
-		if builds, err =
-			s.projectStore.GetBuildsByProjectName(projectName); err != nil {
+		if events, err =
+			s.projectStore.GetEventsByProjectName(projectName); err != nil {
 			log.Println(
-				errors.Wrap(err, "error retrieving builds for project"),
+				errors.Wrap(err, "error retrieving events for project"),
 			)
 			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 			return
 		}
 	}
 
-	responseBytes, err := json.Marshal(builds)
+	responseBytes, err := json.Marshal(events)
 	if err != nil {
 		log.Println(
-			errors.Wrap(err, "error marshaling list builds response"),
+			errors.Wrap(err, "error marshaling list events response"),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

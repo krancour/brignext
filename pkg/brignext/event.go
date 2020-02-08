@@ -2,7 +2,7 @@ package brignext
 
 import "time"
 
-type Build struct {
+type Event struct {
 	ID          string `json:"id,omitempty" bson:"id"`
 	ProjectName string `json:"projectName" bson:"projectName"`
 	Provider    string `json:"provider" bson:"provider"`

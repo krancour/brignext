@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *server) buildDelete(w http.ResponseWriter, r *http.Request) {
+func (s *server) eventDelete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
 	id := mux.Vars(r)["id"]
@@ -20,14 +20,14 @@ func (s *server) buildDelete(w http.ResponseWriter, r *http.Request) {
 		forceDelete, _ = strconv.ParseBool(forceDeleteStr) // nolint: errcheck
 	}
 
-	if err := s.projectStore.DeleteBuild(
+	if err := s.projectStore.DeleteEvent(
 		id,
-		storage.DeleteBuildOptions{
-			DeleteRunningBuilds: forceDelete,
+		storage.DeleteEventOptions{
+			DeleteEventsWithRunningWorkers: forceDelete,
 		},
 	); err != nil {
 		log.Println(
-			errors.Wrap(err, "error deleting build"),
+			errors.Wrapf(err, "error deleting event %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

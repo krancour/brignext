@@ -11,21 +11,21 @@ type ProjectStore interface {
 	UpdateProject(project brignext.Project) error
 	DeleteProject(name string) error
 
-	CreateBuild(build brignext.Build) error
-	GetBuilds() ([]brignext.Build, error)
-	GetBuildsByProjectName(projectName string) ([]brignext.Build, error)
-	GetBuild(id string) (brignext.Build, bool, error)
-	DeleteBuild(id string, options DeleteBuildOptions) error
+	CreateEvent(event brignext.Event) error
+	GetEvents() ([]brignext.Event, error)
+	GetEventsByProjectName(projectName string) ([]brignext.Event, error)
+	GetEvent(id string) (brignext.Event, bool, error)
+	DeleteEvent(id string, options DeleteEventOptions) error
 
-	UpdateWorker(buildID string, worker brignext.Worker) error
+	UpdateWorker(eventID string, worker brignext.Worker) error
 
 	CreateJob(job brignext.Job) error
-	GetJobsByBuildID(buildID string) ([]brignext.Job, error)
+	GetJobsByEventID(eventID string) ([]brignext.Job, error)
 	GetJob(id string) (brignext.Job, bool, error)
 	UpdateJobStatus(jobID string, status string) error
-	DeleteJobsByBuildID(buildID string) error
+	DeleteJobsByEventID(eventID string) error
 }
 
-type DeleteBuildOptions struct {
-	DeleteRunningBuilds bool
+type DeleteEventOptions struct {
+	DeleteEventsWithRunningWorkers bool
 }

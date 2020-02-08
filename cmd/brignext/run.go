@@ -53,7 +53,7 @@ func run(c *cli.Context) error {
 	// 	}
 	// }
 
-	build := brignext.Build{
+	event := brignext.Event{
 		ProjectName: projectName,
 		Provider:    "brigade-cli",
 		Type:        eventType,
@@ -67,12 +67,12 @@ func run(c *cli.Context) error {
 		// LogLevel: level,
 	}
 
-	buildBytes, err := json.Marshal(build)
+	eventBytes, err := json.Marshal(event)
 	if err != nil {
-		return errors.Wrap(err, "error marshaling build")
+		return errors.Wrap(err, "error marshaling event")
 	}
 
-	req, err := buildRequest(http.MethodPost, "v2/builds", buildBytes)
+	req, err := buildRequest(http.MethodPost, "v2/events", eventBytes)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
 	}
@@ -98,17 +98,17 @@ func run(c *cli.Context) error {
 	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
 		return errors.Wrap(err, "error unmarshaling response body")
 	}
-	buildID := respStruct.ID
+	eventID := respStruct.ID
 
-	fmt.Printf("Created build %q.\n\n", buildID)
+	fmt.Printf("Created event %q.\n\n", eventID)
 
-	fmt.Println("Streaming build logs...\n")
+	fmt.Println("Streaming event logs...\n")
 
 	// Now stream the logs
 
 	if req, err = buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/builds/%s/logs", buildID),
+		fmt.Sprintf("v2/events/%s/logs", eventID),
 		nil,
 	); err != nil {
 		return errors.Wrap(err, "error creating HTTP request")

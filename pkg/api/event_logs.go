@@ -10,13 +10,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *server) buildLogs(w http.ResponseWriter, r *http.Request) {
-	buildID := mux.Vars(r)["id"]
+func (s *server) eventLogs(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
 
-	logEntryCh, err := s.logStore.StreamWorkerLogs(r.Context(), buildID)
+	logEntryCh, err := s.logStore.StreamWorkerLogs(r.Context(), id)
 	if err != nil {
 		log.Println(
-			errors.Wrapf(err, "error retrieving logs for build %q", buildID),
+			errors.Wrapf(err, "error retrieving logs for event %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
