@@ -10,6 +10,7 @@ import (
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/krancour/brignext/pkg/crypto"
 	"github.com/pkg/errors"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
@@ -20,6 +21,18 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 		log.Println(
 			errors.Wrap(err, "error reading body of create service account request"),
 		)
+		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
+		return
+	}
+
+	if validationResult, err := gojsonschema.Validate(
+		s.serviceAccountSchemaLoader,
+		gojsonschema.NewBytesLoader(bodyBytes),
+	); err != nil {
+		log.Println(errors.Wrap(err, "error validating request"))
+		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		return
+	} else if !validationResult.Valid() {
 		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
 		return
 	}
@@ -35,8 +48,6 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
 		return
 	}
-
-	// TODO: We should do some kind of validation!
 
 	if _, ok, err :=
 		s.userStore.GetServiceAccount(serviceAccount.Name); err != nil {

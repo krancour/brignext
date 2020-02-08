@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/xeipuuv/gojsonschema"
+
 	"github.com/coreos/go-oidc"
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/pkg/file"
@@ -23,14 +25,17 @@ type Server interface {
 }
 
 type server struct {
-	apiServerConfig   Config
-	oauth2Config      *oauth2.Config
-	oidcTokenVerifier *oidc.IDTokenVerifier
-	userStore         storage.UserStore
-	sessionStore      storage.SessionStore
-	projectStore      storage.ProjectStore
-	logStore          storage.LogStore
-	router            *mux.Router
+	apiServerConfig            Config
+	oauth2Config               *oauth2.Config
+	oidcTokenVerifier          *oidc.IDTokenVerifier
+	userStore                  storage.UserStore
+	sessionStore               storage.SessionStore
+	projectStore               storage.ProjectStore
+	logStore                   storage.LogStore
+	router                     *mux.Router
+	serviceAccountSchemaLoader gojsonschema.JSONLoader
+	projectSchemaLoader        gojsonschema.JSONLoader
+	buildSchemaLoader          gojsonschema.JSONLoader
 }
 
 // NewServer returns an HTTP router
@@ -44,14 +49,17 @@ func NewServer(
 	logStore storage.LogStore,
 ) Server {
 	s := &server{
-		apiServerConfig:   apiServerConfig,
-		oauth2Config:      oauth2Config,
-		oidcTokenVerifier: oidcTokenVerifier,
-		userStore:         userStore,
-		sessionStore:      sessionStore,
-		projectStore:      projectStore,
-		logStore:          logStore,
-		router:            mux.NewRouter(),
+		apiServerConfig:            apiServerConfig,
+		oauth2Config:               oauth2Config,
+		oidcTokenVerifier:          oidcTokenVerifier,
+		userStore:                  userStore,
+		sessionStore:               sessionStore,
+		projectStore:               projectStore,
+		logStore:                   logStore,
+		router:                     mux.NewRouter(),
+		serviceAccountSchemaLoader: gojsonschema.NewBytesLoader(serviceAccountSchemaBytes), // nolint: lll
+		projectSchemaLoader:        gojsonschema.NewBytesLoader(projectSchemaBytes),
+		buildSchemaLoader:          gojsonschema.NewBytesLoader(buildSchemaBytes),
 	}
 
 	// Most requests are authenticated with a bearer token

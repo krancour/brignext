@@ -61,7 +61,7 @@ func projectList(c *cli.Context) error {
 		for _, project := range projs {
 			table.AddRow(
 				project.Name,
-				project.Repo.Name,
+				project.Repo.CloneURL,
 			)
 		}
 		fmt.Println(table)

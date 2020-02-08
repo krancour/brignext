@@ -8,6 +8,7 @@ import (
 
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 func (s *server) projectCreate(w http.ResponseWriter, r *http.Request) {
@@ -22,6 +23,18 @@ func (s *server) projectCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if validationResult, err := gojsonschema.Validate(
+		s.projectSchemaLoader,
+		gojsonschema.NewBytesLoader(bodyBytes),
+	); err != nil {
+		log.Println(errors.Wrap(err, "error validating request"))
+		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		return
+	} else if !validationResult.Valid() {
+		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
+		return
+	}
+
 	project := brignext.Project{}
 	if err := json.Unmarshal(bodyBytes, &project); err != nil {
 		log.Println(
@@ -30,8 +43,6 @@ func (s *server) projectCreate(w http.ResponseWriter, r *http.Request) {
 		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
 		return
 	}
-
-	// TODO: We should do some kind of validation!
 
 	if _, ok, err :=
 		s.projectStore.GetProject(project.Name); err != nil {

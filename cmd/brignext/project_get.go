@@ -69,7 +69,7 @@ func projectGet(c *cli.Context) error {
 		table.AddRow("NAME", "REPO")
 		table.AddRow(
 			project.Name,
-			project.Repo.Name,
+			project.Repo.CloneURL,
 		)
 		fmt.Println(table)
 

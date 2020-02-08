@@ -180,41 +180,41 @@ func main() {
 			Usage:     "Kick off a build",
 			ArgsUsage: "PROJECT_NAME",
 			Flags: []cli.Flag{
-				cli.BoolFlag{
-					Name: flagsBackground,
-					Usage: "Trigger the event and exit. Let the job run in the " +
-						"background.",
-				},
+				// cli.BoolFlag{
+				// 	Name: flagsBackground,
+				// 	Usage: "Trigger the event and exit. Let the job run in the " +
+				// 		"background.",
+				// },
+				// cli.StringFlag{
+				// 	Name:  flagsCommit,
+				// 	Usage: "A VCS (git) commit",
+				// },
+				// cli.StringFlag{
+				// 	Name:  flagConfig,
+				// 	Usage: "The brigade.json config file",
+				// },
+				// cli.StringFlag{
+				// 	Name:  flagsFile,
+				// 	Usage: "The JavaScript file to execute",
+				// },
+				// cli.StringFlag{
+				// 	Name:  flagsLevel,
+				// 	Usage: "Specified log level: log, info, warn, error",
+				// 	Value: "log",
+				// },
+				// cli.StringFlag{
+				// 	Name:  flagsPayload,
+				// 	Usage: "The path to a payload file",
+				// },
+				// cli.StringFlag{
+				// 	Name:  flagsRef,
+				// 	Usage: "A VCS (git) version, tag, or branch",
+				// 	Value: "master",
+				// },
 				cli.StringFlag{
-					Name:  flagsCommit,
-					Usage: "A VCS (git) commit",
-				},
-				cli.StringFlag{
-					Name:  flagConfig,
-					Usage: "The brigade.json config file",
-				},
-				cli.StringFlag{
-					Name:  flagsEvent,
-					Usage: "The name of the event to fire",
+					Name:  flagsType,
+					Usage: "The event type fire",
 					Value: "exec",
-				},
-				cli.StringFlag{
-					Name:  flagsFile,
-					Usage: "The JavaScript file to execute",
-				},
-				cli.StringFlag{
-					Name:  flagsLevel,
-					Usage: "Specified log level: log, info, warn, error",
-					Value: "log",
-				},
-				cli.StringFlag{
-					Name:  flagsPayload,
-					Usage: "The path to a payload file",
-				},
-				cli.StringFlag{
-					Name:  flagsRef,
-					Usage: "A VCS (git) version, tag, or branch",
-					Value: "master",
 				},
 			},
 			Action: run,

@@ -10,8 +10,6 @@ const (
 	flagsContainer   = "container, c"
 	flagDescription  = "description"
 	flagsDescription = "description, d"
-	flagEvent        = "event"
-	flagsEvent       = "event, e"
 	flagFile         = "file"
 	flagsFile        = "file, f"
 	flagForce        = "force"
@@ -38,4 +36,6 @@ const (
 	flagsRef         = "ref, r"
 	flagRoot         = "root"
 	flagsRoot        = "root, r"
+	flagType         = "type"
+	flagsType        = "type, t"
 )

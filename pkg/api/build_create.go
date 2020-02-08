@@ -9,6 +9,7 @@ import (
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 func (s *server) buildCreate(w http.ResponseWriter, r *http.Request) {
@@ -23,6 +24,18 @@ func (s *server) buildCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if validationResult, err := gojsonschema.Validate(
+		s.buildSchemaLoader,
+		gojsonschema.NewBytesLoader(bodyBytes),
+	); err != nil {
+		log.Println(errors.Wrap(err, "error validating request"))
+		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		return
+	} else if !validationResult.Valid() {
+		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
+		return
+	}
+
 	build := brignext.Build{}
 	if err := json.Unmarshal(bodyBytes, &build); err != nil {
 		log.Println(
@@ -32,8 +45,6 @@ func (s *server) buildCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	build.ID = uuid.NewV4().String()
-
-	// TODO: We should do some kind of validation!
 
 	if err := s.projectStore.CreateBuild(build); err != nil {
 		log.Println(errors.Wrap(err, "error creating new build"))
