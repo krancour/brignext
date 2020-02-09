@@ -175,11 +175,17 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.userGet),
 	).Methods(http.MethodGet)
 
-	// Delete user
+	// Unlock user
 	s.router.HandleFunc(
-		"/v2/users/{id}",
-		tokenAuthFilter.Decorate(s.userDelete),
+		"/v2/users/{id}/lock",
+		tokenAuthFilter.Decorate(s.userUnlock),
 	).Methods(http.MethodDelete)
+
+	// Lock user
+	s.router.HandleFunc(
+		"/v2/users/{id}/lock",
+		tokenAuthFilter.Decorate(s.userLock),
+	).Methods(http.MethodPost)
 
 	// Create service account
 	s.router.HandleFunc(

@@ -6,7 +6,8 @@ type UserStore interface {
 	CreateUser(user brignext.User) error
 	GetUsers() ([]brignext.User, error)
 	GetUser(id string) (brignext.User, bool, error)
-	DeleteUser(id string) error
+	LockUser(id string) error
+	UnlockUser(id string) error
 	CreateServiceAccount(serviceAccount brignext.ServiceAccount) (string, string, error)
 	GetServiceAccounts() ([]brignext.ServiceAccount, error)
 	GetServiceAccount(name string) (brignext.ServiceAccount, bool, error)

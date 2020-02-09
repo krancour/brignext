@@ -67,6 +67,10 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 		}
+		if user.Locked {
+			http.Error(w, "{}", http.StatusForbidden)
+			return
+		}
 		// Success! Add the user and the session ID to the context.
 		ctx := context.WithValue(r.Context(), userContextKey{}, user)
 		ctx = context.WithValue(ctx, sessionIDContextKey{}, session.ID)

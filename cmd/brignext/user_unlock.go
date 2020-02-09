@@ -8,11 +8,11 @@ import (
 	"github.com/urfave/cli"
 )
 
-func userDelete(c *cli.Context) error {
+func userUnlock(c *cli.Context) error {
 	// Inputs
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"user get requires one parameter-- a user ID",
+			"user unlock requires one parameter-- a user ID",
 		)
 	}
 	id := c.Args()[0]
@@ -20,7 +20,7 @@ func userDelete(c *cli.Context) error {
 
 	req, err := buildRequest(
 		http.MethodDelete,
-		fmt.Sprintf("v2/users/%s", id),
+		fmt.Sprintf("v2/users/%s/lock", id),
 		nil,
 	)
 	if err != nil {
@@ -37,7 +37,7 @@ func userDelete(c *cli.Context) error {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	fmt.Printf("User %q deleted.\n", id)
+	fmt.Printf("User %q unlocked.\n", id)
 
 	return nil
 }

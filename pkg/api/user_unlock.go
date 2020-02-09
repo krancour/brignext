@@ -8,20 +8,18 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *server) userDelete(w http.ResponseWriter, r *http.Request) {
+func (s *server) userUnlock(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
 	id := mux.Vars(r)["id"]
 
-	if err := s.userStore.DeleteUser(id); err != nil {
+	if err := s.userStore.UnlockUser(id); err != nil {
 		log.Println(
-			errors.Wrapf(err, "error deleting user %q", id),
+			errors.Wrapf(err, "error unlocking user %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
 	}
-
-	// TODO: Cascade delete to sessions
 
 	s.writeResponse(w, http.StatusOK, responseEmptyJSON)
 }

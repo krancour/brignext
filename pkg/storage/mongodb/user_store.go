@@ -114,13 +114,39 @@ func (u *userStore) GetUser(id string) (brignext.User, bool, error) {
 	return user, true, nil
 }
 
-func (u *userStore) DeleteUser(id string) error {
+func (u *userStore) LockUser(id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	if _, err :=
-		u.usersCollection.DeleteOne(ctx, bson.M{"_id": id}); err != nil {
-		return errors.Wrapf(err, "error deleting user %q", id)
+		u.usersCollection.UpdateOne(
+			ctx,
+			bson.M{"_id": id},
+			bson.M{
+				"$set": bson.M{"locked": true},
+			},
+		); err != nil {
+		return errors.Wrapf(err, "error locking user %q", id)
+	}
+
+	// TODO: Delete all of the locked user's sessions
+
+	return nil
+}
+
+func (u *userStore) UnlockUser(id string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	if _, err :=
+		u.usersCollection.UpdateOne(
+			ctx,
+			bson.M{"_id": id},
+			bson.M{
+				"$unset": bson.M{"locked": 1},
+			},
+		); err != nil {
+		return errors.Wrapf(err, "error unlocking user %q", id)
 	}
 	return nil
 }

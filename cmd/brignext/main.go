@@ -277,12 +277,6 @@ func main() {
 			Usage: "Manage users",
 			Subcommands: []cli.Command{
 				{
-					Name:      "delete",
-					Usage:     "delete a user",
-					ArgsUsage: "USER_ID",
-					Action:    userDelete,
-				},
-				{
 					Name:      "get",
 					Usage:     "get a user",
 					ArgsUsage: "USER_ID",
@@ -308,6 +302,18 @@ func main() {
 						},
 					},
 					Action: userList,
+				},
+				{
+					Name:      "lock",
+					Usage:     "lock a user out of Brigade",
+					ArgsUsage: "USER_ID",
+					Action:    userLock,
+				},
+				{
+					Name:      "unlock",
+					Usage:     "restore a user's access to Brigade",
+					ArgsUsage: "USER_ID",
+					Action:    userUnlock,
 				},
 			},
 		},
