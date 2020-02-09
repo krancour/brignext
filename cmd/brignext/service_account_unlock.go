@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -36,6 +38,28 @@ func serviceAccountUnlock(c *cli.Context) error {
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
+
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return errors.Wrap(err, "error reading response body")
+	}
+
+	respStruct := struct {
+		Token string `json:"token"`
+	}{}
+	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
+		return errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	fmt.Printf(
+		"\nService account %q unlocked and a new token has been issued:\n",
+		id,
+	)
+	fmt.Printf("\n\t%s\n", respStruct.Token)
+	fmt.Println(
+		"\nStore this token someplace secure NOW. It can not be retrieved " +
+			"later through any other means.",
+	)
 
 	fmt.Printf("Service account %q unlocked.\n", id)
 

@@ -445,9 +445,12 @@ func (u *userStore) LockServiceAccount(id string) error {
 	return nil
 }
 
-func (u *userStore) UnlockServiceAccount(id string) error {
+func (u *userStore) UnlockServiceAccount(id string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
+
+	token := crypto.NewToken(256)
+	hashedToken := crypto.ShortSHA("", token)
 
 	if _, err :=
 		u.serviceAccountsCollection.UpdateOne(
@@ -455,9 +458,10 @@ func (u *userStore) UnlockServiceAccount(id string) error {
 			bson.M{"_id": id},
 			bson.M{
 				"$unset": bson.M{"locked": 1},
+				"$set":   bson.M{"hashedToken": hashedToken},
 			},
 		); err != nil {
-		return errors.Wrapf(err, "error unlocking service account %q", id)
+		return "", errors.Wrapf(err, "error unlocking service account %q", id)
 	}
-	return nil
+	return token, nil
 }

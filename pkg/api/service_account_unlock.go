@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -13,7 +14,8 @@ func (s *server) serviceAccountUnlock(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	if err := s.userStore.UnlockServiceAccount(id); err != nil {
+	token, err := s.userStore.UnlockServiceAccount(id);
+	if err != nil {
 		log.Println(
 			errors.Wrapf(err, "error unlocking service account %q", id),
 		)
@@ -21,5 +23,20 @@ func (s *server) serviceAccountUnlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.writeResponse(w, http.StatusOK, responseEmptyJSON)
+	responseBytes, err := json.Marshal(
+		struct {
+			Token string `json:"token"`
+		}{
+			Token: token,
+		},
+	)
+	if err != nil {
+		log.Println(
+			errors.Wrap(err, "error marshaling create service account response"),
+		)
+		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		return
+	}
+
+	s.writeResponse(w, http.StatusOK, responseBytes)
 }
