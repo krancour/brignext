@@ -3,29 +3,29 @@ package brignext
 import "time"
 
 type Event struct {
-	ID          string `json:"id,omitempty" bson:"id"`
-	ProjectName string `json:"projectName" bson:"projectName"`
-	Provider    string `json:"provider" bson:"provider"`
-	Type        string `json:"type" bson:"type"`
-	// ShortTitle  string    `json:"shortTitle" bson:"shortTitle"`
-	// LongTitle   string    `json:"longTitle" bson:"longTitle"`
-	// CloneURL string    `json:"cloneURL" bson:"cloneURL"`
-	// Revision *Revision `json:"revision" bson:"revision"`
-	// Payload  []byte    `json:"payload" bson:"payload"`
-	// Script   []byte    `json:"script" bson:"script"`
-	// Config   []byte    `json:"config" bson:"config"`
+	ID          string `json:"id,omitempty" bson:"id,omitempty"`
+	ProjectName string `json:"projectName,omitempty" bson:"projectName,omitempty"`
+	Provider    string `json:"provider,omitempty" bson:"provider,omitempty"`
+	Type        string `json:"type,omitempty" bson:"type,omitempty"`
+	// ShortTitle  string    `json:"shortTitle,omitempty" bson:"shortTitle,omitempty"`
+	// LongTitle   string    `json:"longTitle,omitempty" bson:"longTitle,omitempty"`
+	// CloneURL string    `json:"cloneURL,omitempty" bson:"cloneURL,omitempty"`
+	// Revision *Revision `json:"revision,omitempty" bson:"revision,omitempty"`
+	// Payload  []byte    `json:"payload,omitempty" bson:"payload,omitempty"`
+	// Script   []byte    `json:"script,omitempty" bson:"script,omitempty"`
+	// Config   []byte    `json:"config,omitempty" bson:"config,omitempty"`
 	Worker *Worker `json:"worker,omitempty" bson:"worker,omitempty"`
-	// LogLevel string    `json:"logLevel" bson:"logLevel"`
+	// LogLevel string    `json:"logLevel,omitempty" bson:"logLevel,omitempty"`
 }
 
 // type Revision struct {
-// 	Commit string `json:"commit" bson:"commit"`
-// 	Ref    string `json:"ref" bson:"ref"`
+// 	Commit string `json:"commit,omitempty" bson:"commit,omitempty"`
+// 	Ref    string `json:"ref,omitempty" bson:"ref,omitempty"`
 // }
 
 type Worker struct {
-	Status    JobStatus `json:"status" bson:"status"`
-	StartTime time.Time `json:"startTime" bson:"startTime"`
-	EndTime   time.Time `json:"endTime" bson:"endTime"`
-	ExitCode  int32     `json:"exitCode" bson:"exitCode"`
+	Status    JobStatus `json:"status,omitempty" bson:"status,omitempty"`
+	StartTime time.Time `json:"startTime,omitempty" bson:"startTime,omitempty"`
+	EndTime   time.Time `json:"endTime,omitempty" bson:"endTime,omitempty"`
+	ExitCode  int32     `json:"exitCode,omitempty" bson:"exitCode,omitempty"`
 }
