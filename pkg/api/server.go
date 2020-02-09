@@ -29,7 +29,6 @@ type server struct {
 	oauth2Config               *oauth2.Config
 	oidcTokenVerifier          *oidc.IDTokenVerifier
 	userStore                  storage.UserStore
-	sessionStore               storage.SessionStore
 	projectStore               storage.ProjectStore
 	logStore                   storage.LogStore
 	router                     *mux.Router
@@ -44,7 +43,6 @@ func NewServer(
 	oauth2Config *oauth2.Config,
 	oidcTokenVerifier *oidc.IDTokenVerifier,
 	userStore storage.UserStore,
-	sessionStore storage.SessionStore,
 	projectStore storage.ProjectStore,
 	logStore storage.LogStore,
 ) Server {
@@ -53,7 +51,6 @@ func NewServer(
 		oauth2Config:               oauth2Config,
 		oidcTokenVerifier:          oidcTokenVerifier,
 		userStore:                  userStore,
-		sessionStore:               sessionStore,
 		projectStore:               projectStore,
 		logStore:                   logStore,
 		router:                     mux.NewRouter(),
@@ -64,7 +61,7 @@ func NewServer(
 
 	// Most requests are authenticated with a bearer token
 	tokenAuthFilter := auth.NewTokenAuthFilter(
-		sessionStore.GetSessionByToken,
+		userStore.GetSessionByToken,
 		userStore.GetUser,
 		apiServerConfig.RootUserEnabled(),
 	)

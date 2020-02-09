@@ -24,7 +24,7 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, ok, err := s.sessionStore.GetSessionByOAuth2State(oauth2State)
+	session, ok, err := s.userStore.GetSessionByOAuth2State(oauth2State)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error retrieving session by OAuth2 state [REDACTED]"),
@@ -98,7 +98,7 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err :=
-		s.sessionStore.AuthenticateSession(session.ID, user.ID); err != nil {
+		s.userStore.AuthenticateSession(session.ID, user.ID); err != nil {
 		log.Println(
 			errors.Wrapf(err, "error authenticating session %q", session.ID),
 		)

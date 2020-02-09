@@ -8,6 +8,13 @@ type UserStore interface {
 	GetUser(id string) (brignext.User, bool, error)
 	LockUser(id string) error
 	UnlockUser(id string) error
+
+	CreateSession(session brignext.Session) (string, string, string, error)
+	GetSessionByOAuth2State(oauth2State string) (brignext.Session, bool, error)
+	GetSessionByToken(token string) (brignext.Session, bool, error)
+	AuthenticateSession(sessionID, userID string) error
+	DeleteSession(id string) error
+
 	CreateServiceAccount(serviceAccount brignext.ServiceAccount) (string, error)
 	GetServiceAccounts() ([]brignext.ServiceAccount, error)
 	GetServiceAccount(id string) (brignext.ServiceAccount, bool, error)

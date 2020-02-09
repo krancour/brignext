@@ -21,7 +21,7 @@ func (s *server) sessionDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.sessionStore.DeleteSession(sessionID); err != nil {
+	if err := s.userStore.DeleteSession(sessionID); err != nil {
 		log.Println(
 			errors.Wrap(err, "error deleting session"),
 		)

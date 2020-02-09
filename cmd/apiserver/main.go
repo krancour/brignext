@@ -41,11 +41,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	sessionStore, err := mongodb.NewSessionStore(database)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	projectStore, err := mongodb.NewProjectStore(database)
 	if err != nil {
 		log.Fatal(err)
@@ -59,7 +54,6 @@ func main() {
 			oauth2Config,
 			oidcIdentityVerifier,
 			userStore,
-			sessionStore,
 			projectStore,
 			logStore,
 		).ListenAndServe(),
