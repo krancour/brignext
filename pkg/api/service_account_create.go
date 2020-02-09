@@ -48,12 +48,12 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, ok, err :=
-		s.userStore.GetServiceAccount(serviceAccount.Name); err != nil {
+		s.userStore.GetServiceAccount(serviceAccount.ID); err != nil {
 		log.Println(
 			errors.Wrapf(
 				err,
-				"error checking for existing service account named %q",
-				serviceAccount.Name,
+				"error checking for existing service account %q",
+				serviceAccount.ID,
 			),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
@@ -63,13 +63,13 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, token, err := s.userStore.CreateServiceAccount(serviceAccount)
+	token, err := s.userStore.CreateServiceAccount(serviceAccount)
 	if err != nil {
 		log.Println(
 			errors.Wrapf(
 				err,
-				"error creating new service account %q",
-				serviceAccount.Name,
+				"error creating service account %q",
+				serviceAccount.ID,
 			),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)

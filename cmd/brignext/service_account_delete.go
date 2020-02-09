@@ -10,12 +10,17 @@ import (
 
 func serviceAccountDelete(c *cli.Context) error {
 	// Inputs
-	name := c.Args()[0]
+	if len(c.Args()) != 1 {
+		return errors.New(
+			"service-account delete requires one parameter-- a service account ID",
+		)
+	}
+	id := c.Args()[0]
 	allowInsecure := c.GlobalBool(flagInsecure)
 
 	req, err := buildRequest(
 		http.MethodDelete,
-		fmt.Sprintf("v2/service-accounts/%s", name),
+		fmt.Sprintf("v2/service-accounts/%s", id),
 		nil,
 	)
 	if err != nil {
@@ -32,7 +37,7 @@ func serviceAccountDelete(c *cli.Context) error {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	fmt.Printf("Service account %q deleted.\n", name)
+	fmt.Printf("Service account %q deleted.\n", id)
 
 	return nil
 }

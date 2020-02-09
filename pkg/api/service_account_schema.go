@@ -11,11 +11,13 @@ var serviceAccountSchemaBytes = []byte(`
 		"identifier": {
 			"type": "string",
 			"pattern": "^\\w[\\w-]*$",
+			"minLength": 3,
 			"maxLength": 50
 		},
 
 		"description": {
 			"type": "string",
+			"minLength": 3,
 			"maxLength": 80
 		}
 
@@ -23,13 +25,13 @@ var serviceAccountSchemaBytes = []byte(`
 
 	"title": "ServiceAccount",
 	"type": "object",
-	"required": ["name", "description"],
+	"required": ["id", "description"],
 	"additionalProperties": false,
 	"properties": {
-		"name": {
+		"id": {
 			"type": "string",
 			"allOf": [{ "$ref": "#/definitions/identifier" }],
-			"description": "The name of the service account"
+			"description": "A meaningful identifier for the service account"
 		},
 		"description": {
 			"type": "string",

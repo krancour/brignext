@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"time"
+
+	"github.com/krancour/brignext/pkg/brignext"
 
 	"github.com/gosuri/uitable"
 
@@ -45,11 +46,7 @@ func serviceAccountList(c *cli.Context) error {
 		return errors.Wrap(err, "error reading response body")
 	}
 
-	serviceAccounts := []struct {
-		Name        string    `json:"name"`
-		Description string    `json:"description"`
-		Created     time.Time `json:"created"`
-	}{}
+	serviceAccounts := []brignext.ServiceAccount{}
 	if err := json.Unmarshal(respBodyBytes, &serviceAccounts); err != nil {
 		return errors.Wrap(err, "error unmarshaling response body")
 	}
@@ -62,10 +59,10 @@ func serviceAccountList(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("NAME", "DESCRIPTION", "CREATED")
+		table.AddRow("ID", "DESCRIPTION", "CREATED")
 		for _, serviceAccount := range serviceAccounts {
 			table.AddRow(
-				serviceAccount.Name,
+				serviceAccount.ID,
 				serviceAccount.Description,
 				serviceAccount.Created,
 			)

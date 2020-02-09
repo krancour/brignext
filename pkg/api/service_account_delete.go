@@ -11,11 +11,11 @@ import (
 func (s *server) serviceAccountDelete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	name := mux.Vars(r)["name"]
+	id := mux.Vars(r)["id"]
 
-	if err := s.userStore.DeleteServiceAccount(name); err != nil {
+	if err := s.userStore.DeleteServiceAccount(id); err != nil {
 		log.Println(
-			errors.Wrapf(err, "error deleting service account %q", name),
+			errors.Wrapf(err, "error deleting service account %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

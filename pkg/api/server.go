@@ -201,13 +201,13 @@ func NewServer(
 
 	// Get service account
 	s.router.HandleFunc(
-		"/v2/service-accounts/{name}",
+		"/v2/service-accounts/{id}",
 		tokenAuthFilter.Decorate(s.serviceAccountGet),
 	).Methods(http.MethodGet)
 
 	// Delete service account
 	s.router.HandleFunc(
-		"/v2/service-accounts/{name}",
+		"/v2/service-accounts/{id}",
 		tokenAuthFilter.Decorate(s.serviceAccountDelete),
 	).Methods(http.MethodDelete)
 

@@ -9,15 +9,17 @@ import (
 	"os"
 	"strings"
 
+	"github.com/krancour/brignext/pkg/brignext"
+
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
 func serviceAccountCreate(c *cli.Context) error {
 	// Inputs
-	var name string
+	var id string
 	if len(c.Args()) > 0 {
-		name = c.Args()[0]
+		id = c.Args()[0]
 	}
 	description := c.String(flagDescription)
 	allowInsecure := c.GlobalBool(flagInsecure)
@@ -25,14 +27,14 @@ func serviceAccountCreate(c *cli.Context) error {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		name = strings.TrimSpace(name)
-		if name != "" {
+		id = strings.TrimSpace(id)
+		if id != "" {
 			break
 		}
-		fmt.Print("Service account name? ")
+		fmt.Print("Service account ID? ")
 		var err error
-		if name, err = reader.ReadString('\n'); err != nil {
-			return errors.Wrap(err, "error reading service account name from stdin")
+		if id, err = reader.ReadString('\n'); err != nil {
+			return errors.Wrap(err, "error reading service account ID from stdin")
 		}
 	}
 
@@ -52,11 +54,8 @@ func serviceAccountCreate(c *cli.Context) error {
 	}
 
 	serviceAccountBytes, err := json.Marshal(
-		struct {
-			Name        string `json:"name"`
-			Description string `json:"description"`
-		}{
-			Name:        name,
+		brignext.ServiceAccount{
+			ID:          id,
 			Description: description,
 		},
 	)
@@ -81,8 +80,8 @@ func serviceAccountCreate(c *cli.Context) error {
 
 	if resp.StatusCode == http.StatusConflict {
 		return errors.Errorf(
-			"a service account named %q already exists",
-			name,
+			"a service account with the ID %q already exists",
+			id,
 		)
 	}
 	if resp.StatusCode != http.StatusCreated {
@@ -101,7 +100,7 @@ func serviceAccountCreate(c *cli.Context) error {
 		return errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	fmt.Printf("\nService account %q created with token:\n", name)
+	fmt.Printf("\nService account %q created with token:\n", id)
 	fmt.Printf("\n\t%s\n", respStruct.Token)
 	fmt.Println(
 		"\nStore this token someplace secure NOW. It can not be retrieved " +

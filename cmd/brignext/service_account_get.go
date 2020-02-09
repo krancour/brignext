@@ -17,10 +17,10 @@ func serviceAccountGet(c *cli.Context) error {
 	// Inputs
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"user get requires one parameter-- a service account name",
+			"service-account get requires one parameter-- a service account ID",
 		)
 	}
-	name := c.Args()[0]
+	id := c.Args()[0]
 	output := c.String(flagOutput)
 	allowInsecure := c.GlobalBool(flagInsecure)
 
@@ -33,7 +33,7 @@ func serviceAccountGet(c *cli.Context) error {
 
 	req, err := buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/service-accounts/%s", name),
+		fmt.Sprintf("v2/service-accounts/%s", id),
 		nil,
 	)
 	if err != nil {
@@ -47,7 +47,7 @@ func serviceAccountGet(c *cli.Context) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return errors.Errorf("Service account %q not found.", name)
+		return errors.Errorf("Service account %q not found.", id)
 	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
@@ -66,9 +66,9 @@ func serviceAccountGet(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("NAME", "DESCRIPTION", "CREATED")
+		table.AddRow("ID", "DESCRIPTION", "CREATED")
 		table.AddRow(
-			serviceAccount.Name,
+			serviceAccount.ID,
 			serviceAccount.Description,
 			serviceAccount.Created,
 		)

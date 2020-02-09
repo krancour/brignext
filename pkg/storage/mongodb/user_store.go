@@ -8,7 +8,6 @@ import (
 	"github.com/krancour/brignext/pkg/crypto"
 	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -25,24 +24,14 @@ func NewUserStore(database *mongo.Database) (storage.UserStore, error) {
 
 	unique := true
 	serviceAccountsCollection := database.Collection("service-accounts")
-	if _, err := serviceAccountsCollection.Indexes().CreateMany(
+	if _, err := serviceAccountsCollection.Indexes().CreateOne(
 		ctx,
-		[]mongo.IndexModel{
-			{
-				Keys: bson.M{
-					"name": 1,
-				},
-				Options: &options.IndexOptions{
-					Unique: &unique,
-				},
+		mongo.IndexModel{
+			Keys: bson.M{
+				"hashedToken": 1,
 			},
-			{
-				Keys: bson.M{
-					"hashedToken": 1,
-				},
-				Options: &options.IndexOptions{
-					Unique: &unique,
-				},
+			Options: &options.IndexOptions{
+				Unique: &unique,
 			},
 		},
 	); err != nil {
@@ -153,12 +142,12 @@ func (u *userStore) UnlockUser(id string) error {
 
 func (u *userStore) CreateServiceAccount(
 	serviceAccount brignext.ServiceAccount,
-) (string, string, error) {
+) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	serviceAccount.ID = uuid.NewV4().String()
-	serviceAccount.Created = time.Now()
+	now := time.Now()
+	serviceAccount.Created = &now
 
 	token := crypto.NewToken(256)
 	hashedToken := crypto.ShortSHA("", token)
@@ -174,13 +163,13 @@ func (u *userStore) CreateServiceAccount(
 				HashedToken:    hashedToken,
 			},
 		); err != nil {
-		return "", "", errors.Wrapf(
+		return "", errors.Wrapf(
 			err,
 			"error creating service account %q",
-			serviceAccount.Name,
+			serviceAccount.ID,
 		)
 	}
-	return serviceAccount.ID, token, nil
+	return token, nil
 }
 
 func (u *userStore) GetServiceAccounts() ([]brignext.ServiceAccount, error) {
@@ -204,14 +193,14 @@ func (u *userStore) GetServiceAccounts() ([]brignext.ServiceAccount, error) {
 }
 
 func (u *userStore) GetServiceAccount(
-	name string,
+	id string,
 ) (brignext.ServiceAccount, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	serviceAccount := brignext.ServiceAccount{}
 
-	result := u.serviceAccountsCollection.FindOne(ctx, bson.M{"name": name})
+	result := u.serviceAccountsCollection.FindOne(ctx, bson.M{"_id": id})
 	if result.Err() == mongo.ErrNoDocuments {
 		return serviceAccount, false, nil
 	}
@@ -219,14 +208,14 @@ func (u *userStore) GetServiceAccount(
 		return serviceAccount, false, errors.Wrapf(
 			result.Err(),
 			"error retrieving service account %q",
-			name,
+			id,
 		)
 	}
 	if err := result.Decode(&serviceAccount); err != nil {
 		return serviceAccount, false, errors.Wrapf(
 			err,
 			"error decoding service account %q",
-			name,
+			id,
 		)
 	}
 
@@ -264,16 +253,16 @@ func (u *userStore) GetServiceAccountByToken(
 	return serviceAccount, true, nil
 }
 
-func (u *userStore) DeleteServiceAccount(name string) error {
+func (u *userStore) DeleteServiceAccount(id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	if _, err :=
 		u.serviceAccountsCollection.DeleteOne(
 			ctx,
-			bson.M{"name": name},
+			bson.M{"_id": id},
 		); err != nil {
-		return errors.Wrapf(err, "error deleting service account %q", name)
+		return errors.Wrapf(err, "error deleting service account %q", id)
 	}
 	return nil
 }

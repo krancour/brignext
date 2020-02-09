@@ -12,12 +12,12 @@ import (
 func (s *server) serviceAccountGet(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	name := mux.Vars(r)["name"]
+	id := mux.Vars(r)["id"]
 
-	serviceAccount, ok, err := s.userStore.GetServiceAccount(name)
+	serviceAccount, ok, err := s.userStore.GetServiceAccount(id)
 	if err != nil {
 		log.Println(
-			errors.Wrapf(err, "error retrieving service account %q", name),
+			errors.Wrapf(err, "error retrieving service account %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
