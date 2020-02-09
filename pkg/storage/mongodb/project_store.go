@@ -9,7 +9,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type projectStore struct {
@@ -22,29 +21,12 @@ func NewProjectStore(database *mongo.Database) (storage.ProjectStore, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	unique := true
-
-	projectsCollection := database.Collection("projects")
-	if _, err := projectsCollection.Indexes().CreateOne(
-		ctx,
-		mongo.IndexModel{
-			Keys: bson.M{
-				"name": 1,
-			},
-			Options: &options.IndexOptions{
-				Unique: &unique,
-			},
-		},
-	); err != nil {
-		return nil, errors.Wrap(err, "error adding index to projects collection")
-	}
-
 	eventsCollection := database.Collection("events")
 	if _, err := eventsCollection.Indexes().CreateOne(
 		ctx,
 		mongo.IndexModel{
 			Keys: bson.M{
-				"projectName": 1,
+				"projectID": 1,
 			},
 		},
 	); err != nil {
@@ -64,7 +46,7 @@ func NewProjectStore(database *mongo.Database) (storage.ProjectStore, error) {
 	}
 
 	return &projectStore{
-		projectsCollection: projectsCollection,
+		projectsCollection: database.Collection("projects"),
 		eventsCollection:   eventsCollection,
 		jobsCollection:     jobsCollection,
 	}, nil
@@ -74,10 +56,8 @@ func (p *projectStore) CreateProject(project brignext.Project) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	project.ID = uuid.NewV4().String()
-
 	if _, err := p.projectsCollection.InsertOne(ctx, project); err != nil {
-		return "", errors.Wrapf(err, "error creating project %q", project.Name)
+		return "", errors.Wrapf(err, "error creating project %q", project.ID)
 	}
 	return project.ID, nil
 }
@@ -125,31 +105,6 @@ func (p *projectStore) GetProject(id string) (brignext.Project, bool, error) {
 	return project, true, nil
 }
 
-func (p *projectStore) GetProjectByName(
-	name string,
-) (brignext.Project, bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	project := brignext.Project{}
-
-	result := p.projectsCollection.FindOne(ctx, bson.M{"name": name})
-	if result.Err() == mongo.ErrNoDocuments {
-		return project, false, nil
-	}
-	if result.Err() != nil {
-		return project, false, errors.Wrapf(
-			result.Err(),
-			"error retrieving project %q",
-			name,
-		)
-	}
-	if err := result.Decode(&project); err != nil {
-		return project, false, errors.Wrapf(err, "error decoding project %q", name)
-	}
-	return project, true, nil
-}
-
 func (p *projectStore) UpdateProject(project brignext.Project) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
@@ -158,11 +113,11 @@ func (p *projectStore) UpdateProject(project brignext.Project) error {
 		p.projectsCollection.ReplaceOne(
 			ctx,
 			bson.M{
-				"name": project.Name,
+				"_id": project.ID,
 			},
 			project,
 		); err != nil {
-		return errors.Wrapf(err, "error updating project %q", project.Name)
+		return errors.Wrapf(err, "error updating project %q", project.ID)
 	}
 	return nil
 }
@@ -178,37 +133,11 @@ func (p *projectStore) DeleteProject(id string) error {
 	return nil
 }
 
-func (p *projectStore) DeleteProjectByName(name string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	if _, err :=
-		p.projectsCollection.DeleteOne(ctx, bson.M{"name": name}); err != nil {
-		return errors.Wrapf(err, "error deleting project %q", name)
-	}
-	return nil
-}
-
 func (p *projectStore) CreateEvent(event brignext.Event) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	event.ID = uuid.NewV4().String()
-
-	// Supplement the event with the project ID before persisting. In the
-	// underlying datastore, events are related to projects by project ID, but
-	// externally, project names are used as identifiers.
-	if project, ok, err := p.GetProjectByName(event.ProjectName); err != nil {
-		return "", errors.Wrapf(
-			err,
-			"error retrieving project %q",
-			event.ProjectName,
-		)
-	} else if !ok {
-		return "", errors.Errorf("project %q not found", event.ProjectName)
-	} else {
-		event.ProjectID = project.ID
-	}
 
 	if _, err := p.eventsCollection.InsertOne(ctx, event); err != nil {
 		return "", errors.Wrapf(err, "error creating event %q", event.ID)
@@ -226,29 +155,11 @@ func (p *projectStore) GetEvents() ([]brignext.Event, error) {
 	}
 
 	events := []brignext.Event{}
-	projectNamesByID := map[string]string{}
 	for cur.Next(ctx) {
 		event := brignext.Event{}
 		err := cur.Decode(&event)
 		if err != nil {
 			return nil, errors.Wrap(err, "error decoding events")
-		}
-		// Supplement the event with the project name before returning. In the
-		// underlying datastore, events are related to projects by project ID, but
-		// externally, project names are used as identifiers.
-		if projectName, ok := projectNamesByID[event.ProjectID]; ok {
-			event.ProjectName = projectName
-		} else {
-			if project, ok, err := p.GetProject(event.ProjectID); err != nil {
-				return nil, errors.Wrapf(
-					err,
-					"error retrieving project %q",
-					event.ProjectID,
-				)
-			} else if ok {
-				projectNamesByID[event.ProjectID] = project.Name
-				event.ProjectName = project.Name
-			}
 		}
 		events = append(events, event)
 	}
@@ -261,13 +172,6 @@ func (p *projectStore) GetEventsByProjectID(
 ) ([]brignext.Event, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
-
-	var projectName string
-	if project, ok, err := p.GetProject(projectID); err != nil {
-		return nil, errors.Wrapf(err, "error retrieving project %q", projectID)
-	} else if ok {
-		projectName = project.Name
-	}
 
 	cur, err := p.eventsCollection.Find(ctx, bson.M{"projectID": projectID})
 	if err != nil {
@@ -288,10 +192,6 @@ func (p *projectStore) GetEventsByProjectID(
 				projectID,
 			)
 		}
-		// Supplement the event with the project name before returning. In the
-		// underlying datastore, events are related to projects by project ID, but
-		// externally, project names are used as identifiers.
-		event.ProjectName = projectName
 		events = append(events, event)
 	}
 	return events, nil
@@ -316,19 +216,6 @@ func (p *projectStore) GetEvent(id string) (brignext.Event, bool, error) {
 	}
 	if err := result.Decode(&event); err != nil {
 		return event, false, errors.Wrapf(err, "error decoding event %q", id)
-	}
-
-	// Supplement the event with the project name before returning. In the
-	// underlying datastore, events are related to projects by project ID, but
-	// externally, project names are used as identifiers.
-	if project, ok, err := p.GetProject(event.ProjectID); err != nil {
-		return event, false, errors.Wrapf(
-			err,
-			"error retrieving project %q",
-			event.ProjectID,
-		)
-	} else if ok {
-		event.ProjectName = project.Name
 	}
 
 	return event, true, nil

@@ -38,7 +38,7 @@ func main() {
 				{
 					Name:      "delete-all",
 					Usage:     "deletes all events for a given project",
-					ArgsUsage: "PROJECT_NAME",
+					ArgsUsage: "PROJECT_ID",
 					Flags: []cli.Flag{
 						cli.BoolFlag{
 							Name: flagsForce,
@@ -65,7 +65,7 @@ func main() {
 				{
 					Name:      "list",
 					Usage:     "list all events or events for a given project",
-					ArgsUsage: "[PROJECT_NAME]",
+					ArgsUsage: "[PROJECT_ID]",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name: flagsOutput,
@@ -139,13 +139,13 @@ func main() {
 				{
 					Name:      "delete",
 					Usage:     "delete a project",
-					ArgsUsage: "PROJECT_NAME",
+					ArgsUsage: "PROJECT_ID",
 					Action:    projectDelete,
 				},
 				{
 					Name:      "get",
 					Usage:     "get a project",
-					ArgsUsage: "PROJECT_NAME",
+					ArgsUsage: "PROJECT_ID",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name: flagsOutput,
@@ -180,7 +180,7 @@ func main() {
 		{
 			Name:      "run",
 			Usage:     "Crete a new event",
-			ArgsUsage: "PROJECT_NAME",
+			ArgsUsage: "PROJECT_ID",
 			Flags: []cli.Flag{
 				// cli.BoolFlag{
 				// 	Name: flagsBackground,

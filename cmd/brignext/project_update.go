@@ -29,7 +29,7 @@ func projectUpdate(c *cli.Context) error {
 
 	req, err := buildRequest(
 		http.MethodPut,
-		fmt.Sprintf("v2/projects/%s", project.Name),
+		fmt.Sprintf("v2/projects/%s", project.ID),
 		projectBytes,
 	)
 	if err != nil {
@@ -46,7 +46,7 @@ func projectUpdate(c *cli.Context) error {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	fmt.Printf("Updated project %q.\n", project.Name)
+	fmt.Printf("Updated project %q.\n", project.ID)
 
 	return nil
 }

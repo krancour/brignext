@@ -45,12 +45,12 @@ func (s *server) projectCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, ok, err :=
-		s.projectStore.GetProjectByName(project.Name); err != nil {
+		s.projectStore.GetProject(project.ID); err != nil {
 		log.Println(
 			errors.Wrapf(
 				err,
-				"error checking for existing project named %q",
-				project.Name,
+				"error checking for existing project %q",
+				project.ID,
 			),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
@@ -62,7 +62,7 @@ func (s *server) projectCreate(w http.ResponseWriter, r *http.Request) {
 
 	if _, err := s.projectStore.CreateProject(project); err != nil {
 		log.Println(
-			errors.Wrapf(err, "error creating project %q", project.Name),
+			errors.Wrapf(err, "error creating project %q", project.ID),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

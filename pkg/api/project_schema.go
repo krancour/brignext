@@ -45,12 +45,12 @@ var projectSchemaBytes = []byte(`
 
 	"title": "Project",
 	"type": "object",
-	"required": ["name", "repo"],
+	"required": ["id", "repo"],
 	"additionalProperties": false,
 	"properties": {
-		"name": {
+		"id": {
 			"allOf": [{ "$ref": "#/definitions/identifier" }],
-			"description": "The name of the project"
+			"description": "A meaningful identifier for the project"
 		},
 		"description": {
 			"allOf": [{ "$ref": "#/definitions/description" }],

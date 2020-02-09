@@ -3,11 +3,10 @@ package brignext
 import "time"
 
 type Event struct {
-	ID          string `json:"id,omitempty" bson:"_id,omitempty"`
-	ProjectID   string `json:"-" bson:"projectID,omitempty"`
-	ProjectName string `json:"projectName,omitempty" bson:"-"`
-	Provider    string `json:"provider,omitempty" bson:"provider,omitempty"`
-	Type        string `json:"type,omitempty" bson:"type,omitempty"`
+	ID        string `json:"id,omitempty" bson:"_id,omitempty"`
+	ProjectID string `json:"projectID,omitempty" bson:"projectID,omitempty"`
+	Provider  string `json:"provider,omitempty" bson:"provider,omitempty"`
+	Type      string `json:"type,omitempty" bson:"type,omitempty"`
 	// ShortTitle  string    `json:"shortTitle,omitempty" bson:"shortTitle,omitempty"`
 	// LongTitle   string    `json:"longTitle,omitempty" bson:"longTitle,omitempty"`
 	// CloneURL string    `json:"cloneURL,omitempty" bson:"cloneURL,omitempty"`

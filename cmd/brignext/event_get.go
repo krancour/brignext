@@ -67,7 +67,7 @@ func eventGet(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "PROJECT", "PROVIDER", "TYPE", "STATUS", "AGE")
+		table.AddRow("ID", "PROJECT ID", "PROVIDER", "TYPE", "STATUS", "AGE")
 		var status brignext.JobStatus = "???"
 		since := "???"
 		if event.Worker != nil {
@@ -80,7 +80,7 @@ func eventGet(c *cli.Context) error {
 		}
 		table.AddRow(
 			event.ID,
-			event.ProjectName,
+			event.ProjectID,
 			event.Provider,
 			event.Type,
 			status,

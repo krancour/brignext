@@ -2,8 +2,7 @@ package brignext
 
 // nolint: lll
 type Project struct {
-	ID          string `json:"-" bson:"_id,omitempty"`
-	Name        string `json:"name,omitempty" bson:"name,omitempty"`
+	ID          string `json:"id" bson:"_id,omitempty"`
 	Description string `json:"description,omitempty" bson:"description,omitempty"`
 	Repo        Repo   `json:"repo,omitempty" bson:"repo,omitempty"`
 	// DefaultScript     string     `json:"defaultScript,omitempty" bson:"defaultScript,omitempty"`

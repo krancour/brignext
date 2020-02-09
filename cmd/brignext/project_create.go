@@ -40,15 +40,15 @@ func projectCreate(c *cli.Context) error {
 
 	if resp.StatusCode == http.StatusConflict {
 		return errors.Errorf(
-			"a project named %q already exists",
-			project.Name,
+			"a project with the ID %q already exists",
+			project.ID,
 		)
 	}
 	if resp.StatusCode != http.StatusCreated {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	fmt.Printf("Created project %q.\n", project.Name)
+	fmt.Printf("Created project %q.\n", project.ID)
 
 	return nil
 }

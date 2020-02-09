@@ -16,9 +16,9 @@ import (
 
 func eventList(c *cli.Context) error {
 	// Inputs
-	var projectName string
+	var projectID string
 	if len(c.Args()) > 0 {
-		projectName = c.Args()[0]
+		projectID = c.Args()[0]
 	}
 	output := c.String(flagOutput)
 	allowInsecure := c.GlobalBool(flagInsecure)
@@ -31,8 +31,8 @@ func eventList(c *cli.Context) error {
 	}
 
 	path := "v2/events"
-	if projectName != "" {
-		path = fmt.Sprintf("v2/projects/%s/events", projectName)
+	if projectID != "" {
+		path = fmt.Sprintf("v2/projects/%s/events", projectID)
 	}
 	req, err := buildRequest(http.MethodGet, path, nil)
 	if err != nil {
@@ -67,7 +67,7 @@ func eventList(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "PROJECT", "PROVIDER", "TYPE", "STATUS", "AGE")
+		table.AddRow("ID", "PROJECT ID", "PROVIDER", "TYPE", "STATUS", "AGE")
 		for _, event := range events {
 			var status brignext.JobStatus = "???"
 			since := "???"
@@ -81,7 +81,7 @@ func eventList(c *cli.Context) error {
 			}
 			table.AddRow(
 				event.ID,
-				event.ProjectName,
+				event.ProjectID,
 				event.Provider,
 				event.Type,
 				status,

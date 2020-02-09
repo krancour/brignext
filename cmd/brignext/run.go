@@ -15,7 +15,7 @@ import (
 
 func run(c *cli.Context) error {
 	// Inputs
-	projectName := c.Args()[0]
+	projectID := c.Args()[0]
 	// background := c.Bool(flagBackground)
 	// commit := c.String(flagCommit)
 	// configFile := c.String(flagConfig)
@@ -54,9 +54,9 @@ func run(c *cli.Context) error {
 	// }
 
 	event := brignext.Event{
-		ProjectName: projectName,
-		Provider:    "brigade-cli",
-		Type:        eventType,
+		ProjectID: projectID,
+		Provider:  "brigade-cli",
+		Type:      eventType,
 		// Revision: &brignext.Revision{
 		// 	Commit: commit,
 		// 	Ref:    ref,

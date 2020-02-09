@@ -15,12 +15,12 @@ import (
 func (s *server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	name := mux.Vars(r)["name"]
+	id := mux.Vars(r)["id"]
 
 	if _, ok, err :=
-		s.projectStore.GetProjectByName(name); err != nil {
+		s.projectStore.GetProject(id); err != nil {
 		log.Println(
-			errors.Wrapf(err, "error checking for existing project named %q", name),
+			errors.Wrapf(err, "error checking for existing project %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
@@ -59,14 +59,9 @@ func (s *server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if name != project.Name {
-		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
-		return
-	}
-
 	if err := s.projectStore.UpdateProject(project); err != nil {
 		log.Println(
-			errors.Wrapf(err, "error updating project %q", project.Name),
+			errors.Wrapf(err, "error updating project %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

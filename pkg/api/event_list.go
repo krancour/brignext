@@ -14,11 +14,11 @@ import (
 func (s *server) eventList(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	projectName := mux.Vars(r)["projectName"]
+	projectID := mux.Vars(r)["projectID"]
 
 	var events []brignext.Event
 	var err error
-	if projectName == "" {
+	if projectID == "" {
 		if events, err = s.projectStore.GetEvents(); err != nil {
 			log.Println(
 				errors.Wrap(err, "error retrieving all events"),
@@ -27,10 +27,10 @@ func (s *server) eventList(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		project, ok, err := s.projectStore.GetProjectByName(projectName)
+		_, ok, err := s.projectStore.GetProject(projectID)
 		if err != nil {
 			log.Println(
-				errors.Wrapf(err, "error retrieving project %q", projectName),
+				errors.Wrapf(err, "error retrieving project %q", projectID),
 			)
 			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 			return
@@ -39,10 +39,11 @@ func (s *server) eventList(w http.ResponseWriter, r *http.Request) {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 			return
 		}
+
 		if events, err =
-			s.projectStore.GetEventsByProjectID(project.ID); err != nil {
+			s.projectStore.GetEventsByProjectID(projectID); err != nil {
 			log.Println(
-				errors.Wrapf(err, "error retrieving events for project %d", project.ID),
+				errors.Wrapf(err, "error retrieving events for project %q", projectID),
 			)
 			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 			return

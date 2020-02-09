@@ -13,17 +13,17 @@ import (
 func (s *server) eventDeleteAll(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	projectName := mux.Vars(r)["projectName"]
+	projectID := mux.Vars(r)["projectID"]
 	forceDeleteStr := r.URL.Query().Get("force")
 	var forceDelete bool
 	if forceDeleteStr != "" {
 		forceDelete, _ = strconv.ParseBool(forceDeleteStr) // nolint: errcheck
 	}
 
-	project, ok, err := s.projectStore.GetProjectByName(projectName)
+	_, ok, err := s.projectStore.GetProject(projectID)
 	if err != nil {
 		log.Println(
-			errors.Wrapf(err, "error retrieving project %q", projectName),
+			errors.Wrapf(err, "error retrieving project %q", projectID),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
@@ -34,13 +34,13 @@ func (s *server) eventDeleteAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.projectStore.DeleteEventsByProjectID(
-		project.ID,
+		projectID,
 		storage.DeleteEventOptions{
 			DeleteEventsWithRunningWorkers: forceDelete,
 		},
 	); err != nil {
 		log.Println(
-			errors.Wrapf(err, "error deleting events for project %q", project.ID),
+			errors.Wrapf(err, "error deleting events for project %q", projectID),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

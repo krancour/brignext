@@ -12,12 +12,12 @@ import (
 func (s *server) projectGet(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	name := mux.Vars(r)["name"]
+	id := mux.Vars(r)["id"]
 
-	project, ok, err := s.projectStore.GetProjectByName(name)
+	project, ok, err := s.projectStore.GetProject(id)
 	if err != nil {
 		log.Println(
-			errors.Wrapf(err, "error retrieving project %q", name),
+			errors.Wrapf(err, "error retrieving project %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

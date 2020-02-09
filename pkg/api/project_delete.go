@@ -11,11 +11,11 @@ import (
 func (s *server) projectDelete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	name := mux.Vars(r)["name"]
+	id := mux.Vars(r)["id"]
 
-	if err := s.projectStore.DeleteProjectByName(name); err != nil {
+	if err := s.projectStore.DeleteProject(id); err != nil {
 		log.Println(
-			errors.Wrapf(err, "error deleting project %q", name),
+			errors.Wrapf(err, "error deleting project %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

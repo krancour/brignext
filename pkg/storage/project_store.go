@@ -8,10 +8,8 @@ type ProjectStore interface {
 	CreateProject(project brignext.Project) (string, error)
 	GetProjects() ([]brignext.Project, error)
 	GetProject(id string) (brignext.Project, bool, error)
-	GetProjectByName(name string) (brignext.Project, bool, error)
 	UpdateProject(project brignext.Project) error
 	DeleteProject(id string) error
-	DeleteProjectByName(name string) error
 
 	CreateEvent(event brignext.Event) (string, error)
 	GetEvents() ([]brignext.Event, error)

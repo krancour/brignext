@@ -10,13 +10,18 @@ import (
 
 func eventDeleteAll(c *cli.Context) error {
 	// Inputs
-	projectName := c.Args()[0]
+	if len(c.Args()) != 1 {
+		return errors.New(
+			"event delete-all requires one parameter-- a project ID",
+		)
+	}
+	projectID := c.Args()[0]
 	force := c.Bool(flagForce)
 	allowInsecure := c.GlobalBool(flagInsecure)
 
 	req, err := buildRequest(
 		http.MethodDelete,
-		fmt.Sprintf("v2/projects/%s/events", projectName),
+		fmt.Sprintf("v2/projects/%s/events", projectID),
 		nil,
 	)
 	if err != nil {
@@ -38,7 +43,7 @@ func eventDeleteAll(c *cli.Context) error {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	fmt.Printf("All events for project %q deleted.\n", projectName)
+	fmt.Printf("All events for project %q deleted.\n", projectID)
 
 	return nil
 }

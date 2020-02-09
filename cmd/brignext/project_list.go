@@ -57,10 +57,10 @@ func projectList(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("NAME", "REPO")
+		table.AddRow("ID", "REPO")
 		for _, project := range projs {
 			table.AddRow(
-				project.Name,
+				project.ID,
 				project.Repo.CloneURL,
 			)
 		}

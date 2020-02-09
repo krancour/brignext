@@ -102,31 +102,31 @@ func NewServer(
 
 	// Get project
 	s.router.HandleFunc(
-		"/v2/projects/{name}",
+		"/v2/projects/{id}",
 		tokenAuthFilter.Decorate(s.projectGet),
 	).Methods(http.MethodGet)
 
 	// List project's events
 	s.router.HandleFunc(
-		"/v2/projects/{projectName}/events",
+		"/v2/projects/{projectID}/events",
 		tokenAuthFilter.Decorate(s.eventList),
 	).Methods(http.MethodGet)
 
 	// Update project
 	s.router.HandleFunc(
-		"/v2/projects/{name}",
+		"/v2/projects/{id}",
 		tokenAuthFilter.Decorate(s.projectUpdate),
 	).Methods(http.MethodPut)
 
 	// Delete project
 	s.router.HandleFunc(
-		"/v2/projects/{name}",
+		"/v2/projects/{id}",
 		tokenAuthFilter.Decorate(s.projectDelete),
 	).Methods(http.MethodDelete)
 
-	// List project's events
+	// Delete project's events
 	s.router.HandleFunc(
-		"/v2/projects/{projectName}/events",
+		"/v2/projects/{projectID}/events",
 		tokenAuthFilter.Decorate(s.eventDeleteAll),
 	).Methods(http.MethodDelete)
 

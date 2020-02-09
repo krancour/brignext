@@ -17,10 +17,10 @@ func projectGet(c *cli.Context) error {
 	// Inputs
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"project get requires one parameter-- a project name",
+			"project get requires one parameter-- a project ID",
 		)
 	}
-	name := c.Args()[0]
+	id := c.Args()[0]
 	output := c.String(flagOutput)
 	allowInsecure := c.GlobalBool(flagInsecure)
 
@@ -33,7 +33,7 @@ func projectGet(c *cli.Context) error {
 
 	req, err := buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/projects/%s", name),
+		fmt.Sprintf("v2/projects/%s", id),
 		nil,
 	)
 	if err != nil {
@@ -47,7 +47,7 @@ func projectGet(c *cli.Context) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return errors.Errorf("Project %q not found.", name)
+		return errors.Errorf("Project %q not found.", id)
 	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
@@ -66,9 +66,9 @@ func projectGet(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("NAME", "REPO")
+		table.AddRow("ID", "REPO")
 		table.AddRow(
-			project.Name,
+			project.ID,
 			project.Repo.CloneURL,
 		)
 		fmt.Println(table)
