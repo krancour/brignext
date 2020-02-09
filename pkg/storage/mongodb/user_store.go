@@ -102,7 +102,32 @@ func (u *userStore) GetUsers() ([]brignext.User, error) {
 	return users, nil
 }
 
-func (u *userStore) GetUser(username string) (brignext.User, bool, error) {
+func (u *userStore) GetUser(id string) (brignext.User, bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	user := brignext.User{}
+
+	result := u.usersCollection.FindOne(ctx, bson.M{"_id": id})
+	if result.Err() == mongo.ErrNoDocuments {
+		return user, false, nil
+	}
+	if result.Err() != nil {
+		return user, false, errors.Wrapf(
+			result.Err(),
+			"error retrieving user %q",
+			id,
+		)
+	}
+	if err := result.Decode(&user); err != nil {
+		return user, false, errors.Wrapf(err, "error decoding user %q", id)
+	}
+	return user, true, nil
+}
+
+func (u *userStore) GetUserByUsername(
+	username string,
+) (brignext.User, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
@@ -125,7 +150,18 @@ func (u *userStore) GetUser(username string) (brignext.User, bool, error) {
 	return user, true, nil
 }
 
-func (u *userStore) DeleteUser(username string) error {
+func (u *userStore) DeleteUser(id string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	if _, err :=
+		u.usersCollection.DeleteOne(ctx, bson.M{"_id": id}); err != nil {
+		return errors.Wrapf(err, "error deleting user %q", id)
+	}
+	return nil
+}
+
+func (u *userStore) DeleteUserByUsername(username string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 

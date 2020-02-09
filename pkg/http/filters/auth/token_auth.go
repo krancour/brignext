@@ -64,7 +64,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 				Username: "root",
 			}
 		} else {
-			if user, ok, err = t.findUser(session.Username); err != nil || !ok {
+			if user, ok, err = t.findUser(session.UserID); err != nil || !ok {
 				http.Error(w, "{}", http.StatusUnauthorized)
 				return
 			}

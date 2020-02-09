@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/pkg/brignext"
+	uuid "github.com/satori/go.uuid"
 
 	"github.com/pkg/errors"
 )
@@ -62,13 +63,14 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, ok, err := s.userStore.GetUser(claims.Email)
+	user, ok, err := s.userStore.GetUserByUsername(claims.Email)
 	if err != nil {
 		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
 		return
 	}
 	if !ok {
 		user = brignext.User{
+			ID:        uuid.NewV4().String(),
 			Username:  claims.Email,
 			Name:      claims.Name,
 			FirstSeen: time.Now(),
@@ -80,7 +82,7 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err :=
-		s.sessionStore.AuthenticateSession(session.ID, user.Username); err != nil {
+		s.sessionStore.AuthenticateSession(session.ID, user.ID); err != nil {
 		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
 		return
 	}

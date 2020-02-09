@@ -159,7 +159,7 @@ func (s *sessionStore) GetSessionByToken(
 	return session, true, nil
 }
 
-func (s *sessionStore) AuthenticateSession(sessionID, username string) error {
+func (s *sessionStore) AuthenticateSession(sessionID, userID string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
@@ -171,7 +171,7 @@ func (s *sessionStore) AuthenticateSession(sessionID, username string) error {
 			},
 			bson.M{
 				"$set": bson.M{
-					"username":      username,
+					"userID":        userID,
 					"authenticated": true,
 					"expires":       time.Now().Add(time.Hour),
 				},

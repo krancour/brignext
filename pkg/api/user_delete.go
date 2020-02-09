@@ -13,7 +13,7 @@ func (s *server) userDelete(w http.ResponseWriter, r *http.Request) {
 
 	username := mux.Vars(r)["username"]
 
-	if err := s.userStore.DeleteUser(username); err != nil {
+	if err := s.userStore.DeleteUserByUsername(username); err != nil {
 		log.Println(
 			errors.Wrap(err, "error deleting user"),
 		)

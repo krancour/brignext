@@ -14,7 +14,7 @@ func (s *server) userGet(w http.ResponseWriter, r *http.Request) {
 
 	username := mux.Vars(r)["username"]
 
-	user, ok, err := s.userStore.GetUser(username)
+	user, ok, err := s.userStore.GetUserByUsername(username)
 	if err != nil {
 		log.Println(
 			errors.Wrapf(err, "error retrieving user %q", username),

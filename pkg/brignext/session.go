@@ -10,6 +10,6 @@ type Session struct {
 	Token         string    `json:"-" bson:"-"`
 	Root          bool      `json:"root" bson:"root"`
 	Authenticated bool      `json:"authenticated" bson:"authenticated"`
-	Username      string    `json:"username" bson:"username,omitempty"`
+	UserID        string    `json:"userID" bson:"userID,omitempty"`
 	Expires       time.Time `json:"expires" bson:"expires"`
 }
