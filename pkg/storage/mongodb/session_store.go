@@ -29,14 +29,6 @@ func NewSessionStore(database *mongo.Database) (storage.SessionStore, error) {
 		[]mongo.IndexModel{
 			{
 				Keys: bson.M{
-					"id": 1,
-				},
-				Options: &options.IndexOptions{
-					Unique: &unique,
-				},
-			},
-			{
-				Keys: bson.M{
 					"hashedOAuth2State": 1,
 				},
 				Options: &options.IndexOptions{
@@ -167,7 +159,7 @@ func (s *sessionStore) AuthenticateSession(sessionID, userID string) error {
 		s.sessionsCollection.UpdateOne(
 			ctx,
 			bson.M{
-				"id": sessionID,
+				"_id": sessionID,
 			},
 			bson.M{
 				"$set": bson.M{
@@ -187,7 +179,7 @@ func (s *sessionStore) DeleteSession(id string) error {
 	defer cancel()
 
 	if _, err :=
-		s.sessionsCollection.DeleteOne(ctx, bson.M{"id": id}); err != nil {
+		s.sessionsCollection.DeleteOne(ctx, bson.M{"_id": id}); err != nil {
 		return errors.Wrap(
 			err,
 			"error deleting session",

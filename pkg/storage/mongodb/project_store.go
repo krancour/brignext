@@ -39,21 +39,11 @@ func NewProjectStore(database *mongo.Database) (storage.ProjectStore, error) {
 	}
 
 	eventsCollection := database.Collection("events")
-	if _, err := eventsCollection.Indexes().CreateMany(
+	if _, err := eventsCollection.Indexes().CreateOne(
 		ctx,
-		[]mongo.IndexModel{
-			{
-				Keys: bson.M{
-					"id": 1,
-				},
-				Options: &options.IndexOptions{
-					Unique: &unique,
-				},
-			},
-			{
-				Keys: bson.M{
-					"projectName": 1,
-				},
+		mongo.IndexModel{
+			Keys: bson.M{
+				"projectName": 1,
 			},
 		},
 	); err != nil {
@@ -61,21 +51,11 @@ func NewProjectStore(database *mongo.Database) (storage.ProjectStore, error) {
 	}
 
 	jobsCollection := database.Collection("jobs")
-	if _, err := jobsCollection.Indexes().CreateMany(
+	if _, err := jobsCollection.Indexes().CreateOne(
 		ctx,
-		[]mongo.IndexModel{
-			{
-				Keys: bson.M{
-					"id": 1,
-				},
-				Options: &options.IndexOptions{
-					Unique: &unique,
-				},
-			},
-			{
-				Keys: bson.M{
-					"eventID": 1,
-				},
+		mongo.IndexModel{
+			Keys: bson.M{
+				"eventID": 1,
 			},
 		},
 	); err != nil {
@@ -234,7 +214,7 @@ func (p *projectStore) GetEvent(id string) (brignext.Event, bool, error) {
 
 	event := brignext.Event{}
 
-	result := p.eventsCollection.FindOne(ctx, bson.M{"id": id})
+	result := p.eventsCollection.FindOne(ctx, bson.M{"_id": id})
 	if result.Err() == mongo.ErrNoDocuments {
 		return event, false, nil
 	}
@@ -259,7 +239,7 @@ func (p *projectStore) DeleteEvent(
 	defer cancel()
 
 	criteria := bson.M{
-		"id": id,
+		"_id": id,
 	}
 	if !options.DeleteEventsWithRunningWorkers {
 		// TODO: Amend the criteria appropriately
@@ -283,7 +263,7 @@ func (p *projectStore) UpdateWorker(
 		p.eventsCollection.UpdateOne(
 			ctx,
 			bson.M{
-				"id": eventID,
+				"_id": eventID,
 			},
 			bson.M{
 				"$set": bson.M{
@@ -337,7 +317,7 @@ func (p *projectStore) UpdateJobStatus(jobID string, status string) error {
 		p.jobsCollection.UpdateOne(
 			ctx,
 			bson.M{
-				"id": jobID,
+				"_id": jobID,
 			},
 			bson.M{
 				"$set": bson.M{"status": status},
@@ -354,7 +334,7 @@ func (p *projectStore) GetJob(id string) (brignext.Job, bool, error) {
 
 	job := brignext.Job{}
 
-	result := p.jobsCollection.FindOne(ctx, bson.M{"id": id})
+	result := p.jobsCollection.FindOne(ctx, bson.M{"_id": id})
 	if result.Err() == mongo.ErrNoDocuments {
 		return job, false, nil
 	}
@@ -363,7 +343,7 @@ func (p *projectStore) GetJob(id string) (brignext.Job, bool, error) {
 	}
 
 	if err := result.Decode(&job); err != nil {
-		return job, false, errors.Wrapf(err, "error retrieving job %q", id)
+		return job, false, errors.Wrapf(err, "error decoding job %q", id)
 	}
 	return job, true, nil
 }

@@ -14,7 +14,7 @@ const (
 
 // Job is a single job that is executed by the worker that processes and event.
 type Job struct {
-	ID           string    `json:"id,omitempty" bson:"id,omitempty"`
+	ID           string    `json:"id,omitempty" bson:"_id,omitempty"`
 	Name         string    `json:"name,omitempty" bson:"name,omitempty"`
 	EventID      string    `json:"eventID,omitempty" bson:"eventID,omitempty"`
 	Image        string    `json:"image,omitempty" bson:"image,omitempty"`
