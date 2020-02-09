@@ -179,7 +179,7 @@ func main() {
 		},
 		{
 			Name:      "run",
-			Usage:     "Crete a new event",
+			Usage:     "Create a new event",
 			ArgsUsage: "PROJECT_ID",
 			Flags: []cli.Flag{
 				// cli.BoolFlag{
