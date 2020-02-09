@@ -59,12 +59,13 @@ func serviceAccountList(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "DESCRIPTION", "CREATED")
+		table.AddRow("ID", "DESCRIPTION", "CREATED", "LOCKED?")
 		for _, serviceAccount := range serviceAccounts {
 			table.AddRow(
 				serviceAccount.ID,
 				serviceAccount.Description,
 				serviceAccount.Created,
+				serviceAccount.Locked != nil && *serviceAccount.Locked,
 			)
 		}
 		fmt.Println(table)

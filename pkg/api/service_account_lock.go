@@ -8,18 +8,18 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *server) serviceAccountDelete(w http.ResponseWriter, r *http.Request) {
+func (s *server) serviceAccountLock(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
 	id := mux.Vars(r)["id"]
 
-	if err := s.userStore.DeleteServiceAccount(id); err != nil {
+	if err := s.userStore.LockServiceAccount(id); err != nil {
 		log.Println(
-			errors.Wrapf(err, "error deleting service account %q", id),
+			errors.Wrapf(err, "error locking service account %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
 	}
 
-	s.writeResponse(w, http.StatusOK, responseEmptyJSON)
+	s.writeResponse(w, http.StatusCreated, responseEmptyJSON)
 }

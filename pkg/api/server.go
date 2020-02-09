@@ -205,10 +205,16 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.serviceAccountGet),
 	).Methods(http.MethodGet)
 
-	// Delete service account
+	// Lock service account
 	s.router.HandleFunc(
-		"/v2/service-accounts/{id}",
-		tokenAuthFilter.Decorate(s.serviceAccountDelete),
+		"/v2/service-accounts/{id}/lock",
+		tokenAuthFilter.Decorate(s.serviceAccountLock),
+	).Methods(http.MethodPost)
+
+	// Unlock service account
+	s.router.HandleFunc(
+		"/v2/service-accounts/{id}/lock",
+		tokenAuthFilter.Decorate(s.serviceAccountUnlock),
 	).Methods(http.MethodDelete)
 
 	// Health check

@@ -228,7 +228,7 @@ func main() {
 				{
 					Name:      "create",
 					Usage:     "create a new service account",
-					ArgsUsage: "[SERVICE_ACCOUNT_NAME]",
+					ArgsUsage: "[SERVICE_ACCOUNT_ID]",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name:  flagsDescription,
@@ -238,15 +238,9 @@ func main() {
 					Action: serviceAccountCreate,
 				},
 				{
-					Name:      "delete",
-					Usage:     "delete a service account",
-					ArgsUsage: "SERVICE_ACCOUNT_NAME",
-					Action:    serviceAccountDelete,
-				},
-				{
 					Name:      "get",
 					Usage:     "get a service account",
-					ArgsUsage: "SERVICE_ACCOUNT_NAME",
+					ArgsUsage: "SERVICE_ACCOUNT_ID",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name: flagsOutput,
@@ -269,6 +263,18 @@ func main() {
 						},
 					},
 					Action: serviceAccountList,
+				},
+				{
+					Name:      "lock",
+					Usage:     "lock a service account out of Brigade",
+					ArgsUsage: "SERVICE_ACCOUNT_ID",
+					Action:    serviceAccountLock,
+				},
+				{
+					Name:      "unlock",
+					Usage:     "restore a user's access to Brigade",
+					ArgsUsage: "SERVICE_ACCOUNT_ID",
+					Action:    serviceAccountUnlock,
 				},
 			},
 		},

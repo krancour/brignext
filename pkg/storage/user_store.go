@@ -12,5 +12,6 @@ type UserStore interface {
 	GetServiceAccounts() ([]brignext.ServiceAccount, error)
 	GetServiceAccount(id string) (brignext.ServiceAccount, bool, error)
 	GetServiceAccountByToken(token string) (brignext.ServiceAccount, bool, error)
-	DeleteServiceAccount(id string) error
+	LockServiceAccount(id string) error
+	UnlockServiceAccount(id string) error
 }

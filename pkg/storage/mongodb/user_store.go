@@ -253,16 +253,36 @@ func (u *userStore) GetServiceAccountByToken(
 	return serviceAccount, true, nil
 }
 
-func (u *userStore) DeleteServiceAccount(id string) error {
+func (u *userStore) LockServiceAccount(id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	if _, err :=
-		u.serviceAccountsCollection.DeleteOne(
+		u.serviceAccountsCollection.UpdateOne(
 			ctx,
 			bson.M{"_id": id},
+			bson.M{
+				"$set": bson.M{"locked": true},
+			},
 		); err != nil {
-		return errors.Wrapf(err, "error deleting service account %q", id)
+		return errors.Wrapf(err, "error locking service account %q", id)
+	}
+	return nil
+}
+
+func (u *userStore) UnlockServiceAccount(id string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	if _, err :=
+		u.serviceAccountsCollection.UpdateOne(
+			ctx,
+			bson.M{"_id": id},
+			bson.M{
+				"$unset": bson.M{"locked": 1},
+			},
+		); err != nil {
+		return errors.Wrapf(err, "error unlocking service account %q", id)
 	}
 	return nil
 }

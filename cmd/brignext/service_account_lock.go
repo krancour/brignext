@@ -8,19 +8,19 @@ import (
 	"github.com/urfave/cli"
 )
 
-func serviceAccountDelete(c *cli.Context) error {
+func serviceAccountLock(c *cli.Context) error {
 	// Inputs
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"service-account delete requires one parameter-- a service account ID",
+			"service-account lock requires one parameter-- a service account ID",
 		)
 	}
 	id := c.Args()[0]
 	allowInsecure := c.GlobalBool(flagInsecure)
 
 	req, err := buildRequest(
-		http.MethodDelete,
-		fmt.Sprintf("v2/service-accounts/%s", id),
+		http.MethodPost,
+		fmt.Sprintf("v2/service-accounts/%s/lock", id),
 		nil,
 	)
 	if err != nil {
@@ -33,11 +33,11 @@ func serviceAccountDelete(c *cli.Context) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusCreated {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	fmt.Printf("Service account %q deleted.\n", id)
+	fmt.Printf("Service account %q locked.\n", id)
 
 	return nil
 }

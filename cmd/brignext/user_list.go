@@ -57,12 +57,13 @@ func userList(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "NAME", "FIRST SEEN")
+		table.AddRow("ID", "NAME", "FIRST SEEN", "LOCKED?")
 		for _, user := range users {
 			table.AddRow(
 				user.ID,
 				user.Name,
 				user.FirstSeen,
+				user.Locked != nil && *user.Locked,
 			)
 		}
 		fmt.Println(table)
