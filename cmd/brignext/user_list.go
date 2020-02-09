@@ -57,10 +57,10 @@ func userList(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("USERNAME", "NAME", "FIRST SEEN")
+		table.AddRow("ID", "NAME", "FIRST SEEN")
 		for _, user := range users {
 			table.AddRow(
-				user.Username,
+				user.ID,
 				user.Name,
 				user.FirstSeen,
 			)

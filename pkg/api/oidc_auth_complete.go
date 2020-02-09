@@ -76,23 +76,21 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var userID string
-	if user, ok, err := s.userStore.GetUserByUsername(claims.Email); err != nil {
+	user, ok, err := s.userStore.GetUser(claims.Email)
+	if err != nil {
 		log.Println(
 			errors.Wrapf(err, "error searching for existing user %q", claims.Email),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
 		return
-	} else if ok {
-		userID = user.ID
-	} else {
+	} else if !ok {
 		user = brignext.User{
-			Username: claims.Email,
-			Name:     claims.Name,
+			ID:   claims.Email,
+			Name: claims.Name,
 		}
-		if userID, err = s.userStore.CreateUser(user); err != nil {
+		if err = s.userStore.CreateUser(user); err != nil {
 			log.Println(
-				errors.Wrapf(err, "error creating new user %q", user.Username),
+				errors.Wrapf(err, "error creating new user %q", user.ID),
 			)
 			s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
 			return
@@ -100,7 +98,7 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err :=
-		s.sessionStore.AuthenticateSession(session.ID, userID); err != nil {
+		s.sessionStore.AuthenticateSession(session.ID, user.ID); err != nil {
 		log.Println(
 			errors.Wrapf(err, "error authenticating session %q", session.ID),
 		)

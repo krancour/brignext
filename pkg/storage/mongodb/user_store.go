@@ -24,22 +24,6 @@ func NewUserStore(database *mongo.Database) (storage.UserStore, error) {
 	defer cancel()
 
 	unique := true
-
-	usersCollection := database.Collection("users")
-	if _, err := usersCollection.Indexes().CreateOne(
-		ctx,
-		mongo.IndexModel{
-			Keys: bson.M{
-				"username": 1,
-			},
-			Options: &options.IndexOptions{
-				Unique: &unique,
-			},
-		},
-	); err != nil {
-		return nil, errors.Wrap(err, "error adding indexes to users collection")
-	}
-
 	serviceAccountsCollection := database.Collection("service-accounts")
 	if _, err := serviceAccountsCollection.Indexes().CreateMany(
 		ctx,
@@ -69,23 +53,22 @@ func NewUserStore(database *mongo.Database) (storage.UserStore, error) {
 	}
 
 	return &userStore{
-		usersCollection:           usersCollection,
+		usersCollection:           database.Collection("users"),
 		serviceAccountsCollection: serviceAccountsCollection,
 	}, nil
 }
 
-func (u *userStore) CreateUser(user brignext.User) (string, error) {
+func (u *userStore) CreateUser(user brignext.User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	user.ID = uuid.NewV4().String()
 	user.FirstSeen = time.Now()
 
 	if _, err :=
 		u.usersCollection.InsertOne(ctx, user); err != nil {
-		return "", errors.Wrapf(err, "error creating user %q", user.Username)
+		return errors.Wrapf(err, "error creating user %q", user.ID)
 	}
-	return user.ID, nil
+	return nil
 }
 
 func (u *userStore) GetUsers() ([]brignext.User, error) {
@@ -131,31 +114,6 @@ func (u *userStore) GetUser(id string) (brignext.User, bool, error) {
 	return user, true, nil
 }
 
-func (u *userStore) GetUserByUsername(
-	username string,
-) (brignext.User, bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	user := brignext.User{}
-
-	result := u.usersCollection.FindOne(ctx, bson.M{"username": username})
-	if result.Err() == mongo.ErrNoDocuments {
-		return user, false, nil
-	}
-	if result.Err() != nil {
-		return user, false, errors.Wrapf(
-			result.Err(),
-			"error retrieving user %q",
-			username,
-		)
-	}
-	if err := result.Decode(&user); err != nil {
-		return user, false, errors.Wrapf(err, "error decoding user %q", username)
-	}
-	return user, true, nil
-}
-
 func (u *userStore) DeleteUser(id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
@@ -163,17 +121,6 @@ func (u *userStore) DeleteUser(id string) error {
 	if _, err :=
 		u.usersCollection.DeleteOne(ctx, bson.M{"_id": id}); err != nil {
 		return errors.Wrapf(err, "error deleting user %q", id)
-	}
-	return nil
-}
-
-func (u *userStore) DeleteUserByUsername(username string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	if _, err :=
-		u.usersCollection.DeleteOne(ctx, bson.M{"username": username}); err != nil {
-		return errors.Wrapf(err, "error deleting user %q", username)
 	}
 	return nil
 }

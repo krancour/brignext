@@ -16,10 +16,10 @@ func userGet(c *cli.Context) error {
 	// Inputs
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"user get requires one parameter-- a username",
+			"user get requires one parameter-- a user ID",
 		)
 	}
-	username := c.Args()[0]
+	id := c.Args()[0]
 	output := c.String(flagOutput)
 	allowInsecure := c.GlobalBool(flagInsecure)
 
@@ -32,7 +32,7 @@ func userGet(c *cli.Context) error {
 
 	req, err := buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/users/%s", username),
+		fmt.Sprintf("v2/users/%s", id),
 		nil,
 	)
 	if err != nil {
@@ -46,7 +46,7 @@ func userGet(c *cli.Context) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return errors.Errorf("User %q not found.", username)
+		return errors.Errorf("User %q not found.", id)
 	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
@@ -65,9 +65,9 @@ func userGet(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("USERNAME", "NAME", "FIRST SEEN")
+		table.AddRow("ID", "NAME", "FIRST SEEN")
 		table.AddRow(
-			user.Username,
+			user.ID,
 			user.Name,
 			user.FirstSeen,
 		)

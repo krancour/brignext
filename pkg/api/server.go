@@ -171,13 +171,13 @@ func NewServer(
 
 	// Get user
 	s.router.HandleFunc(
-		"/v2/users/{username}",
+		"/v2/users/{id}",
 		tokenAuthFilter.Decorate(s.userGet),
 	).Methods(http.MethodGet)
 
 	// Delete user
 	s.router.HandleFunc(
-		"/v2/users/{username}",
+		"/v2/users/{id}",
 		tokenAuthFilter.Decorate(s.userDelete),
 	).Methods(http.MethodDelete)
 

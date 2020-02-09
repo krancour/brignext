@@ -279,13 +279,13 @@ func main() {
 				{
 					Name:      "delete",
 					Usage:     "delete a user",
-					ArgsUsage: "USERNAME",
+					ArgsUsage: "USER_ID",
 					Action:    userDelete,
 				},
 				{
 					Name:      "get",
 					Usage:     "get a user",
-					ArgsUsage: "USERNAME",
+					ArgsUsage: "USER_ID",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name: flagsOutput,

@@ -11,11 +11,11 @@ import (
 func (s *server) userDelete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	username := mux.Vars(r)["username"]
+	id := mux.Vars(r)["id"]
 
-	if err := s.userStore.DeleteUserByUsername(username); err != nil {
+	if err := s.userStore.DeleteUser(id); err != nil {
 		log.Println(
-			errors.Wrap(err, "error deleting user"),
+			errors.Wrapf(err, "error deleting user %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

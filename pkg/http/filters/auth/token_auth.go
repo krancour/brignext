@@ -10,7 +10,7 @@ import (
 )
 
 type FindSessionFn func(token string) (brignext.Session, bool, error)
-type FindUserFn func(username string) (brignext.User, bool, error)
+type FindUserFn func(id string) (brignext.User, bool, error)
 
 type tokenAuthFilter struct {
 	findSession     FindSessionFn
@@ -60,9 +60,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 		}
 		var user brignext.User
 		if session.Root {
-			user = brignext.User{
-				Username: "root",
-			}
+			user = brignext.User{ID: "root"}
 		} else {
 			if user, ok, err = t.findUser(session.UserID); err != nil || !ok {
 				http.Error(w, "{}", http.StatusUnauthorized)

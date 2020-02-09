@@ -12,12 +12,12 @@ import (
 func (s *server) userGet(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	username := mux.Vars(r)["username"]
+	id := mux.Vars(r)["id"]
 
-	user, ok, err := s.userStore.GetUserByUsername(username)
+	user, ok, err := s.userStore.GetUser(id)
 	if err != nil {
 		log.Println(
-			errors.Wrapf(err, "error retrieving user %q", username),
+			errors.Wrapf(err, "error retrieving user %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

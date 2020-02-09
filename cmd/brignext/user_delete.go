@@ -10,12 +10,17 @@ import (
 
 func userDelete(c *cli.Context) error {
 	// Inputs
-	username := c.Args()[0]
+	if len(c.Args()) != 1 {
+		return errors.New(
+			"user get requires one parameter-- a user ID",
+		)
+	}
+	id := c.Args()[0]
 	allowInsecure := c.GlobalBool(flagInsecure)
 
 	req, err := buildRequest(
 		http.MethodDelete,
-		fmt.Sprintf("v2/users/%s", username),
+		fmt.Sprintf("v2/users/%s", id),
 		nil,
 	)
 	if err != nil {
@@ -32,7 +37,7 @@ func userDelete(c *cli.Context) error {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	fmt.Printf("User %q deleted.\n", username)
+	fmt.Printf("User %q deleted.\n", id)
 
 	return nil
 }

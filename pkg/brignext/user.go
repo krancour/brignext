@@ -5,8 +5,7 @@ import (
 )
 
 type User struct {
-	ID        string    `json:"-" bson:"_id,omitempty"`
-	Username  string    `json:"username,omitempty" bson:"username,omitempty"`
+	ID        string    `json:"id,omitempty" bson:"_id,omitempty"`
 	Name      string    `json:"name,omitempty" bson:"name,omitempty"`
 	FirstSeen time.Time `json:"firstSeen,omitempty" bson:"firstSeen,omitempty"`
 }
