@@ -14,6 +14,7 @@ type UserStore interface {
 	GetSessionByToken(token string) (brignext.Session, bool, error)
 	AuthenticateSession(sessionID, userID string) error
 	DeleteSession(id string) error
+	DeleteSessionsByUserID(userID string) error
 
 	CreateServiceAccount(serviceAccount brignext.ServiceAccount) (string, error)
 	GetServiceAccounts() ([]brignext.ServiceAccount, error)

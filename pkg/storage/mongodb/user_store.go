@@ -150,7 +150,9 @@ func (u *userStore) LockUser(id string) error {
 		return errors.Wrapf(err, "error locking user %q", id)
 	}
 
-	// TODO: Delete all of the locked user's sessions
+	if err := u.DeleteSessionsByUserID(id); err != nil {
+		return errors.Wrapf(err, "error deleting sessions for user %q", id)
+	}
 
 	return nil
 }
@@ -295,10 +297,20 @@ func (u *userStore) DeleteSession(id string) error {
 
 	if _, err :=
 		u.sessionsCollection.DeleteOne(ctx, bson.M{"_id": id}); err != nil {
-		return errors.Wrap(
-			err,
-			"error deleting session",
-		)
+		return errors.Wrap(err, "error deleting session")
+	}
+	return nil
+}
+
+func (u *userStore) DeleteSessionsByUserID(userID string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	if _, err := u.sessionsCollection.DeleteMany(
+		ctx,
+		bson.M{"userID": userID},
+	); err != nil {
+		return errors.Wrapf(err, "error deleting sessions for user %q", userID)
 	}
 	return nil
 }
