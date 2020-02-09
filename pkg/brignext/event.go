@@ -4,7 +4,8 @@ import "time"
 
 type Event struct {
 	ID          string `json:"id,omitempty" bson:"_id,omitempty"`
-	ProjectName string `json:"projectName,omitempty" bson:"projectName,omitempty"`
+	ProjectID   string `json:"-" bson:"projectID,omitempty"`
+	ProjectName string `json:"projectName,omitempty" bson:"-"`
 	Provider    string `json:"provider,omitempty" bson:"provider,omitempty"`
 	Type        string `json:"type,omitempty" bson:"type,omitempty"`
 	// ShortTitle  string    `json:"shortTitle,omitempty" bson:"shortTitle,omitempty"`

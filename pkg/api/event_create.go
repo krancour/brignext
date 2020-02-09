@@ -8,7 +8,6 @@ import (
 
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
-	uuid "github.com/satori/go.uuid"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -44,9 +43,9 @@ func (s *server) eventCreate(w http.ResponseWriter, r *http.Request) {
 		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
 		return
 	}
-	event.ID = uuid.NewV4().String()
 
-	if err := s.projectStore.CreateEvent(event); err != nil {
+	id, err := s.projectStore.CreateEvent(event)
+	if err != nil {
 		log.Println(errors.Wrap(err, "error creating new event"))
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
@@ -56,7 +55,7 @@ func (s *server) eventCreate(w http.ResponseWriter, r *http.Request) {
 		struct {
 			ID string `json:"id"`
 		}{
-			ID: event.ID,
+			ID: id,
 		},
 	)
 	if err != nil {

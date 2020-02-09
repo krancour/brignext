@@ -27,10 +27,22 @@ func (s *server) eventList(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		if events, err =
-			s.projectStore.GetEventsByProjectName(projectName); err != nil {
+		project, ok, err := s.projectStore.GetProjectByName(projectName)
+		if err != nil {
 			log.Println(
-				errors.Wrap(err, "error retrieving events for project"),
+				errors.Wrapf(err, "error retrieving project %q", projectName),
+			)
+			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+			return
+		}
+		if !ok {
+			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
+			return
+		}
+		if events, err =
+			s.projectStore.GetEventsByProjectID(project.ID); err != nil {
+			log.Println(
+				errors.Wrapf(err, "error retrieving events for project %d", project.ID),
 			)
 			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 			return

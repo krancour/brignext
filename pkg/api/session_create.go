@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/pkg/brignext"
-	uuid "github.com/satori/go.uuid"
 
 	"github.com/krancour/brignext/pkg/crypto"
 	"github.com/pkg/errors"
@@ -40,15 +39,14 @@ func (s *server) sessionCreate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		session := brignext.Session{
-			ID:            uuid.NewV4().String(),
-			Root:          true,
-			Token:         crypto.NewToken(256),
-			Authenticated: true,
-			Expires:       time.Now().Add(10 * time.Minute),
-		}
-
-		if err := s.sessionStore.CreateSession(session); err != nil {
+		_, _, token, err := s.sessionStore.CreateSession(
+			brignext.Session{
+				Root:          true,
+				Authenticated: true,
+				Expires:       time.Now().Add(10 * time.Minute),
+			},
+		)
+		if err != nil {
 			log.Println(
 				errors.Wrap(err, "error creating new root session"),
 			)
@@ -60,7 +58,7 @@ func (s *server) sessionCreate(w http.ResponseWriter, r *http.Request) {
 			struct {
 				Token string `json:"token"`
 			}{
-				Token: session.Token,
+				Token: token,
 			},
 		)
 		if err != nil {
@@ -80,13 +78,8 @@ func (s *server) sessionCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session := brignext.Session{
-		ID:          uuid.NewV4().String(),
-		OAuth2State: crypto.NewToken(30),
-		Token:       crypto.NewToken(256),
-	}
-
-	if err := s.sessionStore.CreateSession(session); err != nil {
+	_, oauth2State, token, err := s.sessionStore.CreateSession(brignext.Session{})
+	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error creating new session"),
 		)
@@ -99,8 +92,8 @@ func (s *server) sessionCreate(w http.ResponseWriter, r *http.Request) {
 			Token   string `json:"token"`
 			AuthURL string `json:"authURL"`
 		}{
-			Token:   session.Token,
-			AuthURL: s.oauth2Config.AuthCodeURL(session.OAuth2State),
+			Token:   token,
+			AuthURL: s.oauth2Config.AuthCodeURL(oauth2State),
 		},
 	)
 	if err != nil {

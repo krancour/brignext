@@ -18,7 +18,7 @@ func (s *server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 
 	if _, ok, err :=
-		s.projectStore.GetProject(name); err != nil {
+		s.projectStore.GetProjectByName(name); err != nil {
 		log.Println(
 			errors.Wrapf(err, "error checking for existing project named %q", name),
 		)

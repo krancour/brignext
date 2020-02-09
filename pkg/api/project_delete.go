@@ -13,7 +13,7 @@ func (s *server) projectDelete(w http.ResponseWriter, r *http.Request) {
 
 	name := mux.Vars(r)["name"]
 
-	if err := s.projectStore.DeleteProject(name); err != nil {
+	if err := s.projectStore.DeleteProjectByName(name); err != nil {
 		log.Println(
 			errors.Wrapf(err, "error deleting project %q", name),
 		)

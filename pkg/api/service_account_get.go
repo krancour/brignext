@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
@@ -28,17 +27,7 @@ func (s *server) serviceAccountGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBytes, err := json.Marshal(
-		struct {
-			Name        string    `json:"name"`
-			Description string    `json:"description"`
-			Created     time.Time `json:"created"`
-		}{
-			Name:        serviceAccount.Name,
-			Description: serviceAccount.Description,
-			Created:     serviceAccount.Created,
-		},
-	)
+	responseBytes, err := json.Marshal(serviceAccount)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error marshaling get service account response"),

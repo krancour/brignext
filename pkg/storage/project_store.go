@@ -5,21 +5,24 @@ import (
 )
 
 type ProjectStore interface {
-	CreateProject(project brignext.Project) error
+	CreateProject(project brignext.Project) (string, error)
 	GetProjects() ([]brignext.Project, error)
-	GetProject(name string) (brignext.Project, bool, error)
+	GetProject(id string) (brignext.Project, bool, error)
+	GetProjectByName(name string) (brignext.Project, bool, error)
 	UpdateProject(project brignext.Project) error
-	DeleteProject(name string) error
+	DeleteProject(id string) error
+	DeleteProjectByName(name string) error
 
-	CreateEvent(event brignext.Event) error
+	CreateEvent(event brignext.Event) (string, error)
 	GetEvents() ([]brignext.Event, error)
-	GetEventsByProjectName(projectName string) ([]brignext.Event, error)
+	GetEventsByProjectID(projectID string) ([]brignext.Event, error)
 	GetEvent(id string) (brignext.Event, bool, error)
+	DeleteEventsByProjectID(projectID string, options DeleteEventOptions) error
 	DeleteEvent(id string, options DeleteEventOptions) error
 
 	UpdateWorker(eventID string, worker brignext.Worker) error
 
-	CreateJob(job brignext.Job) error
+	CreateJob(job brignext.Job) (string, error)
 	GetJobsByEventID(eventID string) ([]brignext.Job, error)
 	GetJob(id string) (brignext.Job, bool, error)
 	UpdateJobStatus(jobID string, status string) error

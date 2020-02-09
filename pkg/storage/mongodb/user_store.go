@@ -2,11 +2,13 @@ package mongodb
 
 import (
 	"context"
+	"time"
 
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/krancour/brignext/pkg/crypto"
 	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -72,14 +74,18 @@ func NewUserStore(database *mongo.Database) (storage.UserStore, error) {
 	}, nil
 }
 
-func (u *userStore) CreateUser(user brignext.User) error {
+func (u *userStore) CreateUser(user brignext.User) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
+
+	user.ID = uuid.NewV4().String()
+	user.FirstSeen = time.Now()
+
 	if _, err :=
 		u.usersCollection.InsertOne(ctx, user); err != nil {
-		return errors.Wrapf(err, "error creating user %q", user.Username)
+		return "", errors.Wrapf(err, "error creating user %q", user.Username)
 	}
-	return nil
+	return user.ID, nil
 }
 
 func (u *userStore) GetUsers() ([]brignext.User, error) {
@@ -174,14 +180,15 @@ func (u *userStore) DeleteUserByUsername(username string) error {
 
 func (u *userStore) CreateServiceAccount(
 	serviceAccount brignext.ServiceAccount,
-) error {
+) (string, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	hashedToken := crypto.ShortSHA("", serviceAccount.Token)
-	// The bson struct tags should stop this clear text field from being
-	// persisted, but this is here for good measure.
-	serviceAccount.Token = ""
+	serviceAccount.ID = uuid.NewV4().String()
+	serviceAccount.Created = time.Now()
+
+	token := crypto.NewToken(256)
+	hashedToken := crypto.ShortSHA("", token)
 
 	if _, err :=
 		u.serviceAccountsCollection.InsertOne(
@@ -194,13 +201,13 @@ func (u *userStore) CreateServiceAccount(
 				HashedToken:    hashedToken,
 			},
 		); err != nil {
-		return errors.Wrapf(
+		return "", "", errors.Wrapf(
 			err,
 			"error creating service account %q",
 			serviceAccount.Name,
 		)
 	}
-	return nil
+	return serviceAccount.ID, token, nil
 }
 
 func (u *userStore) GetServiceAccounts() ([]brignext.ServiceAccount, error) {

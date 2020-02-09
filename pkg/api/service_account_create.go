@@ -5,10 +5,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/krancour/brignext/pkg/brignext"
-	"github.com/krancour/brignext/pkg/crypto"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -65,10 +63,8 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	serviceAccount.Token = crypto.NewToken(256)
-	serviceAccount.Created = time.Now()
-
-	if err := s.userStore.CreateServiceAccount(serviceAccount); err != nil {
+	_, token, err := s.userStore.CreateServiceAccount(serviceAccount)
+	if err != nil {
 		log.Println(
 			errors.Wrapf(
 				err,
@@ -84,7 +80,7 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 		struct {
 			Token string `json:"token"`
 		}{
-			Token: serviceAccount.Token,
+			Token: token,
 		},
 	)
 	if err != nil {

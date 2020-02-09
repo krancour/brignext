@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/pkg/errors"
 )
@@ -21,21 +20,7 @@ func (s *server) serviceAccountList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseServiceAccounts := make(
-		[]struct {
-			Name        string    `json:"name"`
-			Description string    `json:"description"`
-			Created     time.Time `json:"created"`
-		},
-		len(serviceAccounts),
-	)
-	for i, serviceAccount := range serviceAccounts {
-		responseServiceAccounts[i].Name = serviceAccount.Name
-		responseServiceAccounts[i].Description = serviceAccount.Description
-		responseServiceAccounts[i].Created = serviceAccount.Created
-	}
-
-	responseBytes, err := json.Marshal(responseServiceAccounts)
+	responseBytes, err := json.Marshal(serviceAccounts)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error marshaling list service accounts response"),

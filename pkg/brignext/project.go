@@ -2,6 +2,7 @@ package brignext
 
 // nolint: lll
 type Project struct {
+	ID          string `json:"-" bson:"_id,omitempty"`
 	Name        string `json:"name,omitempty" bson:"name,omitempty"`
 	Description string `json:"description,omitempty" bson:"description,omitempty"`
 	Repo        Repo   `json:"repo,omitempty" bson:"repo,omitempty"`

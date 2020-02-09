@@ -5,8 +5,8 @@ import (
 )
 
 type ServiceAccount struct {
+	ID          string    `json:"-" bson:"_id,omitempty"`
 	Name        string    `json:"name,omitempty" bson:"name,omitempty"`
 	Description string    `json:"description,omitempty" bson:"description,omitempty"`
-	Token       string    `json:"-" bson:"-"`
 	Created     time.Time `json:"created,omitempty" bson:"created,omitempty"`
 }

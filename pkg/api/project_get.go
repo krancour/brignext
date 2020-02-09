@@ -14,7 +14,7 @@ func (s *server) projectGet(w http.ResponseWriter, r *http.Request) {
 
 	name := mux.Vars(r)["name"]
 
-	project, ok, err := s.projectStore.GetProject(name)
+	project, ok, err := s.projectStore.GetProjectByName(name)
 	if err != nil {
 		log.Println(
 			errors.Wrapf(err, "error retrieving project %q", name),

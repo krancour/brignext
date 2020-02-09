@@ -20,28 +20,30 @@ func (s *server) eventDeleteAll(w http.ResponseWriter, r *http.Request) {
 		forceDelete, _ = strconv.ParseBool(forceDeleteStr) // nolint: errcheck
 	}
 
-	events, err := s.projectStore.GetEventsByProjectName(projectName)
+	project, ok, err := s.projectStore.GetProjectByName(projectName)
 	if err != nil {
 		log.Println(
-			errors.Wrap(err, "error retrieving events for project"),
+			errors.Wrapf(err, "error retrieving project %q", projectName),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
 	}
+	if !ok {
+		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
+		return
+	}
 
-	for _, event := range events {
-		if err := s.projectStore.DeleteEvent(
-			event.ID,
-			storage.DeleteEventOptions{
-				DeleteEventsWithRunningWorkers: forceDelete,
-			},
-		); err != nil {
-			log.Println(
-				errors.Wrap(err, "error deleting event"),
-			)
-			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-			return
-		}
+	if err := s.projectStore.DeleteEventsByProjectID(
+		project.ID,
+		storage.DeleteEventOptions{
+			DeleteEventsWithRunningWorkers: forceDelete,
+		},
+	); err != nil {
+		log.Println(
+			errors.Wrapf(err, "error deleting events for project %q", project.ID),
+		)
+		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		return
 	}
 
 	// TODO: Cascade delete to associated jobs

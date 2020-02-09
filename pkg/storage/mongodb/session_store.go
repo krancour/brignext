@@ -8,6 +8,7 @@ import (
 	"github.com/krancour/brignext/pkg/crypto"
 	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -56,22 +57,21 @@ func NewSessionStore(database *mongo.Database) (storage.SessionStore, error) {
 	}, nil
 }
 
-func (s *sessionStore) CreateSession(session brignext.Session) error {
+func (s *sessionStore) CreateSession(session brignext.Session) (string, string, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	var hashedOAuth2State string
-	if session.OAuth2State != "" {
-		hashedOAuth2State = crypto.ShortSHA("", session.OAuth2State)
-	}
-	// The bson struct tags should stop this clear text field from being
-	// persisted, but this is here for good measure.
-	session.OAuth2State = ""
+	session.ID = uuid.NewV4().String()
+	session.Created = time.Now()
 
-	hashedToken := crypto.ShortSHA("", session.Token)
-	// The bson struct tags should stop this clear text field from being
-	// persisted, but this is here for good measure.
-	session.Token = ""
+	var oauth2State, hashedOAuth2State string
+	if !session.Root {
+		oauth2State = crypto.NewToken(30)
+		hashedOAuth2State = crypto.ShortSHA("", oauth2State)
+	}
+
+	token := crypto.NewToken(256)
+	hashedToken := crypto.ShortSHA("", token)
 
 	if _, err := s.sessionsCollection.InsertOne(
 		ctx,
@@ -85,10 +85,10 @@ func (s *sessionStore) CreateSession(session brignext.Session) error {
 			HashedToken:       hashedToken,
 		},
 	); err != nil {
-		return errors.Wrap(err, "error creating new session")
+		return "", "", "", errors.Wrap(err, "error creating new session")
 	}
 
-	return nil
+	return session.ID, oauth2State, token, nil
 }
 
 func (s *sessionStore) GetSessionByOAuth2State(
