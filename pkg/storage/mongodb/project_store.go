@@ -10,6 +10,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type projectStore struct {
@@ -70,19 +71,18 @@ func (p *projectStore) GetProjects() ([]brignext.Project, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	cur, err := p.projectsCollection.Find(ctx, bson.M{})
+	findOptions := options.Find()
+	findOptions.SetSort(bson.M{"_id": 1})
+	cur, err := p.projectsCollection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "error retrieving projects")
 	}
+
 	projects := []brignext.Project{}
-	for cur.Next(ctx) {
-		project := brignext.Project{}
-		err := cur.Decode(&project)
-		if err != nil {
-			return nil, errors.Wrap(err, "error decoding projects")
-		}
-		projects = append(projects, project)
+	if err := cur.All(ctx, &projects); err != nil {
+		return nil, errors.Wrap(err, "error decoding projects")
 	}
+
 	return projects, nil
 }
 
@@ -156,19 +156,16 @@ func (p *projectStore) GetEvents() ([]brignext.Event, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	cur, err := p.eventsCollection.Find(ctx, bson.M{})
+	findOptions := options.Find()
+	findOptions.SetSort(bson.M{"created": -1})
+	cur, err := p.eventsCollection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "error retrieving events")
 	}
 
 	events := []brignext.Event{}
-	for cur.Next(ctx) {
-		event := brignext.Event{}
-		err := cur.Decode(&event)
-		if err != nil {
-			return nil, errors.Wrap(err, "error decoding events")
-		}
-		events = append(events, event)
+	if err := cur.All(ctx, &events); err != nil {
+		return nil, errors.Wrap(err, "error decoding events")
 	}
 
 	return events, nil
@@ -180,7 +177,13 @@ func (p *projectStore) GetEventsByProjectID(
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	cur, err := p.eventsCollection.Find(ctx, bson.M{"projectID": projectID})
+	findOptions := options.Find()
+	findOptions.SetSort(bson.M{"created": -1})
+	cur, err := p.eventsCollection.Find(
+		ctx,
+		bson.M{"projectID": projectID},
+		findOptions,
+	)
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
@@ -188,19 +191,16 @@ func (p *projectStore) GetEventsByProjectID(
 			projectID,
 		)
 	}
+
 	events := []brignext.Event{}
-	for cur.Next(ctx) {
-		event := brignext.Event{}
-		err := cur.Decode(&event)
-		if err != nil {
-			return nil, errors.Wrapf(
-				err,
-				"error decoding events for project %q",
-				projectID,
-			)
-		}
-		events = append(events, event)
+	if err := cur.All(ctx, &events); err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"error decoding events for project %q",
+			projectID,
+		)
 	}
+
 	return events, nil
 }
 
@@ -268,89 +268,3 @@ func (p *projectStore) DeleteEvent(
 
 	return nil
 }
-
-// func (p *projectStore) CreateJob(job brignext.Job) (string, error) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-// 	defer cancel()
-
-// 	job.ID = uuid.NewV4().String()
-
-// 	if _, err := p.jobsCollection.InsertOne(ctx, job); err != nil {
-// 		return "", errors.Wrapf(err, "error creating job %q", job.ID)
-// 	}
-// 	return job.ID, nil
-// }
-
-// func (p *projectStore) GetJobsByEventID(
-// 	eventID string,
-// ) ([]brignext.Job, error) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-// 	defer cancel()
-
-// 	cur, err := p.jobsCollection.Find(ctx, bson.M{"eventID": eventID})
-// 	if err != nil {
-// 		return nil, errors.Wrapf(err, "error retrieving jobs for event %q", eventID)
-// 	}
-// 	jobs := []brignext.Job{}
-// 	for cur.Next(ctx) {
-// 		job := brignext.Job{}
-// 		err := cur.Decode(&job)
-// 		if err != nil {
-// 			return nil, errors.Wrapf(err, "error decoding job for event %q", eventID)
-// 		}
-// 		jobs = append(jobs, job)
-// 	}
-
-// 	return jobs, nil
-// }
-
-// func (p *projectStore) UpdateJobStatus(jobID string, status string) error {
-// 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-// 	defer cancel()
-
-// 	if _, err :=
-// 		p.jobsCollection.UpdateOne(
-// 			ctx,
-// 			bson.M{
-// 				"_id": jobID,
-// 			},
-// 			bson.M{
-// 				"$set": bson.M{"status": status},
-// 			},
-// 		); err != nil {
-// 		return errors.Wrapf(err, "error updating status for job %q", jobID)
-// 	}
-// 	return nil
-// }
-
-// func (p *projectStore) GetJob(id string) (brignext.Job, bool, error) {
-// 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-// 	defer cancel()
-
-// 	job := brignext.Job{}
-
-// 	result := p.jobsCollection.FindOne(ctx, bson.M{"_id": id})
-// 	if result.Err() == mongo.ErrNoDocuments {
-// 		return job, false, nil
-// 	}
-// 	if result.Err() != nil {
-// 		return job, false, errors.Wrapf(result.Err(), "error retrieving job %q", id)
-// 	}
-
-// 	if err := result.Decode(&job); err != nil {
-// 		return job, false, errors.Wrapf(err, "error decoding job %q", id)
-// 	}
-// 	return job, true, nil
-// }
-
-// func (p *projectStore) DeleteJobsByEventID(eventID string) error {
-// 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-// 	defer cancel()
-
-// 	if _, err :=
-// 		p.eventsCollection.DeleteMany(ctx, bson.M{"everntID": eventID}); err != nil {
-// 		return errors.Wrapf(err, "error deleting jobs for event %q", eventID)
-// 	}
-
-// 	return nil
-// }

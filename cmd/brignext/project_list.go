@@ -15,9 +15,11 @@ import (
 )
 
 func projectList(c *cli.Context) error {
-	// Inputs
-	output := c.String(flagOutput)
+	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
+
+	// Command-specific flags
+	output := c.String(flagOutput)
 
 	switch output {
 	case "table":

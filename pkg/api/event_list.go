@@ -5,8 +5,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gorilla/mux"
-
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 )
@@ -14,7 +12,7 @@ import (
 func (s *server) eventList(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	projectID := mux.Vars(r)["projectID"]
+	projectID := r.URL.Query().Get("projectID")
 
 	var events []brignext.Event
 	var err error
@@ -27,19 +25,6 @@ func (s *server) eventList(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		_, ok, err := s.projectStore.GetProject(projectID)
-		if err != nil {
-			log.Println(
-				errors.Wrapf(err, "error retrieving project %q", projectID),
-			)
-			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-			return
-		}
-		if !ok {
-			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
-			return
-		}
-
 		if events, err =
 			s.projectStore.GetEventsByProjectID(projectID); err != nil {
 			log.Println(

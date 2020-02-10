@@ -13,58 +13,16 @@ import (
 	"github.com/urfave/cli"
 )
 
-func run(c *cli.Context) error {
+func eventCreate(c *cli.Context) error {
 	// Inputs
 	projectID := c.Args()[0]
-	// background := c.Bool(flagBackground)
-	// commit := c.String(flagCommit)
-	// configFile := c.String(flagConfig)
 	eventType := c.String(flagType)
-	// scriptFile := c.String(flagFile)
-	// level := c.String(flagLevel)
-	// payloadFile := c.String(flagPayload)
-	// ref := c.String(flagRef)
 	allowInsecure := c.GlobalBool(flagInsecure)
-
-	// var configBytes []byte
-	// if configFile != "" {
-	// 	var err error
-	// 	configBytes, err = ioutil.ReadFile(configFile)
-	// 	if err != nil {
-	// 		return errors.Wrapf(err, "error reading config file %s", configFile)
-	// 	}
-	// }
-
-	// var scriptBytes []byte
-	// if scriptFile != "" {
-	// 	var err error
-	// 	scriptBytes, err = ioutil.ReadFile(scriptFile)
-	// 	if err != nil {
-	// 		return errors.Wrapf(err, "error reading script file %s", scriptFile)
-	// 	}
-	// }
-
-	// var payloadBytes []byte
-	// if payloadFile != "" {
-	// 	var err error
-	// 	payloadBytes, err = ioutil.ReadFile(payloadFile)
-	// 	if err != nil {
-	// 		return errors.Wrapf(err, "error reading payload file %s", payloadFile)
-	// 	}
-	// }
 
 	event := brignext.Event{
 		ProjectID: projectID,
 		Provider:  "brignext-cli",
 		Type:      eventType,
-		// Revision: &brignext.Revision{
-		// 	Commit: commit,
-		// 	Ref:    ref,
-		// },
-		// Payload:  payloadBytes,
-		// Script:   scriptBytes,
-		// Config:   configBytes,
-		// LogLevel: level,
 	}
 
 	eventBytes, err := json.Marshal(event)

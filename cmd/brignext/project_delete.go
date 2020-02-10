@@ -9,13 +9,15 @@ import (
 )
 
 func projectDelete(c *cli.Context) error {
-	// Inputs
+	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"project delete requires one parameter-- a project ID",
+			"project delete requires one parameter-- a project ID (case insensitive)",
 		)
 	}
 	id := c.Args()[0]
+
+	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
 
 	req, err := buildRequest(

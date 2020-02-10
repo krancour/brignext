@@ -9,15 +9,20 @@ import (
 )
 
 func eventDeleteAll(c *cli.Context) error {
-	// Inputs
+	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"event delete-all requires one parameter-- a project ID",
+			"event delete-all requires one parameter-- a project ID " +
+				"(case insensitive)",
 		)
 	}
 	projectID := c.Args()[0]
-	force := c.Bool(flagForce)
+
+	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
+
+	// Command-specific flags
+	force := c.Bool(flagForce)
 
 	req, err := buildRequest(
 		http.MethodDelete,

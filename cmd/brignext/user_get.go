@@ -13,15 +13,19 @@ import (
 )
 
 func userGet(c *cli.Context) error {
-	// Inputs
+	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"user get requires one parameter-- a user ID",
+			"user get requires one parameter-- a user ID (case insensitive)",
 		)
 	}
 	id := c.Args()[0]
-	output := c.String(flagOutput)
+
+	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
+
+	// Command-specific flags
+	output := c.String(flagOutput)
 
 	switch output {
 	case "table":

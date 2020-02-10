@@ -16,13 +16,22 @@ import (
 )
 
 func serviceAccountCreate(c *cli.Context) error {
-	// Inputs
+	// Args
 	var id string
-	if len(c.Args()) > 0 {
+	if len(c.Args()) == 1 {
 		id = c.Args()[0]
+	} else if len(c.Args()) != 0 {
+		return errors.New(
+			"service-account create requires, at most, one parameter-- the new " +
+				"service account ID",
+		)
 	}
-	description := c.String(flagDescription)
+
+	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
+
+	// Command-specific flags
+	description := c.String(flagDescription)
 
 	reader := bufio.NewReader(os.Stdin)
 

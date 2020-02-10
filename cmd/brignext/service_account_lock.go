@@ -9,13 +9,16 @@ import (
 )
 
 func serviceAccountLock(c *cli.Context) error {
-	// Inputs
+	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"service-account lock requires one parameter-- a service account ID",
+			"service-account lock requires one parameter-- a service account ID " +
+				"(case insensitive)",
 		)
 	}
 	id := c.Args()[0]
+
+	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
 
 	req, err := buildRequest(

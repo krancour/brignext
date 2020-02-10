@@ -106,12 +106,6 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.projectGet),
 	).Methods(http.MethodGet)
 
-	// List project's events
-	s.router.HandleFunc(
-		"/v2/projects/{projectID}/events",
-		tokenAuthFilter.Decorate(s.eventList),
-	).Methods(http.MethodGet)
-
 	// Update project
 	s.router.HandleFunc(
 		"/v2/projects/{id}",
@@ -148,6 +142,7 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.eventGet),
 	).Methods(http.MethodGet)
 
+	// TODO: Logs should actually be a property of a worker; not an event
 	// Stream logs
 	s.router.HandleFunc(
 		"/v2/events/{id}/logs",

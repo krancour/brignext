@@ -15,15 +15,19 @@ import (
 )
 
 func eventGet(c *cli.Context) error {
-	// Inputs
+	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
 			"event get requires one parameter-- an event ID",
 		)
 	}
 	id := c.Args()[0]
-	output := c.String(flagOutput)
+
+	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
+
+	// Command-specific flags
+	output := c.String(flagOutput)
 
 	switch output {
 	case "table":
@@ -67,7 +71,7 @@ func eventGet(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "PROJECT ID", "PROVIDER", "TYPE", "AGE", "STATUS")
+		table.AddRow("ID", "PROJECT", "PROVIDER", "TYPE", "AGE", "STATUS")
 		age := "???"
 		if event.Created != nil {
 			age = duration.ShortHumanDuration(time.Since(*event.Created))

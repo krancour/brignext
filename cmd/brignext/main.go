@@ -23,8 +23,26 @@ func main() {
 			Usage: "Manage events",
 			Subcommands: []cli.Command{
 				{
+					Name:      "create",
+					Usage:     "Create a new event",
+					ArgsUsage: "PROJECT_ID",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  flagsProvider,
+							Usage: "The event provider",
+							Value: "brignext-cli",
+						},
+						cli.StringFlag{
+							Name:  flagsType,
+							Usage: "The event type",
+							Value: "exec",
+						},
+					},
+					Action: eventCreate,
+				},
+				{
 					Name:      "delete",
-					Usage:     "deletes an event by ID",
+					Usage:     "Delete an event",
 					ArgsUsage: "EVENT_ID",
 					Flags: []cli.Flag{
 						cli.BoolFlag{
@@ -37,7 +55,7 @@ func main() {
 				},
 				{
 					Name:      "delete-all",
-					Usage:     "deletes all events for a given project",
+					Usage:     "Delete all events for a given project",
 					ArgsUsage: "PROJECT_ID",
 					Flags: []cli.Flag{
 						cli.BoolFlag{
@@ -50,7 +68,7 @@ func main() {
 				},
 				{
 					Name:      "get",
-					Usage:     "get an event",
+					Usage:     "Get an event",
 					ArgsUsage: "EVENT_ID",
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -63,9 +81,8 @@ func main() {
 					Action: eventGet,
 				},
 				{
-					Name:      "list",
-					Usage:     "list all events or events for a given project",
-					ArgsUsage: "[PROJECT_ID]",
+					Name:  "list",
+					Usage: "List events, optionally filtered by project",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name: flagsOutput,
@@ -73,38 +90,22 @@ func main() {
 								"table, json",
 							Value: "table",
 						},
+						cli.StringFlag{
+							Name:  flagsProject,
+							Usage: "Return events only for the specified project",
+						},
 					},
 					Action: eventList,
 				},
-				// {
-				// 	Name:      "logs",
-				// 	Usage:     "show event logs",
-				// 	ArgsUsage: "EVENT_ID",
-				// 	Flags: []cli.Flag{
-				// 		cli.BoolFlag{
-				// 			Name:  flagsInit,
-				// 			Usage: "Show init container logs as well as the worker log",
-				// 		},
-				// 		cli.BoolFlag{
-				// 			Name:  flagsJobs,
-				// 			Usage: "Show job logs as well as the worker log",
-				// 		},
-				// 		cli.BoolFlag{
-				// 			Name:  flagsLast,
-				// 			Usage: "Show last event's log (ignores EVENT_ID)",
-				// 		},
-				// 	},
-				// 	Action: eventLogs,
-				// },
 			},
 		},
 		{
 			Name:      "login",
-			Usage:     "Log in to Brigade",
+			Usage:     "Log in to BrigNext",
 			ArgsUsage: "API_SERVER_ADDRESS",
 			Flags: []cli.Flag{
 				cli.BoolFlag{
-					Name: flagsOpen,
+					Name: flagsBrowse,
 					Usage: "Use the system's default web browser to navigate to the " +
 						"URL to begin authentication using OpenID Connect " +
 						"(if supported); not applicable when --root is used",
@@ -123,7 +124,7 @@ func main() {
 		},
 		{
 			Name:   "logout",
-			Usage:  "Log out of Brigade",
+			Usage:  "Log out of BrigNext",
 			Action: logout,
 		},
 		{
@@ -132,19 +133,19 @@ func main() {
 			Subcommands: []cli.Command{
 				{
 					Name:      "create",
-					Usage:     "create a new project",
+					Usage:     "Create a new project",
 					ArgsUsage: "FILE",
 					Action:    projectCreate,
 				},
 				{
 					Name:      "delete",
-					Usage:     "delete a project",
+					Usage:     "Delete a project",
 					ArgsUsage: "PROJECT_ID",
 					Action:    projectDelete,
 				},
 				{
 					Name:      "get",
-					Usage:     "get a project",
+					Usage:     "Get a project",
 					ArgsUsage: "PROJECT_ID",
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -158,7 +159,7 @@ func main() {
 				},
 				{
 					Name:  "list",
-					Usage: "list projects",
+					Usage: "List projects",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name: flagsOutput,
@@ -171,55 +172,11 @@ func main() {
 				},
 				{
 					Name:      "update",
-					Usage:     "update a project",
+					Usage:     "Update a project",
 					ArgsUsage: "FILE",
 					Action:    projectUpdate,
 				},
 			},
-		},
-		{
-			Name:      "run",
-			Usage:     "Create a new event",
-			ArgsUsage: "PROJECT_ID",
-			Flags: []cli.Flag{
-				// cli.BoolFlag{
-				// 	Name: flagsBackground,
-				// 	Usage: "Trigger the event and exit. Let the job run in the " +
-				// 		"background.",
-				// },
-				// cli.StringFlag{
-				// 	Name:  flagsCommit,
-				// 	Usage: "A VCS (git) commit",
-				// },
-				// cli.StringFlag{
-				// 	Name:  flagConfig,
-				// 	Usage: "The brigade.json config file",
-				// },
-				// cli.StringFlag{
-				// 	Name:  flagsFile,
-				// 	Usage: "The JavaScript file to execute",
-				// },
-				// cli.StringFlag{
-				// 	Name:  flagsLevel,
-				// 	Usage: "Specified log level: log, info, warn, error",
-				// 	Value: "log",
-				// },
-				// cli.StringFlag{
-				// 	Name:  flagsPayload,
-				// 	Usage: "The path to a payload file",
-				// },
-				// cli.StringFlag{
-				// 	Name:  flagsRef,
-				// 	Usage: "A VCS (git) version, tag, or branch",
-				// 	Value: "master",
-				// },
-				cli.StringFlag{
-					Name:  flagsType,
-					Usage: "The event type fire",
-					Value: "exec",
-				},
-			},
-			Action: run,
 		},
 		{
 			Name:  "service-account",
@@ -227,7 +184,7 @@ func main() {
 			Subcommands: []cli.Command{
 				{
 					Name:      "create",
-					Usage:     "create a new service account",
+					Usage:     "Create a new service account",
 					ArgsUsage: "[SERVICE_ACCOUNT_ID]",
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -239,7 +196,7 @@ func main() {
 				},
 				{
 					Name:      "get",
-					Usage:     "get a service account",
+					Usage:     "Get a service account",
 					ArgsUsage: "SERVICE_ACCOUNT_ID",
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -253,7 +210,7 @@ func main() {
 				},
 				{
 					Name:  "list",
-					Usage: "list service accounts",
+					Usage: "List service accounts",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name: flagsOutput,
@@ -266,13 +223,13 @@ func main() {
 				},
 				{
 					Name:      "lock",
-					Usage:     "lock a service account out of Brigade",
+					Usage:     "Lock a service account out of Brigade",
 					ArgsUsage: "SERVICE_ACCOUNT_ID",
 					Action:    serviceAccountLock,
 				},
 				{
 					Name:      "unlock",
-					Usage:     "restore a user's access to Brigade",
+					Usage:     "Restore a service account's access to Brigade",
 					ArgsUsage: "SERVICE_ACCOUNT_ID",
 					Action:    serviceAccountUnlock,
 				},
@@ -284,7 +241,7 @@ func main() {
 			Subcommands: []cli.Command{
 				{
 					Name:      "get",
-					Usage:     "get a user",
+					Usage:     "Get a user",
 					ArgsUsage: "USER_ID",
 					Flags: []cli.Flag{
 						cli.StringFlag{
@@ -298,7 +255,7 @@ func main() {
 				},
 				{
 					Name:  "list",
-					Usage: "list users",
+					Usage: "List users",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name: flagsOutput,
@@ -311,13 +268,13 @@ func main() {
 				},
 				{
 					Name:      "lock",
-					Usage:     "lock a user out of Brigade",
+					Usage:     "Lock a user out of Brigade",
 					ArgsUsage: "USER_ID",
 					Action:    userLock,
 				},
 				{
 					Name:      "unlock",
-					Usage:     "restore a user's access to Brigade",
+					Usage:     "Restore a user's access to Brigade",
 					ArgsUsage: "USER_ID",
 					Action:    userUnlock,
 				},

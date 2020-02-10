@@ -12,8 +12,16 @@ import (
 )
 
 func projectUpdate(c *cli.Context) error {
-	// Inputs
+	// Args
+	if len(c.Args()) != 1 {
+		return errors.New(
+			"project update requires one parameter-- a path to a file containing a " +
+				"project definition",
+		)
+	}
 	filename := c.Args()[0]
+
+	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
 
 	// Read and parse the file

@@ -19,12 +19,16 @@ func projectGet(c *cli.Context) error {
 	// Inputs
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"project get requires one parameter-- a project ID",
+			"project get requires one parameter-- a project ID (case insensitive)",
 		)
 	}
 	id := c.Args()[0]
-	output := c.String(flagOutput)
+
+	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
+
+	// Command-specific flags
+	output := c.String(flagOutput)
 
 	switch output {
 	case "table":

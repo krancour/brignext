@@ -15,13 +15,12 @@ import (
 )
 
 func eventList(c *cli.Context) error {
-	// Inputs
-	var projectID string
-	if len(c.Args()) > 0 {
-		projectID = c.Args()[0]
-	}
-	output := c.String(flagOutput)
+	// GobalFlags
 	allowInsecure := c.GlobalBool(flagInsecure)
+
+	// Command-specific flags
+	output := c.String(flagOutput)
+	projectID := c.String(flagProject)
 
 	switch output {
 	case "table":
@@ -30,13 +29,14 @@ func eventList(c *cli.Context) error {
 		return errors.Errorf("unknown output format %q", output)
 	}
 
-	path := "v2/events"
-	if projectID != "" {
-		path = fmt.Sprintf("v2/projects/%s/events", projectID)
-	}
-	req, err := buildRequest(http.MethodGet, path, nil)
+	req, err := buildRequest(http.MethodGet, "v2/events", nil)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
+	}
+	if projectID != "" {
+		q := req.URL.Query()
+		q.Set("projectID", projectID)
+		req.URL.RawQuery = q.Encode()
 	}
 
 	resp, err := getHTTPClient(allowInsecure).Do(req)
@@ -67,7 +67,7 @@ func eventList(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "PROJECT ID", "PROVIDER", "TYPE", "AGE", "STATUS")
+		table.AddRow("ID", "PROJECT", "PROVIDER", "TYPE", "AGE", "STATUS")
 		for _, event := range events {
 			age := "???"
 			if event.Created != nil {

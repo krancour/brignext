@@ -9,13 +9,15 @@ import (
 )
 
 func userUnlock(c *cli.Context) error {
-	// Inputs
+	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"user unlock requires one parameter-- a user ID",
+			"user unlock requires one parameter-- a user ID (case insensitive)",
 		)
 	}
 	id := c.Args()[0]
+
+	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
 
 	req, err := buildRequest(

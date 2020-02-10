@@ -9,10 +9,19 @@ import (
 )
 
 func eventDelete(c *cli.Context) error {
-	// Inputs
+	// Args
+	if len(c.Args()) != 1 {
+		return errors.New(
+			"event delete requires one parameter-- an event ID",
+		)
+	}
 	id := c.Args()[0]
-	force := c.Bool(flagForce)
+
+	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
+
+	// Command-specific flags
+	force := c.Bool(flagForce)
 
 	req, err := buildRequest(
 		http.MethodDelete,

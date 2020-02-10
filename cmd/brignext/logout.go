@@ -9,7 +9,7 @@ import (
 )
 
 func logout(c *cli.Context) error {
-	// Inputs
+	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
 
 	req, err := buildRequest(http.MethodDelete, "v2/session", nil)

@@ -96,19 +96,18 @@ func (u *userStore) GetUsers() ([]brignext.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	cur, err := u.usersCollection.Find(ctx, bson.M{})
+	findOptions := options.Find()
+	findOptions.SetSort(bson.M{"_id": 1})
+	cur, err := u.usersCollection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "error retrieving users")
 	}
+
 	users := []brignext.User{}
-	for cur.Next(ctx) {
-		user := brignext.User{}
-		err := cur.Decode(&user)
-		if err != nil {
-			return nil, errors.Wrap(err, "error decoding users")
-		}
-		users = append(users, user)
+	if err := cur.All(ctx, &users); err != nil {
+		return nil, errors.Wrap(err, "error decoding users")
 	}
+
 	return users, nil
 }
 
@@ -351,19 +350,18 @@ func (u *userStore) GetServiceAccounts() ([]brignext.ServiceAccount, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	cur, err := u.serviceAccountsCollection.Find(ctx, bson.M{})
+	findOptions := options.Find()
+	findOptions.SetSort(bson.M{"_id": 1})
+	cur, err := u.serviceAccountsCollection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "error retrieving service accounts")
 	}
+
 	serviceAccounts := []brignext.ServiceAccount{}
-	for cur.Next(ctx) {
-		serviceAccount := brignext.ServiceAccount{}
-		err := cur.Decode(&serviceAccount)
-		if err != nil {
-			return nil, errors.Wrap(err, "error decoding service accounts")
-		}
-		serviceAccounts = append(serviceAccounts, serviceAccount)
+	if err := cur.All(ctx, &serviceAccounts); err != nil {
+		return nil, errors.Wrap(err, "error decoding service accounts")
 	}
+
 	return serviceAccounts, nil
 }
 
