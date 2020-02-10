@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/krancour/brignext/pkg/brignext"
+	"k8s.io/apimachinery/pkg/util/duration"
 
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
@@ -66,10 +68,15 @@ func projectGet(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "REPO")
+		table.AddRow("ID", "DESCRIPTION", "AGE")
+		age := "???"
+		if project.Created != nil {
+			age = duration.ShortHumanDuration(time.Since(*project.Created))
+		}
 		table.AddRow(
 			project.ID,
-			project.Repo.CloneURL,
+			project.Description,
+			age,
 		)
 		fmt.Println(table)
 

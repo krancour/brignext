@@ -67,24 +67,18 @@ func eventGet(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "PROJECT ID", "PROVIDER", "TYPE", "STATUS", "AGE")
-		var status brignext.JobStatus = "???"
-		since := "???"
-		if event.Worker != nil {
-			status = event.Worker.Status
-			if status == brignext.JobSucceeded || status == brignext.JobFailed {
-				since = duration.ShortHumanDuration(
-					time.Since(event.Worker.StartTime),
-				)
-			}
+		table.AddRow("ID", "PROJECT ID", "PROVIDER", "TYPE", "AGE", "STATUS")
+		age := "???"
+		if event.Created != nil {
+			age = duration.ShortHumanDuration(time.Since(*event.Created))
 		}
 		table.AddRow(
 			event.ID,
 			event.ProjectID,
 			event.Provider,
 			event.Type,
-			status,
-			since,
+			age,
+			event.Status,
 		)
 		fmt.Println(table)
 

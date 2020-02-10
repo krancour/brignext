@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"context"
+	"time"
 
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/krancour/brignext/pkg/storage"
@@ -14,7 +15,7 @@ import (
 type projectStore struct {
 	projectsCollection *mongo.Collection
 	eventsCollection   *mongo.Collection
-	jobsCollection     *mongo.Collection
+	// jobsCollection     *mongo.Collection
 }
 
 func NewProjectStore(database *mongo.Database) (storage.ProjectStore, error) {
@@ -33,28 +34,31 @@ func NewProjectStore(database *mongo.Database) (storage.ProjectStore, error) {
 		return nil, errors.Wrap(err, "error adding indexes to events collection")
 	}
 
-	jobsCollection := database.Collection("jobs")
-	if _, err := jobsCollection.Indexes().CreateOne(
-		ctx,
-		mongo.IndexModel{
-			Keys: bson.M{
-				"eventID": 1,
-			},
-		},
-	); err != nil {
-		return nil, errors.Wrap(err, "error adding indexes to jobs collection")
-	}
+	// jobsCollection := database.Collection("jobs")
+	// if _, err := jobsCollection.Indexes().CreateOne(
+	// 	ctx,
+	// 	mongo.IndexModel{
+	// 		Keys: bson.M{
+	// 			"eventID": 1,
+	// 		},
+	// 	},
+	// ); err != nil {
+	// 	return nil, errors.Wrap(err, "error adding indexes to jobs collection")
+	// }
 
 	return &projectStore{
 		projectsCollection: database.Collection("projects"),
 		eventsCollection:   eventsCollection,
-		jobsCollection:     jobsCollection,
+		// jobsCollection:     jobsCollection,
 	}, nil
 }
 
 func (p *projectStore) CreateProject(project brignext.Project) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
+
+	now := time.Now()
+	project.Created = &now
 
 	if _, err := p.projectsCollection.InsertOne(ctx, project); err != nil {
 		return "", errors.Wrapf(err, "error creating project %q", project.ID)
@@ -138,6 +142,9 @@ func (p *projectStore) CreateEvent(event brignext.Event) (string, error) {
 	defer cancel()
 
 	event.ID = uuid.NewV4().String()
+	now := time.Now()
+	event.Created = &now
+	event.Status = brignext.EventStatusCreated
 
 	if _, err := p.eventsCollection.InsertOne(ctx, event); err != nil {
 		return "", errors.Wrapf(err, "error creating event %q", event.ID)
@@ -262,113 +269,88 @@ func (p *projectStore) DeleteEvent(
 	return nil
 }
 
-func (p *projectStore) UpdateWorker(
-	eventID string,
-	worker brignext.Worker,
-) error {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
+// func (p *projectStore) CreateJob(job brignext.Job) (string, error) {
+// 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+// 	defer cancel()
 
-	if _, err :=
-		p.eventsCollection.UpdateOne(
-			ctx,
-			bson.M{
-				"_id": eventID,
-			},
-			bson.M{
-				"$set": bson.M{
-					"worker": worker,
-				},
-			},
-		); err != nil {
-		return errors.Wrapf(err, "error updating worker for event %q", eventID)
-	}
+// 	job.ID = uuid.NewV4().String()
 
-	return nil
-}
+// 	if _, err := p.jobsCollection.InsertOne(ctx, job); err != nil {
+// 		return "", errors.Wrapf(err, "error creating job %q", job.ID)
+// 	}
+// 	return job.ID, nil
+// }
 
-func (p *projectStore) CreateJob(job brignext.Job) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
+// func (p *projectStore) GetJobsByEventID(
+// 	eventID string,
+// ) ([]brignext.Job, error) {
+// 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+// 	defer cancel()
 
-	job.ID = uuid.NewV4().String()
+// 	cur, err := p.jobsCollection.Find(ctx, bson.M{"eventID": eventID})
+// 	if err != nil {
+// 		return nil, errors.Wrapf(err, "error retrieving jobs for event %q", eventID)
+// 	}
+// 	jobs := []brignext.Job{}
+// 	for cur.Next(ctx) {
+// 		job := brignext.Job{}
+// 		err := cur.Decode(&job)
+// 		if err != nil {
+// 			return nil, errors.Wrapf(err, "error decoding job for event %q", eventID)
+// 		}
+// 		jobs = append(jobs, job)
+// 	}
 
-	if _, err := p.jobsCollection.InsertOne(ctx, job); err != nil {
-		return "", errors.Wrapf(err, "error creating job %q", job.ID)
-	}
-	return job.ID, nil
-}
+// 	return jobs, nil
+// }
 
-func (p *projectStore) GetJobsByEventID(
-	eventID string,
-) ([]brignext.Job, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
+// func (p *projectStore) UpdateJobStatus(jobID string, status string) error {
+// 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+// 	defer cancel()
 
-	cur, err := p.jobsCollection.Find(ctx, bson.M{"eventID": eventID})
-	if err != nil {
-		return nil, errors.Wrapf(err, "error retrieving jobs for event %q", eventID)
-	}
-	jobs := []brignext.Job{}
-	for cur.Next(ctx) {
-		job := brignext.Job{}
-		err := cur.Decode(&job)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error decoding job for event %q", eventID)
-		}
-		jobs = append(jobs, job)
-	}
+// 	if _, err :=
+// 		p.jobsCollection.UpdateOne(
+// 			ctx,
+// 			bson.M{
+// 				"_id": jobID,
+// 			},
+// 			bson.M{
+// 				"$set": bson.M{"status": status},
+// 			},
+// 		); err != nil {
+// 		return errors.Wrapf(err, "error updating status for job %q", jobID)
+// 	}
+// 	return nil
+// }
 
-	return jobs, nil
-}
+// func (p *projectStore) GetJob(id string) (brignext.Job, bool, error) {
+// 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+// 	defer cancel()
 
-func (p *projectStore) UpdateJobStatus(jobID string, status string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
+// 	job := brignext.Job{}
 
-	if _, err :=
-		p.jobsCollection.UpdateOne(
-			ctx,
-			bson.M{
-				"_id": jobID,
-			},
-			bson.M{
-				"$set": bson.M{"status": status},
-			},
-		); err != nil {
-		return errors.Wrapf(err, "error updating status for job %q", jobID)
-	}
-	return nil
-}
+// 	result := p.jobsCollection.FindOne(ctx, bson.M{"_id": id})
+// 	if result.Err() == mongo.ErrNoDocuments {
+// 		return job, false, nil
+// 	}
+// 	if result.Err() != nil {
+// 		return job, false, errors.Wrapf(result.Err(), "error retrieving job %q", id)
+// 	}
 
-func (p *projectStore) GetJob(id string) (brignext.Job, bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
+// 	if err := result.Decode(&job); err != nil {
+// 		return job, false, errors.Wrapf(err, "error decoding job %q", id)
+// 	}
+// 	return job, true, nil
+// }
 
-	job := brignext.Job{}
+// func (p *projectStore) DeleteJobsByEventID(eventID string) error {
+// 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+// 	defer cancel()
 
-	result := p.jobsCollection.FindOne(ctx, bson.M{"_id": id})
-	if result.Err() == mongo.ErrNoDocuments {
-		return job, false, nil
-	}
-	if result.Err() != nil {
-		return job, false, errors.Wrapf(result.Err(), "error retrieving job %q", id)
-	}
+// 	if _, err :=
+// 		p.eventsCollection.DeleteMany(ctx, bson.M{"everntID": eventID}); err != nil {
+// 		return errors.Wrapf(err, "error deleting jobs for event %q", eventID)
+// 	}
 
-	if err := result.Decode(&job); err != nil {
-		return job, false, errors.Wrapf(err, "error decoding job %q", id)
-	}
-	return job, true, nil
-}
-
-func (p *projectStore) DeleteJobsByEventID(eventID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	if _, err :=
-		p.eventsCollection.DeleteMany(ctx, bson.M{"everntID": eventID}); err != nil {
-		return errors.Wrapf(err, "error deleting jobs for event %q", eventID)
-	}
-
-	return nil
-}
+// 	return nil
+// }

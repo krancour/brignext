@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/krancour/brignext/pkg/brignext"
+	"k8s.io/apimachinery/pkg/util/duration"
 
 	"github.com/gosuri/uitable"
 
@@ -59,12 +61,16 @@ func serviceAccountList(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "DESCRIPTION", "CREATED", "LOCKED?")
+		table.AddRow("ID", "DESCRIPTION", "AGE", "LOCKED?")
 		for _, serviceAccount := range serviceAccounts {
+			age := "???"
+			if serviceAccount.Created != nil {
+				age = duration.ShortHumanDuration(time.Since(*serviceAccount.Created))
+			}
 			table.AddRow(
 				serviceAccount.ID,
 				serviceAccount.Description,
-				serviceAccount.Created,
+				age,
 				serviceAccount.Locked != nil && *serviceAccount.Locked,
 			)
 		}

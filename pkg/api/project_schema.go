@@ -28,16 +28,53 @@ var projectSchemaBytes = []byte(`
 			"maxLength": 250
 		},
 
-		"repo": {
+		"event": {
+			"type": "string",
+			"pattern": "^(?:\\*)|(?:\\w[\\w-]+\\:(?:(?:\\*)|(?:\\w[\\w-]+)))$",
+			"minLength": 1,
+			"maxLength": 40
+		},
+
+		"tag": {
+			"type": "string",
+			"pattern": "^\\w[\\w-\\.]*$",
+			"minLength": 3,
+			"maxLength": 50
+		},
+
+		"image": {
 			"type": "object",
-			"description": "A source code repository for the project",
-			"required": ["cloneURL"],
+			"description": "An OCI image",
+			"required": ["repository"],
 			"additionalProperties": false,
 			"properties": {
-				"cloneURL": {
+				"repository": {
 					"allOf": [{ "$ref": "#/definitions/url" }],
-					"description": "The URL where the respository can be cloned from"
+					"description": "The OCI image repository"
+				},
+				"tag": {
+					"allOf": [{ "$ref": "#/definitions/tag" }],
+					"description": "The tag for the correct OCI image from the repository"
+				},
+				"pullPolicy": {
+					"type": "string",
+					"description": "Pull policy for the OCI image",
+					"enum": [ "IfNotPresent", "Always" ]
 				}
+			}
+		},
+
+		"workerConfig": {
+			"type": "object",
+			"description": "Configuration for a single Brigade worker",
+			"additionalProperties": false,
+			"properties": {
+				"events": {
+					"type": "array",
+					"description": "The events that trigger this worker",
+					"items": { "$ref": "#/definitions/event" }
+				},
+				"image": { "$ref": "#/definitions/image" }
 			}
 		}
 
@@ -45,7 +82,7 @@ var projectSchemaBytes = []byte(`
 
 	"title": "Project",
 	"type": "object",
-	"required": ["id", "repo"],
+	"required": ["id"],
 	"additionalProperties": false,
 	"properties": {
 		"id": {
@@ -56,7 +93,14 @@ var projectSchemaBytes = []byte(`
 			"allOf": [{ "$ref": "#/definitions/description" }],
 			"description": "A brief description of the project"
 		},
-		"repo": { "$ref": "#/definitions/repo" }
+		"workerConfigs": {
+			"type": "object",
+			"description": "A map of worker configurations indexed by unique names",
+			"additionalProperties": false,
+			"patternProperties": {
+				"^\\w[\\w-]*$": { "$ref": "#/definitions/workerConfig" }
+			}
+		}
 	}
 }
 `)

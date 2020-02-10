@@ -67,25 +67,19 @@ func eventList(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "PROJECT ID", "PROVIDER", "TYPE", "STATUS", "AGE")
+		table.AddRow("ID", "PROJECT ID", "PROVIDER", "TYPE", "AGE", "STATUS")
 		for _, event := range events {
-			var status brignext.JobStatus = "???"
-			since := "???"
-			if event.Worker != nil {
-				status = event.Worker.Status
-				if status == brignext.JobSucceeded || status == brignext.JobFailed {
-					since = duration.ShortHumanDuration(
-						time.Since(event.Worker.StartTime),
-					)
-				}
+			age := "???"
+			if event.Created != nil {
+				age = duration.ShortHumanDuration(time.Since(*event.Created))
 			}
 			table.AddRow(
 				event.ID,
 				event.ProjectID,
 				event.Provider,
 				event.Type,
-				status,
-				since,
+				age,
+				event.Status,
 			)
 		}
 		fmt.Println(table)

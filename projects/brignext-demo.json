@@ -1,0 +1,14 @@
+{
+  "id": "brignext-demo",
+  "description": "A project that demonstrates brignext",
+  "workerConfigs": {
+    "myWorker": {
+      "events": ["brignext-cli:exec"],
+      "image": {
+        "repository": "brigadecore/brigade-worker",
+        "tag": "v1.2.1",
+        "pullPolicy": "IfNotPresent"
+      }
+    }
+  }
+}

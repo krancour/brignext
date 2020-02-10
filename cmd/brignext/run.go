@@ -55,7 +55,7 @@ func run(c *cli.Context) error {
 
 	event := brignext.Event{
 		ProjectID: projectID,
-		Provider:  "brigade-cli",
+		Provider:  "brignext-cli",
 		Type:      eventType,
 		// Revision: &brignext.Revision{
 		// 	Commit: commit,

@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/gosuri/uitable"
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
+	"k8s.io/apimachinery/pkg/util/duration"
 )
 
 func projectList(c *cli.Context) error {
@@ -57,11 +59,16 @@ func projectList(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "REPO")
+		table.AddRow("ID", "DESCRIPTION", "AGE")
 		for _, project := range projs {
+			age := "???"
+			if project.Created != nil {
+				age = duration.ShortHumanDuration(time.Since(*project.Created))
+			}
 			table.AddRow(
 				project.ID,
-				project.Repo.CloneURL,
+				project.Description,
+				age,
 			)
 		}
 		fmt.Println(table)

@@ -18,13 +18,11 @@ type ProjectStore interface {
 	DeleteEventsByProjectID(projectID string, options DeleteEventOptions) error
 	DeleteEvent(id string, options DeleteEventOptions) error
 
-	UpdateWorker(eventID string, worker brignext.Worker) error
-
-	CreateJob(job brignext.Job) (string, error)
-	GetJobsByEventID(eventID string) ([]brignext.Job, error)
-	GetJob(id string) (brignext.Job, bool, error)
-	UpdateJobStatus(jobID string, status string) error
-	DeleteJobsByEventID(eventID string) error
+	// CreateJob(job brignext.Job) (string, error)
+	// GetJobsByEventID(eventID string) ([]brignext.Job, error)
+	// GetJob(id string) (brignext.Job, bool, error)
+	// UpdateJobStatus(id string, status string) error
+	// DeleteJobsByEventID(eventID string) error
 }
 
 type DeleteEventOptions struct {
