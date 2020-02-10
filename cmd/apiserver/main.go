@@ -48,6 +48,13 @@ func main() {
 
 	logStore := mongodb.NewLogStore(database)
 
+	// // TODO: Do something with this
+	// // Queues (Redis)
+	// redisClient, err := redis.Client()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
 	log.Println(
 		api.NewServer(
 			apiConfig,

@@ -78,6 +78,17 @@ spec:
             secretKeyRef:
               name: {{ include "call-nested" (list . "mongodb" "mongodb.fullname") }}
               key: mongodb-password
+        - name: REDIS_HOST
+          value: {{ include "call-nested" (list . "redis" "redis.fullname") }}-master.{{ .Release.Namespace }}.svc.cluster.local
+        - name: REDIS_PORT
+          value: {{ quote .Values.redis.redisPort }}
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "call-nested" (list . "redis" "redis.fullname") }}
+              key: redis-password
+        - name: REDIS_DATABASE
+          value: {{ quote .Values.apiserver.redis.database }}
         {{- if .Values.apiserver.tls.enabled }}
         volumeMounts:
         - name: cert
