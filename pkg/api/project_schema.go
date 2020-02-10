@@ -74,7 +74,11 @@ var projectSchemaBytes = []byte(`
 					"description": "The events that trigger this worker",
 					"items": { "$ref": "#/definitions/event" }
 				},
-				"image": { "$ref": "#/definitions/image" }
+				"image": { "$ref": "#/definitions/image" },
+				"command": {
+					"type": "string",
+					"description": "The command to execute within the worker container"
+				}
 			}
 		}
 

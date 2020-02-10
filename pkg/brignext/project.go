@@ -31,8 +31,9 @@ type Project struct {
 }
 
 type WorkerConfig struct {
-	Events []string `json:"events,omitempty" bson:"events,omitempty"`
-	Image  *Image   `json:"image,omitempty" bson:"image,omitempty"`
+	Events  []string `json:"events,omitempty" bson:"events,omitempty"`
+	Image   *Image   `json:"image,omitempty" bson:"image,omitempty"`
+	Command string   `json:"command,omitempty" bson:"command,omitempty"`
 }
 
 type Image struct {
