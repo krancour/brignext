@@ -12,7 +12,7 @@ func userLock(c *cli.Context) error {
 	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"user lock requires one parameter-- a user ID (case insensitive)",
+			"user lock requires one argument-- a user ID (case insensitive)",
 		)
 	}
 	id := c.Args()[0]

@@ -43,28 +43,19 @@ func main() {
 				{
 					Name:      "delete",
 					Usage:     "Delete an event",
-					ArgsUsage: "EVENT_ID",
+					ArgsUsage: "[EVENT_ID]",
 					Flags: []cli.Flag{
 						cli.BoolFlag{
 							Name: flagsForce,
 							Usage: "If set, will also delete events with running workers. " +
 								"Default: false",
+						},
+						cli.StringFlag{
+							Name:  flagsProject,
+							Usage: "Delete all events for the specified project",
 						},
 					},
 					Action: eventDelete,
-				},
-				{
-					Name:      "delete-all",
-					Usage:     "Delete all events for a given project",
-					ArgsUsage: "PROJECT_ID",
-					Flags: []cli.Flag{
-						cli.BoolFlag{
-							Name: flagsForce,
-							Usage: "If set, will also delete events with running workers. " +
-								"Default: false",
-						},
-					},
-					Action: eventDeleteAll,
 				},
 				{
 					Name:      "get",

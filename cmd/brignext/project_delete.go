@@ -12,7 +12,7 @@ func projectDelete(c *cli.Context) error {
 	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"project delete requires one parameter-- a project ID (case insensitive)",
+			"project delete requires one argument-- a project ID (case insensitive)",
 		)
 	}
 	id := c.Args()[0]

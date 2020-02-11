@@ -14,14 +14,25 @@ import (
 )
 
 func eventCreate(c *cli.Context) error {
-	// Inputs
+	// Args
+	if len(c.Args()) != 1 {
+		return errors.New(
+			"event create requires one argument-- a project ID (case insensitive) " +
+				"for for which an event should be created",
+		)
+	}
 	projectID := c.Args()[0]
-	eventType := c.String(flagType)
+
+	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
+
+	// Command-specific flags
+	eventType := c.String(flagType)
+	provider := c.String(flagProvider)
 
 	event := brignext.Event{
 		ProjectID: projectID,
-		Provider:  "brignext-cli",
+		Provider:  provider,
 		Type:      eventType,
 	}
 

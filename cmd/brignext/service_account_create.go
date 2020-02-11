@@ -22,7 +22,7 @@ func serviceAccountCreate(c *cli.Context) error {
 		id = c.Args()[0]
 	} else if len(c.Args()) != 0 {
 		return errors.New(
-			"service-account create requires, at most, one parameter-- the new " +
+			"service-account create requires, at most, one argument-- the new " +
 				"service account ID",
 		)
 	}

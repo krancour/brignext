@@ -16,7 +16,7 @@ func userGet(c *cli.Context) error {
 	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"user get requires one parameter-- a user ID (case insensitive)",
+			"user get requires one argument-- a user ID (case insensitive)",
 		)
 	}
 	id := c.Args()[0]

@@ -13,6 +13,11 @@ import (
 )
 
 func userList(c *cli.Context) error {
+	// Args
+	if len(c.Args()) != 1 {
+		return errors.New("user list requires no arguments")
+	}
+
 	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
 

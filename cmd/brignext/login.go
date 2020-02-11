@@ -19,7 +19,7 @@ func login(c *cli.Context) error {
 	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"login requires one parameter-- the address of the API server",
+			"login requires one argument-- the address of the API server",
 		)
 	}
 	address := c.Args()[0]

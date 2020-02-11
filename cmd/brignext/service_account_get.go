@@ -19,7 +19,7 @@ func serviceAccountGet(c *cli.Context) error {
 	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"service-account get requires one parameter-- a service account ID " +
+			"service-account get requires one argument-- a service account ID " +
 				"(case insensitive)",
 		)
 	}

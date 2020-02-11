@@ -9,6 +9,11 @@ import (
 )
 
 func logout(c *cli.Context) error {
+	// Args
+	if len(c.Args()) != 0 {
+		return errors.New("logout requires no arguments")
+	}
+
 	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
 

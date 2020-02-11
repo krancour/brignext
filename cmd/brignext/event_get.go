@@ -18,7 +18,7 @@ func eventGet(c *cli.Context) error {
 	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"event get requires one parameter-- an event ID",
+			"event get requires one argument-- an event ID",
 		)
 	}
 	id := c.Args()[0]

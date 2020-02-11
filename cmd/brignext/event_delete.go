@@ -9,25 +9,36 @@ import (
 )
 
 func eventDelete(c *cli.Context) error {
+	// Command-specific flags
+	force := c.Bool(flagForce)
+	projectID := c.String(flagProject)
+
 	// Args
-	if len(c.Args()) != 1 {
+	var eventID string
+	if projectID == "" {
+		if len(c.Args()) != 1 {
+			return errors.New(
+				"event delete requires one argument-- an event ID",
+			)
+		}
+		eventID = c.Args()[0]
+	} else if len(c.Args()) != 0 {
 		return errors.New(
-			"event delete requires one parameter-- an event ID",
+			"event delete requires no arguments when the --project flag is used",
 		)
 	}
-	id := c.Args()[0]
 
 	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
 
-	// Command-specific flags
-	force := c.Bool(flagForce)
+	var path string
+	if eventID != "" {
+		path = fmt.Sprintf("v2/events/%s", eventID)
+	} else {
+		path = fmt.Sprintf("v2/projects/%s/events", projectID)
+	}
 
-	req, err := buildRequest(
-		http.MethodDelete,
-		fmt.Sprintf("v2/events/%s", id),
-		nil,
-	)
+	req, err := buildRequest(http.MethodDelete, path, nil)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
 	}
@@ -47,7 +58,11 @@ func eventDelete(c *cli.Context) error {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	fmt.Printf("Event %s deleted.\n", id)
+	if eventID != "" {
+		fmt.Printf("Event %q deleted.\n", eventID)
+	} else {
+		fmt.Printf("All events for project %q deleted.\n", projectID)
+	}
 
 	return nil
 }

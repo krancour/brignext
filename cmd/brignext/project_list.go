@@ -15,6 +15,11 @@ import (
 )
 
 func projectList(c *cli.Context) error {
+	// Args
+	if len(c.Args()) != 0 {
+		return errors.New("project list requires no arguments")
+	}
+
 	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
 

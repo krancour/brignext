@@ -17,6 +17,11 @@ import (
 )
 
 func serviceAccountList(c *cli.Context) error {
+	// Args
+	if len(c.Args()) != 0 {
+		return errors.New("service-account list requires no arguments")
+	}
+
 	// Global flags
 	allowInsecure := c.GlobalBool(flagInsecure)
 

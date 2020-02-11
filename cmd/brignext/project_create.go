@@ -15,7 +15,7 @@ func projectCreate(c *cli.Context) error {
 	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"project create requires one parameter-- a path to a file containing a " +
+			"project create requires one argument-- a path to a file containing a " +
 				"project definition",
 		)
 	}

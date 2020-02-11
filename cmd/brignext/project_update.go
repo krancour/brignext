@@ -15,7 +15,7 @@ func projectUpdate(c *cli.Context) error {
 	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"project update requires one parameter-- a path to a file containing a " +
+			"project update requires one argument-- a path to a file containing a " +
 				"project definition",
 		)
 	}

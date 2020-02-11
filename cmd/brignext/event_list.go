@@ -15,6 +15,13 @@ import (
 )
 
 func eventList(c *cli.Context) error {
+	// Args
+	if len(c.Args()) != 0 {
+		return errors.New(
+			"event list requires no arguments",
+		)
+	}
+
 	// GobalFlags
 	allowInsecure := c.GlobalBool(flagInsecure)
 
