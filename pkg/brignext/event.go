@@ -2,19 +2,12 @@ package brignext
 
 import "time"
 
-type EventStatus string
-
-const (
-	EventStatusCreated EventStatus = "CREATED"
-)
-
 type Event struct {
-	ID        string      `json:"id,omitempty" bson:"_id,omitempty"`
-	ProjectID string      `json:"projectID,omitempty" bson:"projectID,omitempty"`
-	Provider  string      `json:"provider,omitempty" bson:"provider,omitempty"`
-	Type      string      `json:"type,omitempty" bson:"type,omitempty"`
-	Status    EventStatus `json:"status,omitempty" bson:"status,omitempty"`
-	Created   *time.Time  `json:"created,omitempty" bson:"created,omitempty"`
+	ID        string     `json:"id,omitempty" bson:"_id,omitempty"`
+	ProjectID string     `json:"projectID,omitempty" bson:"projectID,omitempty"`
+	Provider  string     `json:"provider,omitempty" bson:"provider,omitempty"`
+	Type      string     `json:"type,omitempty" bson:"type,omitempty"`
+	Created   *time.Time `json:"created,omitempty" bson:"created,omitempty"`
 	// ---------------------------------------------------------------------------
 	// ShortTitle  string    `json:"shortTitle,omitempty" bson:"shortTitle,omitempty"`
 	// LongTitle   string    `json:"longTitle,omitempty" bson:"longTitle,omitempty"`

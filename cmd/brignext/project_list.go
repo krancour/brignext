@@ -68,7 +68,7 @@ func projectList(c *cli.Context) error {
 		table := uitable.New()
 		table.AddRow("ID", "DESCRIPTION", "AGE")
 		for _, project := range projs {
-			age := "???"
+			var age string
 			if project.Created != nil {
 				age = duration.ShortHumanDuration(time.Since(*project.Created))
 			}

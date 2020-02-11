@@ -73,7 +73,7 @@ func projectGet(c *cli.Context) error {
 	case "table":
 		table := uitable.New()
 		table.AddRow("ID", "DESCRIPTION", "AGE")
-		age := "???"
+		var age string
 		if project.Created != nil {
 			age = duration.ShortHumanDuration(time.Since(*project.Created))
 		}

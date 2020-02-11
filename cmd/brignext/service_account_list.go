@@ -70,7 +70,7 @@ func serviceAccountList(c *cli.Context) error {
 		table := uitable.New()
 		table.AddRow("ID", "DESCRIPTION", "AGE", "LOCKED?")
 		for _, serviceAccount := range serviceAccounts {
-			age := "???"
+			var age string
 			if serviceAccount.Created != nil {
 				age = duration.ShortHumanDuration(time.Since(*serviceAccount.Created))
 			}

@@ -10,10 +10,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *server) eventDelete(w http.ResponseWriter, r *http.Request) {
+func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
-
-	id := mux.Vars(r)["id"]
 
 	deletePendingStr := r.URL.Query().Get("pending")
 	var deletePending bool
@@ -27,15 +25,16 @@ func (s *server) eventDelete(w http.ResponseWriter, r *http.Request) {
 		deleteRunning, _ = strconv.ParseBool(deleteRunningStr) // nolint: errcheck
 	}
 
-	if err := s.projectStore.DeleteEvent(
-		id,
-		storage.DeleteEventOptions{
+	if err := s.projectStore.DeleteEvents(
+		storage.DeleteEventsCriteria{
+			EventID:                        mux.Vars(r)["id"],
+			ProjecID:                       mux.Vars(r)["projectID"],
 			DeleteEventsWithPendingWorkers: deletePending,
 			DeleteEventsWithRunningWorkers: deleteRunning,
 		},
 	); err != nil {
 		log.Println(
-			errors.Wrapf(err, "error deleting event %q", id),
+			errors.Wrap(err, "error deleting events"),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

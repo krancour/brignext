@@ -121,7 +121,7 @@ func NewServer(
 	// Delete project's events
 	s.router.HandleFunc(
 		"/v2/projects/{projectID}/events",
-		tokenAuthFilter.Decorate(s.eventDeleteAll),
+		tokenAuthFilter.Decorate(s.eventsDelete),
 	).Methods(http.MethodDelete)
 
 	// Create event
@@ -152,7 +152,7 @@ func NewServer(
 	// Delete event
 	s.router.HandleFunc(
 		"/v2/events/{id}",
-		tokenAuthFilter.Decorate(s.eventDelete),
+		tokenAuthFilter.Decorate(s.eventsDelete),
 	).Methods(http.MethodDelete)
 
 	// List users

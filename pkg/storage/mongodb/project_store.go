@@ -16,7 +16,6 @@ import (
 type projectStore struct {
 	projectsCollection *mongo.Collection
 	eventsCollection   *mongo.Collection
-	// jobsCollection     *mongo.Collection
 }
 
 func NewProjectStore(database *mongo.Database) (storage.ProjectStore, error) {
@@ -35,22 +34,9 @@ func NewProjectStore(database *mongo.Database) (storage.ProjectStore, error) {
 		return nil, errors.Wrap(err, "error adding indexes to events collection")
 	}
 
-	// jobsCollection := database.Collection("jobs")
-	// if _, err := jobsCollection.Indexes().CreateOne(
-	// 	ctx,
-	// 	mongo.IndexModel{
-	// 		Keys: bson.M{
-	// 			"eventID": 1,
-	// 		},
-	// 	},
-	// ); err != nil {
-	// 	return nil, errors.Wrap(err, "error adding indexes to jobs collection")
-	// }
-
 	return &projectStore{
 		projectsCollection: database.Collection("projects"),
 		eventsCollection:   eventsCollection,
-		// jobsCollection:     jobsCollection,
 	}, nil
 }
 
@@ -144,7 +130,6 @@ func (p *projectStore) CreateEvent(event brignext.Event) (string, error) {
 	event.ID = uuid.NewV4().String()
 	now := time.Now()
 	event.Created = &now
-	event.Status = brignext.EventStatusCreated
 
 	if _, err := p.eventsCollection.InsertOne(ctx, event); err != nil {
 		return "", errors.Wrapf(err, "error creating event %q", event.ID)
@@ -152,13 +137,20 @@ func (p *projectStore) CreateEvent(event brignext.Event) (string, error) {
 	return event.ID, nil
 }
 
-func (p *projectStore) GetEvents() ([]brignext.Event, error) {
+func (p *projectStore) GetEvents(
+	criteria storage.GetEventsCriteria,
+) ([]brignext.Event, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
+	bsonCriteria := bson.M{}
+	if criteria.ProjecID != "" {
+		bsonCriteria["projectID"] = criteria.ProjecID
+	}
+
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"created": -1})
-	cur, err := p.eventsCollection.Find(ctx, bson.M{}, findOptions)
+	cur, err := p.eventsCollection.Find(ctx, bsonCriteria, findOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "error retrieving events")
 	}
@@ -166,39 +158,6 @@ func (p *projectStore) GetEvents() ([]brignext.Event, error) {
 	events := []brignext.Event{}
 	if err := cur.All(ctx, &events); err != nil {
 		return nil, errors.Wrap(err, "error decoding events")
-	}
-
-	return events, nil
-}
-
-func (p *projectStore) GetEventsByProjectID(
-	projectID string,
-) ([]brignext.Event, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	findOptions := options.Find()
-	findOptions.SetSort(bson.M{"created": -1})
-	cur, err := p.eventsCollection.Find(
-		ctx,
-		bson.M{"projectID": projectID},
-		findOptions,
-	)
-	if err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"error retrieving events for project %q",
-			projectID,
-		)
-	}
-
-	events := []brignext.Event{}
-	if err := cur.All(ctx, &events); err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"error decoding events for project %q",
-			projectID,
-		)
 	}
 
 	return events, nil
@@ -228,42 +187,24 @@ func (p *projectStore) GetEvent(id string) (brignext.Event, bool, error) {
 	return event, true, nil
 }
 
-func (p *projectStore) DeleteEventsByProjectID(
-	projectID string,
-	options storage.DeleteEventOptions,
+func (p *projectStore) DeleteEvents(
+	criteria storage.DeleteEventsCriteria,
 ) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	criteria := bson.M{"projectID": projectID}
-	if !options.DeleteEventsWithRunningWorkers {
-		// TODO: Amend the criteria appropriately
+	bsonCriteria := bson.M{}
+	if criteria.EventID != "" {
+		bsonCriteria["_id"] = criteria.EventID
+	} else if criteria.ProjecID != "" {
+		bsonCriteria["projectID"] = criteria.ProjecID
+	} else {
+		return errors.New("cannot delete events with no criteria specified")
 	}
-	if _, err := p.eventsCollection.DeleteMany(ctx, criteria); err != nil {
-		return errors.Wrapf(
-			err,
-			"error deleting events for project %q",
-			projectID,
-		)
-	}
+	// TODO: Amend the criteria appropriately based on pending and running flags
 
-	return nil
-}
-
-func (p *projectStore) DeleteEvent(
-	id string,
-	options storage.DeleteEventOptions,
-) error {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	criteria := bson.M{"_id": id}
-	if !options.DeleteEventsWithRunningWorkers {
-		// TODO: Amend the criteria appropriately
-	}
-	if _, err :=
-		p.eventsCollection.DeleteOne(ctx, criteria); err != nil {
-		return errors.Wrapf(err, "error deleting event %q", id)
+	if _, err := p.eventsCollection.DeleteMany(ctx, bsonCriteria); err != nil {
+		return errors.Wrap(err, "error deleting events")
 	}
 
 	return nil

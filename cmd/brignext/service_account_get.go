@@ -74,7 +74,7 @@ func serviceAccountGet(c *cli.Context) error {
 	case "table":
 		table := uitable.New()
 		table.AddRow("ID", "DESCRIPTION", "AGE", "LOCKED?")
-		age := "???"
+		var age string
 		if serviceAccount.Created != nil {
 			age = duration.ShortHumanDuration(time.Since(*serviceAccount.Created))
 		}

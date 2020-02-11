@@ -74,9 +74,9 @@ func eventList(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "PROJECT", "PROVIDER", "TYPE", "AGE", "STATUS")
+		table.AddRow("ID", "PROJECT", "PROVIDER", "TYPE", "AGE")
 		for _, event := range events {
-			age := "???"
+			var age string
 			if event.Created != nil {
 				age = duration.ShortHumanDuration(time.Since(*event.Created))
 			}
@@ -86,7 +86,6 @@ func eventList(c *cli.Context) error {
 				event.Provider,
 				event.Type,
 				age,
-				event.Status,
 			)
 		}
 		fmt.Println(table)

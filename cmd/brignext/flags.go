@@ -15,7 +15,7 @@ const (
 	flagPassword     = "password"
 	flagsPassword    = "password, p"
 	flagPending      = "pending"
-	flagsPending     = "pending, p"
+	flagsPending     = "pending"
 	flagProject      = "project"
 	flagsProject     = "project, p"
 	flagProvider     = "provider"
