@@ -144,8 +144,8 @@ func (p *projectStore) GetEvents(
 	defer cancel()
 
 	bsonCriteria := bson.M{}
-	if criteria.ProjecID != "" {
-		bsonCriteria["projectID"] = criteria.ProjecID
+	if criteria.ProjectID != "" {
+		bsonCriteria["projectID"] = criteria.ProjectID
 	}
 
 	findOptions := options.Find()
@@ -194,12 +194,17 @@ func (p *projectStore) DeleteEvents(
 	defer cancel()
 
 	bsonCriteria := bson.M{}
+	if (criteria.EventID == "" && criteria.ProjectID == "") ||
+		(criteria.EventID != "" && criteria.ProjectID != "") {
+		return errors.New(
+			"invalid criteria: event ID OR project ID must be specified, but " +
+				"not both",
+		)
+	}
 	if criteria.EventID != "" {
 		bsonCriteria["_id"] = criteria.EventID
-	} else if criteria.ProjecID != "" {
-		bsonCriteria["projectID"] = criteria.ProjecID
 	} else {
-		return errors.New("cannot delete events with no criteria specified")
+		bsonCriteria["projectID"] = criteria.ProjectID
 	}
 	// TODO: Amend the criteria appropriately based on pending and running flags
 

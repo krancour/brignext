@@ -10,16 +10,30 @@ type UserStore interface {
 	UnlockUser(id string) error
 
 	CreateSession(session brignext.Session) (string, string, string, error)
-	GetSessionByOAuth2State(oauth2State string) (brignext.Session, bool, error)
-	GetSessionByToken(token string) (brignext.Session, bool, error)
+	GetSession(criteria GetSessionCriteria) (brignext.Session, bool, error)
 	AuthenticateSession(sessionID, userID string) error
-	DeleteSession(id string) error
-	DeleteSessionsByUserID(userID string) error
+	DeleteSessions(criteria DeleteSessionsCriteria) error
 
 	CreateServiceAccount(serviceAccount brignext.ServiceAccount) (string, error)
 	GetServiceAccounts() ([]brignext.ServiceAccount, error)
-	GetServiceAccount(id string) (brignext.ServiceAccount, bool, error)
-	GetServiceAccountByToken(token string) (brignext.ServiceAccount, bool, error)
+	GetServiceAccount(
+		criteria GetServiceAccountCriteria,
+	) (brignext.ServiceAccount, bool, error)
 	LockServiceAccount(id string) error
 	UnlockServiceAccount(id string) (string, error)
+}
+
+type GetSessionCriteria struct {
+	OAuth2State string
+	Token       string
+}
+
+type DeleteSessionsCriteria struct {
+	SessionID string
+	UserID    string
+}
+
+type GetServiceAccountCriteria struct {
+	ServiceAccountID string
+	Token            string
 }

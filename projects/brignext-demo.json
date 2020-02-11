@@ -1,5 +1,5 @@
 {
-  "id": "aaa",
+  "id": "brignext-demo",
   "description": "A project that demonstrates brignext",
   "workerConfigs": {
     "myWorker": {

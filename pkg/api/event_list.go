@@ -13,7 +13,7 @@ func (s *server) eventList(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
 	events, err := s.projectStore.GetEvents(storage.GetEventsCriteria{
-		ProjecID: r.URL.Query().Get("projectID"),
+		ProjectID: r.URL.Query().Get("projectID"),
 	})
 	if err != nil {
 		log.Println(errors.Wrap(err, "error retrieving events"))

@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/krancour/brignext/pkg/brignext"
+
 	"github.com/xeipuuv/gojsonschema"
 
 	"github.com/coreos/go-oidc"
@@ -61,7 +63,13 @@ func NewServer(
 
 	// Most requests are authenticated with a bearer token
 	tokenAuthFilter := auth.NewTokenAuthFilter(
-		userStore.GetSessionByToken,
+		func(token string) (brignext.Session, bool, error) {
+			return userStore.GetSession(
+				storage.GetSessionCriteria{
+					Token: token,
+				},
+			)
+		},
 		userStore.GetUser,
 		apiServerConfig.RootUserEnabled(),
 	)

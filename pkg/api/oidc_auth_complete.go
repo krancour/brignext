@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/krancour/brignext/pkg/brignext"
+	"github.com/krancour/brignext/pkg/storage"
 
 	"github.com/pkg/errors"
 )
@@ -24,7 +25,11 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, ok, err := s.userStore.GetSessionByOAuth2State(oauth2State)
+	session, ok, err := s.userStore.GetSession(
+		storage.GetSessionCriteria{
+			OAuth2State: oauth2State,
+		},
+	)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error retrieving session by OAuth2 state [REDACTED]"),

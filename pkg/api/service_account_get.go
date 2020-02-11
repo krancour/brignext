@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
 )
 
@@ -14,7 +15,11 @@ func (s *server) serviceAccountGet(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	serviceAccount, ok, err := s.userStore.GetServiceAccount(id)
+	serviceAccount, ok, err := s.userStore.GetServiceAccount(
+		storage.GetServiceAccountCriteria{
+			ServiceAccountID: id,
+		},
+	)
 	if err != nil {
 		log.Println(
 			errors.Wrapf(err, "error retrieving service account %q", id),

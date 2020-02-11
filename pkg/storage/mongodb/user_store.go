@@ -149,7 +149,11 @@ func (u *userStore) LockUser(id string) error {
 		return errors.Wrapf(err, "error locking user %q", id)
 	}
 
-	if err := u.DeleteSessionsByUserID(id); err != nil {
+	if err := u.DeleteSessions(
+		storage.DeleteSessionsCriteria{
+			UserID: id,
+		},
+	); err != nil {
 		return errors.Wrapf(err, "error deleting sessions for user %q", id)
 	}
 
@@ -207,62 +211,37 @@ func (u *userStore) CreateSession(session brignext.Session) (string, string, str
 	return session.ID, oauth2State, token, nil
 }
 
-func (u *userStore) GetSessionByOAuth2State(
-	oauth2State string,
+func (u *userStore) GetSession(
+	criteria storage.GetSessionCriteria,
 ) (brignext.Session, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	session := brignext.Session{}
 
-	result := u.sessionsCollection.FindOne(
-		ctx,
-		bson.M{"hashedOAuth2State": crypto.ShortSHA("", oauth2State)},
-	)
+	bsonCriteria := bson.M{}
+	if (criteria.OAuth2State == "" && criteria.Token == "") ||
+		(criteria.OAuth2State != "" && criteria.Token != "") {
+		return session, false, errors.New(
+			"invalid criteria: oauth2 state OR token must be specified, but not both",
+		)
+	}
+	if criteria.OAuth2State != "" {
+		bsonCriteria["hashedOAuth2State"] =
+			crypto.ShortSHA("", criteria.OAuth2State)
+	} else {
+		bsonCriteria["hashedToken"] = crypto.ShortSHA("", criteria.Token)
+	}
+
+	result := u.sessionsCollection.FindOne(ctx, bsonCriteria)
 	if result.Err() == mongo.ErrNoDocuments {
 		return session, false, nil
 	}
 	if result.Err() != nil {
-		return session, false, errors.Wrap(
-			result.Err(),
-			"error retrieving session with OAuth2 state [REDACTED]",
-		)
+		return session, false, errors.Wrap(result.Err(), "error retrieving session")
 	}
 	if err := result.Decode(&session); err != nil {
-		return session, false, errors.Wrap(
-			err,
-			"error decoding session with OAuth2 state [REDACTED]",
-		)
-	}
-	return session, true, nil
-}
-
-func (u *userStore) GetSessionByToken(
-	token string,
-) (brignext.Session, bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	session := brignext.Session{}
-
-	result := u.sessionsCollection.FindOne(
-		ctx,
-		bson.M{"hashedToken": crypto.ShortSHA("", token)},
-	)
-	if result.Err() == mongo.ErrNoDocuments {
-		return session, false, nil
-	}
-	if result.Err() != nil {
-		return session, false, errors.Wrap(
-			result.Err(),
-			"error retrieving session with token [REDACTED]",
-		)
-	}
-	if err := result.Decode(&session); err != nil {
-		return session, false, errors.Wrap(
-			err,
-			"error decoding session with token [REDACTED]",
-		)
+		return session, false, errors.Wrap(err, "error decoding session")
 	}
 	return session, true, nil
 }
@@ -290,26 +269,27 @@ func (u *userStore) AuthenticateSession(sessionID, userID string) error {
 	return nil
 }
 
-func (u *userStore) DeleteSession(id string) error {
+func (u *userStore) DeleteSessions(
+	criteria storage.DeleteSessionsCriteria,
+) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	if _, err :=
-		u.sessionsCollection.DeleteOne(ctx, bson.M{"_id": id}); err != nil {
-		return errors.Wrap(err, "error deleting session")
+	bsonCriteria := bson.M{}
+	if (criteria.SessionID == "" && criteria.UserID == "") ||
+		(criteria.SessionID != "" && criteria.UserID != "") {
+		return errors.New(
+			"invalid criteria: session ID OR user ID must be specified, but not both",
+		)
 	}
-	return nil
-}
+	if criteria.SessionID != "" {
+		bsonCriteria["_id"] = criteria.SessionID
+	} else {
+		bsonCriteria["userID"] = criteria.UserID
+	}
 
-func (u *userStore) DeleteSessionsByUserID(userID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	if _, err := u.sessionsCollection.DeleteMany(
-		ctx,
-		bson.M{"userID": userID},
-	); err != nil {
-		return errors.Wrapf(err, "error deleting sessions for user %q", userID)
+	if _, err := u.sessionsCollection.DeleteMany(ctx, bsonCriteria); err != nil {
+		return errors.Wrap(err, "error deleting sessions")
 	}
 	return nil
 }
@@ -366,60 +346,41 @@ func (u *userStore) GetServiceAccounts() ([]brignext.ServiceAccount, error) {
 }
 
 func (u *userStore) GetServiceAccount(
-	id string,
+	criteria storage.GetServiceAccountCriteria,
 ) (brignext.ServiceAccount, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	serviceAccount := brignext.ServiceAccount{}
 
-	result := u.serviceAccountsCollection.FindOne(ctx, bson.M{"_id": id})
-	if result.Err() == mongo.ErrNoDocuments {
-		return serviceAccount, false, nil
-	}
-	if result.Err() != nil {
-		return serviceAccount, false, errors.Wrapf(
-			result.Err(),
-			"error retrieving service account %q",
-			id,
+	bsonCriteria := bson.M{}
+	if (criteria.ServiceAccountID == "" && criteria.Token == "") ||
+		(criteria.ServiceAccountID != "" && criteria.Token != "") {
+		return serviceAccount, false, errors.New(
+			"invalid criteria: service account ID OR token must be specified, but " +
+				"not both",
 		)
 	}
-	if err := result.Decode(&serviceAccount); err != nil {
-		return serviceAccount, false, errors.Wrapf(
-			err,
-			"error decoding service account %q",
-			id,
-		)
+	if criteria.ServiceAccountID != "" {
+		bsonCriteria["_id"] = criteria.ServiceAccountID
+	} else {
+		bsonCriteria["hashedToken"] = crypto.ShortSHA("", criteria.Token)
 	}
 
-	return serviceAccount, true, nil
-}
-
-func (u *userStore) GetServiceAccountByToken(
-	token string,
-) (brignext.ServiceAccount, bool, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
-
-	serviceAccount := brignext.ServiceAccount{}
-
-	result := u.serviceAccountsCollection.FindOne(
-		ctx,
-		bson.M{"hashedToken": crypto.ShortSHA("", token)},
-	)
+	result := u.serviceAccountsCollection.FindOne(ctx, bsonCriteria)
 	if result.Err() == mongo.ErrNoDocuments {
 		return serviceAccount, false, nil
 	}
 	if result.Err() != nil {
 		return serviceAccount, false, errors.Wrap(
 			result.Err(),
-			"error retrieving service account with token [REDACTED]",
+			"error retrieving service account",
 		)
 	}
 	if err := result.Decode(&serviceAccount); err != nil {
 		return serviceAccount, false, errors.Wrap(
 			err,
-			"error decoding service account with token [REDACTED]",
+			"error decoding service account",
 		)
 	}
 

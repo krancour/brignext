@@ -24,30 +24,30 @@ type ProjectStore interface {
 }
 
 type GetEventsCriteria struct {
-	ProjecID string
+	ProjectID string
 }
 
 type DeleteEventsCriteria struct {
-	ProjecID                       string
+	ProjectID                      string
 	EventID                        string
 	DeleteEventsWithPendingWorkers bool
 	DeleteEventsWithRunningWorkers bool
 }
 
 // type GetWorkersCriteria struct {
-// 	ProjecID string
+// 	ProjectID string
 // 	EventID  string
 // }
 
 // type CancelWorkersCriteria struct {
-// 	ProjecID           string
+// 	ProjectID           string
 // 	EventID            string
 // 	WorkerID           string
 // 	StopRunningWorkers bool
 // }
 
 // type DeleteWorkersCriteria struct {
-// 	ProjecID             string
+// 	ProjectID             string
 // 	EventID              string
 // 	WorkerID             string
 // 	DeletePendingWorkers bool

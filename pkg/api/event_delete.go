@@ -28,7 +28,7 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 	if err := s.projectStore.DeleteEvents(
 		storage.DeleteEventsCriteria{
 			EventID:                        mux.Vars(r)["id"],
-			ProjecID:                       mux.Vars(r)["projectID"],
+			ProjectID:                      mux.Vars(r)["projectID"],
 			DeleteEventsWithPendingWorkers: deletePending,
 			DeleteEventsWithRunningWorkers: deleteRunning,
 		},
