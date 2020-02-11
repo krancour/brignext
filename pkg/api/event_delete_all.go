@@ -14,10 +14,17 @@ func (s *server) eventDeleteAll(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
 	projectID := mux.Vars(r)["projectID"]
-	forceDeleteStr := r.URL.Query().Get("force")
-	var forceDelete bool
-	if forceDeleteStr != "" {
-		forceDelete, _ = strconv.ParseBool(forceDeleteStr) // nolint: errcheck
+
+	deletePendingStr := r.URL.Query().Get("pending")
+	var deletePending bool
+	if deletePendingStr != "" {
+		deletePending, _ = strconv.ParseBool(deletePendingStr) // nolint: errcheck
+	}
+
+	deleteRunningStr := r.URL.Query().Get("running")
+	var deleteRunning bool
+	if deleteRunningStr != "" {
+		deleteRunning, _ = strconv.ParseBool(deleteRunningStr) // nolint: errcheck
 	}
 
 	_, ok, err := s.projectStore.GetProject(projectID)
@@ -36,7 +43,8 @@ func (s *server) eventDeleteAll(w http.ResponseWriter, r *http.Request) {
 	if err := s.projectStore.DeleteEventsByProjectID(
 		projectID,
 		storage.DeleteEventOptions{
-			DeleteEventsWithRunningWorkers: forceDelete,
+			DeleteEventsWithPendingWorkers: deletePending,
+			DeleteEventsWithRunningWorkers: deleteRunning,
 		},
 	); err != nil {
 		log.Println(

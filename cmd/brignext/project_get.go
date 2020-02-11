@@ -85,14 +85,14 @@ func projectGet(c *cli.Context) error {
 		fmt.Println(table)
 
 	case "json":
-		projectJSON, err := json.MarshalIndent(project, "", "  ")
+		prettyJSON, err := json.MarshalIndent(project, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,
 				"error formatting output from get project operation",
 			)
 		}
-		fmt.Println(string(projectJSON))
+		fmt.Println(string(prettyJSON))
 	}
 
 	return nil

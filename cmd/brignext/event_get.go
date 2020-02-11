@@ -87,14 +87,14 @@ func eventGet(c *cli.Context) error {
 		fmt.Println(table)
 
 	case "json":
-		eventJSON, err := json.MarshalIndent(event, "", "  ")
+		prettyJSON, err := json.MarshalIndent(event, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,
 				"error formatting output from get event operation",
 			)
 		}
-		fmt.Println(string(eventJSON))
+		fmt.Println(string(prettyJSON))
 	}
 
 	return nil

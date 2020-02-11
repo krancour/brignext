@@ -14,17 +14,21 @@ import (
 	"k8s.io/apimachinery/pkg/util/duration"
 )
 
-func projectList(c *cli.Context) error {
+func workerList(c *cli.Context) error {
 	// Args
 	if len(c.Args()) != 0 {
-		return errors.New("project list requires no arguments")
+		return errors.New(
+			"worker list requires no arguments",
+		)
 	}
 
-	// Global flags
+	// GobalFlags
 	allowInsecure := c.GlobalBool(flagInsecure)
 
 	// Command-specific flags
+	eventID := c.String(flagEvent)
 	output := c.String(flagOutput)
+	projectID := c.String(flagProject)
 
 	switch output {
 	case "table":
@@ -33,10 +37,18 @@ func projectList(c *cli.Context) error {
 		return errors.Errorf("unknown output format %q", output)
 	}
 
-	req, err := buildRequest(http.MethodGet, "v2/projects", nil)
+	req, err := buildRequest(http.MethodGet, "v2/workers", nil)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
 	}
+	q := req.URL.Query()
+	if eventID != "" {
+		q.Set("eventID", eventID)
+	}
+	if projectID != "" {
+		q.Set("projectID", projectID)
+	}
+	req.URL.RawQuery = q.Encode()
 
 	resp, err := getHTTPClient(allowInsecure).Do(req)
 	if err != nil {
@@ -53,39 +65,48 @@ func projectList(c *cli.Context) error {
 		return errors.Wrap(err, "error reading response body")
 	}
 
-	projs := []*brignext.Project{}
-	if err := json.Unmarshal(respBodyBytes, &projs); err != nil {
+	workers := []brignext.Worker{}
+	if err := json.Unmarshal(respBodyBytes, &workers); err != nil {
 		return errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	if len(projs) == 0 {
-		fmt.Println("No projects found.")
+	if len(workers) == 0 {
+		fmt.Println("No workers found.")
 		return nil
 	}
 
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "DESCRIPTION", "AGE")
-		for _, project := range projs {
-			age := "???"
-			if project.Created != nil {
-				age = duration.ShortHumanDuration(time.Since(*project.Created))
+		table.AddRow("ID", "PROJECT", "EVENT", "PROVIDER", "TYPE", "CREATED", "STARTED", "ENDED", "STATUS") // nolint: lll
+		for _, worker := range workers {
+			var started, ended string
+			if worker.Started != nil {
+				started = duration.ShortHumanDuration(time.Since(*worker.Started))
+			}
+			if worker.Ended != nil {
+				ended = duration.ShortHumanDuration(time.Since(*worker.Ended))
 			}
 			table.AddRow(
-				project.ID,
-				project.Description,
-				age,
+				worker.ID,
+				worker.ProjectID,
+				worker.EventID,
+				worker.EventProvider,
+				worker.EventType,
+				duration.ShortHumanDuration(time.Since(worker.Created)),
+				started,
+				ended,
+				worker.Status,
 			)
 		}
 		fmt.Println(table)
 
 	case "json":
-		prettyJSON, err := json.MarshalIndent(projs, "", "  ")
+		prettyJSON, err := json.MarshalIndent(workers, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,
-				"error formatting output from get projects operation",
+				"error formatting output from get workers operation",
 			)
 		}
 		fmt.Println(string(prettyJSON))

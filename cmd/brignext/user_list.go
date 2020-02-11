@@ -76,14 +76,14 @@ func userList(c *cli.Context) error {
 		fmt.Println(table)
 
 	case "json":
-		responseJSON, err := json.MarshalIndent(users, "", "  ")
+		prettyJSON, err := json.MarshalIndent(users, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,
 				"error formatting output from get users operation",
 			)
 		}
-		fmt.Println(string(responseJSON))
+		fmt.Println(string(prettyJSON))
 	}
 
 	return nil

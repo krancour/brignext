@@ -92,14 +92,14 @@ func eventList(c *cli.Context) error {
 		fmt.Println(table)
 
 	case "json":
-		responseJSON, err := json.MarshalIndent(events, "", "  ")
+		prettyJSON, err := json.MarshalIndent(events, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,
 				"error formatting output from get events operation",
 			)
 		}
-		fmt.Println(string(responseJSON))
+		fmt.Println(string(prettyJSON))
 	}
 
 	return nil

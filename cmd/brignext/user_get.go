@@ -79,14 +79,14 @@ func userGet(c *cli.Context) error {
 		fmt.Println(table)
 
 	case "json":
-		projectJSON, err := json.MarshalIndent(user, "", "  ")
+		prettyJSON, err := json.MarshalIndent(user, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,
-				"error formatting output from get project operation",
+				"error formatting output from get user operation",
 			)
 		}
-		fmt.Println(string(projectJSON))
+		fmt.Println(string(prettyJSON))
 	}
 
 	return nil

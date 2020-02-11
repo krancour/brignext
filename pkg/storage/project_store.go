@@ -26,5 +26,6 @@ type ProjectStore interface {
 }
 
 type DeleteEventOptions struct {
+	DeleteEventsWithPendingWorkers bool
 	DeleteEventsWithRunningWorkers bool
 }

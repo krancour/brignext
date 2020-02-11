@@ -84,14 +84,14 @@ func serviceAccountList(c *cli.Context) error {
 		fmt.Println(table)
 
 	case "json":
-		responseJSON, err := json.MarshalIndent(serviceAccounts, "", "  ")
+		prettyJSON, err := json.MarshalIndent(serviceAccounts, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,
 				"error formatting output from get service accounts operation",
 			)
 		}
-		fmt.Println(string(responseJSON))
+		fmt.Println(string(prettyJSON))
 	}
 
 	return nil

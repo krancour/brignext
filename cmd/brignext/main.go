@@ -42,17 +42,22 @@ func main() {
 				},
 				{
 					Name:      "delete",
-					Usage:     "Delete an event",
+					Usage:     "Delete event(s)",
 					ArgsUsage: "[EVENT_ID]",
 					Flags: []cli.Flag{
 						cli.BoolFlag{
-							Name: flagsForce,
-							Usage: "If set, will also delete events with running workers. " +
+							Name: flagsPending,
+							Usage: "If set, will delete events with pending workers. " +
 								"Default: false",
 						},
 						cli.StringFlag{
 							Name:  flagsProject,
 							Usage: "Delete all events for the specified project",
+						},
+						cli.BoolFlag{
+							Name: flagsRunning,
+							Usage: "If set, will delete events with running workers. " +
+								"Default: false",
 						},
 					},
 					Action: eventDelete,
@@ -268,6 +273,95 @@ func main() {
 					Usage:     "Restore a user's access to Brigade",
 					ArgsUsage: "USER_ID",
 					Action:    userUnlock,
+				},
+			},
+		},
+		{
+			Name:  "worker",
+			Usage: "Manage workers",
+			Subcommands: []cli.Command{
+				{
+					Name: "cancel",
+					Usage: "Cancel pending or running worker(s) without deleting " +
+						"them",
+					ArgsUsage: "[WORKER_ID]",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  flagsEvent,
+							Usage: "Cancel all pending workers for the specified event",
+						},
+						cli.StringFlag{
+							Name:  flagsProject,
+							Usage: "Cancel all pending workers for the specified project",
+						},
+						cli.BoolFlag{
+							Name: flagsRunning,
+							Usage: "If set, will also cancel (stop) running workers. " +
+								"Default: false",
+						},
+					},
+					Action: workerCancel,
+				},
+				{
+					Name:      "delete",
+					Usage:     "Delete worker(s)",
+					ArgsUsage: "[WORKER_ID]",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  flagsEvent,
+							Usage: "Delete all workers for the specified event",
+						},
+						cli.BoolFlag{
+							Name: flagsPending,
+							Usage: "If set, will delete pending workers. " +
+								"Default: false",
+						},
+						cli.StringFlag{
+							Name:  flagsProject,
+							Usage: "Delete all workers for the specified project",
+						},
+						cli.BoolFlag{
+							Name: flagsRunning,
+							Usage: "If set, will stop and delete running workers. " +
+								"Default: false",
+						},
+					},
+					Action: workerDelete,
+				},
+				{
+					Name:      "get",
+					Usage:     "Get a worker",
+					ArgsUsage: "WORKER_ID",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name: flagsOutput,
+							Usage: "Return output in another format. Supported formats: " +
+								"table, json",
+							Value: "table",
+						},
+					},
+					Action: workerGet,
+				},
+				{
+					Name:  "list",
+					Usage: "List workers, optionally filtered by project or event",
+					Flags: []cli.Flag{
+						cli.StringFlag{
+							Name:  flagsEvent,
+							Usage: "Return workers only for the specified event",
+						},
+						cli.StringFlag{
+							Name: flagsOutput,
+							Usage: "Return output in another format. Supported formats: " +
+								"table, json",
+							Value: "table",
+						},
+						cli.StringFlag{
+							Name:  flagsProject,
+							Usage: "Return workers only for the specified project",
+						},
+					},
+					Action: workerList,
 				},
 			},
 		},

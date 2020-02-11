@@ -8,7 +8,6 @@ type Project struct {
 	Description   string                  `json:"description,omitempty" bson:"description,omitempty"`
 	WorkerConfigs map[string]WorkerConfig `json:"workerConfigs,omitempty" bson:"workerConfigs,omitempty"`
 	Created       *time.Time              `json:"created,omitempty" bson:"created,omitempty"`
-	// ---------------------------------------------------------------------------
 	// Repo        Repo   `json:"repo,omitempty" bson:"repo,omitempty"`
 	// DefaultScript     string     `json:"defaultScript,omitempty" bson:"defaultScript,omitempty"`
 	// DefaultScriptName string     `json:"defaultScriptName,omitempty" bson:"defaultScriptName,omitempty"`
@@ -34,12 +33,6 @@ type WorkerConfig struct {
 	Events  []string `json:"events,omitempty" bson:"events,omitempty"`
 	Image   *Image   `json:"image,omitempty" bson:"image,omitempty"`
 	Command string   `json:"command,omitempty" bson:"command,omitempty"`
-}
-
-type Image struct {
-	Repository string `json:"repository,omitempty" bson:"repository,omitempty"`
-	Tag        string `json:"tag,omitempty" bson:"tag,omitempty"`
-	PullPolicy string `json:"pullPolicy,omitempty" bson:"pullPolicy,omitempty"`
 }
 
 // type Repo struct {
