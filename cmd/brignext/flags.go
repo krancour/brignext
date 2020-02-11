@@ -1,6 +1,8 @@
 package main
 
 const (
+	flagAccepted     = "accepted"
+	flagsAccepted    = "accepted, a"
 	flagBrowse       = "browse"
 	flagsBrowse      = "browse, b"
 	flagDescription  = "description"
@@ -14,10 +16,10 @@ const (
 	flagsOutput      = "output, o"
 	flagPassword     = "password"
 	flagsPassword    = "password, p"
-	flagPending      = "pending"
-	flagsPending     = "pending"
+	flagProcessing   = "processing"
+	flagsProcessing  = "processing, p"
 	flagProject      = "project"
-	flagsProject     = "project, p"
+	flagsProject     = "project"
 	flagProvider     = "provider"
 	flagsProvider    = "provider, p"
 	flagRoot         = "root"

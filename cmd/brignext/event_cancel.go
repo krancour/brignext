@@ -8,10 +8,9 @@ import (
 	"github.com/urfave/cli"
 )
 
-func eventDelete(c *cli.Context) error {
+func eventCancel(c *cli.Context) error {
 	// Command-specific flags
-	deleteAccepted := c.Bool(flagAccepted)
-	deleteProcessing := c.Bool(flagProcessing)
+	cancelProcessing := c.Bool(flagProcessing)
 	projectID := c.String(flagProject)
 
 	// Args
@@ -19,13 +18,13 @@ func eventDelete(c *cli.Context) error {
 	if projectID == "" {
 		if len(c.Args()) != 1 {
 			return errors.New(
-				"event delete requires one argument-- an event ID",
+				"event cancel requires one argument-- an event ID",
 			)
 		}
 		eventID = c.Args()[0]
 	} else if len(c.Args()) != 0 {
 		return errors.New(
-			"event delete requires no arguments when the --project flag is used",
+			"event cancel requires no arguments when the --project flag is used",
 		)
 	}
 
@@ -34,21 +33,18 @@ func eventDelete(c *cli.Context) error {
 
 	var path string
 	if eventID != "" {
-		path = fmt.Sprintf("v2/events/%s", eventID)
+		path = fmt.Sprintf("v2/events/%s/stop", eventID)
 	} else {
-		path = fmt.Sprintf("v2/projects/%s/events", projectID)
+		path = fmt.Sprintf("v2/projects/%s/events/stop", projectID)
 	}
 
-	req, err := buildRequest(http.MethodDelete, path, nil)
+	req, err := buildRequest(http.MethodPost, path, nil)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
 	}
 	q := req.URL.Query()
-	if deleteAccepted {
-		q.Set("deleteAccepted", "true")
-	}
-	if deleteProcessing {
-		q.Set("deleteProcessing", "true")
+	if cancelProcessing {
+		q.Set("abortProcessing", "true")
 	}
 	req.URL.RawQuery = q.Encode()
 
@@ -63,9 +59,9 @@ func eventDelete(c *cli.Context) error {
 	}
 
 	if eventID != "" {
-		fmt.Printf("Event %q deleted.\n", eventID)
+		fmt.Printf("Event %q canceled.\n", eventID)
 	} else {
-		fmt.Printf("All events for project %q deleted.\n", projectID)
+		fmt.Printf("All events for project %q canceled.\n", projectID)
 	}
 
 	return nil

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/pkg/brignext"
+	"github.com/krancour/brignext/pkg/logic"
 	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -123,10 +124,21 @@ func (p *projectStore) DeleteProject(id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
+	if err := p.DeleteEvents(
+		storage.DeleteEventsCriteria{
+			ProjectID:              id,
+			DeleteAcceptedEvents:   true,
+			DeleteProcessingEvents: true,
+		},
+	); err != nil {
+		return errors.Wrapf(err, "error deleting all project %q events", id)
+	}
+
 	if _, err :=
 		p.projectsCollection.DeleteOne(ctx, bson.M{"_id": id}); err != nil {
 		return errors.Wrapf(err, "error deleting project %q", id)
 	}
+
 	return nil
 }
 
@@ -135,6 +147,11 @@ func (p *projectStore) CreateEvent(event brignext.Event) (string, error) {
 	defer cancel()
 
 	event.ID = uuid.NewV4().String()
+	if len(event.Workers) == 0 {
+		event.Status = brignext.EventStatusMoot
+	} else {
+		event.Status = brignext.EventStatusAccepted
+	}
 	now := time.Now()
 	event.Created = &now
 
@@ -200,20 +217,35 @@ func (p *projectStore) DeleteEvents(
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	bsonCriteria := bson.M{}
-	if (criteria.EventID == "" && criteria.ProjectID == "") ||
-		(criteria.EventID != "" && criteria.ProjectID != "") {
+	if !logic.ExactlyOne(
+		criteria.EventID != "",
+		criteria.ProjectID != "",
+	) {
 		return errors.New(
-			"invalid criteria: event ID OR project ID must be specified, but " +
-				"not both",
+			"invalid criteria: only ONE of event ID or project ID must be specified",
 		)
 	}
+
+	bsonCriteria := bson.M{}
 	if criteria.EventID != "" {
 		bsonCriteria["_id"] = criteria.EventID
-	} else {
+	} else if criteria.ProjectID != "" {
 		bsonCriteria["projectID"] = criteria.ProjectID
 	}
-	// TODO: Amend the criteria appropriately based on pending and running flags
+	statusesToDelete := []brignext.EventStatus{
+		brignext.EventStatusMoot,
+		brignext.EventStatusCanceled,
+		brignext.EventStatusAborted,
+		brignext.EventStatusSucceeded,
+		brignext.EventStatusFailed,
+	}
+	if criteria.DeleteAcceptedEvents {
+		statusesToDelete = append(statusesToDelete, brignext.EventStatusAccepted)
+	}
+	if criteria.DeleteProcessingEvents {
+		statusesToDelete = append(statusesToDelete, brignext.EventStatusProcessing)
+	}
+	bsonCriteria["status"] = bson.M{"$in": statusesToDelete}
 
 	if _, err := p.eventsCollection.DeleteMany(ctx, bsonCriteria); err != nil {
 		return errors.Wrap(err, "error deleting events")

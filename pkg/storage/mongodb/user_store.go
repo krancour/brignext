@@ -6,6 +6,7 @@ import (
 
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/krancour/brignext/pkg/crypto"
+	"github.com/krancour/brignext/pkg/logic"
 	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -89,6 +90,7 @@ func (u *userStore) CreateUser(user brignext.User) error {
 		u.usersCollection.InsertOne(ctx, user); err != nil {
 		return errors.Wrapf(err, "error creating user %q", user.ID)
 	}
+
 	return nil
 }
 
@@ -131,6 +133,7 @@ func (u *userStore) GetUser(id string) (brignext.User, bool, error) {
 	if err := result.Decode(&user); err != nil {
 		return user, false, errors.Wrapf(err, "error decoding user %q", id)
 	}
+
 	return user, true, nil
 }
 
@@ -174,6 +177,7 @@ func (u *userStore) UnlockUser(id string) error {
 		); err != nil {
 		return errors.Wrapf(err, "error unlocking user %q", id)
 	}
+
 	return nil
 }
 
@@ -220,16 +224,18 @@ func (u *userStore) GetSession(
 	session := brignext.Session{}
 
 	bsonCriteria := bson.M{}
-	if (criteria.OAuth2State == "" && criteria.Token == "") ||
-		(criteria.OAuth2State != "" && criteria.Token != "") {
+	if !logic.ExactlyOne(
+		criteria.OAuth2State != "",
+		criteria.Token != "",
+	) {
 		return session, false, errors.New(
-			"invalid criteria: oauth2 state OR token must be specified, but not both",
+			"invalid criteria: only ONE oauth2 state OR token must be specified",
 		)
 	}
 	if criteria.OAuth2State != "" {
 		bsonCriteria["hashedOAuth2State"] =
 			crypto.ShortSHA("", criteria.OAuth2State)
-	} else {
+	} else if criteria.Token != "" {
 		bsonCriteria["hashedToken"] = crypto.ShortSHA("", criteria.Token)
 	}
 
@@ -243,6 +249,7 @@ func (u *userStore) GetSession(
 	if err := result.Decode(&session); err != nil {
 		return session, false, errors.Wrap(err, "error decoding session")
 	}
+
 	return session, true, nil
 }
 
@@ -266,6 +273,7 @@ func (u *userStore) AuthenticateSession(sessionID, userID string) error {
 		); err != nil {
 		return errors.Wrap(err, "error updating session")
 	}
+
 	return nil
 }
 
@@ -276,21 +284,24 @@ func (u *userStore) DeleteSessions(
 	defer cancel()
 
 	bsonCriteria := bson.M{}
-	if (criteria.SessionID == "" && criteria.UserID == "") ||
-		(criteria.SessionID != "" && criteria.UserID != "") {
+	if !logic.ExactlyOne(
+		criteria.SessionID != "",
+		criteria.UserID != "",
+	) {
 		return errors.New(
-			"invalid criteria: session ID OR user ID must be specified, but not both",
+			"invalid criteria: only ONE of session ID OR user ID must be specified",
 		)
 	}
 	if criteria.SessionID != "" {
 		bsonCriteria["_id"] = criteria.SessionID
-	} else {
+	} else if criteria.UserID != "" {
 		bsonCriteria["userID"] = criteria.UserID
 	}
 
 	if _, err := u.sessionsCollection.DeleteMany(ctx, bsonCriteria); err != nil {
 		return errors.Wrap(err, "error deleting sessions")
 	}
+
 	return nil
 }
 
@@ -323,6 +334,7 @@ func (u *userStore) CreateServiceAccount(
 			serviceAccount.ID,
 		)
 	}
+
 	return token, nil
 }
 
@@ -354,16 +366,18 @@ func (u *userStore) GetServiceAccount(
 	serviceAccount := brignext.ServiceAccount{}
 
 	bsonCriteria := bson.M{}
-	if (criteria.ServiceAccountID == "" && criteria.Token == "") ||
-		(criteria.ServiceAccountID != "" && criteria.Token != "") {
+	if !logic.ExactlyOne(
+		criteria.ServiceAccountID != "",
+		criteria.Token != "",
+	) {
 		return serviceAccount, false, errors.New(
-			"invalid criteria: service account ID OR token must be specified, but " +
-				"not both",
+			"invalid criteria: only ONE of service account ID OR token must be " +
+				"specified",
 		)
 	}
 	if criteria.ServiceAccountID != "" {
 		bsonCriteria["_id"] = criteria.ServiceAccountID
-	} else {
+	} else if criteria.Token != "" {
 		bsonCriteria["hashedToken"] = crypto.ShortSHA("", criteria.Token)
 	}
 
@@ -401,6 +415,7 @@ func (u *userStore) LockServiceAccount(id string) error {
 		); err != nil {
 		return errors.Wrapf(err, "error locking service account %q", id)
 	}
+
 	return nil
 }
 
@@ -422,5 +437,6 @@ func (u *userStore) UnlockServiceAccount(id string) (string, error) {
 		); err != nil {
 		return "", errors.Wrapf(err, "error unlocking service account %q", id)
 	}
+
 	return token, nil
 }

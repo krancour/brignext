@@ -23,6 +23,25 @@ func main() {
 			Usage: "Manage events",
 			Subcommands: []cli.Command{
 				{
+					Name:        "cancel",
+					Usage:       "Cancel event(s) without deleting them",
+					Description: "By default, only cancels events in an ACCEPTED state.",
+					ArgsUsage:   "[EVENT_ID]",
+					Flags: []cli.Flag{
+						cli.BoolFlag{
+							Name: flagsProcessing,
+							Usage: "If set, will also abort events in a PROCESSING state " +
+								"(default: false)",
+						},
+						cli.StringFlag{
+							Name: flagsProject,
+							Usage: "Cancel all events for the specified project " +
+								"(ignores EVENT_ID argument)",
+						},
+					},
+					Action: eventDelete,
+				},
+				{
 					Name:      "create",
 					Usage:     "Create a new event",
 					ArgsUsage: "PROJECT_ID",
@@ -41,23 +60,26 @@ func main() {
 					Action: eventCreate,
 				},
 				{
-					Name:      "delete",
-					Usage:     "Delete event(s)",
+					Name:  "delete",
+					Usage: "Delete event(s)",
+					Description: "By default, only deletes events in a terminal state " +
+						"(neither ACCEPTED nor PROCESSING).",
 					ArgsUsage: "[EVENT_ID]",
 					Flags: []cli.Flag{
 						cli.BoolFlag{
-							Name: flagsPending,
-							Usage: "If set, will delete events with pending workers. " +
-								"Default: false",
-						},
-						cli.StringFlag{
-							Name:  flagsProject,
-							Usage: "Delete all events for the specified project",
+							Name: flagsAccepted,
+							Usage: "If set, will also delete events in an ACCEPTED state " +
+								"(default: false)",
 						},
 						cli.BoolFlag{
-							Name: flagsRunning,
-							Usage: "If set, will delete events with running workers. " +
-								"Default: false",
+							Name: flagsProcessing,
+							Usage: "If set, will also abort and delete events in a " +
+								"PROCESSING state (default: false)",
+						},
+						cli.StringFlag{
+							Name: flagsProject,
+							Usage: "Delete all events for the specified project " +
+								"(ignores EVENT_ID argument)",
 						},
 					},
 					Action: eventDelete,
@@ -78,7 +100,7 @@ func main() {
 				},
 				{
 					Name:  "list",
-					Usage: "List events, optionally filtered by project",
+					Usage: "List events",
 					Flags: []cli.Flag{
 						cli.StringFlag{
 							Name: flagsOutput,
@@ -99,21 +121,22 @@ func main() {
 			Name:      "login",
 			Usage:     "Log in to BrigNext",
 			ArgsUsage: "API_SERVER_ADDRESS",
+			Description: "By default, initiates authentication using OpenID " +
+				"Connect. This may not be supported by all BrigNext API servers.",
 			Flags: []cli.Flag{
 				cli.BoolFlag{
 					Name: flagsBrowse,
-					Usage: "Use the system's default web browser to navigate to the " +
-						"URL to begin authentication using OpenID Connect " +
-						"(if supported); not applicable when --root is used",
+					Usage: "Use the system's default web browser to complete " +
+						"authentication (not applicable when --root is used)",
 				},
 				cli.StringFlag{
 					Name: flagsPassword,
 					Usage: "Specify the password for root user login " +
-						"non-interactively; only applicaple when --root is used",
+						"non-interactively (only applicaple when --root is used)",
 				},
 				cli.BoolFlag{
 					Name:  flagsRoot,
-					Usage: "Log in as the root user",
+					Usage: "Log in as the root user (does not use OpenID Connect)",
 				},
 			},
 			Action: login,
@@ -219,13 +242,13 @@ func main() {
 				},
 				{
 					Name:      "lock",
-					Usage:     "Lock a service account out of Brigade",
+					Usage:     "Lock a service account out of BrigNext",
 					ArgsUsage: "SERVICE_ACCOUNT_ID",
 					Action:    serviceAccountLock,
 				},
 				{
 					Name:      "unlock",
-					Usage:     "Restore a service account's access to Brigade",
+					Usage:     "Restore a service account's access to BrigNext",
 					ArgsUsage: "SERVICE_ACCOUNT_ID",
 					Action:    serviceAccountUnlock,
 				},
@@ -264,13 +287,13 @@ func main() {
 				},
 				{
 					Name:      "lock",
-					Usage:     "Lock a user out of Brigade",
+					Usage:     "Lock a user out of BrigNext",
 					ArgsUsage: "USER_ID",
 					Action:    userLock,
 				},
 				{
 					Name:      "unlock",
-					Usage:     "Restore a user's access to Brigade",
+					Usage:     "Restore a user's access to BrigNext",
 					ArgsUsage: "USER_ID",
 					Action:    userUnlock,
 				},
@@ -281,87 +304,18 @@ func main() {
 			Usage: "Manage workers",
 			Subcommands: []cli.Command{
 				{
-					Name: "cancel",
-					Usage: "Cancel pending or running worker(s) without deleting " +
-						"them",
-					ArgsUsage: "[WORKER_ID]",
+					Name:        "cancel",
+					Usage:       "Cancel a worker",
+					Description: "By default, only cancels workers in a PENDING state.",
+					ArgsUsage:   "WORKER_ID",
 					Flags: []cli.Flag{
-						cli.StringFlag{
-							Name:  flagsEvent,
-							Usage: "Cancel all pending workers for the specified event",
-						},
-						cli.StringFlag{
-							Name:  flagsProject,
-							Usage: "Cancel all pending workers for the specified project",
-						},
 						cli.BoolFlag{
 							Name: flagsRunning,
-							Usage: "If set, will also cancel (stop) running workers. " +
-								"Default: false",
+							Usage: "If set, will abort a worker in a RUNNING state " +
+								"(default: false)",
 						},
 					},
 					Action: workerCancel,
-				},
-				{
-					Name:      "delete",
-					Usage:     "Delete worker(s)",
-					ArgsUsage: "[WORKER_ID]",
-					Flags: []cli.Flag{
-						cli.StringFlag{
-							Name:  flagsEvent,
-							Usage: "Delete all workers for the specified event",
-						},
-						cli.BoolFlag{
-							Name: flagsPending,
-							Usage: "If set, will delete pending workers. " +
-								"Default: false",
-						},
-						cli.StringFlag{
-							Name:  flagsProject,
-							Usage: "Delete all workers for the specified project",
-						},
-						cli.BoolFlag{
-							Name: flagsRunning,
-							Usage: "If set, will stop and delete running workers. " +
-								"Default: false",
-						},
-					},
-					Action: workerDelete,
-				},
-				{
-					Name:      "get",
-					Usage:     "Get a worker",
-					ArgsUsage: "WORKER_ID",
-					Flags: []cli.Flag{
-						cli.StringFlag{
-							Name: flagsOutput,
-							Usage: "Return output in another format. Supported formats: " +
-								"table, json",
-							Value: "table",
-						},
-					},
-					Action: workerGet,
-				},
-				{
-					Name:  "list",
-					Usage: "List workers, optionally filtered by project or event",
-					Flags: []cli.Flag{
-						cli.StringFlag{
-							Name:  flagsEvent,
-							Usage: "Return workers only for the specified event",
-						},
-						cli.StringFlag{
-							Name: flagsOutput,
-							Usage: "Return output in another format. Supported formats: " +
-								"table, json",
-							Value: "table",
-						},
-						cli.StringFlag{
-							Name:  flagsProject,
-							Usage: "Return workers only for the specified project",
-						},
-					},
-					Action: workerList,
 				},
 			},
 		},

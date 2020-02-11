@@ -14,42 +14,33 @@ type ProjectStore interface {
 	CreateEvent(event brignext.Event) (string, error)
 	GetEvents(criteria GetEventsCriteria) ([]brignext.Event, error)
 	GetEvent(id string) (brignext.Event, bool, error)
+	// TODO:
+	// CancelEvents(criteria CancelEventsCriteria) error
 	DeleteEvents(criteria DeleteEventsCriteria) error
 
-	// CreateWorker(worker brignext.Worker) (string, error)
-	// GetWorkers(criteria GetWorkersCriteria) ([]brignext.Worker, error)
-	// GetWorker(id string) (brignext.Worker, error)
-	// CancelWorkers(criteria CancelWorkersCriteria) error
-	// DeleteWorkers(criteria DeleteWorkersCriteria) error
+	// TODO:
+	// CancelWorker(criteria CancelWorkerCriteria) error
 }
 
 type GetEventsCriteria struct {
 	ProjectID string
 }
 
+// type CancelEventsCriteria struct {
+// 	ProjectID             string
+// 	EventID               string
+// 	AbortProcessingEvents bool
+// }
+
 type DeleteEventsCriteria struct {
-	ProjectID                      string
-	EventID                        string
-	DeleteEventsWithPendingWorkers bool
-	DeleteEventsWithRunningWorkers bool
+	ProjectID              string
+	EventID                string
+	DeleteAcceptedEvents   bool
+	DeleteProcessingEvents bool
 }
 
-// type GetWorkersCriteria struct {
-// 	ProjectID string
-// 	EventID  string
-// }
-
-// type CancelWorkersCriteria struct {
-// 	ProjectID           string
-// 	EventID            string
-// 	WorkerID           string
-// 	StopRunningWorkers bool
-// }
-
-// type DeleteWorkersCriteria struct {
-// 	ProjectID             string
-// 	EventID              string
-// 	WorkerID             string
-// 	DeletePendingWorkers bool
-// 	DeleteRunningWorkers bool
+// type CancelWorkerCriteria struct {
+// 	EventID             string
+// 	WorkerName          string
+// 	AbortRunningWorkers bool
 // }

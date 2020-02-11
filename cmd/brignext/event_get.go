@@ -71,7 +71,7 @@ func eventGet(c *cli.Context) error {
 	switch output {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "PROJECT", "PROVIDER", "TYPE", "AGE")
+		table.AddRow("ID", "PROJECT", "PROVIDER", "TYPE", "AGE", "STATUS")
 		var age string
 		if event.Created != nil {
 			age = duration.ShortHumanDuration(time.Since(*event.Created))
@@ -82,8 +82,32 @@ func eventGet(c *cli.Context) error {
 			event.Provider,
 			event.Type,
 			age,
+			event.Status,
 		)
 		fmt.Println(table)
+
+		if len(event.Workers) > 0 {
+			fmt.Printf("\nEvent %q workers:\n\n", event.ID)
+			table = uitable.New()
+			table.AddRow("NAME", "AGE", "STARTED", "ENDED", "STATUS")
+			for workerName, worker := range event.Workers {
+				var started, ended string
+				if worker.Started != nil {
+					started = duration.ShortHumanDuration(time.Since(*worker.Started))
+				}
+				if worker.Ended != nil {
+					ended = duration.ShortHumanDuration(time.Since(*worker.Ended))
+				}
+				table.AddRow(
+					workerName,
+					duration.ShortHumanDuration(time.Since(worker.Created)),
+					started,
+					ended,
+					worker.Status,
+				)
+			}
+			fmt.Println(table)
+		}
 
 	case "json":
 		prettyJSON, err := json.MarshalIndent(event, "", "  ")

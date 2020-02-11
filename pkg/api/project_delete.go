@@ -21,7 +21,5 @@ func (s *server) projectDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: Cascade delete to associated events and jobs
-
 	s.writeResponse(w, http.StatusOK, responseEmptyJSON)
 }
