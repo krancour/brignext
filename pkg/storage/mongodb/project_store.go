@@ -23,11 +23,18 @@ func NewProjectStore(database *mongo.Database) (storage.ProjectStore, error) {
 	defer cancel()
 
 	eventsCollection := database.Collection("events")
-	if _, err := eventsCollection.Indexes().CreateOne(
+	if _, err := eventsCollection.Indexes().CreateMany(
 		ctx,
-		mongo.IndexModel{
-			Keys: bson.M{
-				"projectID": 1,
+		[]mongo.IndexModel{
+			{
+				Keys: bson.M{
+					"projectID": 1,
+				},
+			},
+			{
+				Keys: bson.M{
+					"created": -1,
+				},
 			},
 		},
 	); err != nil {
