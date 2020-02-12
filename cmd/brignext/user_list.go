@@ -14,7 +14,7 @@ import (
 
 func userList(c *cli.Context) error {
 	// Args
-	if len(c.Args()) != 1 {
+	if len(c.Args()) != 0 {
 		return errors.New("user list requires no arguments")
 	}
 
