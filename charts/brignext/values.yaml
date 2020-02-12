@@ -357,7 +357,7 @@ mongodb:
   #
   replicaSet:
     ## Whether to create a MongoDB replica set for high availability or not
-    enabled: false
+    enabled: true
     useHostnames: true
 
     ## Name of the replica set

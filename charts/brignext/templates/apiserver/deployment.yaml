@@ -71,6 +71,8 @@ spec:
           value: {{ quote .Values.mongodb.service.port }}
         - name: MONGODB_DATABASE
           value: {{ .Values.mongodb.mongodbDatabase }}
+        - name: MONGODB_REPLICA_SET
+          value: {{ .Values.mongodb.replicaSet.name }}
         - name: MONGODB_USERNAME
           value: {{ .Values.mongodb.mongodbUsername }}
         - name: MONGODB_PASSWORD

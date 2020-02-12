@@ -16,11 +16,12 @@ const envconfigPrefix = "MONGODB"
 
 // config represents common configuration options for a MongoDB connection
 type config struct {
-	Host     string `envconfig:"HOST" required:"true"`
-	Port     int    `envconfig:"PORT" default:"27017"`
-	Database string `envconfig:"DATABASE" required:"true"`
-	Username string `envconfig:"USERNAME" required:"true"`
-	Password string `envconfig:"PASSWORD" required:"true"`
+	Host       string `envconfig:"HOST" required:"true"`
+	Port       int    `envconfig:"PORT" default:"27017"`
+	Database   string `envconfig:"DATABASE" required:"true"`
+	ReplicaSet string `envconfig:"REPLICA_SET" required:"true"`
+	Username   string `envconfig:"USERNAME" required:"true"`
+	Password   string `envconfig:"PASSWORD" required:"true"`
 }
 
 // Database returns a connection to a MongoDB database specified by environment
@@ -42,12 +43,13 @@ func Database() (*mongo.Database, error) {
 		connectCtx,
 		options.Client().ApplyURI(
 			fmt.Sprintf(
-				"mongodb://%s:%s@%s:%d/%s",
+				"mongodb://%s:%s@%s:%d/%s?replicaSet=%s",
 				c.Username,
 				c.Password,
 				c.Host,
 				c.Port,
 				c.Database,
+				c.ReplicaSet,
 			),
 		),
 	)
