@@ -6,6 +6,7 @@ import (
 
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/krancour/brignext/pkg/logic"
+	"github.com/krancour/brignext/pkg/mongodb"
 	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -15,6 +16,7 @@ import (
 )
 
 type projectStore struct {
+	database           *mongo.Database
 	projectsCollection *mongo.Collection
 	eventsCollection   *mongo.Collection
 }
@@ -43,6 +45,7 @@ func NewProjectStore(database *mongo.Database) (storage.ProjectStore, error) {
 	}
 
 	return &projectStore{
+		database:           database,
 		projectsCollection: database.Collection("projects"),
 		eventsCollection:   eventsCollection,
 	}, nil
@@ -58,6 +61,7 @@ func (p *projectStore) CreateProject(project brignext.Project) (string, error) {
 	if _, err := p.projectsCollection.InsertOne(ctx, project); err != nil {
 		return "", errors.Wrapf(err, "error creating project %q", project.ID)
 	}
+
 	return project.ID, nil
 }
 
@@ -97,9 +101,11 @@ func (p *projectStore) GetProject(id string) (brignext.Project, bool, error) {
 			id,
 		)
 	}
+
 	if err := result.Decode(&project); err != nil {
 		return project, false, errors.Wrapf(err, "error decoding project %q", id)
 	}
+
 	return project, true, nil
 }
 
@@ -117,6 +123,7 @@ func (p *projectStore) UpdateProject(project brignext.Project) error {
 		); err != nil {
 		return errors.Wrapf(err, "error updating project %q", project.ID)
 	}
+
 	return nil
 }
 
@@ -124,22 +131,22 @@ func (p *projectStore) DeleteProject(id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	if err := p.DeleteEvents(
-		storage.DeleteEventsCriteria{
-			ProjectID:              id,
-			DeleteAcceptedEvents:   true,
-			DeleteProcessingEvents: true,
+	return mongodb.DoTx(ctx, p.database,
+		func(sc mongo.SessionContext) error {
+
+			if _, err :=
+				p.projectsCollection.DeleteOne(sc, bson.M{"_id": id}); err != nil {
+				return errors.Wrapf(err, "error deleting project %q", id)
+			}
+
+			if _, err :=
+				p.eventsCollection.DeleteMany(sc, bson.M{"projectID": id}); err != nil {
+				return errors.Wrapf(err, "error deleting events for project %q", id)
+			}
+
+			return nil
 		},
-	); err != nil {
-		return errors.Wrapf(err, "error deleting all project %q events", id)
-	}
-
-	if _, err :=
-		p.projectsCollection.DeleteOne(ctx, bson.M{"_id": id}); err != nil {
-		return errors.Wrapf(err, "error deleting project %q", id)
-	}
-
-	return nil
+	)
 }
 
 func (p *projectStore) CreateEvent(event brignext.Event) (string, error) {
@@ -158,6 +165,7 @@ func (p *projectStore) CreateEvent(event brignext.Event) (string, error) {
 	if _, err := p.eventsCollection.InsertOne(ctx, event); err != nil {
 		return "", errors.Wrapf(err, "error creating event %q", event.ID)
 	}
+
 	return event.ID, nil
 }
 
@@ -204,6 +212,7 @@ func (p *projectStore) GetEvent(id string) (brignext.Event, bool, error) {
 			id,
 		)
 	}
+
 	if err := result.Decode(&event); err != nil {
 		return event, false, errors.Wrapf(err, "error decoding event %q", id)
 	}

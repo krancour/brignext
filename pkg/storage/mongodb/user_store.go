@@ -7,6 +7,7 @@ import (
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/krancour/brignext/pkg/crypto"
 	"github.com/krancour/brignext/pkg/logic"
+	"github.com/krancour/brignext/pkg/mongodb"
 	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -16,6 +17,7 @@ import (
 )
 
 type userStore struct {
+	database                  *mongo.Database
 	usersCollection           *mongo.Collection
 	sessionsCollection        *mongo.Collection
 	serviceAccountsCollection *mongo.Collection
@@ -74,6 +76,7 @@ func NewUserStore(database *mongo.Database) (storage.UserStore, error) {
 	}
 
 	return &userStore{
+		database:                  database,
 		usersCollection:           database.Collection("users"),
 		sessionsCollection:        sessionsCollection,
 		serviceAccountsCollection: serviceAccountsCollection,
@@ -130,6 +133,7 @@ func (u *userStore) GetUser(id string) (brignext.User, bool, error) {
 			id,
 		)
 	}
+
 	if err := result.Decode(&user); err != nil {
 		return user, false, errors.Wrapf(err, "error decoding user %q", id)
 	}
@@ -141,26 +145,30 @@ func (u *userStore) LockUser(id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	if _, err :=
-		u.usersCollection.UpdateOne(
-			ctx,
-			bson.M{"_id": id},
-			bson.M{
-				"$set": bson.M{"locked": true},
-			},
-		); err != nil {
-		return errors.Wrapf(err, "error locking user %q", id)
-	}
+	return mongodb.DoTx(ctx, u.database,
+		func(sc mongo.SessionContext) error {
 
-	if err := u.DeleteSessions(
-		storage.DeleteSessionsCriteria{
-			UserID: id,
+			if _, err :=
+				u.usersCollection.UpdateOne(
+					sc,
+					bson.M{"_id": id},
+					bson.M{
+						"$set": bson.M{"locked": true},
+					},
+				); err != nil {
+				return errors.Wrapf(err, "error locking user %q", id)
+			}
+
+			if _, err := u.sessionsCollection.DeleteMany(
+				sc,
+				bson.M{"userID": id},
+			); err != nil {
+				return errors.Wrapf(err, "error deleting user %q sessions", id)
+			}
+
+			return nil
 		},
-	); err != nil {
-		return errors.Wrapf(err, "error deleting sessions for user %q", id)
-	}
-
-	return nil
+	)
 }
 
 func (u *userStore) UnlockUser(id string) error {
