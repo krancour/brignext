@@ -28,13 +28,6 @@ var projectSchemaBytes = []byte(`
 			"maxLength": 250
 		},
 
-		"event": {
-			"type": "string",
-			"pattern": "^(?:\\*)|(?:\\w[\\w-]+\\:(?:(?:\\*)|(?:\\w[\\w-]+)))$",
-			"minLength": 1,
-			"maxLength": 40
-		},
-
 		"tag": {
 			"type": "string",
 			"pattern": "^\\w[\\w-\\.]*$",
@@ -64,6 +57,24 @@ var projectSchemaBytes = []byte(`
 			}
 		},
 
+		"triggeringEvents": {
+			"type": "object",
+			"description": "Describes a set of events that trigger a worker",
+			"required": ["provider"],
+			"additionalProperties": false,
+			"properties": {
+				"provider": {
+					"allOf": [{ "$ref": "#/definitions/identifier" }],
+					"description": "The name of the event provider"
+				},
+				"types": {
+					"type": "array",
+					"description": "Types of events from the provider",
+					"items": { "$ref": "#/definitions/identifier" }
+				}
+			}
+		},
+
 		"workerConfig": {
 			"type": "object",
 			"description": "Configuration for a single Brigade worker",
@@ -72,7 +83,7 @@ var projectSchemaBytes = []byte(`
 				"events": {
 					"type": "array",
 					"description": "The events that trigger this worker",
-					"items": { "$ref": "#/definitions/event" }
+					"items": { "$ref": "#/definitions/triggeringEvents" }
 				},
 				"image": { "$ref": "#/definitions/image" },
 				"command": {

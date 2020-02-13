@@ -89,8 +89,8 @@ func eventGet(c *cli.Context) error {
 		if len(event.Workers) > 0 {
 			fmt.Printf("\nEvent %q workers:\n\n", event.ID)
 			table = uitable.New()
-			table.AddRow("NAME", "AGE", "STARTED", "ENDED", "STATUS")
-			for workerName, worker := range event.Workers {
+			table.AddRow("NAME", "STARTED", "ENDED", "STATUS")
+			for _, worker := range event.Workers {
 				var started, ended string
 				if worker.Started != nil {
 					started = duration.ShortHumanDuration(time.Since(*worker.Started))
@@ -99,8 +99,7 @@ func eventGet(c *cli.Context) error {
 					ended = duration.ShortHumanDuration(time.Since(*worker.Ended))
 				}
 				table.AddRow(
-					workerName,
-					duration.ShortHumanDuration(time.Since(worker.Created)),
+					worker.Name,
 					started,
 					ended,
 					worker.Status,

@@ -1,6 +1,8 @@
 package brignext
 
-import "time"
+import (
+	"time"
+)
 
 // nolint: lll
 type Project struct {
@@ -29,10 +31,24 @@ type Project struct {
 	// GenericGatewaySecret string            `json:"genericGatewaySecret,omitempty" bson:"genericGatewaySecret,omitempty"`
 }
 
-type WorkerConfig struct {
-	Events  []string `json:"events,omitempty" bson:"events,omitempty"`
-	Image   *Image   `json:"image,omitempty" bson:"image,omitempty"`
-	Command string   `json:"command,omitempty" bson:"command,omitempty"`
+func (p *Project) GetWorkers(
+	eventProvider string,
+	eventType string,
+) []Worker {
+	workers := []Worker{}
+	for workerName, workerConfig := range p.WorkerConfigs {
+		if workerConfig.Matches(eventProvider, eventType) {
+			workers = append(
+				workers,
+				Worker{
+					Name:    workerName,
+					Image:   workerConfig.Image,
+					Command: workerConfig.Command,
+				},
+			)
+		}
+	}
+	return workers
 }
 
 // type Repo struct {

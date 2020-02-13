@@ -27,11 +27,14 @@ const (
 
 // nolint: lll
 type Worker struct {
-	Image    Image        `json:"image,omitempty" bson:"image,omitempty"`
-	Command  string       `json:"command,omitempty" bson:"command,omitempty"`
-	Status   WorkerStatus `json:"status,omitempty" bson:"status,omitempty"`
-	Created  time.Time    `json:"created,omitempty" bson:"created,omitempty"`
-	Started  *time.Time   `json:"started,omitempty" bson:"started,omitempty"`
-	Ended    *time.Time   `json:"ended,omitempty" bson:"ended,omitempty"`
-	ExitCode int32        `json:"exitCode,omitempty" bson:"exitCode,omitempty"`
+	ID        string       `json:"-" bson:"_id,omitempty"`
+	EventID   string       `json:"-" bson:"eventID,omitempty"`
+	ProjectID string       `json:"-" bson:"projectID,omitempty"`
+	Name      string       `json:"name,omitempty" bson:"name,omitempty"`
+	Image     *Image       `json:"image,omitempty" bson:"image,omitempty"`
+	Command   string       `json:"command,omitempty" bson:"command,omitempty"`
+	Started   *time.Time   `json:"started,omitempty" bson:"started,omitempty"`
+	Ended     *time.Time   `json:"ended,omitempty" bson:"ended,omitempty"`
+	Status    WorkerStatus `json:"status,omitempty" bson:"status,omitempty"`
+	// ExitCode  *int32       `json:"exitCode,omitempty" bson:"exitCode,omitempty"`
 }

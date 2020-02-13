@@ -44,6 +44,22 @@ func (s *server) eventCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	project, ok, err := s.projectStore.GetProject(event.ProjectID)
+	if err != nil {
+		log.Println(
+			errors.Wrapf(err, "error retrieving project %q", event.ProjectID),
+		)
+		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		return
+	} else if !ok {
+		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
+		return
+	}
+
+	// Add workers to the event that are derived from the project's applicable
+	// worker configs
+	event.Workers = project.GetWorkers(event.Provider, event.Type)
+
 	id, err := s.projectStore.CreateEvent(event)
 	if err != nil {
 		log.Println(errors.Wrap(err, "error creating new event"))

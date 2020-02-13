@@ -19,6 +19,7 @@ type projectStore struct {
 	database           *mongo.Database
 	projectsCollection *mongo.Collection
 	eventsCollection   *mongo.Collection
+	workersCollection  *mongo.Collection
 }
 
 func NewProjectStore(database *mongo.Database) (storage.ProjectStore, error) {
@@ -44,10 +45,30 @@ func NewProjectStore(database *mongo.Database) (storage.ProjectStore, error) {
 		return nil, errors.Wrap(err, "error adding indexes to events collection")
 	}
 
+	workersCollection := database.Collection("workers")
+	if _, err := workersCollection.Indexes().CreateMany(
+		ctx,
+		[]mongo.IndexModel{
+			{
+				Keys: bson.M{
+					"eventID": 1,
+				},
+			},
+			{
+				Keys: bson.M{
+					"projectID": 1,
+				},
+			},
+		},
+	); err != nil {
+		return nil, errors.Wrap(err, "error adding indexes to workers collection")
+	}
+
 	return &projectStore{
 		database:           database,
 		projectsCollection: database.Collection("projects"),
 		eventsCollection:   eventsCollection,
+		workersCollection:  workersCollection,
 	}, nil
 }
 
@@ -144,6 +165,14 @@ func (p *projectStore) DeleteProject(id string) error {
 				return errors.Wrapf(err, "error deleting events for project %q", id)
 			}
 
+			if _, err :=
+				p.workersCollection.DeleteMany(
+					sc,
+					bson.M{"projectID": id},
+				); err != nil {
+				return errors.Wrapf(err, "error deleting workers for project %q", id)
+			}
+
 			return nil
 		},
 	)
@@ -154,19 +183,43 @@ func (p *projectStore) CreateEvent(event brignext.Event) (string, error) {
 	defer cancel()
 
 	event.ID = uuid.NewV4().String()
+	workers := make([]interface{}, len(event.Workers))
 	if len(event.Workers) == 0 {
 		event.Status = brignext.EventStatusMoot
 	} else {
 		event.Status = brignext.EventStatusAccepted
+		for i, worker := range event.Workers {
+			worker.ID = uuid.NewV4().String()
+			worker.EventID = event.ID
+			worker.ProjectID = event.ProjectID
+			worker.Status = brignext.WorkerStatusPending
+			workers[i] = worker
+		}
 	}
 	now := time.Now()
 	event.Created = &now
+	event.Workers = nil
 
-	if _, err := p.eventsCollection.InsertOne(ctx, event); err != nil {
-		return "", errors.Wrapf(err, "error creating event %q", event.ID)
-	}
+	return event.ID, mongodb.DoTx(ctx, p.database,
+		func(sc mongo.SessionContext) error {
 
-	return event.ID, nil
+			if _, err := p.eventsCollection.InsertOne(sc, event); err != nil {
+				return errors.Wrapf(err, "error creating event %q", event.ID)
+			}
+
+			if len(workers) > 0 {
+				if _, err := p.workersCollection.InsertMany(sc, workers); err != nil {
+					return errors.Wrapf(
+						err,
+						"error creating workers for event %q",
+						event.ID,
+					)
+				}
+			}
+
+			return nil
+		},
+	)
 }
 
 func (p *projectStore) GetEvents(
@@ -201,23 +254,39 @@ func (p *projectStore) GetEvent(id string) (brignext.Event, bool, error) {
 
 	event := brignext.Event{}
 
-	result := p.eventsCollection.FindOne(ctx, bson.M{"_id": id})
-	if result.Err() == mongo.ErrNoDocuments {
-		return event, false, nil
-	}
-	if result.Err() != nil {
+	events := []brignext.Event{}
+	cur, err := p.eventsCollection.Aggregate(
+		ctx,
+		[]bson.M{
+			{
+				"$match": bson.M{"_id": id},
+			},
+			{
+				"$lookup": bson.M{ // Left outer join
+					"from":         "workers",
+					"localField":   "_id",
+					"foreignField": "eventID",
+					"as":           "workers",
+				},
+			},
+		},
+	)
+	if err != nil {
 		return event, false, errors.Wrapf(
-			result.Err(),
+			err,
 			"error retrieving event %q",
 			id,
 		)
 	}
-
-	if err := result.Decode(&event); err != nil {
+	if err := cur.All(ctx, &events); err != nil {
 		return event, false, errors.Wrapf(err, "error decoding event %q", id)
 	}
 
-	return event, true, nil
+	if len(events) == 0 {
+		return event, false, nil
+	}
+
+	return events[0], true, nil
 }
 
 func (p *projectStore) DeleteEvents(
@@ -259,6 +328,8 @@ func (p *projectStore) DeleteEvents(
 	if _, err := p.eventsCollection.DeleteMany(ctx, bsonCriteria); err != nil {
 		return errors.Wrap(err, "error deleting events")
 	}
+
+	// TODO: Cascade the delete to orphaned workers. Not yet sure how.
 
 	return nil
 }
