@@ -35,17 +35,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	userStore, err := mongodb.NewUserStore(database)
+	store, err := mongodb.NewStore(database)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	projectStore, err := mongodb.NewProjectStore(database)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	logStore := mongodb.NewLogStore(database)
 
 	// // TODO: Do something with this
@@ -60,8 +53,7 @@ func main() {
 			apiConfig,
 			oauth2Config,
 			oidcIdentityVerifier,
-			userStore,
-			projectStore,
+			store,
 			logStore,
 		).ListenAndServe(),
 	)

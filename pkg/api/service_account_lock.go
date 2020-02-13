@@ -13,7 +13,7 @@ func (s *server) serviceAccountLock(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	if err := s.userStore.LockServiceAccount(id); err != nil {
+	if err := s.store.LockServiceAccount(id); err != nil {
 		log.Println(
 			errors.Wrapf(err, "error locking service account %q", id),
 		)

@@ -39,7 +39,7 @@ func (s *server) sessionCreate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, _, token, err := s.userStore.CreateSession(
+		_, _, token, err := s.store.CreateSession(
 			brignext.Session{
 				Root:          true,
 				Authenticated: true,
@@ -78,7 +78,7 @@ func (s *server) sessionCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, oauth2State, token, err := s.userStore.CreateSession(brignext.Session{})
+	_, oauth2State, token, err := s.store.CreateSession(brignext.Session{})
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error creating new session"),

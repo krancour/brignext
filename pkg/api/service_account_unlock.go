@@ -14,7 +14,7 @@ func (s *server) serviceAccountUnlock(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	token, err := s.userStore.UnlockServiceAccount(id);
+	token, err := s.store.UnlockServiceAccount(id);
 	if err != nil {
 		log.Println(
 			errors.Wrapf(err, "error unlocking service account %q", id),

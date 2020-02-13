@@ -11,7 +11,7 @@ import (
 func (s *server) serviceAccountList(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	serviceAccounts, err := s.userStore.GetServiceAccounts()
+	serviceAccounts, err := s.store.GetServiceAccounts()
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error retrieving all service accounts"),

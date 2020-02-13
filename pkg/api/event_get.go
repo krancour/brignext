@@ -14,7 +14,7 @@ func (s *server) eventGet(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	event, ok, err := s.projectStore.GetEvent(id)
+	event, ok, err := s.store.GetEvent(id)
 	if err != nil {
 		log.Println(
 			errors.Wrapf(err, "error retrieving event %q", id),

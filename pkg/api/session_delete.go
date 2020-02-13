@@ -22,7 +22,7 @@ func (s *server) sessionDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.userStore.DeleteSessions(
+	if err := s.store.DeleteSessions(
 		storage.DeleteSessionsCriteria{
 			SessionID: sessionID,
 		},

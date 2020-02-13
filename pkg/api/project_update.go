@@ -18,7 +18,7 @@ func (s *server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
 	if _, ok, err :=
-		s.projectStore.GetProject(id); err != nil {
+		s.store.GetProject(id); err != nil {
 		log.Println(
 			errors.Wrapf(err, "error checking for existing project %q", id),
 		)
@@ -59,7 +59,7 @@ func (s *server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.projectStore.UpdateProject(project); err != nil {
+	if err := s.store.UpdateProject(project); err != nil {
 		log.Println(
 			errors.Wrapf(err, "error updating project %q", id),
 		)

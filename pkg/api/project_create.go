@@ -45,7 +45,7 @@ func (s *server) projectCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, ok, err :=
-		s.projectStore.GetProject(project.ID); err != nil {
+		s.store.GetProject(project.ID); err != nil {
 		log.Println(
 			errors.Wrapf(
 				err,
@@ -60,7 +60,7 @@ func (s *server) projectCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := s.projectStore.CreateProject(project); err != nil {
+	if _, err := s.store.CreateProject(project); err != nil {
 		log.Println(
 			errors.Wrapf(err, "error creating project %q", project.ID),
 		)

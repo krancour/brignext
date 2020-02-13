@@ -25,7 +25,7 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, ok, err := s.userStore.GetSession(
+	session, ok, err := s.store.GetSession(
 		storage.GetSessionCriteria{
 			OAuth2State: oauth2State,
 		},
@@ -81,7 +81,7 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, ok, err := s.userStore.GetUser(claims.Email)
+	user, ok, err := s.store.GetUser(claims.Email)
 	if err != nil {
 		log.Println(
 			errors.Wrapf(err, "error searching for existing user %q", claims.Email),
@@ -93,7 +93,7 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 			ID:   claims.Email,
 			Name: claims.Name,
 		}
-		if err = s.userStore.CreateUser(user); err != nil {
+		if err = s.store.CreateUser(user); err != nil {
 			log.Println(
 				errors.Wrapf(err, "error creating new user %q", user.ID),
 			)
@@ -103,7 +103,7 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err :=
-		s.userStore.AuthenticateSession(session.ID, user.ID); err != nil {
+		s.store.AuthenticateSession(session.ID, user.ID); err != nil {
 		log.Println(
 			errors.Wrapf(err, "error authenticating session %q", session.ID),
 		)

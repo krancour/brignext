@@ -13,7 +13,7 @@ func (s *server) userLock(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	if err := s.userStore.LockUser(id); err != nil {
+	if err := s.store.LockUser(id); err != nil {
 		log.Println(
 			errors.Wrapf(err, "error locking user %q", id),
 		)

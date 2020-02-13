@@ -16,14 +16,17 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type userStore struct {
+type store struct {
 	database                  *mongo.Database
 	usersCollection           *mongo.Collection
 	sessionsCollection        *mongo.Collection
 	serviceAccountsCollection *mongo.Collection
+	projectsCollection        *mongo.Collection
+	eventsCollection          *mongo.Collection
+	workersCollection         *mongo.Collection
 }
 
-func NewUserStore(database *mongo.Database) (storage.UserStore, error) {
+func NewStore(database *mongo.Database) (storage.Store, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
@@ -75,35 +78,76 @@ func NewUserStore(database *mongo.Database) (storage.UserStore, error) {
 		)
 	}
 
-	return &userStore{
+	eventsCollection := database.Collection("events")
+	if _, err := eventsCollection.Indexes().CreateMany(
+		ctx,
+		[]mongo.IndexModel{
+			{
+				Keys: bson.M{
+					"projectID": 1,
+				},
+			},
+			{
+				Keys: bson.M{
+					"created": -1,
+				},
+			},
+		},
+	); err != nil {
+		return nil, errors.Wrap(err, "error adding indexes to events collection")
+	}
+
+	workersCollection := database.Collection("workers")
+	if _, err := workersCollection.Indexes().CreateMany(
+		ctx,
+		[]mongo.IndexModel{
+			{
+				Keys: bson.M{
+					"eventID": 1,
+				},
+			},
+			{
+				Keys: bson.M{
+					"projectID": 1,
+				},
+			},
+		},
+	); err != nil {
+		return nil, errors.Wrap(err, "error adding indexes to workers collection")
+	}
+
+	return &store{
 		database:                  database,
 		usersCollection:           database.Collection("users"),
 		sessionsCollection:        sessionsCollection,
 		serviceAccountsCollection: serviceAccountsCollection,
+		projectsCollection:        database.Collection("projects"),
+		eventsCollection:          eventsCollection,
+		workersCollection:         workersCollection,
 	}, nil
 }
 
-func (u *userStore) CreateUser(user brignext.User) error {
+func (s *store) CreateUser(user brignext.User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	user.FirstSeen = time.Now()
 
 	if _, err :=
-		u.usersCollection.InsertOne(ctx, user); err != nil {
+		s.usersCollection.InsertOne(ctx, user); err != nil {
 		return errors.Wrapf(err, "error creating user %q", user.ID)
 	}
 
 	return nil
 }
 
-func (u *userStore) GetUsers() ([]brignext.User, error) {
+func (s *store) GetUsers() ([]brignext.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"_id": 1})
-	cur, err := u.usersCollection.Find(ctx, bson.M{}, findOptions)
+	cur, err := s.usersCollection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "error retrieving users")
 	}
@@ -116,13 +160,13 @@ func (u *userStore) GetUsers() ([]brignext.User, error) {
 	return users, nil
 }
 
-func (u *userStore) GetUser(id string) (brignext.User, bool, error) {
+func (s *store) GetUser(id string) (brignext.User, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	user := brignext.User{}
 
-	result := u.usersCollection.FindOne(ctx, bson.M{"_id": id})
+	result := s.usersCollection.FindOne(ctx, bson.M{"_id": id})
 	if result.Err() == mongo.ErrNoDocuments {
 		return user, false, nil
 	}
@@ -141,15 +185,15 @@ func (u *userStore) GetUser(id string) (brignext.User, bool, error) {
 	return user, true, nil
 }
 
-func (u *userStore) LockUser(id string) error {
+func (s *store) LockUser(id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
-	return mongodb.DoTx(ctx, u.database,
+	return mongodb.DoTx(ctx, s.database,
 		func(sc mongo.SessionContext) error {
 
 			if _, err :=
-				u.usersCollection.UpdateOne(
+				s.usersCollection.UpdateOne(
 					sc,
 					bson.M{"_id": id},
 					bson.M{
@@ -159,7 +203,7 @@ func (u *userStore) LockUser(id string) error {
 				return errors.Wrapf(err, "error locking user %q", id)
 			}
 
-			if _, err := u.sessionsCollection.DeleteMany(
+			if _, err := s.sessionsCollection.DeleteMany(
 				sc,
 				bson.M{"userID": id},
 			); err != nil {
@@ -171,12 +215,12 @@ func (u *userStore) LockUser(id string) error {
 	)
 }
 
-func (u *userStore) UnlockUser(id string) error {
+func (s *store) UnlockUser(id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	if _, err :=
-		u.usersCollection.UpdateOne(
+		s.usersCollection.UpdateOne(
 			ctx,
 			bson.M{"_id": id},
 			bson.M{
@@ -189,7 +233,7 @@ func (u *userStore) UnlockUser(id string) error {
 	return nil
 }
 
-func (u *userStore) CreateSession(session brignext.Session) (string, string, string, error) {
+func (s *store) CreateSession(session brignext.Session) (string, string, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
@@ -205,7 +249,7 @@ func (u *userStore) CreateSession(session brignext.Session) (string, string, str
 	token := crypto.NewToken(256)
 	hashedToken := crypto.ShortSHA("", token)
 
-	if _, err := u.sessionsCollection.InsertOne(
+	if _, err := s.sessionsCollection.InsertOne(
 		ctx,
 		struct {
 			brignext.Session  `bson:",inline"`
@@ -223,7 +267,7 @@ func (u *userStore) CreateSession(session brignext.Session) (string, string, str
 	return session.ID, oauth2State, token, nil
 }
 
-func (u *userStore) GetSession(
+func (s *store) GetSession(
 	criteria storage.GetSessionCriteria,
 ) (brignext.Session, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
@@ -247,7 +291,7 @@ func (u *userStore) GetSession(
 		bsonCriteria["hashedToken"] = crypto.ShortSHA("", criteria.Token)
 	}
 
-	result := u.sessionsCollection.FindOne(ctx, bsonCriteria)
+	result := s.sessionsCollection.FindOne(ctx, bsonCriteria)
 	if result.Err() == mongo.ErrNoDocuments {
 		return session, false, nil
 	}
@@ -261,12 +305,12 @@ func (u *userStore) GetSession(
 	return session, true, nil
 }
 
-func (u *userStore) AuthenticateSession(sessionID, userID string) error {
+func (s *store) AuthenticateSession(sessionID, userID string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	if _, err :=
-		u.sessionsCollection.UpdateOne(
+		s.sessionsCollection.UpdateOne(
 			ctx,
 			bson.M{
 				"_id": sessionID,
@@ -285,7 +329,7 @@ func (u *userStore) AuthenticateSession(sessionID, userID string) error {
 	return nil
 }
 
-func (u *userStore) DeleteSessions(
+func (s *store) DeleteSessions(
 	criteria storage.DeleteSessionsCriteria,
 ) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
@@ -306,14 +350,14 @@ func (u *userStore) DeleteSessions(
 		bsonCriteria["userID"] = criteria.UserID
 	}
 
-	if _, err := u.sessionsCollection.DeleteMany(ctx, bsonCriteria); err != nil {
+	if _, err := s.sessionsCollection.DeleteMany(ctx, bsonCriteria); err != nil {
 		return errors.Wrap(err, "error deleting sessions")
 	}
 
 	return nil
 }
 
-func (u *userStore) CreateServiceAccount(
+func (s *store) CreateServiceAccount(
 	serviceAccount brignext.ServiceAccount,
 ) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
@@ -326,7 +370,7 @@ func (u *userStore) CreateServiceAccount(
 	hashedToken := crypto.ShortSHA("", token)
 
 	if _, err :=
-		u.serviceAccountsCollection.InsertOne(
+		s.serviceAccountsCollection.InsertOne(
 			ctx,
 			struct {
 				brignext.ServiceAccount `bson:",inline"`
@@ -346,13 +390,13 @@ func (u *userStore) CreateServiceAccount(
 	return token, nil
 }
 
-func (u *userStore) GetServiceAccounts() ([]brignext.ServiceAccount, error) {
+func (s *store) GetServiceAccounts() ([]brignext.ServiceAccount, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"_id": 1})
-	cur, err := u.serviceAccountsCollection.Find(ctx, bson.M{}, findOptions)
+	cur, err := s.serviceAccountsCollection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "error retrieving service accounts")
 	}
@@ -365,7 +409,7 @@ func (u *userStore) GetServiceAccounts() ([]brignext.ServiceAccount, error) {
 	return serviceAccounts, nil
 }
 
-func (u *userStore) GetServiceAccount(
+func (s *store) GetServiceAccount(
 	criteria storage.GetServiceAccountCriteria,
 ) (brignext.ServiceAccount, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
@@ -389,7 +433,7 @@ func (u *userStore) GetServiceAccount(
 		bsonCriteria["hashedToken"] = crypto.ShortSHA("", criteria.Token)
 	}
 
-	result := u.serviceAccountsCollection.FindOne(ctx, bsonCriteria)
+	result := s.serviceAccountsCollection.FindOne(ctx, bsonCriteria)
 	if result.Err() == mongo.ErrNoDocuments {
 		return serviceAccount, false, nil
 	}
@@ -409,12 +453,12 @@ func (u *userStore) GetServiceAccount(
 	return serviceAccount, true, nil
 }
 
-func (u *userStore) LockServiceAccount(id string) error {
+func (s *store) LockServiceAccount(id string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
 	if _, err :=
-		u.serviceAccountsCollection.UpdateOne(
+		s.serviceAccountsCollection.UpdateOne(
 			ctx,
 			bson.M{"_id": id},
 			bson.M{
@@ -427,7 +471,7 @@ func (u *userStore) LockServiceAccount(id string) error {
 	return nil
 }
 
-func (u *userStore) UnlockServiceAccount(id string) (string, error) {
+func (s *store) UnlockServiceAccount(id string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
 	defer cancel()
 
@@ -435,7 +479,7 @@ func (u *userStore) UnlockServiceAccount(id string) (string, error) {
 	hashedToken := crypto.ShortSHA("", token)
 
 	if _, err :=
-		u.serviceAccountsCollection.UpdateOne(
+		s.serviceAccountsCollection.UpdateOne(
 			ctx,
 			bson.M{"_id": id},
 			bson.M{
@@ -447,4 +491,266 @@ func (u *userStore) UnlockServiceAccount(id string) (string, error) {
 	}
 
 	return token, nil
+}
+
+func (s *store) CreateProject(project brignext.Project) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	now := time.Now()
+	project.Created = &now
+
+	if _, err := s.projectsCollection.InsertOne(ctx, project); err != nil {
+		return "", errors.Wrapf(err, "error creating project %q", project.ID)
+	}
+
+	return project.ID, nil
+}
+
+func (s *store) GetProjects() ([]brignext.Project, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	findOptions := options.Find()
+	findOptions.SetSort(bson.M{"_id": 1})
+	cur, err := s.projectsCollection.Find(ctx, bson.M{}, findOptions)
+	if err != nil {
+		return nil, errors.Wrap(err, "error retrieving projects")
+	}
+
+	projects := []brignext.Project{}
+	if err := cur.All(ctx, &projects); err != nil {
+		return nil, errors.Wrap(err, "error decoding projects")
+	}
+
+	return projects, nil
+}
+
+func (s *store) GetProject(id string) (brignext.Project, bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	project := brignext.Project{}
+
+	result := s.projectsCollection.FindOne(ctx, bson.M{"_id": id})
+	if result.Err() == mongo.ErrNoDocuments {
+		return project, false, nil
+	}
+	if result.Err() != nil {
+		return project, false, errors.Wrapf(
+			result.Err(),
+			"error retrieving project %q",
+			id,
+		)
+	}
+
+	if err := result.Decode(&project); err != nil {
+		return project, false, errors.Wrapf(err, "error decoding project %q", id)
+	}
+
+	return project, true, nil
+}
+
+func (s *store) UpdateProject(project brignext.Project) error {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	if _, err :=
+		s.projectsCollection.ReplaceOne(
+			ctx,
+			bson.M{
+				"_id": project.ID,
+			},
+			project,
+		); err != nil {
+		return errors.Wrapf(err, "error updating project %q", project.ID)
+	}
+
+	return nil
+}
+
+func (s *store) DeleteProject(id string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	return mongodb.DoTx(ctx, s.database,
+		func(sc mongo.SessionContext) error {
+
+			if _, err :=
+				s.projectsCollection.DeleteOne(sc, bson.M{"_id": id}); err != nil {
+				return errors.Wrapf(err, "error deleting project %q", id)
+			}
+
+			if _, err :=
+				s.eventsCollection.DeleteMany(sc, bson.M{"projectID": id}); err != nil {
+				return errors.Wrapf(err, "error deleting events for project %q", id)
+			}
+
+			if _, err :=
+				s.workersCollection.DeleteMany(
+					sc,
+					bson.M{"projectID": id},
+				); err != nil {
+				return errors.Wrapf(err, "error deleting workers for project %q", id)
+			}
+
+			return nil
+		},
+	)
+}
+
+func (s *store) CreateEvent(event brignext.Event) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	event.ID = uuid.NewV4().String()
+	workers := make([]interface{}, len(event.Workers))
+	if len(event.Workers) == 0 {
+		event.Status = brignext.EventStatusMoot
+	} else {
+		event.Status = brignext.EventStatusAccepted
+		for i, worker := range event.Workers {
+			worker.ID = uuid.NewV4().String()
+			worker.EventID = event.ID
+			worker.ProjectID = event.ProjectID
+			worker.Status = brignext.WorkerStatusPending
+			workers[i] = worker
+		}
+	}
+	now := time.Now()
+	event.Created = &now
+	event.Workers = nil
+
+	return event.ID, mongodb.DoTx(ctx, s.database,
+		func(sc mongo.SessionContext) error {
+
+			if _, err := s.eventsCollection.InsertOne(sc, event); err != nil {
+				return errors.Wrapf(err, "error creating event %q", event.ID)
+			}
+
+			if len(workers) > 0 {
+				if _, err := s.workersCollection.InsertMany(sc, workers); err != nil {
+					return errors.Wrapf(
+						err,
+						"error creating workers for event %q",
+						event.ID,
+					)
+				}
+			}
+
+			return nil
+		},
+	)
+}
+
+func (s *store) GetEvents(
+	criteria storage.GetEventsCriteria,
+) ([]brignext.Event, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	bsonCriteria := bson.M{}
+	if criteria.ProjectID != "" {
+		bsonCriteria["projectID"] = criteria.ProjectID
+	}
+
+	findOptions := options.Find()
+	findOptions.SetSort(bson.M{"created": -1})
+	cur, err := s.eventsCollection.Find(ctx, bsonCriteria, findOptions)
+	if err != nil {
+		return nil, errors.Wrap(err, "error retrieving events")
+	}
+
+	events := []brignext.Event{}
+	if err := cur.All(ctx, &events); err != nil {
+		return nil, errors.Wrap(err, "error decoding events")
+	}
+
+	return events, nil
+}
+
+func (s *store) GetEvent(id string) (brignext.Event, bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	event := brignext.Event{}
+
+	events := []brignext.Event{}
+	cur, err := s.eventsCollection.Aggregate(
+		ctx,
+		[]bson.M{
+			{
+				"$match": bson.M{"_id": id},
+			},
+			{
+				"$lookup": bson.M{ // Left outer join
+					"from":         "workers",
+					"localField":   "_id",
+					"foreignField": "eventID",
+					"as":           "workers",
+				},
+			},
+		},
+	)
+	if err != nil {
+		return event, false, errors.Wrapf(
+			err,
+			"error retrieving event %q",
+			id,
+		)
+	}
+	if err := cur.All(ctx, &events); err != nil {
+		return event, false, errors.Wrapf(err, "error decoding event %q", id)
+	}
+
+	if len(events) == 0 {
+		return event, false, nil
+	}
+
+	return events[0], true, nil
+}
+
+func (s *store) DeleteEvents(
+	criteria storage.DeleteEventsCriteria,
+) error {
+	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	defer cancel()
+
+	if !logic.ExactlyOne(
+		criteria.EventID != "",
+		criteria.ProjectID != "",
+	) {
+		return errors.New(
+			"invalid criteria: only ONE of event ID or project ID must be specified",
+		)
+	}
+
+	bsonCriteria := bson.M{}
+	if criteria.EventID != "" {
+		bsonCriteria["_id"] = criteria.EventID
+	} else if criteria.ProjectID != "" {
+		bsonCriteria["projectID"] = criteria.ProjectID
+	}
+	statusesToDelete := []brignext.EventStatus{
+		brignext.EventStatusMoot,
+		brignext.EventStatusCanceled,
+		brignext.EventStatusAborted,
+		brignext.EventStatusSucceeded,
+		brignext.EventStatusFailed,
+	}
+	if criteria.DeleteAcceptedEvents {
+		statusesToDelete = append(statusesToDelete, brignext.EventStatusAccepted)
+	}
+	if criteria.DeleteProcessingEvents {
+		statusesToDelete = append(statusesToDelete, brignext.EventStatusProcessing)
+	}
+	bsonCriteria["status"] = bson.M{"$in": statusesToDelete}
+
+	if _, err := s.eventsCollection.DeleteMany(ctx, bsonCriteria); err != nil {
+		return errors.Wrap(err, "error deleting events")
+	}
+
+	// TODO: Cascade the delete to orphaned workers. Not yet sure how.
+
+	return nil
 }

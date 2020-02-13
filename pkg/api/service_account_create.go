@@ -48,7 +48,7 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, ok, err := s.userStore.GetServiceAccount(
+	if _, ok, err := s.store.GetServiceAccount(
 		storage.GetServiceAccountCriteria{
 			ServiceAccountID: serviceAccount.ID,
 		},
@@ -67,7 +67,7 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := s.userStore.CreateServiceAccount(serviceAccount)
+	token, err := s.store.CreateServiceAccount(serviceAccount)
 	if err != nil {
 		log.Println(
 			errors.Wrapf(

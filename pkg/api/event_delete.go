@@ -25,7 +25,7 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 		deleteProcessing, _ = strconv.ParseBool(deleteProcessingStr) // nolint: errcheck
 	}
 
-	if err := s.projectStore.DeleteEvents(
+	if err := s.store.DeleteEvents(
 		storage.DeleteEventsCriteria{
 			EventID:                mux.Vars(r)["id"],
 			ProjectID:              mux.Vars(r)["projectID"],

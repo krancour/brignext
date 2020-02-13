@@ -15,7 +15,7 @@ func (s *server) serviceAccountGet(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	serviceAccount, ok, err := s.userStore.GetServiceAccount(
+	serviceAccount, ok, err := s.store.GetServiceAccount(
 		storage.GetServiceAccountCriteria{
 			ServiceAccountID: id,
 		},

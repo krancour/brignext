@@ -30,8 +30,7 @@ type server struct {
 	apiServerConfig            Config
 	oauth2Config               *oauth2.Config
 	oidcTokenVerifier          *oidc.IDTokenVerifier
-	userStore                  storage.UserStore
-	projectStore               storage.ProjectStore
+	store                      storage.Store
 	logStore                   storage.LogStore
 	router                     *mux.Router
 	serviceAccountSchemaLoader gojsonschema.JSONLoader
@@ -44,16 +43,14 @@ func NewServer(
 	apiServerConfig Config,
 	oauth2Config *oauth2.Config,
 	oidcTokenVerifier *oidc.IDTokenVerifier,
-	userStore storage.UserStore,
-	projectStore storage.ProjectStore,
+	store storage.Store,
 	logStore storage.LogStore,
 ) Server {
 	s := &server{
 		apiServerConfig:            apiServerConfig,
 		oauth2Config:               oauth2Config,
 		oidcTokenVerifier:          oidcTokenVerifier,
-		userStore:                  userStore,
-		projectStore:               projectStore,
+		store:                      store,
 		logStore:                   logStore,
 		router:                     mux.NewRouter(),
 		serviceAccountSchemaLoader: gojsonschema.NewBytesLoader(serviceAccountSchemaBytes), // nolint: lll
@@ -64,13 +61,13 @@ func NewServer(
 	// Most requests are authenticated with a bearer token
 	tokenAuthFilter := auth.NewTokenAuthFilter(
 		func(token string) (brignext.Session, bool, error) {
-			return userStore.GetSession(
+			return store.GetSession(
 				storage.GetSessionCriteria{
 					Token: token,
 				},
 			)
 		},
-		userStore.GetUser,
+		store.GetUser,
 		apiServerConfig.RootUserEnabled(),
 	)
 

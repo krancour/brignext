@@ -13,7 +13,7 @@ func (s *server) userUnlock(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	if err := s.userStore.UnlockUser(id); err != nil {
+	if err := s.store.UnlockUser(id); err != nil {
 		log.Println(
 			errors.Wrapf(err, "error unlocking user %q", id),
 		)
