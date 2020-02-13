@@ -13,11 +13,14 @@ func (s *server) serviceAccountLock(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	if err := s.store.LockServiceAccount(id); err != nil {
+	if ok, err := s.service.LockServiceAccount(r.Context(), id); err != nil {
 		log.Println(
 			errors.Wrapf(err, "error locking service account %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		return
+	} else if !ok {
+		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}
 

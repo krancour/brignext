@@ -15,6 +15,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+var mongodbTimeout = 5 * time.Second
+
 type logStore struct {
 	database *mongo.Database
 }

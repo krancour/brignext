@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/krancour/brignext/pkg/brignext"
-	"github.com/krancour/brignext/pkg/storage"
 
 	"github.com/pkg/errors"
 )
@@ -25,10 +24,9 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, ok, err := s.store.GetSession(
-		storage.GetSessionCriteria{
-			OAuth2State: oauth2State,
-		},
+	session, ok, err := s.service.GetSessionByOAuth2State(
+		r.Context(),
+		oauth2State,
 	)
 	if err != nil {
 		log.Println(
@@ -81,7 +79,7 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, ok, err := s.store.GetUser(claims.Email)
+	user, ok, err := s.service.GetUser(r.Context(), claims.Email)
 	if err != nil {
 		log.Println(
 			errors.Wrapf(err, "error searching for existing user %q", claims.Email),
@@ -93,7 +91,7 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 			ID:   claims.Email,
 			Name: claims.Name,
 		}
-		if err = s.store.CreateUser(user); err != nil {
+		if err = s.service.CreateUser(r.Context(), user); err != nil {
 			log.Println(
 				errors.Wrapf(err, "error creating new user %q", user.ID),
 			)
@@ -102,8 +100,11 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err :=
-		s.store.AuthenticateSession(session.ID, user.ID); err != nil {
+	if _, err := s.service.AuthenticateSession(
+		r.Context(),
+		session.ID,
+		user.ID,
+	); err != nil {
 		log.Println(
 			errors.Wrapf(err, "error authenticating session %q", session.ID),
 		)

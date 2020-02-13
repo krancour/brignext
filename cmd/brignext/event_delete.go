@@ -62,6 +62,8 @@ func eventDelete(c *cli.Context) error {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
+	// TODO: These messages aren't necessarily accurate. What is deleted and what
+	// isn't really depends on event statuses and what flag(s) the user specified.
 	if eventID != "" {
 		fmt.Printf("Event %q deleted.\n", eventID)
 	} else {

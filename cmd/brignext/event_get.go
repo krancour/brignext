@@ -90,7 +90,7 @@ func eventGet(c *cli.Context) error {
 			fmt.Printf("\nEvent %q workers:\n\n", event.ID)
 			table = uitable.New()
 			table.AddRow("NAME", "STARTED", "ENDED", "STATUS")
-			for _, worker := range event.Workers {
+			for workerName, worker := range event.Workers {
 				var started, ended string
 				if worker.Started != nil {
 					started = duration.ShortHumanDuration(time.Since(*worker.Started))
@@ -99,7 +99,7 @@ func eventGet(c *cli.Context) error {
 					ended = duration.ShortHumanDuration(time.Since(*worker.Ended))
 				}
 				table.AddRow(
-					worker.Name,
+					workerName,
 					started,
 					ended,
 					worker.Status,

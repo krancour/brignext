@@ -6,12 +6,14 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
 )
 
 func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
+
+	eventID := mux.Vars(r)["id"]
+	projectID := mux.Vars(r)["projectID"]
 
 	deleteAcceptedStr := r.URL.Query().Get("deleteAccepted")
 	var deleteAccepted bool
@@ -25,14 +27,23 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 		deleteProcessing, _ = strconv.ParseBool(deleteProcessingStr) // nolint: errcheck
 	}
 
-	if err := s.store.DeleteEvents(
-		storage.DeleteEventsCriteria{
-			EventID:                mux.Vars(r)["id"],
-			ProjectID:              mux.Vars(r)["projectID"],
-			DeleteAcceptedEvents:   deleteAccepted,
-			DeleteProcessingEvents: deleteProcessing,
-		},
-	); err != nil {
+	var err error
+	if eventID != "" {
+		_, err = s.service.DeleteEvent(
+			r.Context(),
+			eventID,
+			deleteAccepted,
+			deleteProcessing,
+		)
+	} else {
+		_, err = s.service.DeleteEventsByProject(
+			r.Context(),
+			projectID,
+			deleteAccepted,
+			deleteProcessing,
+		)
+	}
+	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error deleting events"),
 		)
@@ -40,5 +51,6 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: We should respond with a count of how many were deleted
 	s.writeResponse(w, http.StatusOK, responseEmptyJSON)
 }

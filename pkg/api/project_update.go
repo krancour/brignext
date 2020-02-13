@@ -17,18 +17,6 @@ func (s *server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	if _, ok, err :=
-		s.store.GetProject(id); err != nil {
-		log.Println(
-			errors.Wrapf(err, "error checking for existing project %q", id),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	} else if !ok {
-		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
-		return
-	}
-
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println(
@@ -59,11 +47,19 @@ func (s *server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.store.UpdateProject(project); err != nil {
+	if id != project.ID {
+		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
+		return
+	}
+
+	if ok, err := s.service.UpdateProject(r.Context(), project); err != nil {
 		log.Println(
 			errors.Wrapf(err, "error updating project %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		return
+	} else if !ok {
+		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}
 

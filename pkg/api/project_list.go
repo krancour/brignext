@@ -11,7 +11,7 @@ import (
 func (s *server) projectList(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	projects, err := s.store.GetProjects()
+	projects, err := s.service.GetProjects(r.Context())
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error retrieving all projects"),

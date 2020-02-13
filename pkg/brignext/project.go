@@ -34,18 +34,15 @@ type Project struct {
 func (p *Project) GetWorkers(
 	eventProvider string,
 	eventType string,
-) []Worker {
-	workers := []Worker{}
+) map[string]Worker {
+	workers := map[string]Worker{}
 	for workerName, workerConfig := range p.WorkerConfigs {
 		if workerConfig.Matches(eventProvider, eventType) {
-			workers = append(
-				workers,
-				Worker{
-					Name:    workerName,
-					Image:   workerConfig.Image,
-					Command: workerConfig.Command,
-				},
-			)
+			workers[workerName] = Worker{
+				Image:   workerConfig.Image,
+				Command: workerConfig.Command,
+				Status:  WorkerStatusPending,
+			}
 		}
 	}
 	return workers

@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/krancour/brignext/pkg/brignext"
-	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -48,11 +47,8 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, ok, err := s.store.GetServiceAccount(
-		storage.GetServiceAccountCriteria{
-			ServiceAccountID: serviceAccount.ID,
-		},
-	); err != nil {
+	if _, ok, err :=
+		s.service.GetServiceAccount(r.Context(), serviceAccount.ID); err != nil {
 		log.Println(
 			errors.Wrapf(
 				err,
@@ -67,7 +63,7 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := s.store.CreateServiceAccount(serviceAccount)
+	token, err := s.service.CreateServiceAccount(r.Context(), serviceAccount)
 	if err != nil {
 		log.Println(
 			errors.Wrapf(

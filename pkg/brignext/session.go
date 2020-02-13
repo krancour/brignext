@@ -5,10 +5,12 @@ import (
 )
 
 type Session struct {
-	ID            string    `json:"id,omitempty" bson:"_id,omitempty"`
-	Root          bool      `json:"root,omitempty" bson:"root,omitempty"`
-	Authenticated bool      `json:"authenticated,omitempty" bson:"authenticated,omitempty"` // nolint: lll
-	UserID        string    `json:"userID,omitempty" bson:"userID,omitempty"`
-	Created       time.Time `json:"created,omitempty" bson:"created,omitempty"`
-	Expires       time.Time `json:"expires,omitempty" bson:"expires,omitempty"`
+	ID                string    `json:"-" bson:"_id,omitempty"`
+	Root              bool      `json:"-" bson:"root,omitempty"`
+	Authenticated     bool      `json:"-" bson:"authenticated,omitempty"`
+	UserID            string    `json:"-" bson:"userID,omitempty"`
+	HashedOAuth2State string    `json:"-" bson:"hashedOAuth2State,omitempty"`
+	HashedToken       string    `json:"-" bson:"hashedToken,omitempty"`
+	Created           time.Time `json:"-" bson:"created,omitempty"`
+	Expires           time.Time `json:"-" bson:"expires,omitempty"`
 }

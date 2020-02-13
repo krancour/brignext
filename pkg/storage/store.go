@@ -1,80 +1,76 @@
 package storage
 
 import (
+	"context"
+	"time"
+
 	"github.com/krancour/brignext/pkg/brignext"
 )
 
 type Store interface {
-	CreateUser(user brignext.User) error
-	GetUsers() ([]brignext.User, error)
-	GetUser(id string) (brignext.User, bool, error)
-	LockUser(id string) error
-	UnlockUser(id string) error
+	DoTx(context.Context, func(context.Context) error) error
 
-	CreateSession(session brignext.Session) (string, string, string, error)
-	GetSession(criteria GetSessionCriteria) (brignext.Session, bool, error)
-	AuthenticateSession(sessionID, userID string) error
-	DeleteSessions(criteria DeleteSessionsCriteria) error
+	CreateUser(context.Context, brignext.User) error
+	GetUsers(context.Context) ([]brignext.User, error)
+	GetUser(context.Context, string) (brignext.User, bool, error)
+	LockUser(context.Context, string) (bool, error)
+	UnlockUser(context.Context, string) (bool, error)
 
-	CreateServiceAccount(serviceAccount brignext.ServiceAccount) (string, error)
-	GetServiceAccounts() ([]brignext.ServiceAccount, error)
+	CreateSession(context.Context, brignext.Session) error
+	GetSessionByHashedOAuth2State(
+		context.Context,
+		string,
+	) (brignext.Session, bool, error)
+	GetSessionByHashedToken(
+		context.Context,
+		string,
+	) (brignext.Session, bool, error)
+	AuthenticateSession(
+		ctx context.Context,
+		sessionID string,
+		userID string,
+		expires time.Time,
+	) (bool, error)
+	DeleteSession(context.Context, string) (bool, error)
+	DeleteSessionsByUser(context.Context, string) (int64, error)
+
+	CreateServiceAccount(context.Context, brignext.ServiceAccount) error
+	GetServiceAccounts(context.Context) ([]brignext.ServiceAccount, error)
 	GetServiceAccount(
-		criteria GetServiceAccountCriteria,
+		context.Context,
+		string,
 	) (brignext.ServiceAccount, bool, error)
-	LockServiceAccount(id string) error
-	UnlockServiceAccount(id string) (string, error)
+	GetServiceAccountByHashedToken(
+		context.Context,
+		string,
+	) (brignext.ServiceAccount, bool, error)
+	LockServiceAccount(context.Context, string) (bool, error)
+	UnlockServiceAccount(
+		ctx context.Context,
+		id string,
+		newHashedToken string,
+	) (bool, error)
 
-	CreateProject(project brignext.Project) (string, error)
-	GetProjects() ([]brignext.Project, error)
-	GetProject(id string) (brignext.Project, bool, error)
-	UpdateProject(project brignext.Project) error
-	DeleteProject(id string) error
+	CreateProject(context.Context, brignext.Project) error
+	GetProjects(context.Context) ([]brignext.Project, error)
+	GetProject(context.Context, string) (brignext.Project, bool, error)
+	UpdateProject(context.Context, brignext.Project) (bool, error)
+	DeleteProject(context.Context, string) (bool, error)
 
-	CreateEvent(event brignext.Event) (string, error)
-	GetEvents(criteria GetEventsCriteria) ([]brignext.Event, error)
-	GetEvent(id string) (brignext.Event, bool, error)
-	// TODO:
-	// CancelEvents(criteria CancelEventsCriteria) error
-	DeleteEvents(criteria DeleteEventsCriteria) error
-
-	// TODO:
-	// CancelWorker(criteria CancelWorkerCriteria) error
+	CreateEvent(context.Context, brignext.Event) error
+	GetEvents(context.Context) ([]brignext.Event, error)
+	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
+	GetEvent(context.Context, string) (brignext.Event, bool, error)
+	DeleteEvent(
+		ctx context.Context,
+		id string,
+		deleteAccepted bool,
+		deleteProcessing bool,
+	) (bool, error)
+	DeleteEventsByProject(
+		ctx context.Context,
+		projectID string,
+		deleteAccepted bool,
+		deleteProcessing bool,
+	) (int64, error)
 }
-
-type GetSessionCriteria struct {
-	OAuth2State string
-	Token       string
-}
-
-type DeleteSessionsCriteria struct {
-	SessionID string
-	UserID    string
-}
-
-type GetServiceAccountCriteria struct {
-	ServiceAccountID string
-	Token            string
-}
-
-type GetEventsCriteria struct {
-	ProjectID string
-}
-
-// type CancelEventsCriteria struct {
-// 	ProjectID             string
-// 	EventID               string
-// 	AbortProcessingEvents bool
-// }
-
-type DeleteEventsCriteria struct {
-	ProjectID              string
-	EventID                string
-	DeleteAcceptedEvents   bool
-	DeleteProcessingEvents bool
-}
-
-// type CancelWorkerCriteria struct {
-// 	EventID             string
-// 	WorkerName          string
-// 	AbortRunningWorkers bool
-// }

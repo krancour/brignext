@@ -13,11 +13,14 @@ func (s *server) userUnlock(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	if err := s.store.UnlockUser(id); err != nil {
+	if ok, err := s.service.UnlockUser(r.Context(), id); err != nil {
 		log.Println(
 			errors.Wrapf(err, "error unlocking user %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		return
+	} else if !ok {
+		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}
 

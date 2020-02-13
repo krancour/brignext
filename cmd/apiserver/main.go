@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/krancour/brignext/pkg/api"
+	"github.com/krancour/brignext/pkg/brignext/service"
 	mongodbUtils "github.com/krancour/brignext/pkg/mongodb"
 	"github.com/krancour/brignext/pkg/oidc"
 	"github.com/krancour/brignext/pkg/storage/mongodb"
@@ -41,6 +42,8 @@ func main() {
 	}
 	logStore := mongodb.NewLogStore(database)
 
+	service := service.NewService(store, logStore)
+
 	// // TODO: Do something with this
 	// // Queues (Redis)
 	// redisClient, err := redis.Client()
@@ -53,8 +56,7 @@ func main() {
 			apiConfig,
 			oauth2Config,
 			oidcIdentityVerifier,
-			store,
-			logStore,
+			service,
 		).ListenAndServe(),
 	)
 }

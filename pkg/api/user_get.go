@@ -14,7 +14,7 @@ func (s *server) userGet(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	user, ok, err := s.store.GetUser(id)
+	user, ok, err := s.service.GetUser(r.Context(), id)
 	if err != nil {
 		log.Println(
 			errors.Wrapf(err, "error retrieving user %q", id),

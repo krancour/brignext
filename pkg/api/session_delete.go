@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/krancour/brignext/pkg/http/filters/auth"
-	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
 )
 
@@ -22,11 +21,7 @@ func (s *server) sessionDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.store.DeleteSessions(
-		storage.DeleteSessionsCriteria{
-			SessionID: sessionID,
-		},
-	); err != nil {
+	if _, err := s.service.DeleteSession(r.Context(), sessionID); err != nil {
 		log.Println(
 			errors.Wrap(err, "error deleting session"),
 		)

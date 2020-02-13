@@ -5,9 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
-
-	"github.com/krancour/brignext/pkg/brignext"
 
 	"github.com/krancour/brignext/pkg/crypto"
 	"github.com/pkg/errors"
@@ -39,13 +36,7 @@ func (s *server) sessionCreate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_, _, token, err := s.store.CreateSession(
-			brignext.Session{
-				Root:          true,
-				Authenticated: true,
-				Expires:       time.Now().Add(10 * time.Minute),
-			},
-		)
+		token, err := s.service.CreateRootSession(r.Context())
 		if err != nil {
 			log.Println(
 				errors.Wrap(err, "error creating new root session"),
@@ -78,7 +69,7 @@ func (s *server) sessionCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, oauth2State, token, err := s.store.CreateSession(brignext.Session{})
+	oauth2State, token, err := s.service.CreateUserSession(r.Context())
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error creating new session"),

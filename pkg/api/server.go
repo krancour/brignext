@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/krancour/brignext/pkg/brignext"
+	"github.com/krancour/brignext/pkg/brignext/service"
 
 	"github.com/xeipuuv/gojsonschema"
 
@@ -13,7 +13,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/pkg/file"
 	"github.com/krancour/brignext/pkg/http/filters/auth"
-	"github.com/krancour/brignext/pkg/storage"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"golang.org/x/oauth2"
@@ -30,8 +29,7 @@ type server struct {
 	apiServerConfig            Config
 	oauth2Config               *oauth2.Config
 	oidcTokenVerifier          *oidc.IDTokenVerifier
-	store                      storage.Store
-	logStore                   storage.LogStore
+	service                    service.Service
 	router                     *mux.Router
 	serviceAccountSchemaLoader gojsonschema.JSONLoader
 	projectSchemaLoader        gojsonschema.JSONLoader
@@ -43,15 +41,13 @@ func NewServer(
 	apiServerConfig Config,
 	oauth2Config *oauth2.Config,
 	oidcTokenVerifier *oidc.IDTokenVerifier,
-	store storage.Store,
-	logStore storage.LogStore,
+	service service.Service,
 ) Server {
 	s := &server{
 		apiServerConfig:            apiServerConfig,
 		oauth2Config:               oauth2Config,
 		oidcTokenVerifier:          oidcTokenVerifier,
-		store:                      store,
-		logStore:                   logStore,
+		service:                    service,
 		router:                     mux.NewRouter(),
 		serviceAccountSchemaLoader: gojsonschema.NewBytesLoader(serviceAccountSchemaBytes), // nolint: lll
 		projectSchemaLoader:        gojsonschema.NewBytesLoader(projectSchemaBytes),
@@ -60,14 +56,8 @@ func NewServer(
 
 	// Most requests are authenticated with a bearer token
 	tokenAuthFilter := auth.NewTokenAuthFilter(
-		func(token string) (brignext.Session, bool, error) {
-			return store.GetSession(
-				storage.GetSessionCriteria{
-					Token: token,
-				},
-			)
-		},
-		store.GetUser,
+		service.GetSessionByToken,
+		service.GetUser,
 		apiServerConfig.RootUserEnabled(),
 	)
 

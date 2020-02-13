@@ -14,12 +14,15 @@ func (s *server) serviceAccountUnlock(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	token, err := s.store.UnlockServiceAccount(id);
+	token, ok, err := s.service.UnlockServiceAccount(r.Context(), id)
 	if err != nil {
 		log.Println(
 			errors.Wrapf(err, "error unlocking service account %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		return
+	} else if !ok {
+		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}
 

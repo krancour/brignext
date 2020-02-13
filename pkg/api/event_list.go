@@ -5,16 +5,20 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/krancour/brignext/pkg/storage"
+	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 )
 
 func (s *server) eventList(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	events, err := s.store.GetEvents(storage.GetEventsCriteria{
-		ProjectID: r.URL.Query().Get("projectID"),
-	})
+	var events []brignext.Event
+	var err error
+	if projectID := r.URL.Query().Get("projectID"); projectID != "" {
+		events, err = s.service.GetEventsByProject(r.Context(), projectID)
+	} else {
+		events, err = s.service.GetEvents(r.Context())
+	}
 	if err != nil {
 		log.Println(errors.Wrap(err, "error retrieving events"))
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
