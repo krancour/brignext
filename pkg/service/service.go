@@ -6,6 +6,7 @@ import (
 
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/krancour/brignext/pkg/crypto"
+	"github.com/krancour/brignext/pkg/scheduler"
 	"github.com/krancour/brignext/pkg/storage"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -71,14 +72,20 @@ type Service interface {
 }
 
 type service struct {
-	store    storage.Store
-	logStore storage.LogStore
+	store     storage.Store
+	scheduler scheduler.Scheduler
+	logStore  storage.LogStore
 }
 
-func NewService(store storage.Store, logStore storage.LogStore) Service {
+func NewService(
+	store storage.Store,
+	scheduler scheduler.Scheduler,
+	logStore storage.LogStore,
+) Service {
 	return &service{
-		store:    store,
-		logStore: logStore,
+		store:     store,
+		scheduler: scheduler,
+		logStore:  logStore,
 	}
 }
 
@@ -431,6 +438,14 @@ func (s *service) DeleteProject(ctx context.Context, id string) (bool, error) {
 			)
 		}
 
+		if err := s.scheduler.AbortWorkersByProject(id); err != nil {
+			return errors.Wrapf(
+				err,
+				"error aborting running workers for project %q",
+				id,
+			)
+		}
+
 		return nil
 	})
 	return ok, err
@@ -461,8 +476,36 @@ func (s *service) CreateEvent(
 	now := time.Now()
 	event.Created = &now
 
-	if err := s.store.CreateEvent(ctx, event); err != nil {
-		return "", false, errors.Wrapf(err, "error storing new event %q", event.ID)
+	if err := s.store.DoTx(ctx, func(ctx context.Context) error {
+
+		if err := s.store.CreateEvent(ctx, event); err != nil {
+			return errors.Wrapf(err, "error storing new event %q", event.ID)
+		}
+
+		workerNames := make([]string, len(event.Workers))
+		var i int
+		for workerName := range event.Workers {
+			workerNames[i] = workerName
+			i++
+		}
+		// There's deliberately a short delay here to minimize the possibility of
+		// a worker executor trying (and failing) to locate this new event before
+		// the transaction on the store has become durable.
+		if err := s.scheduler.ScheduleWorkers(
+			event.ID,
+			workerNames,
+			5*time.Second,
+		); err != nil {
+			return errors.Wrapf(
+				err,
+				"error scheduling workers for new event %q",
+				event.ID,
+			)
+		}
+
+		return nil
+	}); err != nil {
+		return "", false, err
 	}
 
 	return event.ID, true, nil
@@ -512,11 +555,29 @@ func (s *service) DeleteEvent(
 	deleteAccepted bool,
 	deleteProcessing bool,
 ) (bool, error) {
-	ok, err := s.store.DeleteEvent(ctx, id, deleteAccepted, deleteProcessing)
-	if err != nil {
-		return false, errors.Wrapf(err, "error removing event %q from store", id)
-	}
-	return ok, nil
+	var ok bool
+	err := s.store.DoTx(ctx, func(ctx context.Context) error {
+
+		var err error
+		ok, err = s.store.DeleteEvent(ctx, id, deleteAccepted, deleteProcessing)
+		if err != nil {
+			return errors.Wrapf(err, "error removing event %q from store", id)
+		}
+
+		if deleteProcessing {
+			if err := s.scheduler.AbortWorkersByEvent(id); err != nil {
+				return errors.Wrapf(
+					err,
+					"error aborting running workers for event %q",
+					id,
+				)
+			}
+		}
+
+		return nil
+	})
+
+	return ok, err
 }
 
 func (s *service) DeleteEventsByProject(

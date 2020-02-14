@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/krancour/brignext/pkg/brignext/service"
+	"github.com/krancour/brignext/pkg/service"
 
 	"github.com/xeipuuv/gojsonschema"
 

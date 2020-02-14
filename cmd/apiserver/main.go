@@ -3,10 +3,14 @@ package main
 import (
 	"log"
 
+	async "github.com/deis/async/redis"
+	"github.com/golang/glog"
 	"github.com/krancour/brignext/pkg/api"
-	"github.com/krancour/brignext/pkg/brignext/service"
+	"github.com/krancour/brignext/pkg/kubernetes"
 	mongodbUtils "github.com/krancour/brignext/pkg/mongodb"
 	"github.com/krancour/brignext/pkg/oidc"
+	"github.com/krancour/brignext/pkg/scheduler"
+	"github.com/krancour/brignext/pkg/service"
 	"github.com/krancour/brignext/pkg/storage/mongodb"
 	"github.com/krancour/brignext/pkg/version"
 )
@@ -25,7 +29,7 @@ func main() {
 	}
 
 	// OpenID Connect config
-	oauth2Config, oidcIdentityVerifier, err :=
+	oidcConfig, oidcIdentityVerifier, err :=
 		oidc.GetConfigAndVerifierFromEnvironment()
 	if err != nil {
 		log.Fatal(err)
@@ -42,19 +46,32 @@ func main() {
 	}
 	logStore := mongodb.NewLogStore(database)
 
-	service := service.NewService(store, logStore)
+	// Scheduler
+	asyncConfig, err := async.GetConfigFromEnvironment()
+	if err != nil {
+		log.Fatal(err)
+	}
+	asyncEngine := async.NewEngine(asyncConfig)
+	kubeClient, err := kubernetes.Client()
+	if err != nil {
+		glog.Fatal(err)
+	}
+	brignextNamespace, err := kubernetes.BrigNextNamespace()
+	if err != nil {
+		glog.Fatal(err)
+	}
+	scheduler := scheduler.NewScheduler(
+		asyncEngine,
+		kubeClient,
+		brignextNamespace,
+	)
 
-	// // TODO: Do something with this
-	// // Queues (Redis)
-	// redisClient, err := redis.Client()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	service := service.NewService(store, scheduler, logStore)
 
 	log.Println(
 		api.NewServer(
 			apiConfig,
-			oauth2Config,
+			oidcConfig,
 			oidcIdentityVerifier,
 			service,
 		).ListenAndServe(),

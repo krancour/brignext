@@ -10,6 +10,15 @@
   version = "v1.4.4"
 
 [[projects]]
+  branch = "split-streams"
+  digest = "1:0c787a485f74d7d6efe0438edcfaa695dfebd13ef2ab94c9bf24a5bfc6531aa0"
+  name = "github.com/Sirupsen/logrus"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "9da25b464c10092c58bc53d56e44d04213e84496"
+  source = "github.com/krancour/logrus"
+
+[[projects]]
   branch = "master"
   digest = "1:faf7b55485c867e626f0787be6d46766d31b89d59badacfca99a57c117374e73"
   name = "github.com/brigadecore/brigade"
@@ -34,6 +43,17 @@
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:c8d8e8d9ec0d570887977f516d003a5fd1de54c48beb7fa3ee4a71c5ad4c743b"
+  name = "github.com/deis/async"
+  packages = [
+    ".",
+    "redis",
+  ]
+  pruneopts = "UT"
+  revision = "e407b15739b9f1a994c3ac7c93dc8f4f439d0762"
+  version = "v1.1.0"
+
+[[projects]]
   digest = "1:bde2a1ce1de28312f165a88926c12f4acd19dc4d7da96a445dfa5a29eae07a93"
   name = "github.com/fatih/color"
   packages = ["."]
@@ -48,6 +68,22 @@
   pruneopts = "UT"
   revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
   version = "v1.0.0"
+
+[[projects]]
+  digest = "1:e17320223c7c866dfbec405efe8abc8e383ccad131fb76ca7ff70580dafb9067"
+  name = "github.com/go-redis/redis"
+  packages = [
+    ".",
+    "internal",
+    "internal/consistenthash",
+    "internal/hashtag",
+    "internal/pool",
+    "internal/proto",
+    "internal/util",
+  ]
+  pruneopts = "UT"
+  revision = "99cd690a7019656b0b67c6664453f27a6d8a658e"
+  version = "v6.15.7"
 
 [[projects]]
   digest = "1:586ea76dbd0374d6fb649a91d70d652b7fe0ccffb8910a77468e7702e7901f3d"
@@ -641,6 +677,10 @@
   input-imports = [
     "github.com/brigadecore/brigade/pkg/brigade",
     "github.com/coreos/go-oidc",
+    "github.com/deis/async",
+    "github.com/deis/async/redis",
+    "github.com/go-redis/redis",
+    "github.com/golang/glog",
     "github.com/gorilla/mux",
     "github.com/gosuri/uitable",
     "github.com/kelseyhightower/envconfig",
@@ -658,8 +698,11 @@
     "golang.org/x/net/http2",
     "golang.org/x/net/http2/h2c",
     "golang.org/x/oauth2",
+    "k8s.io/apimachinery/pkg/apis/meta/v1",
+    "k8s.io/apimachinery/pkg/labels",
     "k8s.io/apimachinery/pkg/util/duration",
     "k8s.io/client-go/kubernetes",
+    "k8s.io/client-go/kubernetes/typed/core/v1",
     "k8s.io/client-go/rest",
     "k8s.io/client-go/tools/clientcmd",
   ]

@@ -89,7 +89,7 @@ spec:
             secretKeyRef:
               name: {{ include "call-nested" (list . "redis" "redis.fullname") }}
               key: redis-password
-        - name: REDIS_DATABASE
+        - name: REDIS_DB
           value: {{ quote .Values.apiserver.redis.database }}
         {{- if .Values.apiserver.tls.enabled }}
         volumeMounts:
