@@ -9,10 +9,12 @@
           "types": ["exec"]
         }
       ],
-      "image": {
-        "repository": "brigadecore/brigade-worker",
-        "tag": "v1.2.1",
-        "pullPolicy": "IfNotPresent"
+      "container": {
+        "image": {
+          "repository": "brigadecore/brigade-worker",
+          "tag": "v1.2.1",
+          "pullPolicy": "IfNotPresent"
+        }
       }
     },
     "myGitHubWorker": {

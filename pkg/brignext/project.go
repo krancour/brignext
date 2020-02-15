@@ -50,9 +50,9 @@ func (p *Project) GetWorkers(
 	for workerName, workerConfig := range p.Workers {
 		if workerConfig.Matches(eventProvider, eventType) {
 			workers[workerName] = Worker{
-				Image:   workerConfig.Image,
-				Command: workerConfig.Command,
-				Status:  WorkerStatusPending,
+				InitContainer: workerConfig.InitContainer,
+				Container:     workerConfig.Container,
+				Status:        WorkerStatusPending,
 			}
 		}
 	}

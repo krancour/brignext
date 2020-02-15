@@ -57,6 +57,18 @@ var projectSchemaBytes = []byte(`
 			}
 		},
 
+		"containerConfig": {
+			"type": "object",
+			"description": "Configuration for an OCI container",
+			"properties": {
+				"image": { "$ref": "#/definitions/image" },
+				"command": {
+					"type": "string",
+					"description": "The command to execute within the container"
+				}
+			}
+		},
+
 		"triggeringEvents": {
 			"type": "object",
 			"description": "Describes a set of events that trigger a worker",
@@ -85,10 +97,13 @@ var projectSchemaBytes = []byte(`
 					"description": "The events that trigger this worker",
 					"items": { "$ref": "#/definitions/triggeringEvents" }
 				},
-				"image": { "$ref": "#/definitions/image" },
-				"command": {
-					"type": "string",
-					"description": "The command to execute within the worker container"
+				"initContainer": {
+					"allOf": [{ "$ref": "#/definitions/containerConfig" }],
+					"description": "Configuration for the worker's init container"		
+				},
+				"container": {
+					"allOf": [{ "$ref": "#/definitions/containerConfig" }],
+					"description": "Configuration for the worker's main container"
 				}
 			}
 		}

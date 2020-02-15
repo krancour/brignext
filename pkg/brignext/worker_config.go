@@ -3,8 +3,8 @@ package brignext
 // nolint: lll
 type WorkerConfig struct {
 	TriggeringEvents []TriggeringEvents `json:"events,omitempty" bson:"events,omitempty"`
-	Image            *Image             `json:"image,omitempty" bson:"image,omitempty"`
-	Command          string             `json:"command,omitempty" bson:"command,omitempty"`
+	InitContainer    *ContainerConfig   `json:"initContainer,omitempty" bson:"initContainer,omitempty"`
+	Container        *ContainerConfig   `json:"container,omitempty" bson:"container,omitempty"`
 }
 
 type TriggeringEvents struct {

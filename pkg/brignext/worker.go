@@ -27,10 +27,10 @@ const (
 
 // nolint: lll
 type Worker struct {
-	Image   *Image       `json:"image,omitempty" bson:"image,omitempty"`
-	Command string       `json:"command,omitempty" bson:"command,omitempty"`
-	Started *time.Time   `json:"started,omitempty" bson:"started,omitempty"`
-	Ended   *time.Time   `json:"ended,omitempty" bson:"ended,omitempty"`
-	Status  WorkerStatus `json:"status,omitempty" bson:"status,omitempty"`
+	InitContainer *ContainerConfig `json:"initContainer,omitempty" bson:"initContainer,omitempty"`
+	Container     *ContainerConfig `json:"container,omitempty" bson:"container,omitempty"`
+	Started       *time.Time       `json:"started,omitempty" bson:"started,omitempty"`
+	Ended         *time.Time       `json:"ended,omitempty" bson:"ended,omitempty"`
+	Status        WorkerStatus     `json:"status,omitempty" bson:"status,omitempty"`
 	// ExitCode  *int32       `json:"exitCode,omitempty" bson:"exitCode,omitempty"`
 }
