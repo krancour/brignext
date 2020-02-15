@@ -19,14 +19,6 @@
   source = "github.com/krancour/logrus"
 
 [[projects]]
-  branch = "master"
-  digest = "1:faf7b55485c867e626f0787be6d46766d31b89d59badacfca99a57c117374e73"
-  name = "github.com/brigadecore/brigade"
-  packages = ["pkg/brigade"]
-  pruneopts = "UT"
-  revision = "9cd050ac7f3ea82e44cbde6164d4dbf681dc5c9b"
-
-[[projects]]
   digest = "1:910c5b111ca13127693df80a59be2c952ad97313626116c0c9895e7b588f2a29"
   name = "github.com/coreos/go-oidc"
   packages = ["."]
@@ -675,7 +667,6 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/brigadecore/brigade/pkg/brigade",
     "github.com/coreos/go-oidc",
     "github.com/deis/async",
     "github.com/deis/async/redis",

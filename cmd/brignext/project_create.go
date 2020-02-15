@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/brigadecore/brigade/pkg/brigade"
+	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -30,7 +30,7 @@ func projectCreate(c *cli.Context) error {
 		return errors.Wrapf(err, "error reading project file %s", filename)
 	}
 
-	project := brigade.Project{}
+	project := brignext.Project{}
 	if err := json.Unmarshal(projectBytes, &project); err != nil {
 		return errors.Wrapf(err, "error unmarshaling project file %s", filename)
 	}
