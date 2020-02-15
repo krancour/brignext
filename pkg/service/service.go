@@ -379,7 +379,7 @@ func (s *service) CreateProject(
 		)
 	}
 
-	project.Kubernetes.Namespace = namespace
+	project.Namespace = namespace
 	now := time.Now()
 	project.Created = &now
 	if err := s.store.CreateProject(ctx, project); err != nil {
@@ -456,12 +456,12 @@ func (s *service) DeleteProject(ctx context.Context, id string) (bool, error) {
 		}
 
 		if err := s.scheduler.DeleteProjectNamespace(
-			project.Kubernetes.Namespace,
+			project.Namespace,
 		); err != nil {
 			return errors.Wrapf(
 				err,
 				"error deleting namespace %q for project %q",
-				project.Kubernetes.Namespace,
+				project.Namespace,
 				id,
 			)
 		}
@@ -475,7 +475,8 @@ func (s *service) CreateEvent(
 	ctx context.Context,
 	event brignext.Event,
 ) (string, bool, error) {
-	project, ok, err := s.store.GetProject(ctx, event.ProjectID)
+	// Make sure the project exists
+	_, ok, err := s.store.GetProject(ctx, event.ProjectID)
 	if err != nil {
 		return "", false, errors.Wrapf(
 			err,
@@ -487,13 +488,17 @@ func (s *service) CreateEvent(
 	}
 
 	event.ID = uuid.NewV4().String()
-	event.Workers = project.GetWorkers(event.Provider, event.Type)
-	if len(event.Workers) == 0 {
-		event.Status = brignext.EventStatusMoot
-	} else {
-		event.Kubernetes = &project.Kubernetes
-		event.Status = brignext.EventStatusAccepted
-	}
+	// TODO: This is something that should be done when we start PROCESSING the
+	// event instead of when the event is created. This way the latest project
+	// confiugration is always applied when determining what workers to create
+	// and execute.
+	// event.Workers = project.GetWorkers(event.Provider, event.Type)
+	// if len(event.Workers) == 0 {
+	// 	event.Status = brignext.EventStatusMoot
+	// } else {
+	// 	event.Namespace = project.Namespace
+	// }
+	event.Status = brignext.EventStatusAccepted
 	now := time.Now()
 	event.Created = &now
 
@@ -503,21 +508,10 @@ func (s *service) CreateEvent(
 			return errors.Wrapf(err, "error storing new event %q", event.ID)
 		}
 
-		workerNames := make([]string, len(event.Workers))
-		var i int
-		for workerName := range event.Workers {
-			workerNames[i] = workerName
-			i++
-		}
 		// There's deliberately a short delay here to minimize the possibility of
-		// a worker executor trying (and failing) to locate this new event before
+		// the controller trying (and failing) to locate this new event before
 		// the transaction on the store has become durable.
-		if err := s.scheduler.ScheduleWorkers(
-			event.Kubernetes.Namespace,
-			event.ID,
-			workerNames,
-			5*time.Second,
-		); err != nil {
+		if err := s.scheduler.ScheduleEvent(event.ID, 5*time.Second); err != nil {
 			return errors.Wrapf(
 				err,
 				"error scheduling workers for new event %q",
@@ -594,7 +588,7 @@ func (s *service) DeleteEvent(
 
 		if deleteProcessing {
 			if err := s.scheduler.AbortWorkersByEvent(
-				event.Kubernetes.Namespace,
+				event.Namespace,
 				id,
 			); err != nil {
 				return errors.Wrapf(

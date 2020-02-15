@@ -22,12 +22,16 @@ const (
 
 type Scheduler interface {
 	CreateProjectNamespace(pojectID string) (string, error)
-	ScheduleWorkers(
-		namespace string,
+	ScheduleEvent(
 		eventID string,
-		workerNames []string,
 		delay time.Duration,
 	) error
+	// ScheduleWorkers(
+	// 	namespace string,
+	// 	eventID string,
+	// 	workerNames []string,
+	// 	delay time.Duration,
+	// ) error
 	AbortWorker(namespace, eventID, workerName string) error
 	AbortWorkersByEvent(namespace, eventID string) error
 	DeleteProjectNamespace(namespace string) error
@@ -69,48 +73,55 @@ func (s *sched) CreateProjectNamespace(projectID string) (string, error) {
 	return namespace, nil
 }
 
-func (s *sched) ScheduleWorkers(
-	namespace string,
+func (s *sched) ScheduleEvent(
 	eventID string,
-	workerNames []string,
 	delay time.Duration,
 ) error {
-	for _, workerName := range workerNames {
-		if err := s.asyncEngine.SubmitTask(
-			async.NewDelayedTask(
-				"executeWorker",
-				map[string]string{
-					"eventID":    eventID,
-					"workerName": workerName,
-				},
-				delay,
-			),
-		); err != nil {
-			return errors.Wrapf(
-				err,
-				"error submitting execute task for event %q worker %q",
-				eventID,
-				workerName,
-			)
-		}
-		if err := s.asyncEngine.SubmitTask(
-			async.NewDelayedTask(
-				"nannyEvent",
-				map[string]string{
-					"eventID": eventID,
-				},
-				delay,
-			),
-		); err != nil {
-			return errors.Wrapf(
-				err,
-				"error submitting nanny task for event %q",
-				eventID,
-			)
-		}
+	if err := s.asyncEngine.SubmitTask(
+		async.NewDelayedTask(
+			"processEvent",
+			map[string]string{
+				"eventID": eventID,
+			},
+			delay,
+		),
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error submitting processing task for event %q",
+			eventID,
+		)
 	}
 	return nil
 }
+
+// func (s *sched) ScheduleWorkers(
+// 	namespace string,
+// 	eventID string,
+// 	workerNames []string,
+// 	delay time.Duration,
+// ) error {
+// 	for _, workerName := range workerNames {
+// 		if err := s.asyncEngine.SubmitTask(
+// 			async.NewDelayedTask(
+// 				"executeWorker",
+// 				map[string]string{
+// 					"eventID":    eventID,
+// 					"workerName": workerName,
+// 				},
+// 				delay,
+// 			),
+// 		); err != nil {
+// 			return errors.Wrapf(
+// 				err,
+// 				"error submitting execute task for event %q worker %q",
+// 				eventID,
+// 				workerName,
+// 			)
+// 		}
+// 	}
+// 	return nil
+// }
 
 func (s *sched) AbortWorker(namespace, eventID, workerName string) error {
 	return s.deletePodsByLabelsMap(
