@@ -18,8 +18,6 @@ type Project struct {
 	// DefaultConfig     string     `json:"defaultConfig,omitempty" bson:"defaultConfig,omitempty"`
 	// DefaultConfigName string     `json:"defaultConfigName,omitempty" bson:"defaultConfigName,omitempty"`
 	// Kubernetes        Kubernetes `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
-	// TODO: We MUST encrypt this!
-	// SharedSecret string `json:"sharedSecret,omitempty" bson:"sharedSecret,omitempty"`
 	// Github       Github `json:"github,omitempty" bson:"github,omitempty"`
 	// // TODO: We MUST encrypt these!
 	// Secrets              map[string]string `json:"secrets,omitempty" bson:"secrets,omitempty"`
@@ -28,7 +26,6 @@ type Project struct {
 	// WorkerCommand        string            `json:"workerCommand,omitempty" bson:"workerCommand,omitempty"`
 	// BrigadejsPath        string            `json:"brigadejsPath,omitempty" bson:"brigadejsPath,omitempty"`
 	// BrigadeConfigPath    string            `json:"brigadeConfigPath,omitempty" bson:"brigadeConfigPath,omitempty"`
-	// GenericGatewaySecret string            `json:"genericGatewaySecret,omitempty" bson:"genericGatewaySecret,omitempty"`
 }
 
 // type KubernetesConfig struct {
