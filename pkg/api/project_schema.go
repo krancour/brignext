@@ -57,18 +57,6 @@ var projectSchemaBytes = []byte(`
 			}
 		},
 
-		"containerConfig": {
-			"type": "object",
-			"description": "Configuration for an OCI container",
-			"properties": {
-				"image": { "$ref": "#/definitions/image" },
-				"command": {
-					"type": "string",
-					"description": "The command to execute within the container"
-				}
-			}
-		},
-
 		"triggeringEvents": {
 			"type": "object",
 			"description": "Describes a set of events that trigger a worker",
@@ -83,6 +71,33 @@ var projectSchemaBytes = []byte(`
 					"type": "array",
 					"description": "Types of events from the provider",
 					"items": { "$ref": "#/definitions/identifier" }
+				}
+			}
+		},
+
+		"containerConfig": {
+			"type": "object",
+			"description": "Configuration for an OCI container",
+			"properties": {
+				"image": { "$ref": "#/definitions/image" },
+				"command": {
+					"type": "string",
+					"description": "The command to execute within the container"
+				}
+			}
+		},
+
+		"jobsConfig": {
+			"type": "object",
+			"description": "Configuration for any job containers the worker container might fan out to",
+			"properties": {
+				"allowPrivileged": {
+					"type": "boolean",
+					"description": "Whether job containers are permitted to be run as privileged"
+				},
+				"allowHostMounts": {
+					"type": "boolean",
+					"description": "Whether job containers are permitted to mount files or directories from the container host"
 				}
 			}
 		},
@@ -104,7 +119,8 @@ var projectSchemaBytes = []byte(`
 				"container": {
 					"allOf": [{ "$ref": "#/definitions/containerConfig" }],
 					"description": "Configuration for the worker's main container"
-				}
+				},
+				"jobs": { "$ref": "#/definitions/jobsConfig" }
 			}
 		}
 

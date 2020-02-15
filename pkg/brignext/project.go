@@ -24,8 +24,6 @@ type Project struct {
 	// // TODO: We MUST encrypt these!
 	// Secrets              map[string]string `json:"secrets,omitempty" bson:"secrets,omitempty"`
 	// InitGitSubmodules    bool              `json:"initGitSubmodules,omitempty" bson:"initGitSubmodules,omitempty"`
-	// AllowPrivilegedJobs  bool              `json:"allowPrivilegedJobs,omitempty" bson:"allowPrivilegedJobs,omitempty"`
-	// AllowHostMounts      bool              `json:"allowHostMounts,omitempty" bson:"allowHostMounts,omitempty"`
 	// ImagePullSecrets     string            `json:"imagePullSecrets,omitempty" bson:"imagePullSecrets,omitempty"`
 	// WorkerCommand        string            `json:"workerCommand,omitempty" bson:"workerCommand,omitempty"`
 	// BrigadejsPath        string            `json:"brigadejsPath,omitempty" bson:"brigadejsPath,omitempty"`
@@ -39,6 +37,7 @@ type Project struct {
 // 	// BuildStorageClass string `json:"buildStorageClass,omitempty" bson:"buildStorageClass,omitempty"`
 // 	// CacheStorageClass string `json:"cacheStorageClass,omitempty" bson:"cacheStorageClass,omitempty"`
 // 	// AllowSecretKeyRef bool   `json:"allowSecretKeyRef,omitempty" bson:"allowSecretKeyRef,omitempty"`
+// TODO: Service account should be automatically created when the project namespace is created
 // 	// ServiceAccount    string `json:"serviceAccount,omitempty" bson:"serviceAccount,omitempty"`
 // }
 
@@ -52,6 +51,7 @@ func (p *Project) GetWorkers(
 			workers[workerName] = Worker{
 				InitContainer: workerConfig.InitContainer,
 				Container:     workerConfig.Container,
+				Jobs:          workerConfig.Jobs,
 				Status:        WorkerStatusPending,
 			}
 		}
