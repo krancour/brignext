@@ -11,32 +11,19 @@ type Project struct {
 	Workers     map[string]WorkerConfig `json:"workers,omitempty" bson:"workers,omitempty"`
 	Namespace   string                  `json:"namespace,omitempty" bson:"namespace,omitempty"`
 	Created     *time.Time              `json:"created,omitempty" bson:"created,omitempty"`
-	// Kubernetes  KubernetesConfig        `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
 	// Repo        Repo   `json:"repo,omitempty" bson:"repo,omitempty"`
 	// DefaultScript     string     `json:"defaultScript,omitempty" bson:"defaultScript,omitempty"`
 	// DefaultScriptName string     `json:"defaultScriptName,omitempty" bson:"defaultScriptName,omitempty"`
 	// DefaultConfig     string     `json:"defaultConfig,omitempty" bson:"defaultConfig,omitempty"`
 	// DefaultConfigName string     `json:"defaultConfigName,omitempty" bson:"defaultConfigName,omitempty"`
-	// Kubernetes        Kubernetes `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
 	// Github       Github `json:"github,omitempty" bson:"github,omitempty"`
 	// // TODO: We MUST encrypt these!
 	// Secrets              map[string]string `json:"secrets,omitempty" bson:"secrets,omitempty"`
 	// InitGitSubmodules    bool              `json:"initGitSubmodules,omitempty" bson:"initGitSubmodules,omitempty"`
 	// ImagePullSecrets     string            `json:"imagePullSecrets,omitempty" bson:"imagePullSecrets,omitempty"`
-	// WorkerCommand        string            `json:"workerCommand,omitempty" bson:"workerCommand,omitempty"`
 	// BrigadejsPath        string            `json:"brigadejsPath,omitempty" bson:"brigadejsPath,omitempty"`
 	// BrigadeConfigPath    string            `json:"brigadeConfigPath,omitempty" bson:"brigadeConfigPath,omitempty"`
 }
-
-// type KubernetesConfig struct {
-// 	// VCSSidecar        string `json:"vcsSidecar,omitempty" bson:"vcsSidecar,omitempty"`
-// 	// BuildStorageSize  string `json:"buildStorageSize,omitempty" bson:"buildStorageSize,omitempty"`
-// 	// BuildStorageClass string `json:"buildStorageClass,omitempty" bson:"buildStorageClass,omitempty"`
-// 	// CacheStorageClass string `json:"cacheStorageClass,omitempty" bson:"cacheStorageClass,omitempty"`
-// 	// AllowSecretKeyRef bool   `json:"allowSecretKeyRef,omitempty" bson:"allowSecretKeyRef,omitempty"`
-// TODO: Service account should be automatically created when the project namespace is created
-// 	// ServiceAccount    string `json:"serviceAccount,omitempty" bson:"serviceAccount,omitempty"`
-// }
 
 func (p *Project) GetWorkers(
 	eventProvider string,
@@ -49,6 +36,7 @@ func (p *Project) GetWorkers(
 				InitContainer: workerConfig.InitContainer,
 				Container:     workerConfig.Container,
 				Jobs:          workerConfig.Jobs,
+				Kubernetes:    workerConfig.Kubernetes,
 				Status:        WorkerStatusPending,
 			}
 		}

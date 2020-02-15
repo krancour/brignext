@@ -102,6 +102,25 @@ var projectSchemaBytes = []byte(`
 			}
 		},
 
+		"kubernetesConfig": {
+			"type": "object",
+			"description": "Configuration pertaining specifically to Kubernetes",
+			"properties": {
+				"workerStorageClass": {
+					"allOf": [{ "$ref": "#/definitions/identifier" }],
+					"description": "The Kubernetes storage class that a worker may use when provisioning a volume to be shared across multiple jobs"
+				},
+				"workerStorageSize": {
+					"type": "string",
+					"description": "The amount of stoage a worker may request when provisioning a volume to be shared across multiple jobs"
+				},
+				"cacheStorageClass": {
+					"allOf": [{ "$ref": "#/definitions/identifier" }],
+					"description": "The Kubernetes storage class that a worker may use when provisioning a volume to cache artifacts across multiple executions of a job"
+				}
+			}
+		},
+
 		"workerConfig": {
 			"type": "object",
 			"description": "Configuration for a single Brigade worker",
@@ -120,7 +139,8 @@ var projectSchemaBytes = []byte(`
 					"allOf": [{ "$ref": "#/definitions/containerConfig" }],
 					"description": "Configuration for the worker's main container"
 				},
-				"jobs": { "$ref": "#/definitions/jobsConfig" }
+				"jobs": { "$ref": "#/definitions/jobsConfig" },
+				"kubernetes": { "$ref": "#/definitions/kubernetesConfig" }
 			}
 		}
 

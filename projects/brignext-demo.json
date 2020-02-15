@@ -19,6 +19,11 @@
       "jobs": {
         "allowPrivileged": true,
         "allowHostMounts": true
+      },
+      "kubernetes": {
+        "workerStorageClass": "nfs",
+        "workerStorageSize": "10Gi",
+        "cacheStorageClass": "nfs"
       }
     },
     "myGitHubWorker": {

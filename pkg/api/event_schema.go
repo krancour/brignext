@@ -33,6 +33,16 @@ var eventSchemaBytes = []byte(`
 		"type": {
 			"allOf": [{ "$ref": "#/definitions/identifier" }],
 			"description": "The type of the event"
+		},
+		"shortTitle": {
+			"type": "string",
+			"description": "A succint description of the event",
+			"maxLength": 50
+		},
+		"longTitle": {
+			"type": "string",
+			"description": "A detailed description of the event",
+			"maxLength": 100
 		}
 	}
 }

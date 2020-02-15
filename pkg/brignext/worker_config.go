@@ -6,6 +6,7 @@ type WorkerConfig struct {
 	InitContainer    *ContainerConfig   `json:"initContainer,omitempty" bson:"initContainer,omitempty"`
 	Container        *ContainerConfig   `json:"container,omitempty" bson:"container,omitempty"`
 	Jobs             *JobsConfig        `json:"jobs,omitempty" bson:"jobs,omitempty"`
+	Kubernetes       *KubernetesConfig  `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
 }
 
 type TriggeringEvents struct {
