@@ -34,13 +34,14 @@ const (
 
 // nolint: lll
 type Event struct {
-	ID        string            `json:"id,omitempty" bson:"_id,omitempty"`
-	ProjectID string            `json:"projectID,omitempty" bson:"projectID,omitempty"`
-	Provider  string            `json:"provider,omitempty" bson:"provider,omitempty"`
-	Type      string            `json:"type,omitempty" bson:"type,omitempty"`
-	Status    EventStatus       `json:"status,omitempty" bson:"status,omitempty"`
-	Workers   map[string]Worker `json:"workers,omitempty" bson:"workers,omitempty"`
-	Created   *time.Time        `json:"created,omitempty" bson:"created,omitempty"`
+	ID         string            `json:"id,omitempty" bson:"_id,omitempty"`
+	ProjectID  string            `json:"projectID,omitempty" bson:"projectID,omitempty"`
+	Provider   string            `json:"provider,omitempty" bson:"provider,omitempty"`
+	Type       string            `json:"type,omitempty" bson:"type,omitempty"`
+	Status     EventStatus       `json:"status,omitempty" bson:"status,omitempty"`
+	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
+	Workers    map[string]Worker `json:"workers,omitempty" bson:"workers,omitempty"`
+	Created    *time.Time        `json:"created,omitempty" bson:"created,omitempty"`
 	// ---------------------------------------------------------------------------
 	// ShortTitle  string    `json:"shortTitle,omitempty" bson:"shortTitle,omitempty"`
 	// LongTitle   string    `json:"longTitle,omitempty" bson:"longTitle,omitempty"`

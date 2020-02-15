@@ -56,14 +56,9 @@ func main() {
 	if err != nil {
 		glog.Fatal(err)
 	}
-	brignextNamespace, err := kubernetes.BrigNextNamespace()
-	if err != nil {
-		glog.Fatal(err)
-	}
 	scheduler := scheduler.NewScheduler(
 		asyncEngine,
 		kubeClient,
-		brignextNamespace,
 	)
 
 	service := service.NewService(store, scheduler, logStore)

@@ -369,6 +369,17 @@ func (s *service) CreateProject(
 	ctx context.Context,
 	project brignext.Project,
 ) error {
+
+	namespace, err := s.scheduler.CreateProjectNamespace(project.ID)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating new namespace for project %q",
+			project.ID,
+		)
+	}
+
+	project.Kubernetes.Namespace = namespace
 	now := time.Now()
 	project.Created = &now
 	if err := s.store.CreateProject(ctx, project); err != nil {
@@ -417,8 +428,14 @@ func (s *service) UpdateProject(
 }
 
 func (s *service) DeleteProject(ctx context.Context, id string) (bool, error) {
-	var ok bool
-	err := s.store.DoTx(ctx, func(ctx context.Context) error {
+	project, ok, err := s.store.GetProject(ctx, id)
+	if err != nil {
+		return false, errors.Wrapf(err, "error retrieving project %q from store", id)
+	} else if !ok {
+		return false, nil
+	}
+
+	err = s.store.DoTx(ctx, func(ctx context.Context) error {
 
 		var err error
 		if ok, err = s.store.DeleteProject(ctx, id); err != nil {
@@ -438,10 +455,13 @@ func (s *service) DeleteProject(ctx context.Context, id string) (bool, error) {
 			)
 		}
 
-		if err := s.scheduler.AbortWorkersByProject(id); err != nil {
+		if err := s.scheduler.DeleteProjectNamespace(
+			project.Kubernetes.Namespace,
+		); err != nil {
 			return errors.Wrapf(
 				err,
-				"error aborting running workers for project %q",
+				"error deleting namespace %q for project %q",
+				project.Kubernetes.Namespace,
 				id,
 			)
 		}
@@ -471,6 +491,7 @@ func (s *service) CreateEvent(
 	if len(event.Workers) == 0 {
 		event.Status = brignext.EventStatusMoot
 	} else {
+		event.Kubernetes = &project.Kubernetes
 		event.Status = brignext.EventStatusAccepted
 	}
 	now := time.Now()
@@ -492,6 +513,7 @@ func (s *service) CreateEvent(
 		// a worker executor trying (and failing) to locate this new event before
 		// the transaction on the store has become durable.
 		if err := s.scheduler.ScheduleWorkers(
+			event.Kubernetes.Namespace,
 			event.ID,
 			workerNames,
 			5*time.Second,
@@ -555,8 +577,14 @@ func (s *service) DeleteEvent(
 	deleteAccepted bool,
 	deleteProcessing bool,
 ) (bool, error) {
-	var ok bool
-	err := s.store.DoTx(ctx, func(ctx context.Context) error {
+	event, ok, err := s.store.GetEvent(ctx, id)
+	if err != nil {
+		return false, errors.Wrapf(err, "error retrieving event %q from store", id)
+	} else if !ok {
+		return false, nil
+	}
+
+	err = s.store.DoTx(ctx, func(ctx context.Context) error {
 
 		var err error
 		ok, err = s.store.DeleteEvent(ctx, id, deleteAccepted, deleteProcessing)
@@ -565,7 +593,10 @@ func (s *service) DeleteEvent(
 		}
 
 		if deleteProcessing {
-			if err := s.scheduler.AbortWorkersByEvent(id); err != nil {
+			if err := s.scheduler.AbortWorkersByEvent(
+				event.Kubernetes.Namespace,
+				id,
+			); err != nil {
 				return errors.Wrapf(
 					err,
 					"error aborting running workers for event %q",

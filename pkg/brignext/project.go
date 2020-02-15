@@ -9,6 +9,7 @@ type Project struct {
 	ID            string                  `json:"id" bson:"_id,omitempty"`
 	Description   string                  `json:"description,omitempty" bson:"description,omitempty"`
 	WorkerConfigs map[string]WorkerConfig `json:"workerConfigs,omitempty" bson:"workerConfigs,omitempty"`
+	Kubernetes    KubernetesConfig        `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
 	Created       *time.Time              `json:"created,omitempty" bson:"created,omitempty"`
 	// Repo        Repo   `json:"repo,omitempty" bson:"repo,omitempty"`
 	// DefaultScript     string     `json:"defaultScript,omitempty" bson:"defaultScript,omitempty"`
@@ -29,6 +30,16 @@ type Project struct {
 	// BrigadejsPath        string            `json:"brigadejsPath,omitempty" bson:"brigadejsPath,omitempty"`
 	// BrigadeConfigPath    string            `json:"brigadeConfigPath,omitempty" bson:"brigadeConfigPath,omitempty"`
 	// GenericGatewaySecret string            `json:"genericGatewaySecret,omitempty" bson:"genericGatewaySecret,omitempty"`
+}
+
+type KubernetesConfig struct {
+	Namespace string `json:"namespace,omitempty" bson:"namespace,omitempty"`
+	// VCSSidecar        string `json:"vcsSidecar,omitempty" bson:"vcsSidecar,omitempty"`
+	// BuildStorageSize  string `json:"buildStorageSize,omitempty" bson:"buildStorageSize,omitempty"`
+	// BuildStorageClass string `json:"buildStorageClass,omitempty" bson:"buildStorageClass,omitempty"`
+	// CacheStorageClass string `json:"cacheStorageClass,omitempty" bson:"cacheStorageClass,omitempty"`
+	// AllowSecretKeyRef bool   `json:"allowSecretKeyRef,omitempty" bson:"allowSecretKeyRef,omitempty"`
+	// ServiceAccount    string `json:"serviceAccount,omitempty" bson:"serviceAccount,omitempty"`
 }
 
 func (p *Project) GetWorkers(
@@ -55,16 +66,6 @@ func (p *Project) GetWorkers(
 // 	// // TODO: We MUST encrypt this!
 // 	// SSHKey  string `json:"sshKey,omitempty" bson:"sshKey,omitempty"`
 // 	// SSHCert string `json:"sshCert,omitempty" bson:"sshCert,omitempty"`
-// }
-
-// type Kubernetes struct {
-// 	Namespace         string `json:"namespace,omitempty" bson:"namespace,omitempty"`
-// 	VCSSidecar        string `json:"vcsSidecar,omitempty" bson:"vcsSidecar,omitempty"`
-// 	BuildStorageSize  string `json:"buildStorageSize,omitempty" bson:"buildStorageSize,omitempty"`
-// 	BuildStorageClass string `json:"buildStorageClass,omitempty" bson:"buildStorageClass,omitempty"`
-// 	CacheStorageClass string `json:"cacheStorageClass,omitempty" bson:"cacheStorageClass,omitempty"`
-// 	AllowSecretKeyRef bool   `json:"allowSecretKeyRef,omitempty" bson:"allowSecretKeyRef,omitempty"`
-// 	ServiceAccount    string `json:"serviceAccount,omitempty" bson:"serviceAccount,omitempty"`
 // }
 
 // type Github struct {
