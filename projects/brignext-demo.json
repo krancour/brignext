@@ -1,7 +1,7 @@
 {
   "id": "brignext-demo",
   "description": "A project that demonstrates brignext",
-  "workerConfigs": {
+  "workers": {
     "myCLIWorker": {
       "events": [
         {

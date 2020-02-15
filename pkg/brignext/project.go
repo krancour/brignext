@@ -6,11 +6,11 @@ import (
 
 // nolint: lll
 type Project struct {
-	ID            string                  `json:"id" bson:"_id,omitempty"`
-	Description   string                  `json:"description,omitempty" bson:"description,omitempty"`
-	WorkerConfigs map[string]WorkerConfig `json:"workerConfigs,omitempty" bson:"workerConfigs,omitempty"`
-	Kubernetes    KubernetesConfig        `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
-	Created       *time.Time              `json:"created,omitempty" bson:"created,omitempty"`
+	ID          string                  `json:"id" bson:"_id,omitempty"`
+	Description string                  `json:"description,omitempty" bson:"description,omitempty"`
+	Workers     map[string]WorkerConfig `json:"workers,omitempty" bson:"workers,omitempty"`
+	Kubernetes  KubernetesConfig        `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
+	Created     *time.Time              `json:"created,omitempty" bson:"created,omitempty"`
 	// Repo        Repo   `json:"repo,omitempty" bson:"repo,omitempty"`
 	// DefaultScript     string     `json:"defaultScript,omitempty" bson:"defaultScript,omitempty"`
 	// DefaultScriptName string     `json:"defaultScriptName,omitempty" bson:"defaultScriptName,omitempty"`
@@ -47,7 +47,7 @@ func (p *Project) GetWorkers(
 	eventType string,
 ) map[string]Worker {
 	workers := map[string]Worker{}
-	for workerName, workerConfig := range p.WorkerConfigs {
+	for workerName, workerConfig := range p.Workers {
 		if workerConfig.Matches(eventProvider, eventType) {
 			workers[workerName] = Worker{
 				Image:   workerConfig.Image,
