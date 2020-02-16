@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/gosuri/uitable"
 	"github.com/krancour/brignext/pkg/brignext"
@@ -27,11 +28,8 @@ func userGet(c *cli.Context) error {
 	// Command-specific flags
 	output := c.String(flagOutput)
 
-	switch output {
-	case "table":
-	case "json":
-	default:
-		return errors.Errorf("unknown output format %q", output)
+	if err := validateOutputFormat(output); err != nil {
+		return err
 	}
 
 	req, err := buildRequest(
@@ -66,7 +64,7 @@ func userGet(c *cli.Context) error {
 		return errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	switch output {
+	switch strings.ToLower(output) {
 	case "table":
 		table := uitable.New()
 		table.AddRow("ID", "NAME", "FIRST SEEN", "LOCKED?")

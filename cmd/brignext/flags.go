@@ -1,5 +1,7 @@
 package main
 
+import "github.com/urfave/cli"
+
 const (
 	flagAccepted     = "accepted"
 	flagsAccepted    = "accepted, a"
@@ -28,4 +30,12 @@ const (
 	flagsRunning     = "running, r"
 	flagType         = "type"
 	flagsType        = "type, t"
+)
+
+var (
+	cliFlagOutput = cli.StringFlag{
+		Name:  flagsOutput,
+		Usage: "Return output in another format. Supported formats: table, json",
+		Value: "table",
+	}
 )

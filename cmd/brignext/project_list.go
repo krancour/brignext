@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gosuri/uitable"
@@ -26,11 +27,8 @@ func projectList(c *cli.Context) error {
 	// Command-specific flags
 	output := c.String(flagOutput)
 
-	switch output {
-	case "table":
-	case "json":
-	default:
-		return errors.Errorf("unknown output format %q", output)
+	if err := validateOutputFormat(output); err != nil {
+		return err
 	}
 
 	req, err := buildRequest(http.MethodGet, "v2/projects", nil)
@@ -63,7 +61,7 @@ func projectList(c *cli.Context) error {
 		return nil
 	}
 
-	switch output {
+	switch strings.ToLower(output) {
 	case "table":
 		table := uitable.New()
 		table.AddRow("ID", "DESCRIPTION", "AGE")

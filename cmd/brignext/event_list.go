@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gosuri/uitable"
@@ -29,11 +30,8 @@ func eventList(c *cli.Context) error {
 	output := c.String(flagOutput)
 	projectID := c.String(flagProject)
 
-	switch output {
-	case "table":
-	case "json":
-	default:
-		return errors.Errorf("unknown output format %q", output)
+	if err := validateOutputFormat(output); err != nil {
+		return err
 	}
 
 	req, err := buildRequest(http.MethodGet, "v2/events", nil)
@@ -71,7 +69,7 @@ func eventList(c *cli.Context) error {
 		return nil
 	}
 
-	switch output {
+	switch strings.ToLower(output) {
 	case "table":
 		table := uitable.New()
 		table.AddRow("ID", "PROJECT", "PROVIDER", "TYPE", "AGE", "STATUS")

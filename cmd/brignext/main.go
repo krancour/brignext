@@ -89,12 +89,7 @@ func main() {
 					Usage:     "Get an event",
 					ArgsUsage: "EVENT_ID",
 					Flags: []cli.Flag{
-						cli.StringFlag{
-							Name: flagsOutput,
-							Usage: "Return output in another format. Supported formats: " +
-								"table, json",
-							Value: "table",
-						},
+						cliFlagOutput,
 					},
 					Action: eventGet,
 				},
@@ -102,12 +97,7 @@ func main() {
 					Name:  "list",
 					Usage: "List events",
 					Flags: []cli.Flag{
-						cli.StringFlag{
-							Name: flagsOutput,
-							Usage: "Return output in another format. Supported formats: " +
-								"table, json",
-							Value: "table",
-						},
+						cliFlagOutput,
 						cli.StringFlag{
 							Name:  flagsProject,
 							Usage: "Return events only for the specified project",
@@ -167,12 +157,7 @@ func main() {
 					Usage:     "Get a project",
 					ArgsUsage: "PROJECT_ID",
 					Flags: []cli.Flag{
-						cli.StringFlag{
-							Name: flagsOutput,
-							Usage: "Return output in another format. Supported formats: " +
-								"table, json",
-							Value: "table",
-						},
+						cliFlagOutput,
 					},
 					Action: projectGet,
 				},
@@ -180,12 +165,7 @@ func main() {
 					Name:  "list",
 					Usage: "List projects",
 					Flags: []cli.Flag{
-						cli.StringFlag{
-							Name: flagsOutput,
-							Usage: "Return output in another format. Supported formats: " +
-								"table, json",
-							Value: "table",
-						},
+						cliFlagOutput,
 					},
 					Action: projectList,
 				},
@@ -218,12 +198,7 @@ func main() {
 					Usage:     "Get a service account",
 					ArgsUsage: "SERVICE_ACCOUNT_ID",
 					Flags: []cli.Flag{
-						cli.StringFlag{
-							Name: flagsOutput,
-							Usage: "Return output in another format. Supported formats: " +
-								"table, json",
-							Value: "table",
-						},
+						cliFlagOutput,
 					},
 					Action: serviceAccountGet,
 				},
@@ -231,12 +206,7 @@ func main() {
 					Name:  "list",
 					Usage: "List service accounts",
 					Flags: []cli.Flag{
-						cli.StringFlag{
-							Name: flagsOutput,
-							Usage: "Return output in another format. Supported formats: " +
-								"table, json",
-							Value: "table",
-						},
+						cliFlagOutput,
 					},
 					Action: serviceAccountList,
 				},
@@ -263,12 +233,7 @@ func main() {
 					Usage:     "Get a user",
 					ArgsUsage: "USER_ID",
 					Flags: []cli.Flag{
-						cli.StringFlag{
-							Name: flagsOutput,
-							Usage: "Return output in another format. Supported formats: " +
-								"table, json",
-							Value: "table",
-						},
+						cliFlagOutput,
 					},
 					Action: userGet,
 				},
@@ -276,12 +241,7 @@ func main() {
 					Name:  "list",
 					Usage: "List users",
 					Flags: []cli.Flag{
-						cli.StringFlag{
-							Name: flagsOutput,
-							Usage: "Return output in another format. Supported formats: " +
-								"table, json",
-							Value: "table",
-						},
+						cliFlagOutput,
 					},
 					Action: userList,
 				},
