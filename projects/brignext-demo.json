@@ -1,6 +1,10 @@
 {
   "id": "brignext-demo",
   "description": "A project that demonstrates brignext",
+  "tags": {
+    "foo": "bar",
+    "bat": "baz"
+  },
   "workers": {
     "myCLIWorker": {
       "events": [

@@ -53,6 +53,10 @@ type Store interface {
 
 	CreateProject(context.Context, brignext.Project) error
 	GetProjects(context.Context) ([]brignext.Project, error)
+	GetProjectsByTags(
+		context.Context,
+		brignext.ProjectTags,
+	) ([]brignext.Project, error)
 	GetProject(context.Context, string) (brignext.Project, bool, error)
 	UpdateProject(context.Context, brignext.Project) (bool, error)
 	DeleteProject(context.Context, string) (bool, error)

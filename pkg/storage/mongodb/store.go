@@ -73,6 +73,18 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 		)
 	}
 
+	projectsCollection := database.Collection("projects")
+	if _, err := projectsCollection.Indexes().CreateOne(
+		ctx,
+		mongo.IndexModel{
+			Keys: bson.M{
+				"tags": 1,
+			},
+		},
+	); err != nil {
+		return nil, errors.Wrap(err, "error adding indexes to projects collection")
+	}
+
 	eventsCollection := database.Collection("events")
 	if _, err := eventsCollection.Indexes().CreateMany(
 		ctx,
@@ -97,7 +109,7 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 		usersCollection:           database.Collection("users"),
 		sessionsCollection:        sessionsCollection,
 		serviceAccountsCollection: serviceAccountsCollection,
-		projectsCollection:        database.Collection("projects"),
+		projectsCollection:        projectsCollection,
 		eventsCollection:          eventsCollection,
 	}, nil
 }
@@ -419,6 +431,38 @@ func (s *store) GetProjects(ctx context.Context) ([]brignext.Project, error) {
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"_id": 1})
 	cur, err := s.projectsCollection.Find(ctx, bson.M{}, findOptions)
+	if err != nil {
+		return nil, errors.Wrap(err, "error finding projects")
+	}
+	projects := []brignext.Project{}
+	if err := cur.All(ctx, &projects); err != nil {
+		return nil, errors.Wrap(err, "error decoding projects")
+	}
+	return projects, nil
+}
+
+func (s *store) GetProjectsByTags(
+	ctx context.Context,
+	tags brignext.ProjectTags,
+) ([]brignext.Project, error) {
+	conditions := make([]bson.M, len(tags))
+	var i int
+	for key, value := range tags {
+		conditions[i] = bson.M{
+			"tags": bson.M{
+				"key":   key,
+				"value": value,
+			},
+		}
+		i++
+	}
+	findOptions := options.Find()
+	findOptions.SetSort(bson.M{"_id": 1})
+	cur, err := s.projectsCollection.Find(
+		ctx,
+		bson.M{"$and": conditions},
+		findOptions,
+	)
 	if err != nil {
 		return nil, errors.Wrap(err, "error finding projects")
 	}

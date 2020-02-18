@@ -159,6 +159,13 @@ var projectSchemaBytes = []byte(`
 			"allOf": [{ "$ref": "#/definitions/description" }],
 			"description": "A brief description of the project"
 		},
+		"tags": {
+			"type": "object",
+			"additionalProperties": true,
+			"patternProperties": {
+				"^\\w[\\w-]*$": { "$ref": "#/definitions/identifier" }
+			}
+		},
 		"workers": {
 			"type": "object",
 			"description": "A map of worker configurations indexed by unique names",
