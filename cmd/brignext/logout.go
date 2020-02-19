@@ -1,8 +1,8 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -14,23 +14,15 @@ func logout(c *cli.Context) error {
 		return errors.New("logout requires no arguments")
 	}
 
-	// Global flags
-	allowInsecure := c.GlobalBool(flagInsecure)
-
-	req, err := buildRequest(http.MethodDelete, "v2/session", nil)
+	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
+		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	resp, err := getHTTPClient(allowInsecure).Do(req)
-	if err != nil {
-		return errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
-	}
+	// We're ignoring any error here because even if the session wasn't found
+	// and deleted server-side, we still want to move on to destroying the local
+	// token.
+	client.DeleteSession(context.TODO()) // nolint: errcheck
 
 	if err := deleteConfig(); err != nil {
 		return errors.Wrap(err, "error deleting configuration")

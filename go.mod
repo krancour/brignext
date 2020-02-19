@@ -2,12 +2,11 @@ module github.com/krancour/brignext
 
 go 1.13
 
-replace github.com/Sirupsen/logrus v1.4.2 => github.com/sirupsen/logrus v1.4.2
+replace github.com/deis/async => github.com/krancour/async v1.1.1-0.20200219202113-438f9062d901
 
 require (
-	github.com/Sirupsen/logrus v1.4.2 // indirect
 	github.com/coreos/go-oidc v2.2.1+incompatible
-	github.com/deis/async v1.1.0
+	github.com/deis/async v0.0.0-00010101000000-000000000000
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/go-redis/redis v6.15.7+incompatible
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b

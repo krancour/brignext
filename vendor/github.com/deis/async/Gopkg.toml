@@ -21,7 +21,7 @@
 #  version = "2.4.0"
 
 [[constraint]]
-  name = "github.com/Sirupsen/logrus"
+  name = "github.com/sirupsen/logrus"
   # krancour: We can resume using upstream logrus if/when this PR is merged:
   # https://github.com/sirupsen/logrus/pull/671
   source = "github.com/krancour/logrus"

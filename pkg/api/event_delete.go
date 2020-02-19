@@ -1,11 +1,13 @@
 package api
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 )
 
@@ -27,30 +29,76 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 		deleteProcessing, _ = strconv.ParseBool(deleteProcessingStr) // nolint: errcheck
 	}
 
-	var err error
 	if eventID != "" {
-		_, err = s.service.DeleteEvent(
+		deleted, err := s.service.DeleteEvent(
 			r.Context(),
 			eventID,
 			deleteAccepted,
 			deleteProcessing,
 		)
-	} else {
-		_, err = s.service.DeleteEventsByProject(
-			r.Context(),
-			projectID,
-			deleteAccepted,
-			deleteProcessing,
+		if err != nil {
+			if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
+				s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
+				return
+			}
+			log.Println(
+				errors.Wrapf(err, "error deleting event %q", eventID),
+			)
+			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+			return
+		}
+
+		responseBytes, err := json.Marshal(
+			struct {
+				Deleted bool `json:"deleted"`
+			}{
+				Deleted: deleted,
+			},
 		)
+		if err != nil {
+			log.Println(
+				errors.Wrap(err, "error marshaling delete event response"),
+			)
+			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+			return
+		}
+
+		s.writeResponse(w, http.StatusOK, responseBytes)
+		return
 	}
+
+	deleted, err := s.service.DeleteEventsByProject(
+		r.Context(),
+		projectID,
+		deleteAccepted,
+		deleteProcessing,
+	)
 	if err != nil {
+		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
+			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
+			return
+		}
 		log.Println(
-			errors.Wrap(err, "error deleting events"),
+			errors.Wrapf(err, "error deleting events for project %q", projectID),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
 	}
 
-	// TODO: We should respond with a count of how many were deleted
-	s.writeResponse(w, http.StatusOK, responseEmptyJSON)
+	responseBytes, err := json.Marshal(
+		struct {
+			Deleted int64 `json:"deleted"`
+		}{
+			Deleted: deleted,
+		},
+	)
+	if err != nil {
+		log.Println(
+			errors.Wrap(err, "error marshaling delete event response"),
+		)
+		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		return
+	}
+
+	s.writeResponse(w, http.StatusOK, responseBytes)
 }

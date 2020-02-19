@@ -2,10 +2,8 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
+	"context"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"strings"
 
@@ -26,9 +24,6 @@ func serviceAccountCreate(c *cli.Context) error {
 				"service account ID",
 		)
 	}
-
-	// Global flags
-	allowInsecure := c.GlobalBool(flagInsecure)
 
 	// Command-specific flags
 	description := c.String(flagDescription)
@@ -62,57 +57,26 @@ func serviceAccountCreate(c *cli.Context) error {
 		}
 	}
 
-	serviceAccountBytes, err := json.Marshal(
+	client, err := getClient(c)
+	if err != nil {
+		return errors.Wrap(err, "error getting brignext client")
+	}
+
+	token, err := client.CreateServiceAccount(
+		context.TODO(),
 		brignext.ServiceAccount{
 			ID:          id,
 			Description: description,
 		},
 	)
 	if err != nil {
-		return errors.Wrap(err, "error marshaling service account")
-	}
-
-	req, err := buildRequest(
-		http.MethodPost,
-		"v2/service-accounts",
-		serviceAccountBytes,
-	)
-	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
-	}
-
-	resp, err := getHTTPClient(allowInsecure).Do(req)
-	if err != nil {
-		return errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusConflict {
-		return errors.Errorf(
-			"a service account with the ID %q already exists",
-			id,
-		)
-	}
-	if resp.StatusCode != http.StatusCreated {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "error reading response body")
-	}
-
-	respStruct := struct {
-		Token string `json:"token"`
-	}{}
-	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
-		return errors.Wrap(err, "error unmarshaling response body")
+		return err
 	}
 
 	fmt.Printf("\nService account %q created with token:\n", id)
-	fmt.Printf("\n\t%s\n", respStruct.Token)
+	fmt.Printf("\n\t%s\n", token)
 	fmt.Println(
-		"\nStore this token someplace secure NOW. It can not be retrieved " +
+		"\nStore this token someplace secure NOW. It cannot be retrieved " +
 			"later through any other means.",
 	)
 

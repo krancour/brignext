@@ -12,12 +12,12 @@ import (
 type FindSessionFn func(
 	ctx context.Context,
 	token string,
-) (brignext.Session, bool, error)
+) (brignext.Session, error)
 
 type FindUserFn func(
 	ctx context.Context,
 	id string,
-) (brignext.User, bool, error)
+) (brignext.User, error)
 
 type tokenAuthFilter struct {
 	findSession     FindSessionFn
@@ -54,8 +54,8 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		token := headerValueTokens[1]
-		session, ok, err := t.findSession(r.Context(), token)
-		if err != nil || !ok {
+		session, err := t.findSession(r.Context(), token)
+		if err != nil {
 			http.Error(w, "{}", http.StatusUnauthorized)
 			return
 		}
@@ -69,8 +69,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 		if session.Root {
 			user = brignext.User{ID: "root"}
 		} else {
-			if user, ok, err =
-				t.findUser(r.Context(), session.UserID); err != nil || !ok {
+			if user, err = t.findUser(r.Context(), session.UserID); err != nil {
 				http.Error(w, "{}", http.StatusUnauthorized)
 				return
 			}

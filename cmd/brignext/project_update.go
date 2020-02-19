@@ -1,10 +1,10 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
@@ -21,9 +21,6 @@ func projectUpdate(c *cli.Context) error {
 	}
 	filename := c.Args()[0]
 
-	// Global flags
-	allowInsecure := c.GlobalBool(flagInsecure)
-
 	// Read and parse the file
 	projectBytes, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -35,23 +32,13 @@ func projectUpdate(c *cli.Context) error {
 		return errors.Wrapf(err, "error unmarshaling project file %s", filename)
 	}
 
-	req, err := buildRequest(
-		http.MethodPut,
-		fmt.Sprintf("v2/projects/%s", project.ID),
-		projectBytes,
-	)
+	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
+		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	resp, err := getHTTPClient(allowInsecure).Do(req)
-	if err != nil {
-		return errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
+	if err := client.UpdateProject(context.TODO(), project); err != nil {
+		return err
 	}
 
 	fmt.Printf("Updated project %q.\n", project.ID)

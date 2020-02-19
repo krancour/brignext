@@ -44,23 +44,11 @@ func (s *server) projectCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, ok, err :=
-		s.service.GetProject(r.Context(), project.ID); err != nil {
-		log.Println(
-			errors.Wrapf(
-				err,
-				"error checking for existing project %q",
-				project.ID,
-			),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	} else if ok {
-		s.writeResponse(w, http.StatusConflict, responseEmptyJSON)
-		return
-	}
-
 	if err := s.service.CreateProject(r.Context(), project); err != nil {
+		if _, ok := errors.Cause(err).(*brignext.ErrProjectIDConflict); ok {
+			s.writeResponse(w, http.StatusConflict, responseEmptyJSON)
+			return
+		}
 		log.Println(
 			errors.Wrapf(err, "error creating project %q", project.ID),
 		)

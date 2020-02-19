@@ -2,10 +2,8 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
+	"context"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"os"
 	"os/exec"
 	"runtime"
@@ -24,28 +22,19 @@ func login(c *cli.Context) error {
 	}
 	address := c.Args()[0]
 
-	// Global flags
-	allowInsecure := c.GlobalBool(flagInsecure)
-
 	// Command-specific flags
 	browseToAuthURL := c.Bool(flagBrowse)
 	password := c.String(flagPassword)
 	rootLogin := c.Bool(flagRoot)
 
-	req, err := http.NewRequest(
-		http.MethodPost,
-		fmt.Sprintf("%s/v2/sessions", address),
-		nil,
-	)
+	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
+		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if rootLogin {
-		q := req.URL.Query()
-		q.Set("root", "true")
-		req.URL.RawQuery = q.Encode()
+	var token, authURL string
 
+	if rootLogin {
 		reader := bufio.NewReader(os.Stdin)
 		for {
 			password = strings.TrimSpace(password)
@@ -57,36 +46,18 @@ func login(c *cli.Context) error {
 				return errors.Wrap(err, "error reading password from stdin")
 			}
 		}
-		req.SetBasicAuth("root", password)
-	}
 
-	resp, err := getHTTPClient(allowInsecure).Do(req)
-	if err != nil {
-		return errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "error reading response body")
-	}
-
-	respStruct := struct {
-		Token   string `json:"token"`
-		AuthURL string `json:"authURL"`
-	}{}
-	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
-		return errors.Wrap(err, "error unmarshaling response body")
+		if token, err = client.CreateRootSession(context.TODO(), password); err != nil {
+			return err
+		}
+	} else if authURL, token, err = client.CreateUserSession(context.TODO()); err != nil {
+		return err
 	}
 
 	if err := saveConfig(
 		&config{
 			APIAddress: address,
-			APIToken:   respStruct.Token,
+			APIToken:   token,
 		},
 	); err != nil {
 		return errors.Wrap(err, "error persisting configuration")
@@ -101,15 +72,15 @@ func login(c *cli.Context) error {
 		var err error
 		switch runtime.GOOS {
 		case "linux":
-			err = exec.Command("xdg-open", respStruct.AuthURL).Start()
+			err = exec.Command("xdg-open", authURL).Start()
 		case "windows":
 			err = exec.Command(
 				"rundll32",
 				"url.dll,FileProtocolHandler",
-				respStruct.AuthURL,
+				authURL,
 			).Start()
 		case "darwin":
-			err = exec.Command("open", respStruct.AuthURL).Start()
+			err = exec.Command("open", authURL).Start()
 		default:
 			err = errors.New("unsupported OS")
 		}
@@ -118,16 +89,13 @@ func login(c *cli.Context) error {
 				err,
 				"Error opening authentication URL using the system's default web "+
 					"browser.\n\nPlease visit  %s  to complete authentication.\n",
-				respStruct.AuthURL,
+				authURL,
 			)
 		}
 		return nil
 	}
 
-	fmt.Printf(
-		"Please visit  %s  to complete authentication.\n",
-		respStruct.AuthURL,
-	)
+	fmt.Printf("Please visit  %s  to complete authentication.\n", authURL)
 
 	return nil
 }

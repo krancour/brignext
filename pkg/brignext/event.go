@@ -44,7 +44,6 @@ type Event struct {
 	Namespace  string            `json:"namespace,omitempty" bson:"namespace,omitempty"`
 	Workers    map[string]Worker `json:"workers,omitempty" bson:"workers,omitempty"`
 	Created    *time.Time        `json:"created,omitempty" bson:"created,omitempty"`
-	// ---------------------------------------------------------------------------
 	// CloneURL string    `json:"cloneURL,omitempty" bson:"cloneURL,omitempty"`
 	// Revision *Revision `json:"revision,omitempty" bson:"revision,omitempty"`
 	// TODO: This should be encrypted!

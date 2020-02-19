@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 )
 
@@ -14,16 +15,16 @@ func (s *server) projectGet(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	project, ok, err := s.service.GetProject(r.Context(), id)
+	project, err := s.service.GetProject(r.Context(), id)
 	if err != nil {
+		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
+			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
+			return
+		}
 		log.Println(
 			errors.Wrapf(err, "error retrieving project %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-	if !ok {
-		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}
 

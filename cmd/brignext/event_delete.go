@@ -1,8 +1,8 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -29,45 +29,40 @@ func eventDelete(c *cli.Context) error {
 		)
 	}
 
-	// Global flags
-	allowInsecure := c.GlobalBool(flagInsecure)
-
-	var path string
-	if eventID != "" {
-		path = fmt.Sprintf("v2/events/%s", eventID)
-	} else {
-		path = fmt.Sprintf("v2/projects/%s/events", projectID)
-	}
-
-	req, err := buildRequest(http.MethodDelete, path, nil)
+	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
-	}
-	q := req.URL.Query()
-	if deleteAccepted {
-		q.Set("deleteAccepted", "true")
-	}
-	if deleteProcessing {
-		q.Set("deleteProcessing", "true")
-	}
-	req.URL.RawQuery = q.Encode()
-
-	resp, err := getHTTPClient(allowInsecure).Do(req)
-	if err != nil {
-		return errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
+		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	// TODO: These messages aren't necessarily accurate. What is deleted and what
-	// isn't really depends on event statuses and what flag(s) the user specified.
 	if eventID != "" {
-		fmt.Printf("Event %q deleted.\n", eventID)
+		if deleted, err := client.DeleteEvent(
+			context.TODO(),
+			eventID,
+			deleteAccepted,
+			deleteProcessing,
+		); err != nil {
+			return err
+		} else if deleted {
+			fmt.Printf("Event %q deleted.\n", eventID)
+		} else {
+			return errors.Errorf(
+				"event %q was not deleted because specified conditions were not "+
+					"satisfied",
+				eventID,
+			)
+		}
+		return nil
+	}
+
+	if deleted, err := client.DeleteEventsByProject(
+		context.TODO(),
+		projectID,
+		deleteAccepted,
+		deleteProcessing,
+	); err != nil {
+		return err
 	} else {
-		fmt.Printf("All events for project %q deleted.\n", projectID)
+		fmt.Printf("Deleted %d events for project %q.\n", deleted, projectID)
 	}
 
 	return nil

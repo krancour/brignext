@@ -1,15 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gosuri/uitable"
-	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -24,9 +22,6 @@ func eventGet(c *cli.Context) error {
 	}
 	id := c.Args()[0]
 
-	// Global flags
-	allowInsecure := c.GlobalBool(flagInsecure)
-
 	// Command-specific flags
 	output := c.String(flagOutput)
 
@@ -34,36 +29,14 @@ func eventGet(c *cli.Context) error {
 		return err
 	}
 
-	req, err := buildRequest(
-		http.MethodGet,
-		fmt.Sprintf("v2/events/%s", id),
-		nil,
-	)
+	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
+		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	resp, err := getHTTPClient(allowInsecure).Do(req)
+	event, err := client.GetEvent(context.TODO(), id)
 	if err != nil {
-		return errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return errors.Errorf("Event %q not found.", id)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "error reading response body")
-	}
-
-	event := brignext.Event{}
-	if err := json.Unmarshal(respBodyBytes, &event); err != nil {
-		return errors.Wrap(err, "error unmarshaling response body")
+		return err
 	}
 
 	switch strings.ToLower(output) {

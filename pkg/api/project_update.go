@@ -52,14 +52,15 @@ func (s *server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if ok, err := s.service.UpdateProject(r.Context(), project); err != nil {
+	if err := s.service.UpdateProject(r.Context(), project); err != nil {
+		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
+			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
+			return
+		}
 		log.Println(
 			errors.Wrapf(err, "error updating project %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	} else if !ok {
-		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}
 

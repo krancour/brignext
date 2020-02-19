@@ -20,6 +20,10 @@ func (s *server) eventList(w http.ResponseWriter, r *http.Request) {
 		events, err = s.service.GetEvents(r.Context())
 	}
 	if err != nil {
+		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
+			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
+			return
+		}
 		log.Println(errors.Wrap(err, "error retrieving events"))
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return

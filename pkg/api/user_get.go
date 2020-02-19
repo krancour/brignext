@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/krancour/brignext/pkg/brignext"
+
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -14,16 +16,16 @@ func (s *server) userGet(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	user, ok, err := s.service.GetUser(r.Context(), id)
+	user, err := s.service.GetUser(r.Context(), id)
 	if err != nil {
+		if _, ok := errors.Cause(err).(*brignext.ErrUserNotFound); ok {
+			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
+			return
+		}
 		log.Println(
 			errors.Wrapf(err, "error retrieving user %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-	if !ok {
-		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}
 

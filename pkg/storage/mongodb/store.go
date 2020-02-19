@@ -160,22 +160,22 @@ func (s *store) GetUsers(ctx context.Context) ([]brignext.User, error) {
 	return users, nil
 }
 
-func (s *store) GetUser(ctx context.Context, id string) (brignext.User, bool, error) {
+func (s *store) GetUser(ctx context.Context, id string) (brignext.User, error) {
 	user := brignext.User{}
 	res := s.usersCollection.FindOne(ctx, bson.M{"_id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return user, false, nil
+		return user, &brignext.ErrUserNotFound{id}
 	}
 	if res.Err() != nil {
-		return user, false, errors.Wrapf(res.Err(), "error finding user %q", id)
+		return user, errors.Wrapf(res.Err(), "error finding user %q", id)
 	}
 	if err := res.Decode(&user); err != nil {
-		return user, false, errors.Wrapf(err, "error decoding user %q", id)
+		return user, errors.Wrapf(err, "error decoding user %q", id)
 	}
-	return user, true, nil
+	return user, nil
 }
 
-func (s *store) LockUser(ctx context.Context, id string) (bool, error) {
+func (s *store) LockUser(ctx context.Context, id string) error {
 	res, err := s.usersCollection.UpdateOne(
 		ctx,
 		bson.M{"_id": id},
@@ -184,12 +184,15 @@ func (s *store) LockUser(ctx context.Context, id string) (bool, error) {
 		},
 	)
 	if err != nil {
-		return false, errors.Wrapf(err, "error updating user %q", id)
+		return errors.Wrapf(err, "error updating user %q", id)
 	}
-	return res.MatchedCount == 1, nil
+	if res.MatchedCount == 0 {
+		return &brignext.ErrUserNotFound{id}
+	}
+	return nil
 }
 
-func (s *store) UnlockUser(ctx context.Context, id string) (bool, error) {
+func (s *store) UnlockUser(ctx context.Context, id string) error {
 	res, err := s.usersCollection.UpdateOne(
 		ctx,
 		bson.M{"_id": id},
@@ -198,9 +201,12 @@ func (s *store) UnlockUser(ctx context.Context, id string) (bool, error) {
 		},
 	)
 	if err != nil {
-		return false, errors.Wrapf(err, "error updating user %q", id)
+		return errors.Wrapf(err, "error updating user %q", id)
 	}
-	return res.MatchedCount == 1, nil
+	if res.MatchedCount == 0 {
+		return &brignext.ErrUserNotFound{id}
+	}
+	return nil
 }
 
 func (s *store) CreateSession(
@@ -216,46 +222,46 @@ func (s *store) CreateSession(
 func (s *store) GetSessionByHashedOAuth2State(
 	ctx context.Context,
 	hashedOAuth2State string,
-) (brignext.Session, bool, error) {
+) (brignext.Session, error) {
 	session := brignext.Session{}
 	res := s.sessionsCollection.FindOne(
 		ctx,
 		bson.M{"hashedOAuth2State": hashedOAuth2State},
 	)
 	if res.Err() == mongo.ErrNoDocuments {
-		return session, false, nil
+		return session, &brignext.ErrSessionNotFound{}
 	}
 	if res.Err() != nil {
-		return session, false, errors.Wrap(
+		return session, errors.Wrap(
 			res.Err(),
 			"error finding session by hashed OAuth2 state",
 		)
 	}
 	if err := res.Decode(&session); err != nil {
-		return session, false, errors.Wrap(err, "error decoding session")
+		return session, errors.Wrap(err, "error decoding session")
 	}
-	return session, true, nil
+	return session, nil
 }
 
 func (s *store) GetSessionByHashedToken(
 	ctx context.Context,
 	hashedToken string,
-) (brignext.Session, bool, error) {
+) (brignext.Session, error) {
 	session := brignext.Session{}
 	res := s.sessionsCollection.FindOne(ctx, bson.M{"hashedToken": hashedToken})
 	if res.Err() == mongo.ErrNoDocuments {
-		return session, false, nil
+		return session, &brignext.ErrSessionNotFound{}
 	}
 	if res.Err() != nil {
-		return session, false, errors.Wrap(
+		return session, errors.Wrap(
 			res.Err(),
 			"error finding session by hashed token",
 		)
 	}
 	if err := res.Decode(&session); err != nil {
-		return session, false, errors.Wrap(err, "error decoding session")
+		return session, errors.Wrap(err, "error decoding session")
 	}
-	return session, true, nil
+	return session, nil
 }
 
 func (s *store) AuthenticateSession(
@@ -263,7 +269,7 @@ func (s *store) AuthenticateSession(
 	sessionID string,
 	userID string,
 	expires time.Time,
-) (bool, error) {
+) error {
 	res, err := s.sessionsCollection.UpdateOne(
 		ctx,
 		bson.M{
@@ -278,17 +284,23 @@ func (s *store) AuthenticateSession(
 		},
 	)
 	if err != nil {
-		return false, errors.Wrapf(err, "error updating session %q", sessionID)
+		return errors.Wrapf(err, "error updating session %q", sessionID)
 	}
-	return res.MatchedCount == 1, nil
+	if res.MatchedCount == 0 {
+		return &brignext.ErrSessionNotFound{sessionID}
+	}
+	return nil
 }
 
-func (s *store) DeleteSession(ctx context.Context, id string) (bool, error) {
+func (s *store) DeleteSession(ctx context.Context, id string) error {
 	res, err := s.sessionsCollection.DeleteOne(ctx, bson.M{"_id": id})
 	if err != nil {
-		return false, errors.Wrapf(err, "error deleting session %q", id)
+		return errors.Wrapf(err, "error deleting session %q", id)
 	}
-	return res.DeletedCount == 1, nil
+	if res.DeletedCount == 0 {
+		return &brignext.ErrSessionNotFound{id}
+	}
+	return nil
 }
 
 func (s *store) DeleteSessionsByUser(
@@ -336,58 +348,58 @@ func (s *store) GetServiceAccounts(ctx context.Context) ([]brignext.ServiceAccou
 func (s *store) GetServiceAccount(
 	ctx context.Context,
 	id string,
-) (brignext.ServiceAccount, bool, error) {
+) (brignext.ServiceAccount, error) {
 	serviceAccount := brignext.ServiceAccount{}
 	res := s.serviceAccountsCollection.FindOne(ctx, bson.M{"_id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return serviceAccount, false, nil
+		return serviceAccount, &brignext.ErrServiceAccountNotFound{id}
 	}
 	if res.Err() != nil {
-		return serviceAccount, false, errors.Wrapf(
+		return serviceAccount, errors.Wrapf(
 			res.Err(),
 			"error finding service account %q",
 			id,
 		)
 	}
 	if err := res.Decode(&serviceAccount); err != nil {
-		return serviceAccount, false, errors.Wrapf(
+		return serviceAccount, errors.Wrapf(
 			err,
 			"error decoding service account %q",
 			id,
 		)
 	}
-	return serviceAccount, true, nil
+	return serviceAccount, nil
 }
 
 func (s *store) GetServiceAccountByHashedToken(
 	ctx context.Context,
 	hashedToken string,
-) (brignext.ServiceAccount, bool, error) {
+) (brignext.ServiceAccount, error) {
 	serviceAccount := brignext.ServiceAccount{}
 	res :=
 		s.serviceAccountsCollection.FindOne(ctx, bson.M{"hashedToken": hashedToken})
 	if res.Err() == mongo.ErrNoDocuments {
-		return serviceAccount, false, nil
+		return serviceAccount, &brignext.ErrServiceAccountNotFound{}
 	}
 	if res.Err() != nil {
-		return serviceAccount, false, errors.Wrap(
+		return serviceAccount, errors.Wrap(
 			res.Err(),
 			"error finding service account by hashed token",
 		)
 	}
 	if err := res.Decode(&serviceAccount); err != nil {
-		return serviceAccount, false, errors.Wrap(
+		return serviceAccount, errors.Wrap(
 			err,
 			"error decoding service account",
 		)
 	}
-	return serviceAccount, true, nil
+	return serviceAccount, nil
 }
 
 func (s *store) LockServiceAccount(
 	ctx context.Context,
 	id string,
-) (bool, error) {
+) error {
 	res, err := s.serviceAccountsCollection.UpdateOne(
 		ctx,
 		bson.M{"_id": id},
@@ -396,16 +408,19 @@ func (s *store) LockServiceAccount(
 		},
 	)
 	if err != nil {
-		return false, errors.Wrapf(err, "error updating service account %q", id)
+		return errors.Wrapf(err, "error updating service account %q", id)
 	}
-	return res.MatchedCount == 1, nil
+	if res.MatchedCount == 0 {
+		return &brignext.ErrServiceAccountNotFound{id}
+	}
+	return nil
 }
 
 func (s *store) UnlockServiceAccount(
 	ctx context.Context,
 	id string,
 	newHashedToken string,
-) (bool, error) {
+) error {
 	res, err := s.serviceAccountsCollection.UpdateOne(
 		ctx,
 		bson.M{"_id": id},
@@ -415,9 +430,12 @@ func (s *store) UnlockServiceAccount(
 		},
 	)
 	if err != nil {
-		return false, errors.Wrapf(err, "error updating service account %q", id)
+		return errors.Wrapf(err, "error updating service account %q", id)
 	}
-	return res.MatchedCount == 1, nil
+	if res.MatchedCount == 0 {
+		return &brignext.ErrServiceAccountNotFound{id}
+	}
+	return nil
 }
 
 func (s *store) CreateProject(ctx context.Context, project brignext.Project) error {
@@ -476,28 +494,24 @@ func (s *store) GetProjectsByTags(
 func (s *store) GetProject(
 	ctx context.Context,
 	id string,
-) (brignext.Project, bool, error) {
+) (brignext.Project, error) {
 	project := brignext.Project{}
 	res := s.projectsCollection.FindOne(ctx, bson.M{"_id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return project, false, nil
+		return project, &brignext.ErrProjectNotFound{id}
 	}
 	if res.Err() != nil {
-		return project, false, errors.Wrapf(
-			res.Err(),
-			"error finding project %q",
-			id,
-		)
+		return project, errors.Wrapf(res.Err(), "error finding project %q", id)
 	}
 	if err := res.Decode(&project); err != nil {
-		return project, false, errors.Wrapf(err, "error decoding project %q", id)
+		return project, errors.Wrapf(err, "error decoding project %q", id)
 	}
-	return project, true, nil
+	return project, nil
 }
 
 func (s *store) UpdateProject(
 	ctx context.Context, project brignext.Project,
-) (bool, error) {
+) error {
 	res, err := s.projectsCollection.ReplaceOne(
 		ctx,
 		bson.M{
@@ -506,17 +520,23 @@ func (s *store) UpdateProject(
 		project,
 	)
 	if err != nil {
-		return false, errors.Wrapf(err, "error replacing project %q", project.ID)
+		return errors.Wrapf(err, "error replacing project %q", project.ID)
 	}
-	return res.MatchedCount == 1, nil
+	if res.MatchedCount == 0 {
+		return &brignext.ErrProjectNotFound{project.ID}
+	}
+	return nil
 }
 
-func (s *store) DeleteProject(ctx context.Context, id string) (bool, error) {
+func (s *store) DeleteProject(ctx context.Context, id string) error {
 	res, err := s.projectsCollection.DeleteOne(ctx, bson.M{"_id": id})
 	if err != nil {
-		return false, errors.Wrapf(err, "error deleting project %q", id)
+		return errors.Wrapf(err, "error deleting project %q", id)
 	}
-	return res.DeletedCount == 1, nil
+	if res.DeletedCount == 0 {
+		return &brignext.ErrProjectNotFound{id}
+	}
+	return nil
 }
 
 func (s *store) CreateEvent(ctx context.Context, event brignext.Event) error {
@@ -569,23 +589,19 @@ func (s *store) GetEventsByProject(
 func (s *store) GetEvent(
 	ctx context.Context,
 	id string,
-) (brignext.Event, bool, error) {
+) (brignext.Event, error) {
 	event := brignext.Event{}
 	res := s.eventsCollection.FindOne(ctx, bson.M{"_id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return event, false, nil
+		return event, &brignext.ErrEventNotFound{id}
 	}
 	if res.Err() != nil {
-		return event, false, errors.Wrapf(
-			res.Err(),
-			"error finding event %q",
-			id,
-		)
+		return event, errors.Wrapf(res.Err(), "error finding event %q", id)
 	}
 	if err := res.Decode(&event); err != nil {
-		return event, false, errors.Wrapf(err, "error decoding event %q", id)
+		return event, errors.Wrapf(err, "error decoding event %q", id)
 	}
-	return event, true, nil
+	return event, nil
 }
 
 func (s *store) DeleteEvent(
@@ -594,6 +610,9 @@ func (s *store) DeleteEvent(
 	deleteAccepted bool,
 	deleteProcessing bool,
 ) (bool, error) {
+	if _, err := s.GetEvent(ctx, id); err != nil {
+		return false, err
+	}
 	statusesToDelete := []brignext.EventStatus{
 		brignext.EventStatusMoot,
 		brignext.EventStatusCanceled,
@@ -615,7 +634,7 @@ func (s *store) DeleteEvent(
 		},
 	)
 	if err != nil {
-		return false, errors.Wrapf(err, "error deleting events %q", id)
+		return false, errors.Wrapf(err, "error deleting event %q", id)
 	}
 	return res.DeletedCount == 1, nil
 }

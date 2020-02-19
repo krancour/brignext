@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // executeTasksFn defines functions used to execute pending tasks

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 )
 
@@ -13,14 +14,15 @@ func (s *server) userUnlock(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	if ok, err := s.service.UnlockUser(r.Context(), id); err != nil {
+	if err := s.service.UnlockUser(r.Context(), id); err != nil {
+		if _, ok := errors.Cause(err).(*brignext.ErrUserNotFound); ok {
+			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
+			return
+		}
 		log.Println(
 			errors.Wrapf(err, "error unlocking user %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	} else if !ok {
-		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}
 

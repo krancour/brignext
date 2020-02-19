@@ -1,15 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gosuri/uitable"
-	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -21,9 +19,6 @@ func projectList(c *cli.Context) error {
 		return errors.New("project list requires no arguments")
 	}
 
-	// Global flags
-	allowInsecure := c.GlobalBool(flagInsecure)
-
 	// Command-specific flags
 	output := c.String(flagOutput)
 
@@ -31,32 +26,17 @@ func projectList(c *cli.Context) error {
 		return err
 	}
 
-	req, err := buildRequest(http.MethodGet, "v2/projects", nil)
+	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
+		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	resp, err := getHTTPClient(allowInsecure).Do(req)
+	projects, err := client.GetProjects(context.TODO())
 	if err != nil {
-		return errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
+		return err
 	}
 
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "error reading response body")
-	}
-
-	projs := []*brignext.Project{}
-	if err := json.Unmarshal(respBodyBytes, &projs); err != nil {
-		return errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	if len(projs) == 0 {
+	if len(projects) == 0 {
 		fmt.Println("No projects found.")
 		return nil
 	}
@@ -65,7 +45,7 @@ func projectList(c *cli.Context) error {
 	case "table":
 		table := uitable.New()
 		table.AddRow("ID", "DESCRIPTION", "AGE")
-		for _, project := range projs {
+		for _, project := range projects {
 			var age string
 			if project.Created != nil {
 				age = duration.ShortHumanDuration(time.Since(*project.Created))
@@ -79,7 +59,7 @@ func projectList(c *cli.Context) error {
 		fmt.Println(table)
 
 	case "json":
-		prettyJSON, err := json.MarshalIndent(projs, "", "  ")
+		prettyJSON, err := json.MarshalIndent(projects, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,

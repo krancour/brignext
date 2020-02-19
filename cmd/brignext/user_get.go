@@ -1,14 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strings"
 
 	"github.com/gosuri/uitable"
-	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -22,9 +20,6 @@ func userGet(c *cli.Context) error {
 	}
 	id := c.Args()[0]
 
-	// Global flags
-	allowInsecure := c.GlobalBool(flagInsecure)
-
 	// Command-specific flags
 	output := c.String(flagOutput)
 
@@ -32,36 +27,14 @@ func userGet(c *cli.Context) error {
 		return err
 	}
 
-	req, err := buildRequest(
-		http.MethodGet,
-		fmt.Sprintf("v2/users/%s", id),
-		nil,
-	)
+	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
+		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	resp, err := getHTTPClient(allowInsecure).Do(req)
+	user, err := client.GetUser(context.TODO(), id)
 	if err != nil {
-		return errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return errors.Errorf("User %q not found.", id)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "error reading response body")
-	}
-
-	user := brignext.User{}
-	if err := json.Unmarshal(respBodyBytes, &user); err != nil {
-		return errors.Wrap(err, "error unmarshaling response body")
+		return err
 	}
 
 	switch strings.ToLower(output) {

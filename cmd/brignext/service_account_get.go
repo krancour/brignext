@@ -1,14 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strings"
 	"time"
 
-	"github.com/krancour/brignext/pkg/brignext"
 	"k8s.io/apimachinery/pkg/util/duration"
 
 	"github.com/gosuri/uitable"
@@ -26,9 +24,6 @@ func serviceAccountGet(c *cli.Context) error {
 	}
 	id := c.Args()[0]
 
-	// Global flags
-	allowInsecure := c.GlobalBool(flagInsecure)
-
 	// Command-specific flags
 	output := c.String(flagOutput)
 
@@ -36,36 +31,14 @@ func serviceAccountGet(c *cli.Context) error {
 		return err
 	}
 
-	req, err := buildRequest(
-		http.MethodGet,
-		fmt.Sprintf("v2/service-accounts/%s", id),
-		nil,
-	)
+	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
+		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	resp, err := getHTTPClient(allowInsecure).Do(req)
+	serviceAccount, err := client.GetServiceAccount(context.TODO(), id)
 	if err != nil {
-		return errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return errors.Errorf("Service account %q not found.", id)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "error reading response body")
-	}
-
-	serviceAccount := brignext.ServiceAccount{}
-	if err := json.Unmarshal(respBodyBytes, &serviceAccount); err != nil {
-		return errors.Wrap(err, "error unmarshaling response body")
+		return err
 	}
 
 	switch strings.ToLower(output) {

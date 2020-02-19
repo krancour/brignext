@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/krancour/brignext/pkg/brignext"
+
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -14,15 +16,16 @@ func (s *server) serviceAccountUnlock(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	token, ok, err := s.service.UnlockServiceAccount(r.Context(), id)
+	token, err := s.service.UnlockServiceAccount(r.Context(), id)
 	if err != nil {
+		if _, ok := errors.Cause(err).(*brignext.ErrServiceAccountNotFound); ok {
+			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
+			return
+		}
 		log.Println(
 			errors.Wrapf(err, "error unlocking service account %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	} else if !ok {
-		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}
 

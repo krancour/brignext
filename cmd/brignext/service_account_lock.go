@@ -1,8 +1,8 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -18,26 +18,13 @@ func serviceAccountLock(c *cli.Context) error {
 	}
 	id := c.Args()[0]
 
-	// Global flags
-	allowInsecure := c.GlobalBool(flagInsecure)
-
-	req, err := buildRequest(
-		http.MethodPost,
-		fmt.Sprintf("v2/service-accounts/%s/lock", id),
-		nil,
-	)
+	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
+		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	resp, err := getHTTPClient(allowInsecure).Do(req)
-	if err != nil {
-		return errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
+	if err := client.LockServiceAccount(context.TODO(), id); err != nil {
+		return err
 	}
 
 	fmt.Printf("Service account %q locked.\n", id)

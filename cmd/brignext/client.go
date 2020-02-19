@@ -1,16 +1,19 @@
 package main
 
 import (
-	"crypto/tls"
-	"net/http"
+	"github.com/krancour/brignext/pkg/client"
+	"github.com/pkg/errors"
+	"github.com/urfave/cli"
 )
 
-func getHTTPClient(allowInsecure bool) *http.Client {
-	return &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: allowInsecure,
-			},
-		},
+func getClient(c *cli.Context) (client.Client, error) {
+	config, err := getConfig()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error retrieving configuration")
 	}
+	return client.NewClient(
+		config.APIAddress,
+		config.APIToken,
+		c.GlobalBool(flagInsecure),
+	), nil
 }

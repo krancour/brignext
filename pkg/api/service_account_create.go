@@ -47,24 +47,12 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, ok, err :=
-		s.service.GetServiceAccount(r.Context(), serviceAccount.ID); err != nil {
-		log.Println(
-			errors.Wrapf(
-				err,
-				"error checking for existing service account %q",
-				serviceAccount.ID,
-			),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	} else if ok {
-		s.writeResponse(w, http.StatusConflict, responseEmptyJSON)
-		return
-	}
-
 	token, err := s.service.CreateServiceAccount(r.Context(), serviceAccount)
 	if err != nil {
+		if _, ok := errors.Cause(err).(*brignext.ErrServiceAccountIDConflict); ok {
+			s.writeResponse(w, http.StatusConflict, responseEmptyJSON)
+			return
+		}
 		log.Println(
 			errors.Wrapf(
 				err,

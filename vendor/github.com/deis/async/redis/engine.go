@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"sync"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/deis/async"
 	"github.com/go-redis/redis"
 	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 // engine is a Redis-based implementation of the Engine interface.

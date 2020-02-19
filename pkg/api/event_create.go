@@ -44,13 +44,14 @@ func (s *server) eventCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, ok, err := s.service.CreateEvent(r.Context(), event)
+	id, err := s.service.CreateEvent(r.Context(), event)
 	if err != nil {
+		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
+			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
+			return
+		}
 		log.Println(errors.Wrap(err, "error creating new event"))
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	} else if !ok {
-		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}
 

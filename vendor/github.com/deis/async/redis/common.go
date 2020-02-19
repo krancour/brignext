@@ -3,8 +3,8 @@ package redis
 import (
 	"fmt"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/deis/async"
+	log "github.com/sirupsen/logrus"
 )
 
 const (

@@ -24,19 +24,19 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, ok, err := s.service.GetSessionByOAuth2State(
+	session, err := s.service.GetSessionByOAuth2State(
 		r.Context(),
 		oauth2State,
 	)
 	if err != nil {
+		if _, ok := errors.Cause(err).(*brignext.ErrSessionNotFound); ok {
+			s.writeResponse(w, http.StatusBadRequest, responseOIDCAuthError)
+			return
+		}
 		log.Println(
 			errors.Wrap(err, "error retrieving session by OAuth2 state [REDACTED]"),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
-		return
-	}
-	if !ok {
-		s.writeResponse(w, http.StatusBadRequest, responseOIDCAuthError)
 		return
 	}
 
@@ -79,28 +79,30 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, ok, err := s.service.GetUser(r.Context(), claims.Email)
+	user, err := s.service.GetUser(r.Context(), claims.Email)
 	if err != nil {
-		log.Println(
-			errors.Wrapf(err, "error searching for existing user %q", claims.Email),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
-		return
-	} else if !ok {
-		user = brignext.User{
-			ID:   claims.Email,
-			Name: claims.Name,
-		}
-		if err = s.service.CreateUser(r.Context(), user); err != nil {
+		if _, ok := errors.Cause(err).(*brignext.ErrUserNotFound); ok {
+			user = brignext.User{
+				ID:   claims.Email,
+				Name: claims.Name,
+			}
+			if err := s.service.CreateUser(r.Context(), user); err != nil {
+				log.Println(
+					errors.Wrapf(err, "error creating new user %q", user.ID),
+				)
+				s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
+				return
+			}
+		} else {
 			log.Println(
-				errors.Wrapf(err, "error creating new user %q", user.ID),
+				errors.Wrapf(err, "error searching for existing user %q", claims.Email),
 			)
 			s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
 			return
 		}
 	}
 
-	if _, err := s.service.AuthenticateSession(
+	if err := s.service.AuthenticateSession(
 		r.Context(),
 		session.ID,
 		user.ID,

@@ -1,10 +1,9 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"strings"
 	"time"
 
@@ -23,9 +22,6 @@ func eventList(c *cli.Context) error {
 		)
 	}
 
-	// GobalFlags
-	allowInsecure := c.GlobalBool(flagInsecure)
-
 	// Command-specific flags
 	output := c.String(flagOutput)
 	projectID := c.String(flagProject)
@@ -34,34 +30,19 @@ func eventList(c *cli.Context) error {
 		return err
 	}
 
-	req, err := buildRequest(http.MethodGet, "v2/events", nil)
+	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
-	}
-	if projectID != "" {
-		q := req.URL.Query()
-		q.Set("projectID", projectID)
-		req.URL.RawQuery = q.Encode()
+		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	resp, err := getHTTPClient(allowInsecure).Do(req)
+	var events []brignext.Event
+	if projectID == "" {
+		events, err = client.GetEvents(context.TODO())
+	} else {
+		events, err = client.GetEventsByProject(context.TODO(), projectID)
+	}
 	if err != nil {
-		return errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "error reading response body")
-	}
-
-	events := []brignext.Event{}
-	if err := json.Unmarshal(respBodyBytes, &events); err != nil {
-		return errors.Wrap(err, "error unmarshaling response body")
+		return err
 	}
 
 	if len(events) == 0 {

@@ -1,12 +1,8 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
+	"context"
 	"fmt"
-	"io/ioutil"
-	"log"
-	"net/http"
 
 	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
@@ -23,9 +19,6 @@ func eventCreate(c *cli.Context) error {
 	}
 	projectID := c.Args()[0]
 
-	// Global flags
-	allowInsecure := c.GlobalBool(flagInsecure)
-
 	// Command-specific flags
 	eventType := c.String(flagType)
 	provider := c.String(flagProvider)
@@ -36,68 +29,21 @@ func eventCreate(c *cli.Context) error {
 		Type:      eventType,
 	}
 
-	eventBytes, err := json.Marshal(event)
+	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error marshaling event")
+		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	req, err := buildRequest(http.MethodPost, "v2/events", eventBytes)
+	eventID, err := client.CreateEvent(context.TODO(), event)
 	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
+		return err
 	}
-
-	resp, err := getHTTPClient(allowInsecure).Do(req)
-	if err != nil {
-		return errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return errors.Wrap(err, "error reading response body")
-	}
-
-	respStruct := struct {
-		ID string `json:"id"`
-	}{}
-	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
-		return errors.Wrap(err, "error unmarshaling response body")
-	}
-	eventID := respStruct.ID
 
 	fmt.Printf("Created event %q.\n\n", eventID)
 
-	fmt.Println("Streaming event logs...\n")
+	// fmt.Println("Streaming event logs...\n")
 
-	// Now stream the logs
+	// TODO: Stream the logs
 
-	if req, err = buildRequest(
-		http.MethodGet,
-		fmt.Sprintf("v2/events/%s/logs", eventID),
-		nil,
-	); err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
-	}
-
-	logsResp, err := getHTTPClient(allowInsecure).Do(req)
-	if err != nil {
-		return errors.Wrap(err, "error invoking API")
-	}
-	defer logsResp.Body.Close()
-
-	bufferedReader := bufio.NewReader(logsResp.Body)
-	logsBuffer := make([]byte, 4*1024)
-	for {
-		len, err := bufferedReader.Read(logsBuffer)
-		if err != nil {
-			return errors.Wrap(err, "error streaming logs from API")
-		}
-		if len > 0 {
-			log.Println(string(logsBuffer[:len]))
-		}
-	}
+	return nil
 }

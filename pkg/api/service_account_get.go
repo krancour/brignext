@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/krancour/brignext/pkg/brignext"
 	"github.com/pkg/errors"
 )
 
@@ -14,16 +15,16 @@ func (s *server) serviceAccountGet(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	serviceAccount, ok, err := s.service.GetServiceAccount(r.Context(), id)
+	serviceAccount, err := s.service.GetServiceAccount(r.Context(), id)
 	if err != nil {
+		if _, ok := errors.Cause(err).(*brignext.ErrServiceAccountNotFound); ok {
+			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
+			return
+		}
 		log.Println(
 			errors.Wrapf(err, "error retrieving service account %q", id),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-	if !ok {
-		s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 		return
 	}
 
