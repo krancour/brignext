@@ -25,19 +25,17 @@ spec:
         args:
         - --logtostderr=true
         env:
-        - name: MONGODB_HOST
-          value: {{ include "call-nested" (list . "mongodb" "mongodb.fullname") }}.{{ .Release.Namespace }}.svc.cluster.local
-        - name: MONGODB_PORT
-          value: {{ quote .Values.mongodb.service.port }}
-        - name: MONGODB_DATABASE
-          value: {{ .Values.mongodb.mongodbDatabase }}
-        - name: MONGODB_USERNAME
-          value: {{ .Values.mongodb.mongodbUsername }}
-        - name: MONGODB_PASSWORD
+        - name: REDIS_HOST
+          value: {{ include "call-nested" (list . "redis" "redis.fullname") }}-master.{{ .Release.Namespace }}.svc.cluster.local
+        - name: REDIS_PORT
+          value: {{ quote .Values.redis.redisPort }}
+        - name: REDIS_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: {{ include "call-nested" (list . "mongodb" "mongodb.fullname") }}
-              key: mongodb-password
+              name: {{ include "call-nested" (list . "redis" "redis.fullname") }}
+              key: redis-password
+        - name: REDIS_DB
+          value: {{ quote .Values.apiserver.redis.database }}
       {{- with .Values.controller.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
