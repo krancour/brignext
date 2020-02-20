@@ -1,0 +1,74 @@
+package main
+
+import (
+	"log"
+
+	async "github.com/deis/async/redis"
+	"github.com/golang/glog"
+	"github.com/krancour/brignext/apiserver/pkg/api"
+	mongodbUtils "github.com/krancour/brignext/apiserver/pkg/mongodb"
+	"github.com/krancour/brignext/apiserver/pkg/oidc"
+	"github.com/krancour/brignext/apiserver/pkg/scheduler"
+	"github.com/krancour/brignext/apiserver/pkg/service"
+	"github.com/krancour/brignext/apiserver/pkg/storage/mongodb"
+	"github.com/krancour/brignext/pkg/kubernetes"
+	"github.com/krancour/brignext/pkg/version"
+)
+
+func main() {
+	log.Printf(
+		"Starting BrigNext API Server -- version %s -- commit %s",
+		version.Version(),
+		version.Commit(),
+	)
+
+	// API server config
+	apiConfig, err := api.GetConfigFromEnvironment()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// OpenID Connect config
+	oidcConfig, oidcIdentityVerifier, err :=
+		oidc.GetConfigAndVerifierFromEnvironment()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Datastores (Mongo)
+	database, err := mongodbUtils.Database()
+	if err != nil {
+		log.Fatal(err)
+	}
+	store, err := mongodb.NewStore(database)
+	if err != nil {
+		log.Fatal(err)
+	}
+	logStore := mongodb.NewLogStore(database)
+
+	// Scheduler
+	asyncConfig, err := async.GetConfigFromEnvironment()
+	if err != nil {
+		log.Fatal(err)
+	}
+	asyncEngine := async.NewEngine(asyncConfig)
+	kubeClient, err := kubernetes.Client()
+	if err != nil {
+		glog.Fatal(err)
+	}
+	scheduler := scheduler.NewScheduler(
+		asyncEngine,
+		kubeClient,
+	)
+
+	service := service.NewService(store, scheduler, logStore)
+
+	log.Println(
+		api.NewServer(
+			apiConfig,
+			oidcConfig,
+			oidcIdentityVerifier,
+			service,
+		).ListenAndServe(),
+	)
+}
