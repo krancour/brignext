@@ -25,6 +25,19 @@ spec:
         args:
         - --logtostderr=true
         env:
+        - name: API_ADDRESS
+          {{- if .Values.apiserver.tls.enabled }}
+          value: https://{{ include "brignext.controller.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+          {{- else }}
+          value: http://{{ include "brignext.controller.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+          {{- end }}
+        - name: API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "brignext.controller.fullname" . }}
+              key: api-token
+        - name: IGNORE_API_CERT_WARNINGS
+          value: {{ quote (and .Values.apiserver.tls.enabled .Values.controller.tls.ignoreCertWarnings) }}
         - name: REDIS_HOST
           value: {{ include "call-nested" (list . "redis" "redis.fullname") }}-master.{{ .Release.Namespace }}.svc.cluster.local
         - name: REDIS_PORT

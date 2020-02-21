@@ -4,7 +4,6 @@ import (
 	"log"
 
 	async "github.com/deis/async/redis"
-	"github.com/golang/glog"
 	"github.com/krancour/brignext/apiserver/pkg/api"
 	mongodbUtils "github.com/krancour/brignext/apiserver/pkg/mongodb"
 	"github.com/krancour/brignext/apiserver/pkg/oidc"
@@ -54,7 +53,7 @@ func main() {
 	asyncEngine := async.NewEngine(asyncConfig)
 	kubeClient, err := kubernetes.Client()
 	if err != nil {
-		glog.Fatal(err)
+		log.Fatal(err)
 	}
 	scheduler := scheduler.NewScheduler(
 		asyncEngine,

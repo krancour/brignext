@@ -9,7 +9,6 @@ require (
 	github.com/deis/async v0.0.0-00010101000000-000000000000
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/go-redis/redis v6.15.7+incompatible
-	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/gorilla/mux v1.7.4
 	github.com/gosuri/uitable v0.0.4
 	github.com/imdario/mergo v0.3.8 // indirect
