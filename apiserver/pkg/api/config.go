@@ -10,12 +10,12 @@ import (
 const envconfigPrefix = "API_SERVER"
 
 // We use an exported interface to govern access to our config because the
-// underlying struct has a password has a non-hashed password attribute that we
-// don't want to expose.
+// underlying struct has fields we don't want to expose.
 type Config interface {
 	Port() int
 	RootUserEnabled() bool
 	HashedRootUserPassword() string
+	HashedControllerToken() string
 	TLSEnabled() bool
 	TLSCertPath() string
 	TLSKeyPath() string
@@ -26,6 +26,8 @@ type config struct {
 	RootUserEnabledAttr        bool   `envconfig:"ROOT_USER_ENABLED"`
 	RootUserPasswordAttr       string `envconfig:"ROOT_USER_PASSWORD"`
 	HashedRootUserPasswordAttr string
+	ControllerTokenAttr        string `envconfig:"CONTROLLER_TOKEN" required:"true"` // nolint: lll
+	HashedControllerTokenAttr  string
 	TLSEnabledAttr             bool   `envconfig:"TLS_ENABLED"`
 	TLSCertPathAttr            string `envconfig:"TLS_CERT_PATH"`
 	TLSKeyPathAttr             string `envconfig:"TLS_KEY_PATH"`
@@ -71,6 +73,11 @@ func GetConfigFromEnvironment() (Config, error) {
 	c.HashedRootUserPasswordAttr = crypto.ShortSHA("root", c.RootUserPasswordAttr)
 	// Don't let the unencrypted password float around in memory!
 	c.RootUserPasswordAttr = ""
+
+	c.HashedControllerTokenAttr = crypto.ShortSHA("", c.ControllerTokenAttr)
+	// Don't let the unencrypted token float around in memory!
+	c.ControllerTokenAttr = ""
+
 	return c, nil
 }
 
@@ -84,6 +91,10 @@ func (c *config) RootUserEnabled() bool {
 
 func (c *config) HashedRootUserPassword() string {
 	return c.HashedRootUserPasswordAttr
+}
+
+func (c *config) HashedControllerToken() string {
+	return c.HashedControllerTokenAttr
 }
 
 func (c *config) TLSEnabled() bool {

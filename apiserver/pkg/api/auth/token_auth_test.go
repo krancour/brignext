@@ -12,8 +12,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testToken = "foooooooooooooooooooo"
+
 func TestTokenAuthFilterWithHeaderMissing(t *testing.T) {
-	a := NewTokenAuthFilter(nil, nil, false)
+	a := NewTokenAuthFilter(nil, nil, false, testToken)
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	require.NoError(t, err)
 	rr := httptest.NewRecorder()
@@ -26,7 +28,7 @@ func TestTokenAuthFilterWithHeaderMissing(t *testing.T) {
 }
 
 func TestTokenAuthFilterWithHeaderNotBearer(t *testing.T) {
-	a := NewTokenAuthFilter(nil, nil, false)
+	a := NewTokenAuthFilter(nil, nil, false, testToken)
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	require.NoError(t, err)
 	req.Header.Add("Authorization", "Digest foo")
@@ -46,6 +48,7 @@ func TestTokenAuthFilterWithTokenInvalid(t *testing.T) {
 		},
 		nil,
 		false,
+		testToken,
 	)
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	require.NoError(t, err)
@@ -71,6 +74,7 @@ func TestTokenAuthFilterWithUnauthenticatedSession(t *testing.T) {
 			return brignext.User{}, nil
 		},
 		false,
+		testToken,
 	)
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	require.NoError(t, err)
@@ -79,8 +83,7 @@ func TestTokenAuthFilterWithUnauthenticatedSession(t *testing.T) {
 	var handlerCalled bool
 	a.Decorate(func(_ http.ResponseWriter, r *http.Request) {
 		handlerCalled = true
-		_, ok := UserFromContext(r.Context())
-		require.False(t, ok)
+		require.Nil(t, PincipalFromContext(r.Context()))
 		require.Empty(t, SessionIDFromContext(r.Context()))
 	})(rr, req)
 	require.Equal(t, http.StatusUnauthorized, rr.Code)
@@ -105,6 +108,7 @@ func TestTokenAuthFilterWithAuthenticatedSession(t *testing.T) {
 			return brignext.User{}, nil
 		},
 		false,
+		testToken,
 	)
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	require.NoError(t, err)
@@ -113,8 +117,7 @@ func TestTokenAuthFilterWithAuthenticatedSession(t *testing.T) {
 	var handlerCalled bool
 	a.Decorate(func(_ http.ResponseWriter, r *http.Request) {
 		handlerCalled = true
-		_, ok := UserFromContext(r.Context())
-		require.True(t, ok)
+		require.NotNil(t, PincipalFromContext(r.Context()))
 		require.Equal(t, sessionID, SessionIDFromContext(r.Context()))
 	})(rr, req)
 	require.Equal(t, http.StatusOK, rr.Code)

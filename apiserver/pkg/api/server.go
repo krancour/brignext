@@ -7,7 +7,7 @@ import (
 
 	"github.com/coreos/go-oidc"
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/apiserver/pkg/http/filters/auth"
+	"github.com/krancour/brignext/apiserver/pkg/api/auth"
 	"github.com/krancour/brignext/apiserver/pkg/service"
 	"github.com/krancour/brignext/pkg/file"
 	"github.com/xeipuuv/gojsonschema"
@@ -57,6 +57,7 @@ func NewServer(
 		service.GetSessionByToken,
 		service.GetUser,
 		apiServerConfig.RootUserEnabled(),
+		apiServerConfig.HashedControllerToken(),
 	)
 
 	s.router.StrictSlash(true)

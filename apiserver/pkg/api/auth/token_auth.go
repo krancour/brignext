@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext"
+	"github.com/krancour/brignext/apiserver/pkg/crypto"
 )
 
 type FindSessionFn func(
@@ -20,16 +21,18 @@ type FindUserFn func(
 ) (brignext.User, error)
 
 type tokenAuthFilter struct {
-	findSession     FindSessionFn
-	findUser        FindUserFn
-	rootUserEnabled bool
+	findSession           FindSessionFn
+	findUser              FindUserFn
+	rootUserEnabled       bool
+	hashedControllerToken string
 }
 
 func NewTokenAuthFilter(
 	findSession FindSessionFn,
 	findUser FindUserFn,
 	rootUserEnabled bool,
-) AuthFilter {
+	hashedControllerToken string,
+) Filter {
 	return &tokenAuthFilter{
 		findSession:     findSession,
 		findUser:        findUser,
@@ -44,16 +47,28 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			http.Error(w, "{}", http.StatusUnauthorized)
 			return
 		}
-		headerValueTokens := strings.SplitN(
+		headerValueParts := strings.SplitN(
 			r.Header.Get("Authorization"),
 			" ",
 			2,
 		)
-		if len(headerValueTokens) != 2 || headerValueTokens[0] != "Bearer" {
+		if len(headerValueParts) != 2 || headerValueParts[0] != "Bearer" {
 			http.Error(w, "{}", http.StatusUnauthorized)
 			return
 		}
-		token := headerValueTokens[1]
+		token := headerValueParts[1]
+
+		// Is it the controller's token?
+		if crypto.ShortSHA("", token) == t.hashedControllerToken {
+			ctx := context.WithValue(
+				r.Context(),
+				principalContextKey{},
+				controllerPrincipal,
+			)
+			handle(w, r.WithContext(ctx))
+			return
+		}
+
 		session, err := t.findSession(r.Context(), token)
 		if err != nil {
 			http.Error(w, "{}", http.StatusUnauthorized)
@@ -65,21 +80,24 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			http.Error(w, "{}", http.StatusUnauthorized)
 			return
 		}
-		var user brignext.User
+		var principal Principal
 		if session.Root {
-			user = brignext.User{ID: "root"}
+			principal = rootPrincipal
 		} else {
-			if user, err = t.findUser(r.Context(), session.UserID); err != nil {
+			user, err := t.findUser(r.Context(), session.UserID)
+			if err != nil {
 				http.Error(w, "{}", http.StatusUnauthorized)
 				return
 			}
+			if user.Locked != nil && *user.Locked {
+				http.Error(w, "{}", http.StatusForbidden)
+				return
+			}
+			principal = user
 		}
-		if user.Locked != nil && *user.Locked {
-			http.Error(w, "{}", http.StatusForbidden)
-			return
-		}
+
 		// Success! Add the user and the session ID to the context.
-		ctx := context.WithValue(r.Context(), userContextKey{}, user)
+		ctx := context.WithValue(r.Context(), principalContextKey{}, principal)
 		ctx = context.WithValue(ctx, sessionIDContextKey{}, session.ID)
 		handle(w, r.WithContext(ctx))
 	}

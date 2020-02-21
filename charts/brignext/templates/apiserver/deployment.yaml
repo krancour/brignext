@@ -16,10 +16,11 @@ spec:
       labels:
         {{- include "brignext.selectorLabels" . | nindent 8 }}
         {{- include "brignext.apiserver.labels" . | nindent 8 }}
-      {{- if .Values.apiserver.tls.enabled }}
       annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/apiserver/cert-secret.yaml") . | sha256sum }}
-      {{- end }}
+        checksum/controller-password: {{ include (print $.Template.BasePath "/controller/secret.yaml") . | sha256sum }}
+        {{- if .Values.apiserver.tls.enabled }}
+        checksum/tls: {{ include (print $.Template.BasePath "/apiserver/cert-secret.yaml") . | sha256sum }}
+        {{- end }}
     spec:
       serviceAccount: {{ include "brignext.apiserver.fullname" . }}
       containers:
@@ -38,6 +39,11 @@ spec:
               name: {{ include "brignext.apiserver.fullname" . }}
               key: root-user-password
         {{- end }}
+        - name: API_SERVER_CONTROLLER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "brignext.controller.fullname" . }}
+              key: api-token
         - name: OIDC_ENABLED
           value: {{ quote .Values.apiserver.oidc.enabled }}
         {{- if .Values.apiserver.oidc.enabled }}
