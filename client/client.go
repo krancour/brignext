@@ -42,6 +42,16 @@ type Client interface {
 	CreateEvent(context.Context, brignext.Event) (string, error)
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
+	UpdateEventWorkers(
+		ctx context.Context,
+		id string,
+		workers map[string]brignext.Worker,
+	) error
+	UpdateEventStatus(
+		ctx context.Context,
+		id string,
+		status brignext.EventStatus,
+	) error
 	GetEvent(context.Context, string) (brignext.Event, error)
 	DeleteEvent(
 		ctx context.Context,
@@ -751,6 +761,82 @@ func (c *client) GetEvent(ctx context.Context, id string) (brignext.Event, error
 	}
 
 	return event, nil
+}
+
+func (c *client) UpdateEventWorkers(
+	ctx context.Context,
+	id string,
+	workers map[string]brignext.Worker,
+) error {
+	workersBytes, err := json.Marshal(workers)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling workers")
+	}
+
+	req, err := c.buildRequest(
+		http.MethodPut,
+		fmt.Sprintf("v2/events/%s/workers", id),
+		workersBytes,
+	)
+	if err != nil {
+		return errors.Wrap(err, "error creating HTTP request")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return &brignext.ErrEventNotFound{id}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func (c *client) UpdateEventStatus(
+	ctx context.Context,
+	id string,
+	status brignext.EventStatus,
+) error {
+	statusBytes, err := json.Marshal(
+		struct {
+			Status brignext.EventStatus `json:"status"`
+		}{
+			Status: status,
+		},
+	)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling status")
+	}
+
+	req, err := c.buildRequest(
+		http.MethodPut,
+		fmt.Sprintf("v2/events/%s/status", id),
+		statusBytes,
+	)
+	if err != nil {
+		return errors.Wrap(err, "error creating HTTP request")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return &brignext.ErrEventNotFound{id}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	return nil
 }
 
 func (c *client) DeleteEvent(

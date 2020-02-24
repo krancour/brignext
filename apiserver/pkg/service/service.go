@@ -51,6 +51,16 @@ type Service interface {
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
 	GetEvent(context.Context, string) (brignext.Event, error)
+	UpdateEventWorkers(
+		ctx context.Context,
+		id string,
+		workers map[string]brignext.Worker,
+	) error
+	UpdateEventStatus(
+		ctx context.Context,
+		id string,
+		status brignext.EventStatus,
+	) error
 	DeleteEvent(
 		ctx context.Context,
 		id string,
@@ -488,7 +498,8 @@ func (s *service) CreateEvent(
 	event brignext.Event,
 ) (string, error) {
 	// Make sure the project exists
-	if _, err := s.store.GetProject(ctx, event.ProjectID); err != nil {
+	project, err := s.store.GetProject(ctx, event.ProjectID)
+	if err != nil {
 		return "", errors.Wrapf(
 			err,
 			"error retrieving project %q from store",
@@ -497,17 +508,8 @@ func (s *service) CreateEvent(
 	}
 
 	event.ID = uuid.NewV4().String()
-	// TODO: This is something that should be done when we start PROCESSING the
-	// event instead of when the event is created. This way the latest project
-	// confiugration is always applied when determining what workers to create
-	// and execute.
-	// event.Workers = project.GetWorkers(event.Provider, event.Type)
-	// if len(event.Workers) == 0 {
-	// 	event.Status = brignext.EventStatusMoot
-	// } else {
-	// 	event.Namespace = project.Namespace
-	// }
 	event.Status = brignext.EventStatusAccepted
+	event.Namespace = project.Namespace
 	now := time.Now()
 	event.Created = &now
 
@@ -517,6 +519,7 @@ func (s *service) CreateEvent(
 			return errors.Wrapf(err, "error storing new event %q", event.ID)
 		}
 
+		// TODO: Fix this
 		// There's deliberately a short delay here to minimize the possibility of
 		// the controller trying (and failing) to locate this new event before
 		// the transaction on the store has become durable.
@@ -575,6 +578,28 @@ func (s *service) GetEvent(
 		)
 	}
 	return event, nil
+}
+
+func (s *service) UpdateEventWorkers(
+	ctx context.Context,
+	id string,
+	workers map[string]brignext.Worker,
+) error {
+	if err := s.store.UpdateEventWorkers(ctx, id, workers); err != nil {
+		return errors.Wrapf(err, "error updating event %q workers in store", id)
+	}
+	return nil
+}
+
+func (s *service) UpdateEventStatus(
+	ctx context.Context,
+	id string,
+	status brignext.EventStatus,
+) error {
+	if err := s.store.UpdateEventStatus(ctx, id, status); err != nil {
+		return errors.Wrapf(err, "error updating event %q status in store", id)
+	}
+	return nil
 }
 
 func (s *service) DeleteEvent(

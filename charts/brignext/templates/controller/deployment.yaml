@@ -27,9 +27,9 @@ spec:
         env:
         - name: API_ADDRESS
           {{- if .Values.apiserver.tls.enabled }}
-          value: https://{{ include "brignext.controller.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+          value: https://{{ include "brignext.apiserver.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
           {{- else }}
-          value: http://{{ include "brignext.controller.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
+          value: http://{{ include "brignext.apiserver.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local
           {{- end }}
         - name: API_TOKEN
           valueFrom:

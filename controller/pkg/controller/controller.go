@@ -29,6 +29,7 @@ func NewController(
 		kubeClient:  kubeClient,
 	}
 	c.asyncEngine.RegisterJob("processEvent", c.processEvent)
+	c.asyncEngine.RegisterJob("executeWorker", c.executeWorker)
 	return c
 }
 

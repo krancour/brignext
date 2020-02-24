@@ -604,6 +604,56 @@ func (s *store) GetEvent(
 	return event, nil
 }
 
+func (s *store) UpdateEventWorkers(
+	ctx context.Context,
+	id string,
+	workers map[string]brignext.Worker,
+) error {
+	res, err := s.eventsCollection.UpdateOne(
+		ctx,
+		bson.M{
+			"_id": id,
+		},
+		bson.M{
+			"$set": bson.M{
+				"workers": workers,
+			},
+		},
+	)
+	if err != nil {
+		return errors.Wrapf(err, "error updating event %q workers", id)
+	}
+	if res.MatchedCount == 0 {
+		return &brignext.ErrEventNotFound{id}
+	}
+	return nil
+}
+
+func (s *store) UpdateEventStatus(
+	ctx context.Context,
+	id string,
+	status brignext.EventStatus,
+) error {
+	res, err := s.eventsCollection.UpdateOne(
+		ctx,
+		bson.M{
+			"_id": id,
+		},
+		bson.M{
+			"$set": bson.M{
+				"status": status,
+			},
+		},
+	)
+	if err != nil {
+		return errors.Wrapf(err, "error updating event %q status", id)
+	}
+	if res.MatchedCount == 0 {
+		return &brignext.ErrEventNotFound{id}
+	}
+	return nil
+}
+
 func (s *store) DeleteEvent(
 	ctx context.Context,
 	id string,

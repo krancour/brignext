@@ -59,6 +59,16 @@ type Store interface {
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
 	GetEvent(context.Context, string) (brignext.Event, error)
+	UpdateEventWorkers(
+		ctx context.Context,
+		id string,
+		workers map[string]brignext.Worker,
+	) error
+	UpdateEventStatus(
+		ctx context.Context,
+		id string,
+		status brignext.EventStatus,
+	) error
 	DeleteEvent(
 		ctx context.Context,
 		id string,

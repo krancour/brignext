@@ -34,9 +34,10 @@ func NewTokenAuthFilter(
 	hashedControllerToken string,
 ) Filter {
 	return &tokenAuthFilter{
-		findSession:     findSession,
-		findUser:        findUser,
-		rootUserEnabled: rootUserEnabled,
+		findSession:           findSession,
+		findUser:              findUser,
+		rootUserEnabled:       rootUserEnabled,
+		hashedControllerToken: hashedControllerToken,
 	}
 }
 
