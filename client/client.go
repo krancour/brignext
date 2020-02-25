@@ -42,6 +42,7 @@ type Client interface {
 	CreateEvent(context.Context, brignext.Event) (string, error)
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
+	CreateEventSecrets(ctx context.Context, id string) error
 	UpdateEventWorkers(
 		ctx context.Context,
 		id string,
@@ -767,6 +768,32 @@ func (c *client) GetEvent(ctx context.Context, id string) (brignext.Event, error
 	}
 
 	return event, nil
+}
+
+func (c *client) CreateEventSecrets(ctx context.Context, id string) error {
+	req, err := c.buildRequest(
+		http.MethodPut,
+		fmt.Sprintf("v2/events/%s/secrets", id),
+		nil,
+	)
+	if err != nil {
+		return errors.Wrap(err, "error creating HTTP request")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return &brignext.ErrEventNotFound{id}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	return nil
 }
 
 func (c *client) UpdateEventWorkers(

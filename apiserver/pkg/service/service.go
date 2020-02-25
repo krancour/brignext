@@ -51,6 +51,7 @@ type Service interface {
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
 	GetEvent(context.Context, string) (brignext.Event, error)
+	CreateEventSecrets(ctx context.Context, id string) error
 	UpdateEventWorkers(
 		ctx context.Context,
 		id string,
@@ -82,20 +83,23 @@ type Service interface {
 }
 
 type service struct {
-	store     storage.Store
-	scheduler scheduler.Scheduler
-	logStore  storage.LogStore
+	store       storage.Store
+	secretStore storage.SecretStore
+	scheduler   scheduler.Scheduler
+	logStore    storage.LogStore
 }
 
 func NewService(
 	store storage.Store,
+	secretStore storage.SecretStore,
 	scheduler scheduler.Scheduler,
 	logStore storage.LogStore,
 ) Service {
 	return &service{
-		store:     store,
-		scheduler: scheduler,
-		logStore:  logStore,
+		store:       store,
+		secretStore: secretStore,
+		scheduler:   scheduler,
+		logStore:    logStore,
 	}
 }
 
@@ -414,11 +418,28 @@ func (s *service) CreateProject(
 	project.Namespace = namespace
 	now := time.Now()
 	project.Created = &now
-	if err := s.store.CreateProject(ctx, project); err != nil {
-		return errors.Wrapf(err, "error storing new project %q", project.ID)
-	}
 
-	return nil
+	return s.store.DoTx(ctx, func(ctx context.Context) error {
+
+		if err := s.store.CreateProject(ctx, project); err != nil {
+			return errors.Wrapf(err, "error storing new project %q", project.ID)
+		}
+
+		secrets := project.Secrets
+		if secrets == nil {
+			secrets = map[string]string{}
+		}
+
+		if err := s.secretStore.CreateProjectSecrets(
+			project.ID,
+			project.Namespace,
+			secrets,
+		); err != nil {
+			return errors.Wrapf(err, "error storing project %q secrets", project.ID)
+		}
+
+		return nil
+	})
 }
 
 func (s *service) GetProjects(ctx context.Context) ([]brignext.Project, error) {
@@ -448,15 +469,42 @@ func (s *service) UpdateProject(
 	ctx context.Context,
 	project brignext.Project,
 ) error {
-	// TODO: How can we stop the created time from being overwritten?
-	if err := s.store.UpdateProject(ctx, project); err != nil {
-		return errors.Wrapf(
-			err,
-			"error updating project %q in store",
+	return s.store.DoTx(ctx, func(ctx context.Context) error {
+
+		if err := s.store.UpdateProject(ctx, project); err != nil {
+			return errors.Wrapf(
+				err,
+				"error updating project %q in store",
+				project.ID,
+			)
+		}
+
+		secrets := project.Secrets
+		if secrets == nil {
+			secrets = map[string]string{}
+		}
+
+		// Get the updated project because it will contain a value in the namespace
+		// field that the input didn't.
+		project, err := s.store.GetProject(ctx, project.ID)
+		if err != nil {
+			return errors.Wrapf(
+				err,
+				"error retrieving updated project %q from store",
+				project.ID,
+			)
+		}
+
+		if err := s.secretStore.UpdateProjectSecrets(
 			project.ID,
-		)
-	}
-	return nil
+			project.Namespace,
+			secrets,
+		); err != nil {
+			return errors.Wrapf(err, "error updating project %q secrets", project.ID)
+		}
+
+		return nil
+	})
 }
 
 func (s *service) DeleteProject(ctx context.Context, id string) error {
@@ -484,6 +532,8 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 			)
 		}
 
+		// Deleting the namespace should take care of secrets and running pods as
+		// well.
 		if err := s.scheduler.DeleteProjectNamespace(
 			project.Namespace,
 		); err != nil {
@@ -586,6 +636,31 @@ func (s *service) GetEvent(
 	return event, nil
 }
 
+func (s *service) CreateEventSecrets(ctx context.Context, id string) error {
+	event, err := s.store.GetEvent(ctx, id)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving event %q from store",
+			id,
+		)
+	}
+
+	if err := s.secretStore.CreateEventSecrets(
+		event.ProjectID,
+		event.Namespace,
+		id,
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating secrets for event %q in secret store",
+			id,
+		)
+	}
+
+	return nil
+}
+
 func (s *service) UpdateEventWorkers(
 	ctx context.Context,
 	id string,
@@ -666,6 +741,8 @@ func (s *service) DeleteEvent(
 			}
 		}
 
+		// TODO: Delete event secrets
+
 		return nil
 	})
 
@@ -694,5 +771,9 @@ func (s *service) DeleteEventsByProject(
 			projectID,
 		)
 	}
+
+	// TODO: Abort applicable workers
+	// TODO: Delete event secrets
+
 	return n, nil
 }

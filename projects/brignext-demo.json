@@ -5,6 +5,10 @@
     "foo": "bar",
     "bat": "baz"
   },
+  "secrets": {
+    "FOO": "bar",
+    "BAT": "baz"
+  },
   "workers": {
     "myCLIWorker": {
       "events": [

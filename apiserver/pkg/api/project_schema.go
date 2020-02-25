@@ -166,6 +166,10 @@ var projectSchemaBytes = []byte(`
 				"^\\w[\\w-]*$": { "$ref": "#/definitions/identifier" }
 			}
 		},
+		"secrets": {
+			"type": "object",
+			"description": "A map of project secrets"
+		},
 		"workers": {
 			"type": "object",
 			"description": "A map of worker configurations indexed by unique names",

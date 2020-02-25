@@ -109,6 +109,14 @@ func (c *controller) eventProcess(
 		)
 	}
 
+	if err := c.apiClient.CreateEventSecrets(ctx, event.ID); err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"error creating event secrets for event %q processing",
+			event.ID,
+		)
+	}
+
 	// "Split" the event into many workers and update the event (workers and
 	// status) using the API.
 	workers := project.GetWorkers(event.Provider, event.Type)

@@ -7,24 +7,21 @@ metadata:
     {{- include "brignext.labels" . | nindent 4 }}
     {{- include "brignext.apiserver.labels" . | nindent 4 }}
 rules:
-# - apiGroups:
-#   - ""
-#   resources:
-#   - secrets
-#   verbs:
-#   - create
-#   - get
-#   - list
-#   - watch
-#   - update
-#   - patch
-#   - delete
 - apiGroups:
   - ""
   resources:
   - namespaces
   verbs:
   - create
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - get
+  - update
   - delete
 - apiGroups:
   - ""

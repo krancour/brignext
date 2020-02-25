@@ -14,15 +14,15 @@ type Project struct {
 	Tags        ProjectTags             `json:"tags,omitempty" bson:"tags,omitempty"`
 	Workers     map[string]WorkerConfig `json:"workers,omitempty" bson:"workers,omitempty"`
 	Namespace   string                  `json:"namespace,omitempty" bson:"namespace,omitempty"`
-	Created     *time.Time              `json:"created,omitempty" bson:"created,omitempty"`
+	// TODO: Secrets should be broken out into their own thing and shouldn't be a project field
+	Secrets map[string]string `json:"secrets,omitempty" bson:"-"`
+	Created *time.Time        `json:"created,omitempty" bson:"created,omitempty"`
 	// Repo        Repo   `json:"repo,omitempty" bson:"repo,omitempty"`
 	// DefaultScript     string     `json:"defaultScript,omitempty" bson:"defaultScript,omitempty"`
 	// DefaultScriptName string     `json:"defaultScriptName,omitempty" bson:"defaultScriptName,omitempty"`
 	// DefaultConfig     string     `json:"defaultConfig,omitempty" bson:"defaultConfig,omitempty"`
 	// DefaultConfigName string     `json:"defaultConfigName,omitempty" bson:"defaultConfigName,omitempty"`
 	// Github       Github `json:"github,omitempty" bson:"github,omitempty"`
-	// // TODO: We MUST encrypt these!
-	// Secrets              map[string]string `json:"secrets,omitempty" bson:"secrets,omitempty"`
 	// InitGitSubmodules    bool              `json:"initGitSubmodules,omitempty" bson:"initGitSubmodules,omitempty"`
 	// ImagePullSecrets     string            `json:"imagePullSecrets,omitempty" bson:"imagePullSecrets,omitempty"`
 	// BrigadejsPath        string            `json:"brigadejsPath,omitempty" bson:"brigadejsPath,omitempty"`

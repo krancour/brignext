@@ -513,12 +513,18 @@ func (s *store) GetProject(
 func (s *store) UpdateProject(
 	ctx context.Context, project brignext.Project,
 ) error {
-	res, err := s.projectsCollection.ReplaceOne(
+	res, err := s.projectsCollection.UpdateOne(
 		ctx,
 		bson.M{
 			"_id": project.ID,
 		},
-		project,
+		bson.M{
+			"$set": bson.M{
+				"description": project.Description,
+				"tags":        project.Tags,
+				"workers":     project.Workers,
+			},
+		},
 	)
 	if err != nil {
 		return errors.Wrapf(err, "error replacing project %q", project.ID)
@@ -662,6 +668,7 @@ func (s *store) UpdateEventWorkerStatus(
 	status brignext.WorkerStatus,
 ) error {
 	workerKey := fmt.Sprintf("workers.%s", workerName)
+	workerStatusKey := fmt.Sprintf("workers.%s.status", workerName)
 	res, err := s.eventsCollection.UpdateOne(
 		ctx,
 		bson.M{
@@ -670,7 +677,7 @@ func (s *store) UpdateEventWorkerStatus(
 		},
 		bson.M{
 			"$set": bson.M{
-				workerKey: status,
+				workerStatusKey: status,
 			},
 		},
 	)
