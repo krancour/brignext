@@ -28,8 +28,10 @@ func NewController(
 		asyncEngine: asyncEngine,
 		kubeClient:  kubeClient,
 	}
-	c.asyncEngine.RegisterJob("processEvent", c.processEvent)
-	c.asyncEngine.RegisterJob("executeWorker", c.executeWorker)
+	c.asyncEngine.RegisterJob("processEvent", c.eventProcess)
+	c.asyncEngine.RegisterJob("monitorEvent", c.eventMonitor)
+	c.asyncEngine.RegisterJob("executeWorker", c.workerExecute)
+	c.asyncEngine.RegisterJob("monitorWorker", c.workerMonitor)
 	return c
 }
 

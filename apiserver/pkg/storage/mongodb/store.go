@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/krancour/brignext"
@@ -650,6 +651,42 @@ func (s *store) UpdateEventStatus(
 	}
 	if res.MatchedCount == 0 {
 		return &brignext.ErrEventNotFound{id}
+	}
+	return nil
+}
+
+func (s *store) UpdateEventWorkerStatus(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	status brignext.WorkerStatus,
+) error {
+	workerKey := fmt.Sprintf("workers.%s", workerName)
+	res, err := s.eventsCollection.UpdateOne(
+		ctx,
+		bson.M{
+			"_id":     eventID,
+			workerKey: bson.M{"$exists": true},
+		},
+		bson.M{
+			"$set": bson.M{
+				workerKey: status,
+			},
+		},
+	)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating status on worker %q of event %q",
+			workerName,
+			eventID,
+		)
+	}
+	if res.MatchedCount == 0 {
+		return &brignext.ErrWorkerNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+		}
 	}
 	return nil
 }

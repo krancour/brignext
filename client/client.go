@@ -52,6 +52,12 @@ type Client interface {
 		id string,
 		status brignext.EventStatus,
 	) error
+	UpdateEventWorkerStatus(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		status brignext.WorkerStatus,
+	) error
 	GetEvent(context.Context, string) (brignext.Event, error)
 	DeleteEvent(
 		ctx context.Context,
@@ -790,6 +796,51 @@ func (c *client) UpdateEventWorkers(
 
 	if resp.StatusCode == http.StatusNotFound {
 		return &brignext.ErrEventNotFound{id}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func (c *client) UpdateEventWorkerStatus(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	status brignext.WorkerStatus,
+) error {
+	statusBytes, err := json.Marshal(
+		struct {
+			Status brignext.WorkerStatus `json:"status"`
+		}{
+			Status: status,
+		},
+	)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling status")
+	}
+
+	req, err := c.buildRequest(
+		http.MethodPut,
+		fmt.Sprintf("v2/events/%s/workers/%s/status", eventID, workerName),
+		statusBytes,
+	)
+	if err != nil {
+		return errors.Wrap(err, "error creating HTTP request")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return &brignext.ErrWorkerNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("received %d from API server", resp.StatusCode)

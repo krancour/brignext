@@ -71,3 +71,16 @@ type ErrEventNotFound struct {
 func (e *ErrEventNotFound) Error() string {
 	return fmt.Sprintf("event %q not found", e.ID)
 }
+
+type ErrWorkerNotFound struct {
+	EventID    string
+	WorkerName string
+}
+
+func (e *ErrWorkerNotFound) Error() string {
+	return fmt.Sprintf(
+		"worker %q not found for event %q",
+		e.WorkerName,
+		e.EventID,
+	)
+}

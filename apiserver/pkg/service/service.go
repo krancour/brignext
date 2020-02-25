@@ -61,6 +61,12 @@ type Service interface {
 		id string,
 		status brignext.EventStatus,
 	) error
+	UpdateEventWorkerStatus(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		status brignext.WorkerStatus,
+	) error
 	DeleteEvent(
 		ctx context.Context,
 		id string,
@@ -598,6 +604,28 @@ func (s *service) UpdateEventStatus(
 ) error {
 	if err := s.store.UpdateEventStatus(ctx, id, status); err != nil {
 		return errors.Wrapf(err, "error updating event %q status in store", id)
+	}
+	return nil
+}
+
+func (s *service) UpdateEventWorkerStatus(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	status brignext.WorkerStatus,
+) error {
+	if err := s.store.UpdateEventWorkerStatus(
+		ctx,
+		eventID,
+		workerName,
+		status,
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating status on worker %q of event %q in store",
+			workerName,
+			eventID,
+		)
 	}
 	return nil
 }
