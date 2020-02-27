@@ -121,6 +121,10 @@ var projectSchemaBytes = []byte(`
 				"allowSecretKeyRef": {
 					"type": "boolean",
 					"description": "Whether to permit the worker to reference Kubernetes secrets when defining environment variables for jobs"
+				},
+				"serviceAccount": {
+					"allOf": [{ "$ref": "#/definitions/identifier" }],
+					"description": "A specific service account to use for the worker"
 				}
 			}
 		},
