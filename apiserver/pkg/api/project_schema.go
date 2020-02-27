@@ -98,22 +98,15 @@ var projectSchemaBytes = []byte(`
 				"allowHostMounts": {
 					"type": "boolean",
 					"description": "Whether job containers are permitted to mount files or directories from the container host"
-				}
+				},
+				"kubernetes": { "$ref": "#/definitions/jobsKubernetesConfig" }
 			}
 		},
 
-		"kubernetesConfig": {
+		"jobsKubernetesConfig": {
 			"type": "object",
-			"description": "Configuration pertaining specifically to Kubernetes",
+			"description": "Jobs configuration pertaining specifically to Kubernetes",
 			"properties": {
-				"workerStorageClass": {
-					"allOf": [{ "$ref": "#/definitions/identifier" }],
-					"description": "The Kubernetes storage class that a worker may use when provisioning a volume to be shared across multiple jobs"
-				},
-				"workerStorageSize": {
-					"type": "string",
-					"description": "The amount of stoage a worker may request when provisioning a volume to be shared across multiple jobs"
-				},
 				"cacheStorageClass": {
 					"allOf": [{ "$ref": "#/definitions/identifier" }],
 					"description": "The Kubernetes storage class that a worker may use when provisioning a volume to cache artifacts across multiple executions of a job"
@@ -121,6 +114,21 @@ var projectSchemaBytes = []byte(`
 				"allowSecretKeyRef": {
 					"type": "boolean",
 					"description": "Whether to permit the worker to reference Kubernetes secrets when defining environment variables for jobs"
+				},
+				"serviceAccount": {
+					"allOf": [{ "$ref": "#/definitions/identifier" }],
+					"description": "A specific service account the worker should use for any jobs it launches"
+				}
+			}
+		},
+
+		"kubernetesConfig": {
+			"type": "object",
+			"description": "Worker configuration pertaining specifically to Kubernetes",
+			"properties": {
+				"workspaceStorageClass": {
+					"allOf": [{ "$ref": "#/definitions/identifier" }],
+					"description": "The Kubernetes storage class that a worker may use when provisioning a volume to be shared across multiple jobs"
 				},
 				"serviceAccount": {
 					"allOf": [{ "$ref": "#/definitions/identifier" }],
@@ -147,8 +155,12 @@ var projectSchemaBytes = []byte(`
 					"allOf": [{ "$ref": "#/definitions/containerConfig" }],
 					"description": "Configuration for the worker's main container"
 				},
-				"jobs": { "$ref": "#/definitions/jobsConfig" },
-				"kubernetes": { "$ref": "#/definitions/kubernetesConfig" }
+				"workspaceSize": {
+					"type": "string",
+					"description": "The amount of storage to be provisioned for a worker"
+				},
+				"kubernetes": { "$ref": "#/definitions/kubernetesConfig" },
+				"jobs": { "$ref": "#/definitions/jobsConfig" }
 			}
 		}
 

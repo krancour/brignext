@@ -5,8 +5,9 @@ type WorkerConfig struct {
 	TriggeringEvents []TriggeringEvents `json:"events,omitempty" bson:"events,omitempty"`
 	InitContainer    *ContainerConfig   `json:"initContainer,omitempty" bson:"initContainer,omitempty"`
 	Container        *ContainerConfig   `json:"container,omitempty" bson:"container,omitempty"`
-	Jobs             *JobsConfig        `json:"jobs,omitempty" bson:"jobs,omitempty"`
+	WorkspaceSize    string             `json:"workspaceSize,omitempty" bson:"workspaceSize,omitempty"`
 	Kubernetes       *KubernetesConfig  `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
+	Jobs             *JobsConfig        `json:"jobs,omitempty" bson:"jobs,omitempty"`
 }
 
 type TriggeringEvents struct {

@@ -24,14 +24,16 @@
           "pullPolicy": "IfNotPresent"
         }
       },
+      "workspaceSize": "10Gi",
+      "kubernetes": {
+        "workspaceStorageClass": "nfs"
+      },
       "jobs": {
         "allowPrivileged": true,
-        "allowHostMounts": true
-      },
-      "kubernetes": {
-        "workerStorageClass": "nfs",
-        "workerStorageSize": "10Gi",
-        "cacheStorageClass": "nfs"
+        "allowHostMounts": true,
+        "kubernetes": {
+          "cacheStorageClass": "nfs"
+        }
       }
     },
     "myGitHubWorker": {

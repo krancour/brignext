@@ -2,9 +2,6 @@ package brignext
 
 // nolint: lll
 type KubernetesConfig struct {
-	WorkerStorageClass string `json:"workerStorageClass,omitempty" bson:"workerStorageClass,omitempty"`
-	WorkerStorageSize  string `json:"workerStorageSize,omitempty" bson:"workerStorageSize,omitempty"`
-	CacheStorageClass  string `json:"cacheStorageClass,omitempty" bson:"cacheStorageClass,omitempty"`
-	AllowSecretKeyRef  bool   `json:"allowSecretKeyRef,omitempty" bson:"allowSecretKeyRef,omitempty"`
-	ServiceAccount     string `json:"serviceAccount,omitempty" bson:"serviceAccount,omitempty"`
+	WorkspaceStorageClass string `json:"workspaceStorageClass,omitempty" bson:"workspaceStorageClass,omitempty"`
+	ServiceAccount        string `json:"serviceAccount,omitempty" bson:"serviceAccount,omitempty"`
 }
