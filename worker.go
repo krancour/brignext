@@ -29,8 +29,10 @@ const (
 type Worker struct {
 	InitContainer *ContainerConfig  `json:"initContainer,omitempty" bson:"initContainer,omitempty"`
 	Container     *ContainerConfig  `json:"container,omitempty" bson:"container,omitempty"`
-	Jobs          *JobsConfig       `json:"jobs,omitempty" bson:"jobs,omitempty"`
+	WorkspaceSize string            `json:"workspaceSize,omitempty" bson:"workspaceSize,omitempty"`
+	Git           *GitConfig        `json:"git,omitempty" bson:"git,omitempty"`
 	Kubernetes    *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
+	Jobs          *JobsConfig       `json:"jobs,omitempty" bson:"jobs,omitempty"`
 	Started       *time.Time        `json:"started,omitempty" bson:"started,omitempty"`
 	Ended         *time.Time        `json:"ended,omitempty" bson:"ended,omitempty"`
 	Status        WorkerStatus      `json:"status,omitempty" bson:"status,omitempty"`

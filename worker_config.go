@@ -6,6 +6,7 @@ type WorkerConfig struct {
 	InitContainer    *ContainerConfig   `json:"initContainer,omitempty" bson:"initContainer,omitempty"`
 	Container        *ContainerConfig   `json:"container,omitempty" bson:"container,omitempty"`
 	WorkspaceSize    string             `json:"workspaceSize,omitempty" bson:"workspaceSize,omitempty"`
+	Git              *GitConfig         `json:"git,omitempty" bson:"git,omitempty"`
 	Kubernetes       *KubernetesConfig  `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
 	Jobs             *JobsConfig        `json:"jobs,omitempty" bson:"jobs,omitempty"`
 }

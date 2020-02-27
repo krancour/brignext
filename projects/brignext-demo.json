@@ -25,6 +25,9 @@
         }
       },
       "workspaceSize": "10Gi",
+      "git": {
+        "cloneURL": "https://github.com/brigadecore/empty-testbed.git"
+      },
       "kubernetes": {
         "workspaceStorageClass": "nfs"
       },

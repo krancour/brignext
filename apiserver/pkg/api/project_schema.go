@@ -122,6 +122,17 @@ var projectSchemaBytes = []byte(`
 			}
 		},
 
+		"gitConfig": {
+			"type": "object",
+			"description": "Worker configuration pertaining specifically to git",
+			"properties": {
+				"cloneURL": {
+					"allOf": [{ "$ref": "#/definitions/url" }],
+					"description": "The URL for cloning a git project"
+				}
+			}
+		},
+
 		"kubernetesConfig": {
 			"type": "object",
 			"description": "Worker configuration pertaining specifically to Kubernetes",
@@ -159,6 +170,7 @@ var projectSchemaBytes = []byte(`
 					"type": "string",
 					"description": "The amount of storage to be provisioned for a worker"
 				},
+				"git": { "$ref": "#/definitions/gitConfig" },
 				"kubernetes": { "$ref": "#/definitions/kubernetesConfig" },
 				"jobs": { "$ref": "#/definitions/jobsConfig" }
 			}

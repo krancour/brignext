@@ -17,7 +17,6 @@ type Project struct {
 	// TODO: Secrets should be broken out into their own thing and shouldn't be a project field
 	Secrets map[string]string `json:"secrets,omitempty" bson:"-"`
 	Created *time.Time        `json:"created,omitempty" bson:"created,omitempty"`
-	// Repo        Repo   `json:"repo,omitempty" bson:"repo,omitempty"`
 	// DefaultScript     string     `json:"defaultScript,omitempty" bson:"defaultScript,omitempty"`
 	// DefaultScriptName string     `json:"defaultScriptName,omitempty" bson:"defaultScriptName,omitempty"`
 	// DefaultConfig     string     `json:"defaultConfig,omitempty" bson:"defaultConfig,omitempty"`
@@ -41,8 +40,10 @@ func (p *Project) GetWorkers(
 			workers[workerName] = Worker{
 				InitContainer: workerConfig.InitContainer,
 				Container:     workerConfig.Container,
-				Jobs:          workerConfig.Jobs,
+				WorkspaceSize: workerConfig.WorkspaceSize,
+				Git:           workerConfig.Git,
 				Kubernetes:    workerConfig.Kubernetes,
+				Jobs:          workerConfig.Jobs,
 				Status:        WorkerStatusPending,
 			}
 		}
@@ -116,19 +117,3 @@ func (p ProjectTags) UnmarshalBSONValue(_ bsontype.Type, bytes []byte) error {
 	}
 	return nil
 }
-
-// type Repo struct {
-// 	// TODO: The name field may actually be useless here
-// 	// Name     string `json:"name,omitempty" bson:"name,omitempty"`
-// 	CloneURL string `json:"cloneURL" bson:"cloneURL"`
-// 	// // TODO: We MUST encrypt this!
-// 	// SSHKey  string `json:"sshKey,omitempty" bson:"sshKey,omitempty"`
-// 	// SSHCert string `json:"sshCert,omitempty" bson:"sshCert,omitempty"`
-// }
-
-// type Github struct {
-// 	// TODO: We MUST encrypt this!
-// 	Token     string `json:"token,omitempty" bson:"token,omitempty"`
-// 	BaseURL   string `json:"baseURL,omitempty" bson:"baseURL,omitempty"`
-// 	UploadURL string `json:"uploadURL,omitempty" bson:"uploadURL,omitempty"`
-// }
