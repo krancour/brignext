@@ -21,8 +21,6 @@ type Project struct {
 	// DefaultScriptName string     `json:"defaultScriptName,omitempty" bson:"defaultScriptName,omitempty"`
 	// DefaultConfig     string     `json:"defaultConfig,omitempty" bson:"defaultConfig,omitempty"`
 	// DefaultConfigName string     `json:"defaultConfigName,omitempty" bson:"defaultConfigName,omitempty"`
-	// Github       Github `json:"github,omitempty" bson:"github,omitempty"`
-	// InitGitSubmodules    bool              `json:"initGitSubmodules,omitempty" bson:"initGitSubmodules,omitempty"`
 	// ImagePullSecrets     string            `json:"imagePullSecrets,omitempty" bson:"imagePullSecrets,omitempty"`
 	// BrigadejsPath        string            `json:"brigadejsPath,omitempty" bson:"brigadejsPath,omitempty"`
 	// BrigadeConfigPath    string            `json:"brigadeConfigPath,omitempty" bson:"brigadeConfigPath,omitempty"`
@@ -30,14 +28,11 @@ type Project struct {
 
 type ProjectTags map[string]string
 
-func (p *Project) GetWorkers(
-	eventProvider string,
-	eventType string,
-) map[string]Worker {
+func (p *Project) GetWorkers(event Event) map[string]Worker {
 	workers := map[string]Worker{}
 	for workerName, workerConfig := range p.Workers {
-		if workerConfig.Matches(eventProvider, eventType) {
-			workers[workerName] = Worker{
+		if workerConfig.Matches(event.Provider, event.Type) {
+			worker := Worker{
 				InitContainer: workerConfig.InitContainer,
 				Container:     workerConfig.Container,
 				WorkspaceSize: workerConfig.WorkspaceSize,
@@ -47,6 +42,24 @@ func (p *Project) GetWorkers(
 				LogLevel:      workerConfig.LogLevel,
 				Status:        WorkerStatusPending,
 			}
+			if event.Git != nil {
+				if worker.Git == nil {
+					worker.Git = &GitConfig{}
+				}
+				if event.Git.CloneURL != "" {
+					worker.Git.CloneURL = event.Git.CloneURL
+				}
+				if event.Git.Commit != "" {
+					worker.Git.Commit = event.Git.Commit
+				}
+				if event.Git.Ref != "" {
+					worker.Git.Ref = event.Git.Ref
+				}
+				if event.Git.InitSubmodules != nil {
+					worker.Git.InitSubmodules = event.Git.InitSubmodules
+				}
+			}
+			workers[workerName] = worker
 		}
 	}
 	return workers

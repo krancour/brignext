@@ -13,6 +13,36 @@ var eventSchemaBytes = []byte(`
 			"pattern": "^\\w[\\w-]*$",
 			"minLength": 3,
 			"maxLength": 50
+		},
+
+		"url": {
+			"type": "string",
+			"pattern": "^[\\w:/\\-\\.\\?=]*$",
+			"minLength": 5,
+			"maxLength": 250
+		},
+
+		"gitConfig": {
+			"type": "object",
+			"description": "Worker configuration pertaining specifically to git",
+			"properties": {
+				"cloneURL": {
+					"allOf": [{ "$ref": "#/definitions/url" }],
+					"description": "The URL for cloning a git project"
+				}
+			},
+			"commit": {
+				"type": "string",
+				"description": "A git commit sha"
+			},
+			"ref": {
+				"type": "string",
+				"description": "A reference to a git branch or tag"
+			},
+			"initSubmodules": {
+				"type": "boolean",
+				"description": "Whether to initialize git submodules"
+			}
 		}
 
 	},
@@ -43,7 +73,8 @@ var eventSchemaBytes = []byte(`
 			"type": "string",
 			"description": "A detailed description of the event",
 			"maxLength": 100
-		}
+		},
+		"git": { "$ref": "#/definitions/gitConfig" }
 	}
 }
 `)

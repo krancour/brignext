@@ -119,7 +119,7 @@ func (c *controller) eventProcess(
 
 	// "Split" the event into many workers and update the event (workers and
 	// status) using the API.
-	workers := project.GetWorkers(event.Provider, event.Type)
+	workers := project.GetWorkers(event)
 	if err := c.apiClient.UpdateEventWorkers(ctx, event.ID, workers); err != nil {
 		return nil, errors.Wrapf(
 			err,

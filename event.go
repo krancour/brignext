@@ -40,19 +40,14 @@ type Event struct {
 	Type       string            `json:"type,omitempty" bson:"type,omitempty"`
 	ShortTitle string            `json:"shortTitle,omitempty" bson:"shortTitle,omitempty"`
 	LongTitle  string            `json:"longTitle,omitempty" bson:"longTitle,omitempty"`
+	Git        *GitConfig        `json:"git,omitempty" bson:"git,omitempty"`
 	Status     EventStatus       `json:"status,omitempty" bson:"status,omitempty"`
 	Namespace  string            `json:"namespace,omitempty" bson:"namespace,omitempty"`
 	Workers    map[string]Worker `json:"workers,omitempty" bson:"workers,omitempty"`
 	Created    *time.Time        `json:"created,omitempty" bson:"created,omitempty"`
 	// CloneURL string    `json:"cloneURL,omitempty" bson:"cloneURL,omitempty"`
-	// Revision *Revision `json:"revision,omitempty" bson:"revision,omitempty"`
 	// TODO: This should be encrypted!
 	// Payload  []byte    `json:"payload,omitempty" bson:"payload,omitempty"`
 	// Script   []byte    `json:"script,omitempty" bson:"script,omitempty"`
 	// Config   []byte    `json:"config,omitempty" bson:"config,omitempty"`
 }
-
-// type Revision struct {
-// 	Commit string `json:"commit,omitempty" bson:"commit,omitempty"`
-// 	Ref    string `json:"ref,omitempty" bson:"ref,omitempty"`
-// }

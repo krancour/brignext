@@ -129,6 +129,10 @@ var projectSchemaBytes = []byte(`
 				"cloneURL": {
 					"allOf": [{ "$ref": "#/definitions/url" }],
 					"description": "The URL for cloning a git project"
+				},
+				"initSubmodules": {
+					"type": "boolean",
+					"description": "Whether to initialize git submodules"
 				}
 			}
 		},
