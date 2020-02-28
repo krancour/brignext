@@ -118,6 +118,10 @@ var projectSchemaBytes = []byte(`
 				"serviceAccount": {
 					"allOf": [{ "$ref": "#/definitions/identifier" }],
 					"description": "A specific service account the worker should use for any jobs it launches"
+				},
+				"imagePullSecrets": {
+					"allOf": [{ "$ref": "#/definitions/identifier" }],
+					"description": "A Kubernetes secret that can be used as an image pull secret for job images"
 				}
 			}
 		},
@@ -148,6 +152,10 @@ var projectSchemaBytes = []byte(`
 				"serviceAccount": {
 					"allOf": [{ "$ref": "#/definitions/identifier" }],
 					"description": "A specific service account to use for the worker"
+				},
+				"imagePullSecrets": {
+					"allOf": [{ "$ref": "#/definitions/identifier" }],
+					"description": "A Kubernetes secret that can be used as an image pull secret for the worker's image"
 				}
 			}
 		},

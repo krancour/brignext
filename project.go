@@ -13,17 +13,12 @@ type Project struct {
 	Description string                  `json:"description,omitempty" bson:"description,omitempty"`
 	Tags        ProjectTags             `json:"tags,omitempty" bson:"tags,omitempty"`
 	Workers     map[string]WorkerConfig `json:"workers,omitempty" bson:"workers,omitempty"`
-	Namespace   string                  `json:"namespace,omitempty" bson:"namespace,omitempty"`
-	// TODO: Secrets should be broken out into their own thing and shouldn't be a project field
+	// TODO: Move this under the k8s config
+	Namespace string `json:"namespace,omitempty" bson:"namespace,omitempty"`
+	// TODO: Secrets should be broken out into their own thing and shouldn't
+	// directly be a project field
 	Secrets map[string]string `json:"secrets,omitempty" bson:"-"`
 	Created *time.Time        `json:"created,omitempty" bson:"created,omitempty"`
-	// DefaultScript     string     `json:"defaultScript,omitempty" bson:"defaultScript,omitempty"`
-	// DefaultScriptName string     `json:"defaultScriptName,omitempty" bson:"defaultScriptName,omitempty"`
-	// DefaultConfig     string     `json:"defaultConfig,omitempty" bson:"defaultConfig,omitempty"`
-	// DefaultConfigName string     `json:"defaultConfigName,omitempty" bson:"defaultConfigName,omitempty"`
-	// ImagePullSecrets     string            `json:"imagePullSecrets,omitempty" bson:"imagePullSecrets,omitempty"`
-	// BrigadejsPath        string            `json:"brigadejsPath,omitempty" bson:"brigadejsPath,omitempty"`
-	// BrigadeConfigPath    string            `json:"brigadeConfigPath,omitempty" bson:"brigadeConfigPath,omitempty"`
 }
 
 type ProjectTags map[string]string

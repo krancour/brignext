@@ -280,90 +280,49 @@ func (c *controller) createWorkerPod(
 
 // ---------------------------------------------------------------------------
 
-// func workerEnv(project, build *v1.Secret, config *Config) []v1.EnvVar {
-// 	allowSecretKeyRef := false
-// 	// older projects won't have allowSecretKeyRef set so just check for it
-// 	if string(project.Data["kubernetes.allowSecretKeyRef"]) != "" {
-// 		var err error
-// 		allowSecretKeyRef, err = strconv.ParseBool(string(project.Data["kubernetes.allowSecretKeyRef"]))
-// 		if err != nil {
-// 			// if we errored parsing the bool something is wrong so just log it and ignore what the project set
-// 			log.Printf("error parsing allowSecretKeyRef in project %s: %s", project.Annotations["projectName"], err)
-// 		}
-// 	}
-
-// 	psv := kube.SecretValues(project.Data)
-// 	bsv := kube.SecretValues(build.Data)
-
-// 	serviceAccount := config.ProjectServiceAccount
-// 	if string(project.Data["serviceAccount"]) != "" {
-// 		serviceAccount = string(project.Data["serviceAccount"])
-// 		// Update the service account regex if previously set to the default
-// 		if config.ProjectServiceAccountRegex == DefaultJobServiceAccountName {
-// 			config.ProjectServiceAccountRegex = serviceAccount
-// 		}
-// 	}
-
-// 	// Try to get cloneURL from the build first. This allows gateways to override
-// 	// the project-level cloneURL if the commit that should be built, for
-// 	// instance, exists only within a fork. If this isn't set at the build-level,
-// 	// fall back to the project-level default.
-// 	cloneURL := bsv.String("clone_url")
-// 	if cloneURL == "" {
-// 		cloneURL = string(project.Data["cloneURL"])
-// 	}
-
+// func workerEnv(event brignext.Event, workerName string, worker brignext.Worker) []v1.EnvVar {
 // 	envs := []v1.EnvVar{
-// 		{Name: "CI", Value: "true"},
-// 		{Name: "BRIGADE_BUILD_ID", Value: build.Labels["build"]},
-// 		{Name: "BRIGADE_BUILD_NAME", Value: bsv.String("build_name")},
-// 		{Name: "BRIGADE_COMMIT_ID", Value: bsv.String("commit_id")},
-// 		{Name: "BRIGADE_COMMIT_REF", Value: bsv.String("commit_ref")},
-// 		{Name: "BRIGADE_EVENT_PROVIDER", Value: bsv.String("event_provider")},
-// 		{Name: "BRIGADE_EVENT_TYPE", Value: bsv.String("event_type")},
-// 		{Name: "BRIGADE_PROJECT_ID", Value: bsv.String("project_id")},
-// 		{Name: "BRIGADE_LOG_LEVEL", Value: bsv.String("log_level")},
-// 		{Name: "BRIGADE_REMOTE_URL", Value: cloneURL},
-// 		{Name: "BRIGADE_WORKSPACE", Value: "/vcs"},
-// 		{Name: "BRIGADE_PROJECT_NAMESPACE", Value: build.Namespace},
-// 		{Name: "BRIGADE_SERVICE_ACCOUNT", Value: serviceAccount},
-// 		{Name: "BRIGADE_SECRET_KEY_REF", Value: strconv.FormatBool(allowSecretKeyRef)},
-// 		{
-// 			Name:      "BRIGADE_REPO_KEY",
-// 			ValueFrom: secretRef("sshKey", project),
-// 		},
-// 		{
-// 			Name:      "BRIGADE_REPO_SSH_CERT",
-// 			ValueFrom: secretRef("sshCert", project),
-// 		},
-// 		{
-// 			Name:      "BRIGADE_REPO_AUTH_TOKEN",
-// 			ValueFrom: secretRef("github.token", project),
-// 		},
-// 		{Name: "BRIGADE_DEFAULT_BUILD_STORAGE_CLASS", Value: config.DefaultBuildStorageClass},
-// 		{Name: "BRIGADE_DEFAULT_CACHE_STORAGE_CLASS", Value: config.DefaultCacheStorageClass},
-// 	}
+// 		// Project details:
+// 		{Name: "BRIGNEXT_PROJECT_ID", Value: event.ProjectID},
+// 		{Name: "BRIGNEXT_PROJECT_NAMESPACE", Value: event.Namespace},
+// 		// -------------------------------------------------------------------------
+// 		// Event details:
+// 		{Name: "BRIGNEXT_EVENT_ID", Value: event.ID},
+// 		{Name: "BRIGNEXT_EVENT_PROVIDER", Value: event.Provider},
+// 		{Name: "BRIGNEXT_EVENT_TYPE", Value: event.Type},
+// 		// -------------------------------------------------------------------------
+// 		// Worker details:
+// 		// The worker needs to know this because it will probably derive job names
+// 		// from its own name:
+// 		{Name: "BRIGNEXT_WORKER_NAME", Value: workerName},
+// 		// The worker probably doesn't need to know it's own service account:
+// 		// {Name: "BRIGNEXT_WORKER_SERVICE_ACCOUNT", Value: worker.Kubernetes.ServiceAccount},
+// 		// The worker probably doesn't need to know the storage class:
+// 		// {Name: "BRIGNEXT_WORKSPACE_STORAGE_CLASS", Value: worker.Kubernetes.WorkspaceStorageClass},
+// 		// -------------------------------------------------------------------------
+// 		// Source details:
+// 		{Name: "BRIGNEXT_GIT_CLONE_URL", Value: worker.Git.CloneURL}, // TODO: Check for nil; allow to be overridden
+// 		{Name: "BRIGNEXT_GIT_COMMIT", Value: worker.Git.Commit},      // TODO: Check for nil
+// 		{Name: "BRIGNEXT_GIT_REF", Value: worker.Git.Ref},            // TODO: Check for nil
+// 		// -------------------------------------------------------------------------
+// 		// Job details:
+// 		{Name: "BRIGNEXT_JOBS_SERVICE_ACCOUNT", Value: worker.Jobs.Kubernetes.ServiceAccount},                             // TODO: Check for nil
+// 		{Name: "BRIGNEXT_JOBS_ALLOW_SECRET_KEY_REF", Value: strconv.FormatBool(worker.Jobs.Kubernetes.AllowSecretKeyRef)}, // TODO: Check for nil
+// 		{Name: "BRIGNEXT_JOBS_CACHE_STORAGE_CLASS", Value: worker.Jobs.Kubernetes.CacheStorageClass},
+// 		// -------------------------------------------------------------------------
+// 		// Misc.:
+// 		{Name: "BRIGNEXT_LOG_LEVEL", Value: string(worker.LogLevel)},
+// 		// -------------------------------------------------------------------------
+// 		// Things I haven't figured out yet:
 
-// 	if config.ProjectServiceAccountRegex != "" {
-// 		envs = append(envs, v1.EnvVar{Name: "BRIGADE_SERVICE_ACCOUNT_REGEX", Value: config.ProjectServiceAccountRegex})
-// 	}
-
-// 	brigadejsPath := psv.String("brigadejsPath")
-// 	if brigadejsPath != "" {
-// 		if filepath.IsAbs(brigadejsPath) {
-// 			log.Printf("Warning: 'brigadejsPath' is set on Project Secret but will be ignored because provided path '%s' is an absolute path", brigadejsPath)
-// 		} else {
-// 			envs = append(envs, v1.EnvVar{Name: "BRIGADE_SCRIPT", Value: filepath.Join("/vcs", brigadejsPath)})
-// 		}
-// 	}
-
-// 	brigadeConfigPath := psv.String("brigadeConfigPath")
-// 	if brigadeConfigPath != "" {
-// 		if filepath.IsAbs(brigadeConfigPath) {
-// 			log.Printf("Warning: 'brigadeConfigPath' is set on Project Secret but will be ignored because provided path '%s' is an absolute path", brigadeConfigPath)
-// 		} else {
-// 			envs = append(envs, v1.EnvVar{Name: "BRIGADE_CONFIG", Value: filepath.Join("/vcs", brigadeConfigPath)})
-// 		}
+// 		{Name: "BRIGADE_SCRIPT", Value: brigadejsPath},
+// 		{Name: "BRIGADE_CONFIG", Value: brigadeConfigPath},
+// 		{Name: "BRIGNEXT_REPO_KEY", ValueFrom: secretRef("sshKey", project)},
+// 		{Name: "BRIGNEXT_REPO_SSH_CERT", ValueFrom: secretRef("sshCert", project)},
+// 		{Name: "BRIGNEXT_REPO_AUTH_TOKEN", ValueFrom: secretRef("github.token", project)},
+// 		// -------------------------------------------------------------------------
+// 		// Things that probably aren't valuable:
+// 		// {Name: "BRIGNEXT_WORKSPACE", Value: "/vcs"},
 // 	}
 
 // 	return envs
