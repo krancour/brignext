@@ -44,6 +44,7 @@ func (p *Project) GetWorkers(
 				Git:           workerConfig.Git,
 				Kubernetes:    workerConfig.Kubernetes,
 				Jobs:          workerConfig.Jobs,
+				LogLevel:      workerConfig.LogLevel,
 				Status:        WorkerStatusPending,
 			}
 		}

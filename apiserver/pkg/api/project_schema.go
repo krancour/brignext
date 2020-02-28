@@ -172,7 +172,12 @@ var projectSchemaBytes = []byte(`
 				},
 				"git": { "$ref": "#/definitions/gitConfig" },
 				"kubernetes": { "$ref": "#/definitions/kubernetesConfig" },
-				"jobs": { "$ref": "#/definitions/jobsConfig" }
+				"jobs": { "$ref": "#/definitions/jobsConfig" },
+				"logLevel": {
+					"type": "string",
+					"description": "Log level to be observed by the worker",
+					"enum": [ "DEBUG", "INFO", "WARN", "ERROR" ]
+				}
 			}
 		}
 

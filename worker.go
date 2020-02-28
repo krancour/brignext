@@ -33,6 +33,7 @@ type Worker struct {
 	Git           *GitConfig        `json:"git,omitempty" bson:"git,omitempty"`
 	Kubernetes    *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
 	Jobs          *JobsConfig       `json:"jobs,omitempty" bson:"jobs,omitempty"`
+	LogLevel      LogLevel          `json:"logLevel,omitempty" bson:"logLevel,omitempty"`
 	Started       *time.Time        `json:"started,omitempty" bson:"started,omitempty"`
 	Ended         *time.Time        `json:"ended,omitempty" bson:"ended,omitempty"`
 	Status        WorkerStatus      `json:"status,omitempty" bson:"status,omitempty"`

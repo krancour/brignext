@@ -50,7 +50,6 @@ type Event struct {
 	// Payload  []byte    `json:"payload,omitempty" bson:"payload,omitempty"`
 	// Script   []byte    `json:"script,omitempty" bson:"script,omitempty"`
 	// Config   []byte    `json:"config,omitempty" bson:"config,omitempty"`
-	// LogLevel string    `json:"logLevel,omitempty" bson:"logLevel,omitempty"`
 }
 
 // type Revision struct {
