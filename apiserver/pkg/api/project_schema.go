@@ -170,10 +170,6 @@ var projectSchemaBytes = []byte(`
 					"description": "The events that trigger this worker",
 					"items": { "$ref": "#/definitions/triggeringEvents" }
 				},
-				"initContainer": {
-					"allOf": [{ "$ref": "#/definitions/containerConfig" }],
-					"description": "Configuration for the worker's init container"		
-				},
 				"container": {
 					"allOf": [{ "$ref": "#/definitions/containerConfig" }],
 					"description": "Configuration for the worker's main container"

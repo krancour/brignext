@@ -28,7 +28,6 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 	for workerName, workerConfig := range p.Workers {
 		if workerConfig.Matches(event.Provider, event.Type) {
 			worker := Worker{
-				InitContainer: workerConfig.InitContainer,
 				Container:     workerConfig.Container,
 				WorkspaceSize: workerConfig.WorkspaceSize,
 				Git:           workerConfig.Git,

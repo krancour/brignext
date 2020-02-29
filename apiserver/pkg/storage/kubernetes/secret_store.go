@@ -1,6 +1,11 @@
 package kubernetes
 
 import (
+	"encoding/json"
+	"fmt"
+	"strings"
+
+	"github.com/krancour/brignext"
 	"github.com/krancour/brignext/apiserver/pkg/storage"
 	"github.com/pkg/errors"
 	"k8s.io/api/core/v1"
@@ -86,6 +91,60 @@ func (s *secretStore) DeleteProjectSecrets(
 	return nil
 }
 
+func (s *secretStore) CreateEventConfigMap(event brignext.Event) error {
+	configMapsClient := s.kubeClient.CoreV1().ConfigMaps(event.Namespace)
+
+	eventJSON, err := json.MarshalIndent(
+		struct {
+			ID         string              `json:"id,omitempty"`
+			ProjectID  string              `json:"projectID,omitempty"`
+			Provider   string              `json:"provider,omitempty"`
+			Type       string              `json:"type,omitempty"`
+			ShortTitle string              `json:"shortTitle,omitempty"`
+			LongTitle  string              `json:"longTitle,omitempty"`
+			Git        *brignext.GitConfig `json:"git,omitempty"`
+			Namespace  string              `json:"namespace,omitempty"`
+		}{
+			ID:         event.ID,
+			ProjectID:  event.ProjectID,
+			Provider:   event.Provider,
+			Type:       event.Type,
+			ShortTitle: event.ShortTitle,
+			LongTitle:  event.LongTitle,
+			Git:        event.Git,
+			Namespace:  event.Namespace,
+		},
+		"",
+		"  ",
+	)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error marshaling event %q to create a config map",
+			event.ID,
+		)
+	}
+
+	if _, err := configMapsClient.Create(&v1.ConfigMap{
+		ObjectMeta: meta_v1.ObjectMeta{
+			Name:      event.ID,
+			Namespace: event.Namespace,
+		},
+		Data: map[string]string{
+			"event.json": string(eventJSON),
+		},
+	}); err != nil {
+		return errors.Wrapf(err, "error creating event %q config map", event.ID)
+	}
+
+	return nil
+}
+
+// TODO: Implement this
+func (s *secretStore) DeleteEventConfigMap(id, namespace string) error {
+	return nil
+}
+
 func (s *secretStore) CreateEventSecrets(
 	projectID string,
 	namespace string,
@@ -133,5 +192,63 @@ func (s *secretStore) DeleteEventSecrets(id, namespace string) error {
 		)
 	}
 
+	return nil
+}
+
+func (s *secretStore) CreateWorkerConfigMap(
+	event brignext.Event,
+	workerName string,
+	worker brignext.Worker,
+) error {
+	configMapsClient := s.kubeClient.CoreV1().ConfigMaps(event.Namespace)
+
+	workerJSON, err := json.MarshalIndent(
+		struct {
+			Name       string                     `json:"name,omitempty"`
+			Git        *brignext.GitConfig        `json:"git,omitempty"`
+			Kubernetes *brignext.KubernetesConfig `json:"kubernetes,omitempty"`
+			Jobs       *brignext.JobsConfig       `json:"jobs,omitempty"`
+			LogLevel   brignext.LogLevel          `json:"logLevel,omitempty"`
+		}{
+			Name:       workerName,
+			Git:        worker.Git,
+			Kubernetes: worker.Kubernetes,
+			Jobs:       worker.Jobs,
+			LogLevel:   worker.LogLevel,
+		},
+		"",
+		"  ",
+	)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error marshaling worker %q of event %q to create a config map",
+			workerName,
+			event.ID,
+		)
+	}
+
+	if _, err := configMapsClient.Create(&v1.ConfigMap{
+		ObjectMeta: meta_v1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-%s", event.ID, strings.ToLower(workerName)),
+			Namespace: event.Namespace,
+		},
+		Data: map[string]string{
+			"worker.json": string(workerJSON),
+		},
+	}); err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating config map for worker %q of event %q",
+			workerName,
+			event.ID,
+		)
+	}
+
+	return nil
+}
+
+// TODO: Implement this
+func (s *secretStore) DeleteWorkerConfigMap(eventID, workerName string) error {
 	return nil
 }

@@ -575,6 +575,14 @@ func (s *service) CreateEvent(
 			return errors.Wrapf(err, "error storing new event %q", event.ID)
 		}
 
+		if err := s.secretStore.CreateEventConfigMap(event); err != nil {
+			return errors.Wrapf(
+				err,
+				"error creating config map for event %q",
+				event.ID,
+			)
+		}
+
 		if err := s.secretStore.CreateEventSecrets(
 			event.ProjectID,
 			event.Namespace,
@@ -583,7 +591,19 @@ func (s *service) CreateEvent(
 			return errors.Wrap(err, "error creating event secrets")
 		}
 
-		for workerName, _ := range event.Workers {
+		for workerName, worker := range event.Workers {
+			if err := s.secretStore.CreateWorkerConfigMap(
+				event,
+				workerName,
+				worker,
+			); err != nil {
+				return errors.Wrapf(
+					err,
+					"error creating config map for worker %q of new event %q",
+					workerName,
+					event.ID,
+				)
+			}
 			if err := s.scheduler.ScheduleWorker(event.ID, workerName); err != nil {
 				return errors.Wrapf(
 					err,
