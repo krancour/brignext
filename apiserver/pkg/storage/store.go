@@ -59,11 +59,6 @@ type Store interface {
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
 	GetEvent(context.Context, string) (brignext.Event, error)
-	UpdateEventWorkers(
-		ctx context.Context,
-		id string,
-		workers map[string]brignext.Worker,
-	) error
 	UpdateEventStatus(
 		ctx context.Context,
 		id string,
@@ -78,13 +73,13 @@ type Store interface {
 	DeleteEvent(
 		ctx context.Context,
 		id string,
-		deleteAccepted bool,
+		deletePending bool,
 		deleteProcessing bool,
 	) (bool, error)
 	DeleteEventsByProject(
 		ctx context.Context,
 		projectID string,
-		deleteAccepted bool,
+		deletePending bool,
 		deleteProcessing bool,
 	) (int64, error)
 }

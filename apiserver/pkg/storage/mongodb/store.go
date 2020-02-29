@@ -611,31 +611,6 @@ func (s *store) GetEvent(
 	return event, nil
 }
 
-func (s *store) UpdateEventWorkers(
-	ctx context.Context,
-	id string,
-	workers map[string]brignext.Worker,
-) error {
-	res, err := s.eventsCollection.UpdateOne(
-		ctx,
-		bson.M{
-			"_id": id,
-		},
-		bson.M{
-			"$set": bson.M{
-				"workers": workers,
-			},
-		},
-	)
-	if err != nil {
-		return errors.Wrapf(err, "error updating event %q workers", id)
-	}
-	if res.MatchedCount == 0 {
-		return &brignext.ErrEventNotFound{id}
-	}
-	return nil
-}
-
 func (s *store) UpdateEventStatus(
 	ctx context.Context,
 	id string,
@@ -701,7 +676,7 @@ func (s *store) UpdateEventWorkerStatus(
 func (s *store) DeleteEvent(
 	ctx context.Context,
 	id string,
-	deleteAccepted bool,
+	deletePending bool,
 	deleteProcessing bool,
 ) (bool, error) {
 	if _, err := s.GetEvent(ctx, id); err != nil {
@@ -714,8 +689,8 @@ func (s *store) DeleteEvent(
 		brignext.EventStatusSucceeded,
 		brignext.EventStatusFailed,
 	}
-	if deleteAccepted {
-		statusesToDelete = append(statusesToDelete, brignext.EventStatusAccepted)
+	if deletePending {
+		statusesToDelete = append(statusesToDelete, brignext.EventStatusPending)
 	}
 	if deleteProcessing {
 		statusesToDelete = append(statusesToDelete, brignext.EventStatusProcessing)
@@ -736,7 +711,7 @@ func (s *store) DeleteEvent(
 func (s *store) DeleteEventsByProject(
 	ctx context.Context,
 	projectID string,
-	deleteAccepted bool,
+	deletePending bool,
 	deleteProcessing bool,
 ) (int64, error) {
 	statusesToDelete := []brignext.EventStatus{
@@ -746,8 +721,8 @@ func (s *store) DeleteEventsByProject(
 		brignext.EventStatusSucceeded,
 		brignext.EventStatusFailed,
 	}
-	if deleteAccepted {
-		statusesToDelete = append(statusesToDelete, brignext.EventStatusAccepted)
+	if deletePending {
+		statusesToDelete = append(statusesToDelete, brignext.EventStatusPending)
 	}
 	if deleteProcessing {
 		statusesToDelete = append(statusesToDelete, brignext.EventStatusProcessing)

@@ -136,18 +136,6 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.eventGet),
 	).Methods(http.MethodGet)
 
-	// Create event secrets
-	s.router.HandleFunc(
-		"/v2/events/{id}/secrets",
-		tokenAuthFilter.Decorate(s.eventCreateSecrets),
-	).Methods(http.MethodPut)
-
-	// Update event workers
-	s.router.HandleFunc(
-		"/v2/events/{id}/workers",
-		tokenAuthFilter.Decorate(s.eventUpdateWorkers),
-	).Methods(http.MethodPut)
-
 	// Update event status
 	s.router.HandleFunc(
 		"/v2/events/{id}/status",

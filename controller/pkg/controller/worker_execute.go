@@ -17,7 +17,7 @@ func (c *controller) workerExecute(
 	ctx context.Context,
 	task async.Task,
 ) ([]async.Task, error) {
-	eventID, ok := task.GetArgs()["eventID"]
+	eventID, ok := task.GetArgs()["event"]
 	if !ok {
 		return nil, errors.Errorf(
 			"executeWorker task %q did not include an event ID argument",

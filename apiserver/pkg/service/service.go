@@ -51,12 +51,6 @@ type Service interface {
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
 	GetEvent(context.Context, string) (brignext.Event, error)
-	CreateEventSecrets(ctx context.Context, id string) error
-	UpdateEventWorkers(
-		ctx context.Context,
-		id string,
-		workers map[string]brignext.Worker,
-	) error
 	UpdateEventStatus(
 		ctx context.Context,
 		id string,
@@ -71,13 +65,13 @@ type Service interface {
 	DeleteEvent(
 		ctx context.Context,
 		id string,
-		deleteAccepted bool,
+		deletePending bool,
 		deleteProcessing bool,
 	) (bool, error)
 	DeleteEventsByProject(
 		ctx context.Context,
 		projectID string,
-		deleteAccepted bool,
+		deletePending bool,
 		deleteProcessing bool,
 	) (int64, error)
 }
@@ -564,8 +558,14 @@ func (s *service) CreateEvent(
 	}
 
 	event.ID = uuid.NewV4().String()
-	event.Status = brignext.EventStatusAccepted
 	event.Namespace = project.Namespace
+	// "Split" the event into many workers.
+	event.Workers = project.GetWorkers(event)
+	if len(event.Workers) == 0 {
+		event.Status = brignext.EventStatusMoot
+	} else {
+		event.Status = brignext.EventStatusPending
+	}
 	now := time.Now()
 	event.Created = &now
 
@@ -575,16 +575,23 @@ func (s *service) CreateEvent(
 			return errors.Wrapf(err, "error storing new event %q", event.ID)
 		}
 
-		// TODO: Fix this
-		// There's deliberately a short delay here to minimize the possibility of
-		// the controller trying (and failing) to locate this new event before
-		// the transaction on the store has become durable.
-		if err := s.scheduler.ScheduleEvent(event.ID, 5*time.Second); err != nil {
-			return errors.Wrapf(
-				err,
-				"error scheduling workers for new event %q",
-				event.ID,
-			)
+		if err := s.secretStore.CreateEventSecrets(
+			event.ProjectID,
+			event.Namespace,
+			event.ID,
+		); err != nil {
+			return errors.Wrap(err, "error creating event secrets")
+		}
+
+		for workerName, _ := range event.Workers {
+			if err := s.scheduler.ScheduleWorker(event.ID, workerName); err != nil {
+				return errors.Wrapf(
+					err,
+					"error scheduling worker %q for new event %q",
+					workerName,
+					event.ID,
+				)
+			}
 		}
 
 		return nil
@@ -636,42 +643,6 @@ func (s *service) GetEvent(
 	return event, nil
 }
 
-func (s *service) CreateEventSecrets(ctx context.Context, id string) error {
-	event, err := s.store.GetEvent(ctx, id)
-	if err != nil {
-		return errors.Wrapf(
-			err,
-			"error retrieving event %q from store",
-			id,
-		)
-	}
-
-	if err := s.secretStore.CreateEventSecrets(
-		event.ProjectID,
-		event.Namespace,
-		id,
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error creating secrets for event %q in secret store",
-			id,
-		)
-	}
-
-	return nil
-}
-
-func (s *service) UpdateEventWorkers(
-	ctx context.Context,
-	id string,
-	workers map[string]brignext.Worker,
-) error {
-	if err := s.store.UpdateEventWorkers(ctx, id, workers); err != nil {
-		return errors.Wrapf(err, "error updating event %q workers in store", id)
-	}
-	return nil
-}
-
 func (s *service) UpdateEventStatus(
 	ctx context.Context,
 	id string,
@@ -708,7 +679,7 @@ func (s *service) UpdateEventWorkerStatus(
 func (s *service) DeleteEvent(
 	ctx context.Context,
 	id string,
-	deleteAccepted bool,
+	deletePending bool,
 	deleteProcessing bool,
 ) (bool, error) {
 	event, err := s.store.GetEvent(ctx, id)
@@ -722,7 +693,7 @@ func (s *service) DeleteEvent(
 		if ok, err = s.store.DeleteEvent(
 			ctx,
 			id,
-			deleteAccepted,
+			deletePending,
 			deleteProcessing,
 		); err != nil {
 			return errors.Wrapf(err, "error removing event %q from store", id)
@@ -752,7 +723,7 @@ func (s *service) DeleteEvent(
 func (s *service) DeleteEventsByProject(
 	ctx context.Context,
 	projectID string,
-	deleteAccepted bool,
+	deletePending bool,
 	deleteProcessing bool,
 ) (int64, error) {
 	if _, err := s.store.GetProject(ctx, projectID); err != nil {
@@ -761,7 +732,7 @@ func (s *service) DeleteEventsByProject(
 	n, err := s.store.DeleteEventsByProject(
 		ctx,
 		projectID,
-		deleteAccepted,
+		deletePending,
 		deleteProcessing,
 	)
 	if err != nil {

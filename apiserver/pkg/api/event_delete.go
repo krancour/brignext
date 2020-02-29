@@ -17,10 +17,10 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 	eventID := mux.Vars(r)["id"]
 	projectID := mux.Vars(r)["projectID"]
 
-	deleteAcceptedStr := r.URL.Query().Get("deleteAccepted")
-	var deleteAccepted bool
-	if deleteAcceptedStr != "" {
-		deleteAccepted, _ = strconv.ParseBool(deleteAcceptedStr) // nolint: errcheck
+	deletePendingStr := r.URL.Query().Get("deletePending")
+	var deletePending bool
+	if deletePendingStr != "" {
+		deletePending, _ = strconv.ParseBool(deletePendingStr) // nolint: errcheck
 	}
 
 	deleteProcessingStr := r.URL.Query().Get("deleteProcessing")
@@ -33,7 +33,7 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 		deleted, err := s.service.DeleteEvent(
 			r.Context(),
 			eventID,
-			deleteAccepted,
+			deletePending,
 			deleteProcessing,
 		)
 		if err != nil {
@@ -70,7 +70,7 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 	deleted, err := s.service.DeleteEventsByProject(
 		r.Context(),
 		projectID,
-		deleteAccepted,
+		deletePending,
 		deleteProcessing,
 	)
 	if err != nil {

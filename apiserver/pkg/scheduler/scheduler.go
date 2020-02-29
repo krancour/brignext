@@ -21,17 +21,10 @@ const (
 )
 
 type Scheduler interface {
+	// TODO: This should move somewhere else-- it's not the scheduler's
+	// responsibility
 	CreateProjectNamespace(pojectID string) (string, error)
-	ScheduleEvent(
-		eventID string,
-		delay time.Duration,
-	) error
-	// ScheduleWorkers(
-	// 	namespace string,
-	// 	eventID string,
-	// 	workerNames []string,
-	// 	delay time.Duration,
-	// ) error
+	ScheduleWorker(eventID, workerName string) error
 	AbortWorker(namespace, eventID, workerName string) error
 	AbortWorkersByEvent(namespace, eventID string) error
 	DeleteProjectNamespace(namespace string) error
@@ -73,55 +66,29 @@ func (s *sched) CreateProjectNamespace(projectID string) (string, error) {
 	return namespace, nil
 }
 
-func (s *sched) ScheduleEvent(
-	eventID string,
-	delay time.Duration,
-) error {
+func (s *sched) ScheduleWorker(eventID, workerName string) error {
+	// TODO: Fix this
+	// There's deliberately a short delay here to minimize the possibility of the
+	// controller trying (and failing) to locate this new event before the
+	// transaction on the store has become durable.
 	if err := s.asyncEngine.SubmitTask(
 		async.NewDelayedTask(
-			"processEvent",
+			"executeWorker",
 			map[string]string{
-				"eventID": eventID,
+				"event":  eventID,
+				"worker": workerName,
 			},
-			delay,
+			5*time.Second,
 		),
 	); err != nil {
 		return errors.Wrapf(
 			err,
-			"error submitting processing task for event %q",
+			"error submitting execution task for worker %q",
 			eventID,
 		)
 	}
 	return nil
 }
-
-// func (s *sched) ScheduleWorkers(
-// 	namespace string,
-// 	eventID string,
-// 	workerNames []string,
-// 	delay time.Duration,
-// ) error {
-// 	for _, workerName := range workerNames {
-// 		if err := s.asyncEngine.SubmitTask(
-// 			async.NewDelayedTask(
-// 				"executeWorker",
-// 				map[string]string{
-// 					"eventID":    eventID,
-// 					"workerName": workerName,
-// 				},
-// 				delay,
-// 			),
-// 		); err != nil {
-// 			return errors.Wrapf(
-// 				err,
-// 				"error submitting execute task for event %q worker %q",
-// 				eventID,
-// 				workerName,
-// 			)
-// 		}
-// 	}
-// 	return nil
-// }
 
 func (s *sched) AbortWorker(namespace, eventID, workerName string) error {
 	return s.deletePodsByLabelsMap(

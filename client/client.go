@@ -42,12 +42,6 @@ type Client interface {
 	CreateEvent(context.Context, brignext.Event) (string, error)
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
-	CreateEventSecrets(ctx context.Context, id string) error
-	UpdateEventWorkers(
-		ctx context.Context,
-		id string,
-		workers map[string]brignext.Worker,
-	) error
 	UpdateEventStatus(
 		ctx context.Context,
 		id string,
@@ -63,13 +57,13 @@ type Client interface {
 	DeleteEvent(
 		ctx context.Context,
 		id string,
-		deleteAccepted bool,
+		deletePending bool,
 		deleteProcessing bool,
 	) (bool, error)
 	DeleteEventsByProject(
 		ctx context.Context,
 		projectID string,
-		deleteAccepted bool,
+		deletePending bool,
 		deleteProcessing bool,
 	) (int64, error)
 }
@@ -770,67 +764,6 @@ func (c *client) GetEvent(ctx context.Context, id string) (brignext.Event, error
 	return event, nil
 }
 
-func (c *client) CreateEventSecrets(ctx context.Context, id string) error {
-	req, err := c.buildRequest(
-		http.MethodPut,
-		fmt.Sprintf("v2/events/%s/secrets", id),
-		nil,
-	)
-	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrEventNotFound{id}
-	}
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	return nil
-}
-
-func (c *client) UpdateEventWorkers(
-	ctx context.Context,
-	id string,
-	workers map[string]brignext.Worker,
-) error {
-	workersBytes, err := json.Marshal(workers)
-	if err != nil {
-		return errors.Wrap(err, "error marshaling workers")
-	}
-
-	req, err := c.buildRequest(
-		http.MethodPut,
-		fmt.Sprintf("v2/events/%s/workers", id),
-		workersBytes,
-	)
-	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrEventNotFound{id}
-	}
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	return nil
-}
-
 func (c *client) UpdateEventWorkerStatus(
 	ctx context.Context,
 	eventID string,
@@ -920,7 +853,7 @@ func (c *client) UpdateEventStatus(
 func (c *client) DeleteEvent(
 	ctx context.Context,
 	id string,
-	deleteAccepted bool,
+	deletePending bool,
 	deleteProcessing bool,
 ) (bool, error) {
 	req, err := c.buildRequest(
@@ -932,8 +865,8 @@ func (c *client) DeleteEvent(
 		return false, errors.Wrap(err, "error creating HTTP request")
 	}
 	q := req.URL.Query()
-	if deleteAccepted {
-		q.Set("deleteAccepted", "true")
+	if deletePending {
+		q.Set("deletePending", "true")
 	}
 	if deleteProcessing {
 		q.Set("deleteProcessing", "true")
@@ -971,7 +904,7 @@ func (c *client) DeleteEvent(
 func (c *client) DeleteEventsByProject(
 	ctx context.Context,
 	projectID string,
-	deleteAccepted bool,
+	deletePending bool,
 	deleteProcessing bool,
 ) (int64, error) {
 	req, err := c.buildRequest(
@@ -983,8 +916,8 @@ func (c *client) DeleteEventsByProject(
 		return 0, errors.Wrap(err, "error creating HTTP request")
 	}
 	q := req.URL.Query()
-	if deleteAccepted {
-		q.Set("deleteAccepted", "true")
+	if deletePending {
+		q.Set("deletePending", "true")
 	}
 	if deleteProcessing {
 		q.Set("deleteProcessing", "true")

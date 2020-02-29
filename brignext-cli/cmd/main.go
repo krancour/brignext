@@ -25,7 +25,7 @@ func main() {
 				{
 					Name:        "cancel",
 					Usage:       "Cancel event(s) without deleting them",
-					Description: "By default, only cancels events in an ACCEPTED state.",
+					Description: "By default, only cancels events in a PENDING state.",
 					ArgsUsage:   "[EVENT_ID]",
 					Flags: []cli.Flag{
 						cli.BoolFlag{
@@ -63,12 +63,12 @@ func main() {
 					Name:  "delete",
 					Usage: "Delete event(s)",
 					Description: "By default, only deletes events in a terminal state " +
-						"(neither ACCEPTED nor PROCESSING).",
+						"(neither PENDING nor PROCESSING).",
 					ArgsUsage: "[EVENT_ID]",
 					Flags: []cli.Flag{
 						cli.BoolFlag{
-							Name: flagsAccepted,
-							Usage: "If set, will also delete events in an ACCEPTED state " +
+							Name: flagsPending,
+							Usage: "If set, will also delete events in a PENDING state " +
 								"(default: false)",
 						},
 						cli.BoolFlag{

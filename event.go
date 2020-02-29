@@ -5,30 +5,30 @@ import "time"
 type EventStatus string
 
 const (
-	// EventStatusAccepted represents the state wherein an event has been accepted
-	// by the system, but all (n > 1) constituent workers remain pending
-	// execution.
-	EventStatusAccepted EventStatus = "ACCEPTED"
 	// EventStatusMoot represents the state wherein an event has been accepted by
 	// the system, but (per project configuration) triggered no constituent
 	// workers.
 	EventStatusMoot EventStatus = "MOOT"
-	// EventStatusCanceled represents the state wherein an accepted event was
-	// canceled prior to any processing being performed (i.e. prior to any
-	// constituent workers entering a running state).
+	// EventStatusPending represents the state wherein an event has been accepted
+	// by the system, but all of (n > 1) workers remain in a PENDING state.
+	EventStatusPending EventStatus = "PENDING"
+	// EventStatusCanceled represents the state wherein a PENDING event was
+	// canceled.
 	EventStatusCanceled EventStatus = "CANCELED"
 	// EventStatusProcessing represents the state wherein an event is currently
-	// being processed (i.e. at least one constituent worker has entered a running
-	// state AND not all constituent workers have entered a terminal state).
+	// being processed (i.e. at least one constituent worker has entered a RUNNING
+	// or terminal state AND NOT ALL constituent workers have entered a terminal
+	// state).
 	EventStatusProcessing EventStatus = "PROCESSING"
-	// EventStatusAborted represents the state wherein event processing was
+	// EventStatusAborted represents the state wherein a PROCESSING event was
 	// forcefully terminated.
 	EventStatusAborted EventStatus = "ABORTED"
 	// EventStatusSucceeded represents the state wherein all constituent workers
-	// have entered a success state.
+	// have entered a SUCCEEDED state.
 	EventStatusSucceeded EventStatus = "SUCCEEDED"
-	// EventStatusSucceeded represents the state wherein at least one constituent
-	// workers has entered a failed state.
+	// EventStatusSucceeded represents the state wherein all constituent workers
+	// have entered a terminal state and at least on constituent worker has
+	// entered a FAILED state.
 	EventStatusFailed EventStatus = "FAILED"
 )
 

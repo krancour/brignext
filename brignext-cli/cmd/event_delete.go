@@ -10,7 +10,7 @@ import (
 
 func eventDelete(c *cli.Context) error {
 	// Command-specific flags
-	deleteAccepted := c.Bool(flagAccepted)
+	deletePending := c.Bool(flagPending)
 	deleteProcessing := c.Bool(flagProcessing)
 	projectID := c.String(flagProject)
 
@@ -38,7 +38,7 @@ func eventDelete(c *cli.Context) error {
 		if deleted, err := client.DeleteEvent(
 			context.TODO(),
 			eventID,
-			deleteAccepted,
+			deletePending,
 			deleteProcessing,
 		); err != nil {
 			return err
@@ -57,7 +57,7 @@ func eventDelete(c *cli.Context) error {
 	if deleted, err := client.DeleteEventsByProject(
 		context.TODO(),
 		projectID,
-		deleteAccepted,
+		deletePending,
 		deleteProcessing,
 	); err != nil {
 		return err

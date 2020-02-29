@@ -3,8 +3,6 @@ package main
 import "github.com/urfave/cli"
 
 const (
-	flagAccepted     = "accepted"
-	flagsAccepted    = "accepted, a"
 	flagBrowse       = "browse"
 	flagsBrowse      = "browse, b"
 	flagDescription  = "description"
@@ -18,8 +16,10 @@ const (
 	flagsOutput      = "output, o"
 	flagPassword     = "password"
 	flagsPassword    = "password, p"
+	flagPending      = "pending"
+	flagsPending     = "pending"
 	flagProcessing   = "processing"
-	flagsProcessing  = "processing, p"
+	flagsProcessing  = "processing"
 	flagProject      = "project"
 	flagsProject     = "project"
 	flagProvider     = "provider"
