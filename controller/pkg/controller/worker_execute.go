@@ -155,7 +155,7 @@ func (c *controller) createWorkerPod(
 	log.Printf(
 		"this is where worker pod %q in namespace %q would have been created",
 		podName,
-		event.Namespace,
+		event.Kubernetes.Namespace,
 	)
 
 	// podsClient := c.kubeClient.CoreV1().Pods(event.Namespace)

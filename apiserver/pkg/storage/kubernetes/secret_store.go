@@ -92,7 +92,8 @@ func (s *secretStore) DeleteProjectSecrets(
 }
 
 func (s *secretStore) CreateEventConfigMap(event brignext.Event) error {
-	configMapsClient := s.kubeClient.CoreV1().ConfigMaps(event.Namespace)
+	configMapsClient :=
+		s.kubeClient.CoreV1().ConfigMaps(event.Kubernetes.Namespace)
 
 	eventJSON, err := json.MarshalIndent(
 		struct {
@@ -112,7 +113,7 @@ func (s *secretStore) CreateEventConfigMap(event brignext.Event) error {
 			ShortTitle: event.ShortTitle,
 			LongTitle:  event.LongTitle,
 			Git:        event.Git,
-			Namespace:  event.Namespace,
+			Namespace:  event.Kubernetes.Namespace,
 		},
 		"",
 		"  ",
@@ -128,7 +129,7 @@ func (s *secretStore) CreateEventConfigMap(event brignext.Event) error {
 	if _, err := configMapsClient.Create(&v1.ConfigMap{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      event.ID,
-			Namespace: event.Namespace,
+			Namespace: event.Kubernetes.Namespace,
 		},
 		Data: map[string]string{
 			"event.json": string(eventJSON),
@@ -200,15 +201,16 @@ func (s *secretStore) CreateWorkerConfigMap(
 	workerName string,
 	worker brignext.Worker,
 ) error {
-	configMapsClient := s.kubeClient.CoreV1().ConfigMaps(event.Namespace)
+	configMapsClient :=
+		s.kubeClient.CoreV1().ConfigMaps(event.Kubernetes.Namespace)
 
 	workerJSON, err := json.MarshalIndent(
 		struct {
-			Name       string                     `json:"name,omitempty"`
-			Git        *brignext.GitConfig        `json:"git,omitempty"`
-			Kubernetes *brignext.KubernetesConfig `json:"kubernetes,omitempty"`
-			Jobs       *brignext.JobsConfig       `json:"jobs,omitempty"`
-			LogLevel   brignext.LogLevel          `json:"logLevel,omitempty"`
+			Name       string                           `json:"name,omitempty"`
+			Git        *brignext.GitConfig              `json:"git,omitempty"`
+			Kubernetes *brignext.WorkerKubernetesConfig `json:"kubernetes,omitempty"`
+			Jobs       *brignext.JobsConfig             `json:"jobs,omitempty"`
+			LogLevel   brignext.LogLevel                `json:"logLevel,omitempty"`
 		}{
 			Name:       workerName,
 			Git:        worker.Git,
@@ -231,7 +233,7 @@ func (s *secretStore) CreateWorkerConfigMap(
 	if _, err := configMapsClient.Create(&v1.ConfigMap{
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-%s", event.ID, strings.ToLower(workerName)),
-			Namespace: event.Namespace,
+			Namespace: event.Kubernetes.Namespace,
 		},
 		Data: map[string]string{
 			"worker.json": string(workerJSON),

@@ -35,28 +35,6 @@ var projectSchemaBytes = []byte(`
 			"maxLength": 50
 		},
 
-		"image": {
-			"type": "object",
-			"description": "An OCI image",
-			"required": ["repository"],
-			"additionalProperties": false,
-			"properties": {
-				"repository": {
-					"allOf": [{ "$ref": "#/definitions/url" }],
-					"description": "The OCI image repository"
-				},
-				"tag": {
-					"allOf": [{ "$ref": "#/definitions/tag" }],
-					"description": "The tag for the correct OCI image from the repository"
-				},
-				"pullPolicy": {
-					"type": "string",
-					"description": "Pull policy for the OCI image",
-					"enum": [ "IfNotPresent", "Always" ]
-				}
-			}
-		},
-
 		"triggeringEvents": {
 			"type": "object",
 			"description": "Describes a set of events that trigger a worker",
@@ -78,8 +56,17 @@ var projectSchemaBytes = []byte(`
 		"containerConfig": {
 			"type": "object",
 			"description": "Configuration for an OCI container",
+			"required": ["image"],
 			"properties": {
-				"image": { "$ref": "#/definitions/image" },
+				"image": {
+					"type": "string",
+					"description": "A URI for an OCI image"
+				},
+				"imagePullPolicy": {
+					"type": "string",
+					"description": "Pull policy for the OCI image",
+					"enum": [ "IfNotPresent", "Always" ]
+				},
 				"command": {
 					"type": "string",
 					"description": "The command to execute within the container"

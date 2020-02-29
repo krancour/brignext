@@ -18,11 +18,8 @@
         }
       ],
       "container": {
-        "image": {
-          "repository": "brigadecore/brigade-worker",
-          "tag": "v1.2.1",
-          "pullPolicy": "IfNotPresent"
-        }
+        "image": "brigadecore/brigade-worker:v1.2.1",
+        "imagePullPolicy": "IfNotPresent"
       },
       "workspaceSize": "10Gi",
       "git": {

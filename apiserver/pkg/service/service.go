@@ -409,7 +409,9 @@ func (s *service) CreateProject(
 		)
 	}
 
-	project.Namespace = namespace
+	project.Kubernetes = &brignext.ProjectKubernetesConfig{
+		Namespace: namespace,
+	}
 	now := time.Now()
 	project.Created = &now
 
@@ -426,7 +428,7 @@ func (s *service) CreateProject(
 
 		if err := s.secretStore.CreateProjectSecrets(
 			project.ID,
-			project.Namespace,
+			project.Kubernetes.Namespace,
 			secrets,
 		); err != nil {
 			return errors.Wrapf(err, "error storing project %q secrets", project.ID)
@@ -491,7 +493,7 @@ func (s *service) UpdateProject(
 
 		if err := s.secretStore.UpdateProjectSecrets(
 			project.ID,
-			project.Namespace,
+			project.Kubernetes.Namespace,
 			secrets,
 		); err != nil {
 			return errors.Wrapf(err, "error updating project %q secrets", project.ID)
@@ -529,12 +531,12 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 		// Deleting the namespace should take care of secrets and running pods as
 		// well.
 		if err := s.scheduler.DeleteProjectNamespace(
-			project.Namespace,
+			project.Kubernetes.Namespace,
 		); err != nil {
 			return errors.Wrapf(
 				err,
 				"error deleting namespace %q for project %q",
-				project.Namespace,
+				project.Kubernetes.Namespace,
 				id,
 			)
 		}
@@ -558,7 +560,9 @@ func (s *service) CreateEvent(
 	}
 
 	event.ID = uuid.NewV4().String()
-	event.Namespace = project.Namespace
+	event.Kubernetes = &brignext.EventKubernetesConfig{
+		Namespace: project.Kubernetes.Namespace,
+	}
 	// "Split" the event into many workers.
 	event.Workers = project.GetWorkers(event)
 	if len(event.Workers) == 0 {
@@ -585,7 +589,7 @@ func (s *service) CreateEvent(
 
 		if err := s.secretStore.CreateEventSecrets(
 			event.ProjectID,
-			event.Namespace,
+			event.Kubernetes.Namespace,
 			event.ID,
 		); err != nil {
 			return errors.Wrap(err, "error creating event secrets")
@@ -721,7 +725,7 @@ func (s *service) DeleteEvent(
 
 		if ok && deleteProcessing {
 			if err := s.scheduler.AbortWorkersByEvent(
-				event.Namespace,
+				event.Kubernetes.Namespace,
 				id,
 			); err != nil {
 				return errors.Wrapf(

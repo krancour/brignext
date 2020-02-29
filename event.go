@@ -34,20 +34,18 @@ const (
 
 // nolint: lll
 type Event struct {
-	ID         string      `json:"id,omitempty" bson:"_id,omitempty"`
-	ProjectID  string      `json:"projectID,omitempty" bson:"projectID,omitempty"`
-	Provider   string      `json:"provider,omitempty" bson:"provider,omitempty"`
-	Type       string      `json:"type,omitempty" bson:"type,omitempty"`
-	ShortTitle string      `json:"shortTitle,omitempty" bson:"shortTitle,omitempty"`
-	LongTitle  string      `json:"longTitle,omitempty" bson:"longTitle,omitempty"`
-	Git        *GitConfig  `json:"git,omitempty" bson:"git,omitempty"`
-	Status     EventStatus `json:"status,omitempty" bson:"status,omitempty"`
-	// TODO: Move this down into k8s-specific event config
-	Namespace string            `json:"namespace,omitempty" bson:"namespace,omitempty"`
-	Workers   map[string]Worker `json:"workers,omitempty" bson:"workers,omitempty"`
-	Created   *time.Time        `json:"created,omitempty" bson:"created,omitempty"`
-	// CloneURL string    `json:"cloneURL,omitempty" bson:"cloneURL,omitempty"`
-	// TODO: This should be encrypted!
+	ID         string                 `json:"id,omitempty" bson:"_id,omitempty"`
+	ProjectID  string                 `json:"projectID,omitempty" bson:"projectID,omitempty"`
+	Provider   string                 `json:"provider,omitempty" bson:"provider,omitempty"`
+	Type       string                 `json:"type,omitempty" bson:"type,omitempty"`
+	ShortTitle string                 `json:"shortTitle,omitempty" bson:"shortTitle,omitempty"`
+	LongTitle  string                 `json:"longTitle,omitempty" bson:"longTitle,omitempty"`
+	Git        *GitConfig             `json:"git,omitempty" bson:"git,omitempty"`
+	Status     EventStatus            `json:"status,omitempty" bson:"status,omitempty"`
+	Kubernetes *EventKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
+	Workers    map[string]Worker      `json:"workers,omitempty" bson:"workers,omitempty"`
+	Created    *time.Time             `json:"created,omitempty" bson:"created,omitempty"`
+	// TODO: This should be encrypted! Maybe?
 	// Payload  []byte    `json:"payload,omitempty" bson:"payload,omitempty"`
 	// Script   []byte    `json:"script,omitempty" bson:"script,omitempty"`
 	// Config   []byte    `json:"config,omitempty" bson:"config,omitempty"`

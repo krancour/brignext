@@ -11,13 +11,13 @@ const (
 
 // nolint: lll
 type WorkerConfig struct {
-	TriggeringEvents []TriggeringEvents `json:"events,omitempty" bson:"events,omitempty"`
-	Container        *ContainerConfig   `json:"container,omitempty" bson:"container,omitempty"`
-	WorkspaceSize    string             `json:"workspaceSize,omitempty" bson:"workspaceSize,omitempty"`
-	Git              *GitConfig         `json:"git,omitempty" bson:"git,omitempty"`
-	Kubernetes       *KubernetesConfig  `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
-	Jobs             *JobsConfig        `json:"jobs,omitempty" bson:"jobs,omitempty"`
-	LogLevel         LogLevel           `json:"logLevel,omitempty" bson:"logLevel,omitempty"`
+	TriggeringEvents []TriggeringEvents      `json:"events,omitempty" bson:"events,omitempty"`
+	Container        *ContainerConfig        `json:"container,omitempty" bson:"container,omitempty"`
+	WorkspaceSize    string                  `json:"workspaceSize,omitempty" bson:"workspaceSize,omitempty"`
+	Git              *GitConfig              `json:"git,omitempty" bson:"git,omitempty"`
+	Kubernetes       *WorkerKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
+	Jobs             *JobsConfig             `json:"jobs,omitempty" bson:"jobs,omitempty"`
+	LogLevel         LogLevel                `json:"logLevel,omitempty" bson:"logLevel,omitempty"`
 }
 
 type TriggeringEvents struct {

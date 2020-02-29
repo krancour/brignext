@@ -1,6 +1,8 @@
 package brignext
 
+// nolint: lll
 type ContainerConfig struct {
-	Image   *Image `json:"image,omitempty" bson:"image,omitempty"`
-	Command string `json:"command,omitempty" bson:"command,omitempty"`
+	Image           string `json:"image,omitempty" bson:"image,omitempty"`
+	ImagePullPolicy string `json:"imagePullPolicy,omitempty" bson:"imagePullPolicy,omitempty"`
+	Command         string `json:"command,omitempty" bson:"command,omitempty"`
 }
