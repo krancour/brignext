@@ -27,13 +27,23 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 	for workerName, workerConfig := range p.Workers {
 		if workerConfig.Matches(event.Provider, event.Type) {
 			worker := Worker{
-				Container:     workerConfig.Container,
+				Name:          workerName,
 				WorkspaceSize: workerConfig.WorkspaceSize,
 				Git:           workerConfig.Git,
-				Kubernetes:    workerConfig.Kubernetes,
-				Jobs:          workerConfig.Jobs,
 				LogLevel:      workerConfig.LogLevel,
 				Status:        WorkerStatusPending,
+			}
+			if workerConfig.Container != nil {
+				worker.Container = *workerConfig.Container
+			} else {
+				// TODO: Make these defaults configurable
+				worker.Container = ContainerConfig{
+					Image:           "krancour/brignext-worker:latest",
+					ImagePullPolicy: "Always",
+				}
+			}
+			if worker.WorkspaceSize == "" {
+				worker.WorkspaceSize = "10Gi"
 			}
 			if event.Git != nil {
 				if worker.Git == nil {
@@ -51,6 +61,30 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 				if event.Git.InitSubmodules != nil {
 					worker.Git.InitSubmodules = event.Git.InitSubmodules
 				}
+			}
+			if workerConfig.Kubernetes != nil {
+				worker.Kubernetes = *workerConfig.Kubernetes
+			} else {
+				// TODO: Make these defaults configurable
+				worker.Kubernetes = WorkerKubernetesConfig{
+					ServiceAccount:        "default",
+					WorkspaceStorageClass: "default",
+				}
+			}
+			worker.Kubernetes.Namespace = p.Kubernetes.Namespace
+			if workerConfig.Jobs != nil {
+				worker.Jobs = *workerConfig.Jobs
+			} else {
+				worker.Jobs = JobsConfig{}
+			}
+			if worker.Jobs.Kubernetes == nil {
+				worker.Jobs.Kubernetes = &JobsKubernetesConfig{
+					ServiceAccount:    "default",
+					CacheStorageClass: "default",
+				}
+			}
+			if worker.LogLevel == "" {
+				worker.LogLevel = LogLevelInfo
 			}
 			workers[workerName] = worker
 		}

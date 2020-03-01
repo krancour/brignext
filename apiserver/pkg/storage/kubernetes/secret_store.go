@@ -104,7 +104,6 @@ func (s *secretStore) CreateEventConfigMap(event brignext.Event) error {
 			ShortTitle string              `json:"shortTitle,omitempty"`
 			LongTitle  string              `json:"longTitle,omitempty"`
 			Git        *brignext.GitConfig `json:"git,omitempty"`
-			Namespace  string              `json:"namespace,omitempty"`
 		}{
 			ID:         event.ID,
 			ProjectID:  event.ProjectID,
@@ -113,7 +112,6 @@ func (s *secretStore) CreateEventConfigMap(event brignext.Event) error {
 			ShortTitle: event.ShortTitle,
 			LongTitle:  event.LongTitle,
 			Git:        event.Git,
-			Namespace:  event.Kubernetes.Namespace,
 		},
 		"",
 		"  ",
@@ -206,11 +204,11 @@ func (s *secretStore) CreateWorkerConfigMap(
 
 	workerJSON, err := json.MarshalIndent(
 		struct {
-			Name       string                           `json:"name,omitempty"`
-			Git        *brignext.GitConfig              `json:"git,omitempty"`
-			Kubernetes *brignext.WorkerKubernetesConfig `json:"kubernetes,omitempty"`
-			Jobs       *brignext.JobsConfig             `json:"jobs,omitempty"`
-			LogLevel   brignext.LogLevel                `json:"logLevel,omitempty"`
+			Name       string                          `json:"name,omitempty"`
+			Git        *brignext.GitConfig             `json:"git,omitempty"`
+			Kubernetes brignext.WorkerKubernetesConfig `json:"kubernetes,omitempty"`
+			Jobs       brignext.JobsConfig             `json:"jobs,omitempty"`
+			LogLevel   brignext.LogLevel               `json:"logLevel,omitempty"`
 		}{
 			Name:       workerName,
 			Git:        worker.Git,
