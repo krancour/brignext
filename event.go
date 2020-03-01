@@ -34,19 +34,19 @@ const (
 
 // nolint: lll
 type Event struct {
-	ID         string                 `json:"id,omitempty" bson:"_id,omitempty"`
-	ProjectID  string                 `json:"projectID,omitempty" bson:"projectID,omitempty"`
-	Provider   string                 `json:"provider,omitempty" bson:"provider,omitempty"`
-	Type       string                 `json:"type,omitempty" bson:"type,omitempty"`
-	ShortTitle string                 `json:"shortTitle,omitempty" bson:"shortTitle,omitempty"`
-	LongTitle  string                 `json:"longTitle,omitempty" bson:"longTitle,omitempty"`
-	Git        *GitConfig             `json:"git,omitempty" bson:"git,omitempty"`
-	Status     EventStatus            `json:"status,omitempty" bson:"status,omitempty"`
-	Kubernetes *EventKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
-	Workers    map[string]Worker      `json:"workers,omitempty" bson:"workers,omitempty"`
-	Created    *time.Time             `json:"created,omitempty" bson:"created,omitempty"`
+	ID         string                 `json:"id,omitempty" bson:"_id"`
+	ProjectID  string                 `json:"projectID,omitempty" bson:"projectID"`
+	Provider   string                 `json:"provider,omitempty" bson:"provider"`
+	Type       string                 `json:"type,omitempty" bson:"type"`
+	ShortTitle string                 `json:"shortTitle,omitempty" bson:"shortTitle"`
+	LongTitle  string                 `json:"longTitle,omitempty" bson:"longTitle"`
+	Git        *GitConfig             `json:"git,omitempty" bson:"git"`
+	Status     EventStatus            `json:"status,omitempty" bson:"status"`
+	Kubernetes *EventKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
+	Workers    map[string]Worker      `json:"workers,omitempty" bson:"workers"`
+	Created    *time.Time             `json:"created,omitempty" bson:"created"`
 	// TODO: This should be encrypted! Maybe?
-	// Payload  []byte    `json:"payload,omitempty" bson:"payload,omitempty"`
-	// Script   []byte    `json:"script,omitempty" bson:"script,omitempty"`
-	// Config   []byte    `json:"config,omitempty" bson:"config,omitempty"`
+	// Payload  []byte    `json:"payload,omitempty" bson:"payload"`
+	// Script   []byte    `json:"script,omitempty" bson:"script"`
+	// Config   []byte    `json:"config,omitempty" bson:"config,"`
 }
