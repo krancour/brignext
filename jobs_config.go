@@ -1,7 +1,7 @@
 package brignext
 
 type JobsConfig struct {
-	AllowPrivileged bool                  `json:"allowPrivileged,omitempty" bson:"allowPrivileged,omitempty"`
-	AllowHostMounts bool                  `json:"allowHostMounts,omitempty" bson:"allowHostMounts,omitempty"`
+	AllowPrivileged bool                  `json:"allowPrivileged" bson:"allowPrivileged"`
+	AllowHostMounts bool                  `json:"allowHostMounts" bson:"allowHostMounts"`
 	Kubernetes      *JobsKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
 }

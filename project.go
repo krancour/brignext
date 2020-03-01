@@ -65,10 +65,13 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 				worker.Kubernetes = *workerConfig.Kubernetes
 			} else {
 				// TODO: Make these defaults configurable
-				worker.Kubernetes = WorkerKubernetesConfig{
-					ServiceAccount:        "default",
-					WorkspaceStorageClass: "default",
-				}
+				worker.Kubernetes = WorkerKubernetesConfig{}
+			}
+			if worker.Kubernetes.ServiceAccount == "" {
+				worker.Kubernetes.ServiceAccount = "default"
+			}
+			if worker.Kubernetes.WorkspaceStorageClass == "" {
+				worker.Kubernetes.WorkspaceStorageClass = "default"
 			}
 			if workerConfig.Jobs != nil {
 				worker.Jobs = *workerConfig.Jobs
@@ -76,10 +79,13 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 				worker.Jobs = JobsConfig{}
 			}
 			if worker.Jobs.Kubernetes == nil {
-				worker.Jobs.Kubernetes = &JobsKubernetesConfig{
-					ServiceAccount:    "default",
-					CacheStorageClass: "default",
-				}
+				worker.Jobs.Kubernetes = &JobsKubernetesConfig{}
+			}
+			if worker.Jobs.Kubernetes.ServiceAccount == "" {
+				worker.Jobs.Kubernetes.ServiceAccount = "default"
+			}
+			if worker.Jobs.Kubernetes.CacheStorageClass == "" {
+				worker.Jobs.Kubernetes.CacheStorageClass = "default"
 			}
 			if worker.LogLevel == "" {
 				worker.LogLevel = LogLevelInfo
