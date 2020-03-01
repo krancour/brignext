@@ -24,8 +24,8 @@ func NewSecretStore(kubeClient *kubernetes.Clientset) storage.SecretStore {
 }
 
 func (s *secretStore) CreateProjectSecrets(
-	id string,
 	namespace string,
+	id string,
 	secrets map[string]string,
 ) error {
 	secretsClient := s.kubeClient.CoreV1().Secrets(namespace)
@@ -49,8 +49,8 @@ func (s *secretStore) CreateProjectSecrets(
 }
 
 func (s *secretStore) UpdateProjectSecrets(
-	id string,
 	namespace string,
+	id string,
 	secrets map[string]string,
 ) error {
 	secretsClient := s.kubeClient.CoreV1().Secrets(namespace)
@@ -74,8 +74,8 @@ func (s *secretStore) UpdateProjectSecrets(
 }
 
 func (s *secretStore) DeleteProjectSecrets(
-	id string,
 	namespace string,
+	id string,
 ) error {
 	secretsClient := s.kubeClient.CoreV1().Secrets(namespace)
 
@@ -140,13 +140,13 @@ func (s *secretStore) CreateEventConfigMap(event brignext.Event) error {
 }
 
 // TODO: Implement this
-func (s *secretStore) DeleteEventConfigMap(id, namespace string) error {
+func (s *secretStore) DeleteEventConfigMap(namespace, id string) error {
 	return nil
 }
 
 func (s *secretStore) CreateEventSecrets(
-	projectID string,
 	namespace string,
+	projectID string,
 	eventID string,
 ) error {
 	secretsClient := s.kubeClient.CoreV1().Secrets(namespace)
@@ -179,7 +179,7 @@ func (s *secretStore) CreateEventSecrets(
 	return nil
 }
 
-func (s *secretStore) DeleteEventSecrets(id, namespace string) error {
+func (s *secretStore) DeleteEventSecrets(namespace, id string) error {
 	secretsClient := s.kubeClient.CoreV1().Secrets(namespace)
 
 	if err := secretsClient.Delete(id, &meta_v1.DeleteOptions{}); err != nil {
@@ -195,26 +195,26 @@ func (s *secretStore) DeleteEventSecrets(id, namespace string) error {
 }
 
 func (s *secretStore) CreateWorkerConfigMap(
-	event brignext.Event,
+	namespace string,
+	projectID string,
+	eventID string,
 	workerName string,
 	worker brignext.Worker,
 ) error {
 	configMapsClient :=
-		s.kubeClient.CoreV1().ConfigMaps(event.Kubernetes.Namespace)
+		s.kubeClient.CoreV1().ConfigMaps(namespace)
 
 	workerJSON, err := json.MarshalIndent(
 		struct {
-			Name       string                          `json:"name,omitempty"`
-			Git        *brignext.GitConfig             `json:"git,omitempty"`
-			Kubernetes brignext.WorkerKubernetesConfig `json:"kubernetes,omitempty"`
-			Jobs       brignext.JobsConfig             `json:"jobs,omitempty"`
-			LogLevel   brignext.LogLevel               `json:"logLevel,omitempty"`
+			Name     string              `json:"name,omitempty"`
+			Git      *brignext.GitConfig `json:"git,omitempty"`
+			Jobs     brignext.JobsConfig `json:"jobs,omitempty"`
+			LogLevel brignext.LogLevel   `json:"logLevel,omitempty"`
 		}{
-			Name:       workerName,
-			Git:        worker.Git,
-			Kubernetes: worker.Kubernetes,
-			Jobs:       worker.Jobs,
-			LogLevel:   worker.LogLevel,
+			Name:     workerName,
+			Git:      worker.Git,
+			Jobs:     worker.Jobs,
+			LogLevel: worker.LogLevel,
 		},
 		"",
 		"  ",
@@ -224,14 +224,14 @@ func (s *secretStore) CreateWorkerConfigMap(
 			err,
 			"error marshaling worker %q of event %q to create a config map",
 			workerName,
-			event.ID,
+			eventID,
 		)
 	}
 
 	if _, err := configMapsClient.Create(&v1.ConfigMap{
 		ObjectMeta: meta_v1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-%s", event.ID, strings.ToLower(workerName)),
-			Namespace: event.Kubernetes.Namespace,
+			Name:      fmt.Sprintf("%s-%s", eventID, strings.ToLower(workerName)),
+			Namespace: namespace,
 		},
 		Data: map[string]string{
 			"worker.json": string(workerJSON),
@@ -241,7 +241,7 @@ func (s *secretStore) CreateWorkerConfigMap(
 			err,
 			"error creating config map for worker %q of event %q",
 			workerName,
-			event.ID,
+			eventID,
 		)
 	}
 
@@ -249,6 +249,10 @@ func (s *secretStore) CreateWorkerConfigMap(
 }
 
 // TODO: Implement this
-func (s *secretStore) DeleteWorkerConfigMap(eventID, workerName string) error {
+func (s *secretStore) DeleteWorkerConfigMap(
+	namespace string,
+	eventID string,
+	workerName string,
+) error {
 	return nil
 }

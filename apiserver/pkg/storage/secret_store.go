@@ -3,22 +3,24 @@ package storage
 import "github.com/krancour/brignext"
 
 type SecretStore interface {
-	CreateProjectSecrets(id, namespace string, secrets map[string]string) error
-	UpdateProjectSecrets(id, namespace string, secrets map[string]string) error
-	DeleteProjectSecrets(id, namespace string) error
+	CreateProjectSecrets(namespace, id string, secrets map[string]string) error
+	UpdateProjectSecrets(namespace, id string, secrets map[string]string) error
+	DeleteProjectSecrets(namespace, id string) error
 
-	// TODO: Move these. They're not secrets!
+	// TODO: Move these. They're not secrets! Or should they be???
 	CreateEventConfigMap(brignext.Event) error
-	DeleteEventConfigMap(id, namespace string) error
+	DeleteEventConfigMap(namespace, id string) error
 
-	CreateEventSecrets(projectID, namespace, eventID string) error
-	DeleteEventSecrets(id, namespace string) error
+	CreateEventSecrets(namespace, projectID, eventID string) error
+	DeleteEventSecrets(namespace, id string) error
 
-	// TODO: Move these. They're not secrets!
+	// TODO: Move these. They're not secrets! Or should they be???
 	CreateWorkerConfigMap(
-		event brignext.Event,
+		namespace string,
+		projectID string,
+		eventID string,
 		workerName string,
 		worker brignext.Worker,
 	) error
-	DeleteWorkerConfigMap(eventID, workerName string) error
+	DeleteWorkerConfigMap(namespace, eventID, workerName string) error
 }

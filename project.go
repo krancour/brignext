@@ -27,7 +27,6 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 	for workerName, workerConfig := range p.Workers {
 		if workerConfig.Matches(event.Provider, event.Type) {
 			worker := Worker{
-				Name:          workerName,
 				WorkspaceSize: workerConfig.WorkspaceSize,
 				Git:           workerConfig.Git,
 				LogLevel:      workerConfig.LogLevel,
@@ -71,7 +70,6 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 					WorkspaceStorageClass: "default",
 				}
 			}
-			worker.Kubernetes.Namespace = p.Kubernetes.Namespace
 			if workerConfig.Jobs != nil {
 				worker.Jobs = *workerConfig.Jobs
 			} else {

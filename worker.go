@@ -27,7 +27,6 @@ const (
 
 // nolint: lll
 type Worker struct {
-	Name          string                 `json:"name,omitempty" bson:"name,omitempty"`
 	Container     ContainerConfig        `json:"container,omitempty" bson:"container,omitempty"`
 	WorkspaceSize string                 `json:"workspaceSize,omitempty" bson:"workspaceSize,omitempty"`
 	Git           *GitConfig             `json:"git,omitempty" bson:"git,omitempty"`
@@ -37,5 +36,4 @@ type Worker struct {
 	Started       *time.Time             `json:"started,omitempty" bson:"started,omitempty"`
 	Ended         *time.Time             `json:"ended,omitempty" bson:"ended,omitempty"`
 	Status        WorkerStatus           `json:"status,omitempty" bson:"status,omitempty"`
-	// ExitCode  *int32       `json:"exitCode,omitempty" bson:"exitCode,omitempty"`
 }

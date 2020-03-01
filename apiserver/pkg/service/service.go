@@ -427,8 +427,8 @@ func (s *service) CreateProject(
 		}
 
 		if err := s.secretStore.CreateProjectSecrets(
-			project.ID,
 			project.Kubernetes.Namespace,
+			project.ID,
 			secrets,
 		); err != nil {
 			return errors.Wrapf(err, "error storing project %q secrets", project.ID)
@@ -492,8 +492,8 @@ func (s *service) UpdateProject(
 		}
 
 		if err := s.secretStore.UpdateProjectSecrets(
-			project.ID,
 			project.Kubernetes.Namespace,
+			project.ID,
 			secrets,
 		); err != nil {
 			return errors.Wrapf(err, "error updating project %q secrets", project.ID)
@@ -588,8 +588,8 @@ func (s *service) CreateEvent(
 		}
 
 		if err := s.secretStore.CreateEventSecrets(
-			event.ProjectID,
 			event.Kubernetes.Namespace,
+			event.ProjectID,
 			event.ID,
 		); err != nil {
 			return errors.Wrap(err, "error creating event secrets")
@@ -597,7 +597,9 @@ func (s *service) CreateEvent(
 
 		for workerName, worker := range event.Workers {
 			if err := s.secretStore.CreateWorkerConfigMap(
-				event,
+				event.Kubernetes.Namespace,
+				event.ProjectID,
+				event.ID,
 				workerName,
 				worker,
 			); err != nil {
