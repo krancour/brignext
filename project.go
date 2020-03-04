@@ -56,22 +56,10 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 				worker.Git.Ref = event.Git.Ref
 			}
 
-			// TODO: There should be a worker-specific service account created when
-			// the project is created. i.e. We shouldn't be using the namespace's
-			// default service account
-			if worker.Kubernetes.ServiceAccount == "" {
-				worker.Kubernetes.ServiceAccount = "default"
-			}
 			if worker.Kubernetes.WorkspaceStorageClass == "" {
 				worker.Kubernetes.WorkspaceStorageClass = "default"
 			}
 
-			// TODO: There should be a jobs-specific service account created when
-			// the project is created. i.e. We shouldn't be using the namespace's
-			// default service account
-			if worker.Jobs.Kubernetes.ServiceAccount == "" {
-				worker.Jobs.Kubernetes.ServiceAccount = "default"
-			}
 			if worker.Jobs.Kubernetes.CacheStorageClass == "" {
 				worker.Jobs.Kubernetes.CacheStorageClass = "default"
 			}

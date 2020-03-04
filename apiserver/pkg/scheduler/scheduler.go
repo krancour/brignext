@@ -8,7 +8,8 @@ import (
 	"github.com/deis/async"
 	"github.com/krancour/brignext/apiserver/pkg/crypto"
 	"github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
+	core_v1 "k8s.io/api/core/v1"
+	rbac_v1 "k8s.io/api/rbac/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -50,7 +51,7 @@ func (s *sched) CreateProjectNamespace(projectID string) (string, error) {
 		fmt.Sprintf("brignext-%s-%s", projectID, crypto.NewToken(10)),
 	)
 	if _, err := s.kubeClient.CoreV1().Namespaces().Create(
-		&v1.Namespace{
+		&core_v1.Namespace{
 			ObjectMeta: meta_v1.ObjectMeta{
 				Name: namespace,
 			},
@@ -63,6 +64,123 @@ func (s *sched) CreateProjectNamespace(projectID string) (string, error) {
 			projectID,
 		)
 	}
+
+	if _, err := s.kubeClient.RbacV1().Roles(namespace).Create(
+		&rbac_v1.Role{
+			ObjectMeta: meta_v1.ObjectMeta{
+				Name:      "workers",
+				Namespace: namespace,
+			},
+			// TODO: Add the correct rules here
+			Rules: []rbac_v1.PolicyRule{},
+		},
+	); err != nil {
+		return "", errors.Wrapf(
+			err,
+			"error creating role \"workers\" in namespace %q",
+			namespace,
+		)
+	}
+
+	if _, err := s.kubeClient.CoreV1().ServiceAccounts(namespace).Create(
+		&core_v1.ServiceAccount{
+			ObjectMeta: meta_v1.ObjectMeta{
+				Name:      "workers",
+				Namespace: namespace,
+			},
+		},
+	); err != nil {
+		return "", errors.Wrapf(
+			err,
+			"error creating service account \"workers\" in namespace %q",
+			namespace,
+		)
+	}
+
+	if _, err := s.kubeClient.RbacV1().RoleBindings(namespace).Create(
+		&rbac_v1.RoleBinding{
+			ObjectMeta: meta_v1.ObjectMeta{
+				Name:      "workers",
+				Namespace: namespace,
+			},
+			Subjects: []rbac_v1.Subject{
+				rbac_v1.Subject{
+					Kind:      "ServiceAccount",
+					Name:      "workers",
+					Namespace: namespace,
+				},
+			},
+			RoleRef: rbac_v1.RoleRef{
+				Kind: "Role",
+				Name: "workers",
+			},
+		},
+	); err != nil {
+		return "", errors.Wrapf(
+			err,
+			"error creating role binding \"workers\" in namespace %q",
+			namespace,
+		)
+	}
+
+	if _, err := s.kubeClient.RbacV1().Roles(namespace).Create(
+		&rbac_v1.Role{
+			ObjectMeta: meta_v1.ObjectMeta{
+				Name:      "jobs",
+				Namespace: namespace,
+			},
+			// TODO: Add the correct rules here
+			Rules: []rbac_v1.PolicyRule{},
+		},
+	); err != nil {
+		return "", errors.Wrapf(
+			err,
+			"error creating role \"jobs\" in namespace %q",
+			namespace,
+		)
+	}
+
+	if _, err := s.kubeClient.CoreV1().ServiceAccounts(namespace).Create(
+		&core_v1.ServiceAccount{
+			ObjectMeta: meta_v1.ObjectMeta{
+				Name:      "jobs",
+				Namespace: namespace,
+			},
+		},
+	); err != nil {
+		return "", errors.Wrapf(
+			err,
+			"error creating service account \"jobs\" in namespace %q",
+			namespace,
+		)
+	}
+
+	if _, err := s.kubeClient.RbacV1().RoleBindings(namespace).Create(
+		&rbac_v1.RoleBinding{
+			ObjectMeta: meta_v1.ObjectMeta{
+				Name:      "jobs",
+				Namespace: namespace,
+			},
+			Subjects: []rbac_v1.Subject{
+				rbac_v1.Subject{
+					Kind:      "ServiceAccount",
+					Name:      "jobs",
+					Namespace: namespace,
+				},
+			},
+			RoleRef: rbac_v1.RoleRef{
+				Kind: "Role",
+				Name: "jobs",
+			},
+		},
+	); err != nil {
+		return "", errors.Wrapf(
+			err,
+			"error creating role binding \"jobs\" in namespace %q",
+			namespace,
+		)
+	}
+
 	return namespace, nil
 }
 

@@ -110,13 +110,6 @@ var projectSchemaBytes = []byte(`
 					"type": "boolean",
 					"description": "Whether to permit the worker to reference Kubernetes secrets when defining environment variables for jobs"
 				},
-				"serviceAccount": {
-					"oneOf": [
-						{ "$ref": "#/definitions/empty" },
-						{ "$ref": "#/definitions/identifier" }
-					],
-					"description": "A specific service account the worker should use for any jobs it launches"
-				},
 				"imagePullSecrets": {
 					"oneOf": [
 						{ "$ref": "#/definitions/empty" },
@@ -155,13 +148,6 @@ var projectSchemaBytes = []byte(`
 						{ "$ref": "#/definitions/identifier" }
 					],
 					"description": "The Kubernetes storage class that a worker may use when provisioning a volume to be shared across multiple jobs"
-				},
-				"serviceAccount": {
-					"oneOf": [
-						{ "$ref": "#/definitions/empty" },
-						{ "$ref": "#/definitions/identifier" }
-					],
-					"description": "A specific service account to use for the worker"
 				},
 				"imagePullSecrets": {
 					"oneOf": [
