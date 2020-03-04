@@ -8,6 +8,11 @@ var projectSchemaBytes = []byte(`
 
 	"definitions": {
 
+		"empty": {
+			"type": "string",
+			"enum": [ "" ]
+		},
+
 		"identifier": {
 			"type": "string",
 			"pattern": "^\\w[\\w-]*$",
@@ -188,22 +193,25 @@ var projectSchemaBytes = []byte(`
 			"description": "A meaningful identifier for the project"
 		},
 		"description": {
-			"allOf": [{ "$ref": "#/definitions/description" }],
+			"oneOf": [
+				{ "$ref": "#/definitions/empty" },
+				{ "$ref": "#/definitions/description" }
+			],
 			"description": "A brief description of the project"
 		},
 		"tags": {
-			"type": "object",
+			"type": [ "object", "null" ],
 			"additionalProperties": true,
 			"patternProperties": {
 				"^\\w[\\w-]*$": { "$ref": "#/definitions/identifier" }
 			}
 		},
 		"secrets": {
-			"type": "object",
+			"type": [ "object", "null" ],
 			"description": "A map of project secrets"
 		},
 		"workers": {
-			"type": "object",
+			"type": [ "object", "null" ],
 			"description": "A map of worker configurations indexed by unique names",
 			"additionalProperties": false,
 			"patternProperties": {

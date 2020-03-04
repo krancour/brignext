@@ -10,13 +10,13 @@ import (
 // nolint: lll
 type Project struct {
 	ID          string                   `json:"id" bson:"_id"`
-	Description string                   `json:"description,omitempty" bson:"description"`
-	Tags        ProjectTags              `json:"tags,omitempty" bson:"tags"`
-	Workers     map[string]WorkerConfig  `json:"workers,omitempty" bson:"workers"`
+	Description string                   `json:"description" bson:"description"`
+	Tags        ProjectTags              `json:"tags" bson:"tags"`
+	Workers     map[string]WorkerConfig  `json:"workers" bson:"workers"`
 	Kubernetes  *ProjectKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
 	// TODO: Secrets should be broken out into their own thing and shouldn't
 	// directly be a project field
-	Secrets map[string]string `json:"secrets,omitempty" bson:"-"`
+	Secrets map[string]string `json:"secrets" bson:"-"`
 	Created *time.Time        `json:"created,omitempty" bson:"created"`
 }
 
