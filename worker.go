@@ -27,13 +27,13 @@ const (
 
 // nolint: lll
 type Worker struct {
-	Container     ContainerConfig        `json:"container,omitempty" bson:"container"`
-	WorkspaceSize string                 `json:"workspaceSize,omitempty" bson:"workspaceSize"`
-	Git           *GitConfig             `json:"git,omitempty" bson:"git"`
-	Kubernetes    WorkerKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
-	Jobs          JobsConfig             `json:"jobs,omitempty" bson:"jobs"`
-	LogLevel      LogLevel               `json:"logLevel,omitempty" bson:"logLevel"`
-	Started       *time.Time             `json:"started,omitempty" bson:"started"`
-	Ended         *time.Time             `json:"ended,omitempty" bson:"ended"`
-	Status        WorkerStatus           `json:"status,omitempty" bson:"status"`
+	Container     ContainerConfig        `json:"container" bson:"container"`
+	WorkspaceSize string                 `json:"workspaceSize" bson:"workspaceSize"`
+	Git           WorkerGitConfig        `json:"git" bson:"git"`
+	Kubernetes    WorkerKubernetesConfig `json:"kubernetes" bson:"kubernetes"`
+	Jobs          JobsConfig             `json:"jobs" bson:"jobs"`
+	LogLevel      LogLevel               `json:"logLevel" bson:"logLevel"`
+	Started       *time.Time             `json:"started" bson:"started"`
+	Ended         *time.Time             `json:"ended" bson:"ended"`
+	Status        WorkerStatus           `json:"status" bson:"status"`
 }

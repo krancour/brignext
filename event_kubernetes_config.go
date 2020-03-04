@@ -1,5 +1,5 @@
 package brignext
 
 type EventKubernetesConfig struct {
-	Namespace string `json:"namespace,omitempty" bson:"namespace"`
+	Namespace string `json:"namespace" bson:"namespace"`
 }

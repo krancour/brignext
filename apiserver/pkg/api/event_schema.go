@@ -8,6 +8,11 @@ var eventSchemaBytes = []byte(`
 
 	"definitions": {
 
+		"empty": {
+			"type": "string",
+			"enum": [ "" ]
+		},
+
 		"identifier": {
 			"type": "string",
 			"pattern": "^\\w[\\w-]*$",
@@ -27,7 +32,10 @@ var eventSchemaBytes = []byte(`
 			"description": "Worker configuration pertaining specifically to git",
 			"properties": {
 				"cloneURL": {
-					"allOf": [{ "$ref": "#/definitions/url" }],
+					"oneOf": [
+						{ "$ref": "#/definitions/empty" },
+						{ "$ref": "#/definitions/url" }
+					],
 					"description": "The URL for cloning a git project"
 				}
 			},

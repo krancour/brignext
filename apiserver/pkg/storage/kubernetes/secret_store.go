@@ -97,13 +97,13 @@ func (s *secretStore) CreateEventConfigMap(event brignext.Event) error {
 
 	eventJSON, err := json.MarshalIndent(
 		struct {
-			ID         string              `json:"id,omitempty"`
-			ProjectID  string              `json:"projectID,omitempty"`
-			Provider   string              `json:"provider,omitempty"`
-			Type       string              `json:"type,omitempty"`
-			ShortTitle string              `json:"shortTitle,omitempty"`
-			LongTitle  string              `json:"longTitle,omitempty"`
-			Git        *brignext.GitConfig `json:"git,omitempty"`
+			ID         string             `json:"id"`
+			ProjectID  string             `json:"projectID"`
+			Provider   string             `json:"provider"`
+			Type       string             `json:"type"`
+			ShortTitle string             `json:"shortTitle"`
+			LongTitle  string             `json:"longTitle"`
+			Git        brignext.GitConfig `json:"git"`
 		}{
 			ID:         event.ID,
 			ProjectID:  event.ProjectID,
@@ -206,10 +206,10 @@ func (s *secretStore) CreateWorkerConfigMap(
 
 	workerJSON, err := json.MarshalIndent(
 		struct {
-			Name     string              `json:"name,omitempty"`
-			Git      *brignext.GitConfig `json:"git,omitempty"`
-			Jobs     brignext.JobsConfig `json:"jobs,omitempty"`
-			LogLevel brignext.LogLevel   `json:"logLevel,omitempty"`
+			Name     string              `json:"name"`
+			Git      brignext.GitConfig  `json:"git"`
+			Jobs     brignext.JobsConfig `json:"jobs"`
+			LogLevel brignext.LogLevel   `json:"logLevel"`
 		}{
 			Name:     workerName,
 			Git:      worker.Git,

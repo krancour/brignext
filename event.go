@@ -32,15 +32,14 @@ const (
 	EventStatusFailed EventStatus = "FAILED"
 )
 
-// nolint: lll
 type Event struct {
 	ID         string                 `json:"id,omitempty" bson:"_id"`
-	ProjectID  string                 `json:"projectID,omitempty" bson:"projectID"`
-	Provider   string                 `json:"provider,omitempty" bson:"provider"`
-	Type       string                 `json:"type,omitempty" bson:"type"`
-	ShortTitle string                 `json:"shortTitle,omitempty" bson:"shortTitle"`
-	LongTitle  string                 `json:"longTitle,omitempty" bson:"longTitle"`
-	Git        *GitConfig             `json:"git,omitempty" bson:"git"`
+	ProjectID  string                 `json:"projectID" bson:"projectID"`
+	Provider   string                 `json:"provider" bson:"provider"`
+	Type       string                 `json:"type" bson:"type"`
+	ShortTitle string                 `json:"shortTitle" bson:"shortTitle"`
+	LongTitle  string                 `json:"longTitle" bson:"longTitle"`
+	Git        EventGitConfig         `json:"git" bson:"git"`
 	Status     EventStatus            `json:"status,omitempty" bson:"status"`
 	Kubernetes *EventKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
 	Workers    map[string]Worker      `json:"workers,omitempty" bson:"workers"`

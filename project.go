@@ -27,69 +27,59 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 	for workerName, workerConfig := range p.Workers {
 		if workerConfig.Matches(event.Provider, event.Type) {
 			worker := Worker{
+				Container:     workerConfig.Container,
 				WorkspaceSize: workerConfig.WorkspaceSize,
 				Git:           workerConfig.Git,
+				Kubernetes:    workerConfig.Kubernetes,
+				Jobs:          workerConfig.Jobs,
 				LogLevel:      workerConfig.LogLevel,
 				Status:        WorkerStatusPending,
 			}
-			if workerConfig.Container != nil {
-				worker.Container = *workerConfig.Container
-			} else {
-				// TODO: Make these defaults configurable
-				worker.Container = ContainerConfig{
-					Image:           "krancour/brignext-worker:latest",
-					ImagePullPolicy: "Always",
-				}
+			if worker.Container.Image == "" {
+				worker.Container.Image = "krancour/brignext-worker:latest"
+			}
+			if worker.Container.ImagePullPolicy == "" {
+				worker.Container.ImagePullPolicy = "IfNotPresent"
 			}
 			if worker.WorkspaceSize == "" {
 				worker.WorkspaceSize = "10Gi"
 			}
-			if event.Git != nil {
-				if worker.Git == nil {
-					worker.Git = &GitConfig{}
-				}
-				if event.Git.CloneURL != "" {
-					worker.Git.CloneURL = event.Git.CloneURL
-				}
-				if event.Git.Commit != "" {
-					worker.Git.Commit = event.Git.Commit
-				}
-				if event.Git.Ref != "" {
-					worker.Git.Ref = event.Git.Ref
-				}
-				if event.Git.InitSubmodules != nil {
-					worker.Git.InitSubmodules = event.Git.InitSubmodules
-				}
+
+			// VCS details from the event override project-level details
+			if event.Git.CloneURL != "" {
+				worker.Git.CloneURL = event.Git.CloneURL
 			}
-			if workerConfig.Kubernetes != nil {
-				worker.Kubernetes = *workerConfig.Kubernetes
-			} else {
-				// TODO: Make these defaults configurable
-				worker.Kubernetes = WorkerKubernetesConfig{}
+			if event.Git.Commit != "" {
+				worker.Git.Commit = event.Git.Commit
 			}
+			if event.Git.Ref != "" {
+				worker.Git.Ref = event.Git.Ref
+			}
+
+			// TODO: There should be a worker-specific service account created when
+			// the project is created. i.e. We shouldn't be using the namespace's
+			// default service account
 			if worker.Kubernetes.ServiceAccount == "" {
 				worker.Kubernetes.ServiceAccount = "default"
 			}
 			if worker.Kubernetes.WorkspaceStorageClass == "" {
 				worker.Kubernetes.WorkspaceStorageClass = "default"
 			}
-			if workerConfig.Jobs != nil {
-				worker.Jobs = *workerConfig.Jobs
-			} else {
-				worker.Jobs = JobsConfig{}
-			}
-			if worker.Jobs.Kubernetes == nil {
-				worker.Jobs.Kubernetes = &JobsKubernetesConfig{}
-			}
+
+			// TODO: There should be a jobs-specific service account created when
+			// the project is created. i.e. We shouldn't be using the namespace's
+			// default service account
 			if worker.Jobs.Kubernetes.ServiceAccount == "" {
 				worker.Jobs.Kubernetes.ServiceAccount = "default"
 			}
 			if worker.Jobs.Kubernetes.CacheStorageClass == "" {
 				worker.Jobs.Kubernetes.CacheStorageClass = "default"
 			}
+
 			if worker.LogLevel == "" {
 				worker.LogLevel = LogLevelInfo
 			}
+
 			workers[workerName] = worker
 		}
 	}

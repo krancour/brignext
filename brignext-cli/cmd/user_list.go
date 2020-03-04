@@ -48,7 +48,7 @@ func userList(c *cli.Context) error {
 				user.ID,
 				user.Name,
 				user.FirstSeen,
-				user.Locked != nil && *user.Locked,
+				user.Locked,
 			)
 		}
 		fmt.Println(table)

@@ -51,7 +51,7 @@ var projectSchemaBytes = []byte(`
 					"description": "The name of the event provider"
 				},
 				"types": {
-					"type": "array",
+					"type": [ "array", "null" ],
 					"description": "Types of events from the provider",
 					"items": { "$ref": "#/definitions/identifier" }
 				}
@@ -70,7 +70,7 @@ var projectSchemaBytes = []byte(`
 				"imagePullPolicy": {
 					"type": "string",
 					"description": "Pull policy for the OCI image",
-					"enum": [ "IfNotPresent", "Always" ]
+					"enum": [ "", "IfNotPresent", "Always" ]
 				},
 				"command": {
 					"type": "string",
@@ -100,7 +100,10 @@ var projectSchemaBytes = []byte(`
 			"description": "Jobs configuration pertaining specifically to Kubernetes",
 			"properties": {
 				"cacheStorageClass": {
-					"allOf": [{ "$ref": "#/definitions/identifier" }],
+					"oneOf": [
+						{ "$ref": "#/definitions/empty" },
+						{ "$ref": "#/definitions/identifier" }
+					],
 					"description": "The Kubernetes storage class that a worker may use when provisioning a volume to cache artifacts across multiple executions of a job"
 				},
 				"allowSecretKeyRef": {
@@ -108,11 +111,17 @@ var projectSchemaBytes = []byte(`
 					"description": "Whether to permit the worker to reference Kubernetes secrets when defining environment variables for jobs"
 				},
 				"serviceAccount": {
-					"allOf": [{ "$ref": "#/definitions/identifier" }],
+					"oneOf": [
+						{ "$ref": "#/definitions/empty" },
+						{ "$ref": "#/definitions/identifier" }
+					],
 					"description": "A specific service account the worker should use for any jobs it launches"
 				},
 				"imagePullSecrets": {
-					"allOf": [{ "$ref": "#/definitions/identifier" }],
+					"oneOf": [
+						{ "$ref": "#/definitions/empty" },
+						{ "$ref": "#/definitions/identifier" }
+					],
 					"description": "A Kubernetes secret that can be used as an image pull secret for job images"
 				}
 			}
@@ -123,7 +132,10 @@ var projectSchemaBytes = []byte(`
 			"description": "Worker configuration pertaining specifically to git",
 			"properties": {
 				"cloneURL": {
-					"allOf": [{ "$ref": "#/definitions/url" }],
+					"oneOf": [
+						{ "$ref": "#/definitions/empty" },
+						{ "$ref": "#/definitions/url" }
+					],
 					"description": "The URL for cloning a git project"
 				},
 				"initSubmodules": {
@@ -138,15 +150,24 @@ var projectSchemaBytes = []byte(`
 			"description": "Worker configuration pertaining specifically to Kubernetes",
 			"properties": {
 				"workspaceStorageClass": {
-					"allOf": [{ "$ref": "#/definitions/identifier" }],
+					"oneOf": [
+						{ "$ref": "#/definitions/empty" },
+						{ "$ref": "#/definitions/identifier" }
+					],
 					"description": "The Kubernetes storage class that a worker may use when provisioning a volume to be shared across multiple jobs"
 				},
 				"serviceAccount": {
-					"allOf": [{ "$ref": "#/definitions/identifier" }],
+					"oneOf": [
+						{ "$ref": "#/definitions/empty" },
+						{ "$ref": "#/definitions/identifier" }
+					],
 					"description": "A specific service account to use for the worker"
 				},
 				"imagePullSecrets": {
-					"allOf": [{ "$ref": "#/definitions/identifier" }],
+					"oneOf": [
+						{ "$ref": "#/definitions/empty" },
+						{ "$ref": "#/definitions/identifier" }
+					],
 					"description": "A Kubernetes secret that can be used as an image pull secret for the worker's image"
 				}
 			}
@@ -158,7 +179,7 @@ var projectSchemaBytes = []byte(`
 			"additionalProperties": false,
 			"properties": {
 				"events": {
-					"type": "array",
+					"type": [ "array", "null" ],
 					"description": "The events that trigger this worker",
 					"items": { "$ref": "#/definitions/triggeringEvents" }
 				},
@@ -176,7 +197,7 @@ var projectSchemaBytes = []byte(`
 				"logLevel": {
 					"type": "string",
 					"description": "Log level to be observed by the worker",
-					"enum": [ "DEBUG", "INFO", "WARN", "ERROR" ]
+					"enum": [ "", "DEBUG", "INFO", "WARN", "ERROR" ]
 				}
 			}
 		}
