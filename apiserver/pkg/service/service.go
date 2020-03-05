@@ -579,6 +579,8 @@ func (s *service) CreateEvent(
 			return errors.Wrapf(err, "error storing new event %q", event.ID)
 		}
 
+		// This config map will contain a JSON file with event details. It will
+		// get mounted into each of the event's worker pods.
 		if err := s.secretStore.CreateEventConfigMap(event); err != nil {
 			return errors.Wrapf(
 				err,
@@ -587,6 +589,12 @@ func (s *service) CreateEvent(
 			)
 		}
 
+		// This secret will be a snapshot of the project's secrets as they are in
+		// this moment. Since all other aspects of the event and its workers are
+		// based on a snapshot of the project configuration at the moment the event
+		// was created, we need to do the same for the project's secrets. This way
+		// project secrets are free to change, but the event will still be processed
+		// using secrets as they were when the event was created.
 		if err := s.secretStore.CreateEventSecrets(
 			event.Kubernetes.Namespace,
 			event.ProjectID,
@@ -595,6 +603,8 @@ func (s *service) CreateEvent(
 			return errors.Wrap(err, "error creating event secrets")
 		}
 
+		// This config maps will each contain a JSON file with worker details. Each
+		// will get mounted into the applicable worker pod.
 		for workerName, worker := range event.Workers {
 			if err := s.secretStore.CreateWorkerConfigMap(
 				event.Kubernetes.Namespace,
@@ -738,7 +748,9 @@ func (s *service) DeleteEvent(
 			}
 		}
 
+		// TODO: Delete event config map
 		// TODO: Delete event secrets
+		// TODO: Delete worker config maps
 
 		return nil
 	})
@@ -770,7 +782,9 @@ func (s *service) DeleteEventsByProject(
 	}
 
 	// TODO: Abort applicable workers
+	// TODO: Delete event config map
 	// TODO: Delete event secrets
+	// TODO: Delete worker config maps
 
 	return n, nil
 }

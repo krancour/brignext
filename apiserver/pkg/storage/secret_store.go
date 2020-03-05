@@ -9,9 +9,11 @@ type SecretStore interface {
 
 	// TODO: Move these. They're not secrets! Or should they be???
 	CreateEventConfigMap(brignext.Event) error
+	// TODO: This isn't called anywhere yet. This will be critical cleannup.
 	DeleteEventConfigMap(namespace, id string) error
 
 	CreateEventSecrets(namespace, projectID, eventID string) error
+	// TODO: This isn't called anywhere yet. This will be critical cleannup.
 	DeleteEventSecrets(namespace, id string) error
 
 	// TODO: Move these. They're not secrets! Or should they be???
@@ -22,5 +24,6 @@ type SecretStore interface {
 		workerName string,
 		worker brignext.Worker,
 	) error
+	// TODO: This isn't called anywhere yet. This will be critical cleannup.
 	DeleteWorkerConfigMap(namespace, eventID, workerName string) error
 }
