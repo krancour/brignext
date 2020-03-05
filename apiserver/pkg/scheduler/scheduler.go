@@ -246,20 +246,13 @@ func (s *sched) deletePodsByLabelsMap(
 	labelsMap map[string]string,
 ) error {
 	podsClient := s.kubeClient.CoreV1().Pods(namespace)
-	selectorStr := labels.SelectorFromSet(labelsMap).String()
-	podList, err := podsClient.List(
+	if err := podsClient.DeleteCollection(
+		&meta_v1.DeleteOptions{},
 		meta_v1.ListOptions{
-			LabelSelector: selectorStr,
+			LabelSelector: labels.SelectorFromSet(labelsMap).String(),
 		},
-	)
-	if err != nil {
-		return errors.Wrapf(err, "error listing pods with labels %s", selectorStr)
-	}
-	for _, pod := range podList.Items {
-		if err :=
-			podsClient.Delete(pod.Name, &meta_v1.DeleteOptions{}); err != nil {
-			return errors.Wrapf(err, "error deleting pod %q", pod.Name)
-		}
+	); err != nil {
+		return errors.Wrap(err, "error deleting pods")
 	}
 	return nil
 }

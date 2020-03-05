@@ -10,7 +10,14 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/api/core/v1"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
+)
+
+const (
+	projectLabel = "brignext.io/project"
+	eventLabel   = "brignext.io/event"
+	workerLabel  = "brignext.io/worker"
 )
 
 type secretStore struct {
@@ -34,6 +41,9 @@ func (s *secretStore) CreateProjectSecrets(
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      id,
 			Namespace: namespace,
+			Labels: map[string]string{
+				projectLabel: id,
+			},
 		},
 		StringData: secrets,
 	}); err != nil {
@@ -126,6 +136,10 @@ func (s *secretStore) CreateEventConfigMap(event brignext.Event) error {
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      event.ID,
 			Namespace: event.Kubernetes.Namespace,
+			Labels: map[string]string{
+				projectLabel: event.ProjectID,
+				eventLabel:   event.ID,
+			},
 		},
 		Data: map[string]string{
 			"event.json": string(eventJSON),
@@ -137,9 +151,16 @@ func (s *secretStore) CreateEventConfigMap(event brignext.Event) error {
 	return nil
 }
 
-// TODO: Implement this
-func (s *secretStore) DeleteEventConfigMap(namespace, id string) error {
-	return nil
+func (s *secretStore) DeleteEventConfigMaps(
+	namespace string,
+	eventID string,
+) error {
+	return s.deleteConfigMapsByLabelsMap(
+		namespace,
+		map[string]string{
+			eventLabel: eventID,
+		},
+	)
 }
 
 func (s *secretStore) CreateEventSecrets(
@@ -163,6 +184,10 @@ func (s *secretStore) CreateEventSecrets(
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      eventID,
 			Namespace: namespace,
+			Labels: map[string]string{
+				projectLabel: projectID,
+				eventLabel:   eventID,
+			},
 		},
 		Data: projectSecret.Data,
 	}); err != nil {
@@ -230,6 +255,11 @@ func (s *secretStore) CreateWorkerConfigMap(
 		ObjectMeta: meta_v1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-%s", eventID, strings.ToLower(workerName)),
 			Namespace: namespace,
+			Labels: map[string]string{
+				projectLabel: projectID,
+				eventLabel:   eventID,
+				workerLabel:  workerName,
+			},
 		},
 		Data: map[string]string{
 			"worker.json": string(workerJSON),
@@ -246,11 +276,18 @@ func (s *secretStore) CreateWorkerConfigMap(
 	return nil
 }
 
-// TODO: Implement this
-func (s *secretStore) DeleteWorkerConfigMap(
+func (s *secretStore) deleteConfigMapsByLabelsMap(
 	namespace string,
-	eventID string,
-	workerName string,
+	labelsMap map[string]string,
 ) error {
+	configMapsClient := s.kubeClient.CoreV1().ConfigMaps(namespace)
+	if err := configMapsClient.DeleteCollection(
+		&meta_v1.DeleteOptions{},
+		meta_v1.ListOptions{
+			LabelSelector: labels.SelectorFromSet(labelsMap).String(),
+		},
+	); err != nil {
+		return errors.Wrap(err, "error deleting config maps")
+	}
 	return nil
 }

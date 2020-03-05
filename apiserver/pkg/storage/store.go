@@ -76,10 +76,5 @@ type Store interface {
 		deletePending bool,
 		deleteProcessing bool,
 	) (bool, error)
-	DeleteEventsByProject(
-		ctx context.Context,
-		projectID string,
-		deletePending bool,
-		deleteProcessing bool,
-	) (int64, error)
+	DeleteEventsByProject(ctx context.Context, projectID string) error
 }

@@ -515,12 +515,7 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 			return errors.Wrapf(err, "error removing project %q from store", id)
 		}
 
-		if _, err := s.store.DeleteEventsByProject(
-			ctx,
-			id,
-			true,
-			true,
-		); err != nil {
+		if err := s.store.DeleteEventsByProject(ctx, id); err != nil {
 			return errors.Wrapf(
 				err,
 				"error removing events for project %q from store",
@@ -528,8 +523,8 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 			)
 		}
 
-		// Deleting the namespace should take care of secrets and running pods as
-		// well.
+		// Deleting the namespace should take care of config maps, secrets, and
+		// running pods as well.
 		if err := s.scheduler.DeleteProjectNamespace(
 			project.Kubernetes.Namespace,
 		); err != nil {
@@ -735,7 +730,7 @@ func (s *service) DeleteEvent(
 			return errors.Wrapf(err, "error removing event %q from store", id)
 		}
 
-		if ok && deleteProcessing {
+		if ok {
 			if err := s.scheduler.AbortWorkersByEvent(
 				event.Kubernetes.Namespace,
 				id,
@@ -746,11 +741,29 @@ func (s *service) DeleteEvent(
 					id,
 				)
 			}
-		}
 
-		// TODO: Delete event config map
-		// TODO: Delete event secrets
-		// TODO: Delete worker config maps
+			if err := s.secretStore.DeleteEventConfigMaps(
+				event.Kubernetes.Namespace,
+				event.ID,
+			); err != nil {
+				return errors.Wrapf(
+					err,
+					"error deleting config maps for event %q",
+					event.ID,
+				)
+			}
+
+			if err := s.secretStore.DeleteEventSecrets(
+				event.Kubernetes.Namespace,
+				event.ID,
+			); err != nil {
+				return errors.Wrapf(
+					err,
+					"error deleting secrets for event %q",
+					event.ID,
+				)
+			}
+		}
 
 		return nil
 	})
@@ -764,27 +777,33 @@ func (s *service) DeleteEventsByProject(
 	deletePending bool,
 	deleteProcessing bool,
 ) (int64, error) {
-	if _, err := s.store.GetProject(ctx, projectID); err != nil {
-		return 0, errors.Wrapf(err, "error retrieving project %q", projectID)
-	}
-	n, err := s.store.DeleteEventsByProject(
-		ctx,
-		projectID,
-		deletePending,
-		deleteProcessing,
-	)
+
+	// Find all events. We'll iterate over all of them and try to delete each.
+	// It sounds inefficient and it probably is, but this allows us to delete
+	// each event in its own transaction.
+	events, err := s.store.GetEventsByProject(ctx, projectID)
 	if err != nil {
 		return 0, errors.Wrapf(
 			err,
-			"error removing events for project %q from store",
+			"error retrieving events for project %q",
 			projectID,
 		)
 	}
 
-	// TODO: Abort applicable workers
-	// TODO: Delete event config map
-	// TODO: Delete event secrets
-	// TODO: Delete worker config maps
+	var deletedCount int64
+	for _, event := range events {
+		ok, err := s.DeleteEvent(ctx, event.ID, deletePending, deleteProcessing)
+		if err != nil {
+			return 0, errors.Wrapf(
+				err,
+				"error removing event %q from store",
+				event.ID,
+			)
+		}
+		if ok {
+			deletedCount++
+		}
+	}
 
-	return n, nil
+	return deletedCount, nil
 }

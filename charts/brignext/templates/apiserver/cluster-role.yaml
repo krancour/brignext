@@ -15,6 +15,7 @@ rules:
   verbs:
   - create
   - delete
+  - deletecollection
 - apiGroups:
   - ""
   resources:
@@ -36,6 +37,7 @@ rules:
   - pods
   verbs:
   - delete
+  - deletecollection
 - apiGroups:
   - rbac.authorization.k8s.io
   resources:

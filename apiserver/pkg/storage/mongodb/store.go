@@ -711,35 +711,16 @@ func (s *store) DeleteEvent(
 func (s *store) DeleteEventsByProject(
 	ctx context.Context,
 	projectID string,
-	deletePending bool,
-	deleteProcessing bool,
-) (int64, error) {
-	statusesToDelete := []brignext.EventStatus{
-		brignext.EventStatusMoot,
-		brignext.EventStatusCanceled,
-		brignext.EventStatusAborted,
-		brignext.EventStatusSucceeded,
-		brignext.EventStatusFailed,
-	}
-	if deletePending {
-		statusesToDelete = append(statusesToDelete, brignext.EventStatusPending)
-	}
-	if deleteProcessing {
-		statusesToDelete = append(statusesToDelete, brignext.EventStatusProcessing)
-	}
-	res, err := s.eventsCollection.DeleteMany(
+) error {
+	if _, err := s.eventsCollection.DeleteMany(
 		ctx,
-		bson.M{
-			"projectID": projectID,
-			"status":    bson.M{"$in": statusesToDelete},
-		},
-	)
-	if err != nil {
-		return 0, errors.Wrapf(
+		bson.M{"projectID": projectID},
+	); err != nil {
+		return errors.Wrapf(
 			err,
 			"error deleting events for project %q",
 			projectID,
 		)
 	}
-	return res.DeletedCount, nil
+	return nil
 }
