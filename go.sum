@@ -127,8 +127,8 @@ github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORN
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
-github.com/krancour/async v1.1.1-0.20200219202113-438f9062d901 h1:6yrUUvj4aI4w9xBzHb0N4IUOvqgg1IYVCJKSR5vyiAg=
-github.com/krancour/async v1.1.1-0.20200219202113-438f9062d901/go.mod h1:WLDKjyPf80icOTGK6pWtChwcgcd5sqvanqeeSNc3f48=
+github.com/krancour/async v1.1.2 h1:o8ICjzsv0/4i0QuqPNM53gZiL1JmB3fK6hh8MVK5rrU=
+github.com/krancour/async v1.1.2/go.mod h1:WLDKjyPf80icOTGK6pWtChwcgcd5sqvanqeeSNc3f48=
 github.com/mailru/easyjson v0.0.0-20160728113105-d5b7844b561a/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=
 github.com/markbates/oncer v0.0.0-20181203154359-bf2de49a0be2/go.mod h1:Ld9puTsIW75CHf65OeIOkyKbteujpZVXDpWK6YGZbxE=
 github.com/markbates/safe v1.0.1/go.mod h1:nAqgmRi7cY2nqMc92/bSEeQA+R4OheNU2T1kNSCBdG0=

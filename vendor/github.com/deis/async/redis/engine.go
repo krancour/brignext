@@ -71,12 +71,8 @@ func NewEngine(config Config) async.Engine {
 	e.pendingTaskQueueName = e.prefixRedisKey("pendingTasks")
 	e.deferredTaskQueueName = e.prefixRedisKey("deferredTasks")
 	e.workerSetName = e.prefixRedisKey("workers")
-	e.activeTaskQueueName = e.prefixRedisKey(
-		fmt.Sprintf("active-tasks:%s", workerID),
-	)
-	e.watchedTaskQueueName = e.prefixRedisKey(
-		fmt.Sprintf("watched-tasks:%s", workerID),
-	)
+	e.activeTaskQueueName = e.getActiveTaskQueueName(workerID)
+	e.watchedTaskQueueName = e.getWatchedTaskQueueName(workerID)
 
 	e.clean = e.defaultClean
 	e.cleanActiveTaskQueue = e.defaultCleanWorkerQueue

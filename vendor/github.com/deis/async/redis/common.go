@@ -46,3 +46,11 @@ func (e *engine) prefixRedisKey(key string) string {
 	}
 	return key
 }
+
+func (e *engine) getActiveTaskQueueName(workerID string) string {
+	return e.prefixRedisKey(fmt.Sprintf("active-tasks:%s", workerID))
+}
+
+func (e *engine) getWatchedTaskQueueName(workerID string) string {
+	return e.prefixRedisKey(fmt.Sprintf("watched-tasks:%s", workerID))
+}

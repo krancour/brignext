@@ -2,7 +2,7 @@ module github.com/krancour/brignext
 
 go 1.13
 
-replace github.com/deis/async => github.com/krancour/async v1.1.1-0.20200219202113-438f9062d901
+replace github.com/deis/async => github.com/krancour/async v1.1.2
 
 require (
 	github.com/coreos/go-oidc v2.2.1+incompatible

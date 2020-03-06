@@ -61,7 +61,7 @@ func (e *engine) defaultClean(
 				if err := e.cleanActiveTaskQueue(
 					ctx,
 					workerID,
-					e.activeTaskQueueName,
+					e.getActiveTaskQueueName(workerID),
 					pendingTaskQueueName,
 				); err != nil {
 					return err
@@ -69,7 +69,7 @@ func (e *engine) defaultClean(
 				if err := e.cleanWatchedTaskQueue(
 					ctx,
 					workerID,
-					e.watchedTaskQueueName,
+					e.getWatchedTaskQueueName(workerID),
 					deferredTaskQueueName,
 				); err != nil {
 					return err
