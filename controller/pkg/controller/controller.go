@@ -3,7 +3,7 @@ package controller
 import (
 	"context"
 
-	"github.com/deis/async"
+	"github.com/go-redis/redis"
 	"github.com/krancour/brignext/client"
 	"k8s.io/client-go/kubernetes"
 )
@@ -14,26 +14,25 @@ type Controller interface {
 
 type controller struct {
 	apiClient   client.Client
-	asyncEngine async.Engine
+	redisClient *redis.Client
 	kubeClient  *kubernetes.Clientset
 }
 
 func NewController(
 	apiClient client.Client,
-	asyncEngine async.Engine,
+	redisClient *redis.Client,
 	kubeClient *kubernetes.Clientset,
 ) Controller {
-	c := &controller{
+	return &controller{
 		apiClient:   apiClient,
-		asyncEngine: asyncEngine,
+		redisClient: redisClient,
 		kubeClient:  kubeClient,
 	}
-	c.asyncEngine.RegisterJob("executeWorker", c.workerExecute)
-	c.asyncEngine.RegisterJob("monitorWorker", c.workerMonitor)
-	return c
 }
 
 func (c *controller) Run(ctx context.Context) error {
-	// TODO: Also run a healthcheck endpoint
-	return c.asyncEngine.Run(ctx)
+	// TODO: Get all projects and start a message consumer for each
+	// c.asyncEngine.RegisterJob("executeWorker", c.workerExecute)
+	// c.asyncEngine.RegisterJob("monitorWorker", c.workerMonitor)
+	select {}
 }

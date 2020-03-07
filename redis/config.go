@@ -17,9 +17,12 @@ type config struct {
 	Port      int    `envconfig:"PORT" default:"6379"`
 	Password  string `envconfig:"PASSWORD"`
 	DB        int    `envconfig:"DB"`
-	EnableTLS bool   `envconfig:"ENABLE_TLS" default:"false"`
+	EnableTLS bool   `envconfig:"ENABLE_TLS"`
+	Prefix    string `envconfig:"PREFIX"`
 }
 
+// Client returns a connection to a Redis database specified by environment
+// variables
 func Client() (*redis.Client, error) {
 	c := config{}
 	err := envconfig.Process(envconfigPrefix, &c)
@@ -34,7 +37,7 @@ func Client() (*redis.Client, error) {
 		Addr:       fmt.Sprintf("%s:%d", c.Host, c.Port),
 		Password:   c.Password,
 		DB:         c.DB,
-		MaxRetries: 5,
+		MaxRetries: 5, // TODO: Should this be configurable?
 	}
 	if c.EnableTLS {
 		redisOpts.TLSConfig = &tls.Config{

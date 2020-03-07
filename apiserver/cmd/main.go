@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 
-	async "github.com/deis/async/redis"
 	"github.com/krancour/brignext/apiserver/pkg/api"
 	mongodbUtils "github.com/krancour/brignext/apiserver/pkg/mongodb"
 	"github.com/krancour/brignext/apiserver/pkg/oidc"
@@ -12,6 +11,7 @@ import (
 	secrets "github.com/krancour/brignext/apiserver/pkg/storage/kubernetes"
 	"github.com/krancour/brignext/apiserver/pkg/storage/mongodb"
 	"github.com/krancour/brignext/pkg/kubernetes"
+	"github.com/krancour/brignext/pkg/redis"
 	"github.com/krancour/brignext/pkg/version"
 )
 
@@ -47,19 +47,15 @@ func main() {
 	logStore := mongodb.NewLogStore(database)
 
 	// Scheduler
-	asyncConfig, err := async.GetConfigFromEnvironment()
+	redisClient, err := redis.Client()
 	if err != nil {
 		log.Fatal(err)
 	}
-	asyncEngine := async.NewEngine(asyncConfig)
 	kubeClient, err := kubernetes.Client()
 	if err != nil {
 		log.Fatal(err)
 	}
-	scheduler := scheduler.NewScheduler(
-		asyncEngine,
-		kubeClient,
-	)
+	scheduler := scheduler.NewScheduler(redisClient, kubeClient)
 
 	// Secrets store
 	secretStore := secrets.NewSecretStore(kubeClient)

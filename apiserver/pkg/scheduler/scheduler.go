@@ -1,12 +1,15 @@
 package scheduler
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
-	"github.com/deis/async"
+	"github.com/go-redis/redis"
 	"github.com/krancour/brignext/apiserver/pkg/crypto"
+	"github.com/krancour/brignext/pkg/messaging"
+	redisMessaging "github.com/krancour/brignext/pkg/messaging/redis"
 	"github.com/pkg/errors"
 	core_v1 "k8s.io/api/core/v1"
 	rbac_v1 "k8s.io/api/rbac/v1"
@@ -24,24 +27,24 @@ const (
 type Scheduler interface {
 	// TODO: This should move somewhere else-- it's not the scheduler's
 	// responsibility
-	CreateProjectNamespace(pojectID string) (string, error)
-	ScheduleWorker(eventID, workerName string) error
+	CreateProjectNamespace(projectID string) (string, error)
+	ScheduleWorker(projectID, eventID, workerName string) error
 	AbortWorker(namespace, eventID, workerName string) error
 	AbortWorkersByEvent(namespace, eventID string) error
 	DeleteProjectNamespace(namespace string) error
 }
 
 type sched struct {
-	asyncEngine async.Engine
+	redisClient *redis.Client
 	kubeClient  *kubernetes.Clientset
 }
 
 func NewScheduler(
-	asyncEngine async.Engine,
+	redisClient *redis.Client,
 	kubeClient *kubernetes.Clientset,
 ) Scheduler {
 	return &sched{
-		asyncEngine: asyncEngine,
+		redisClient: redisClient,
 		kubeClient:  kubeClient,
 	}
 }
@@ -184,25 +187,36 @@ func (s *sched) CreateProjectNamespace(projectID string) (string, error) {
 	return namespace, nil
 }
 
-func (s *sched) ScheduleWorker(eventID, workerName string) error {
+func (s *sched) ScheduleWorker(projectID, eventID, workerName string) error {
+	messageBodyStruct := struct {
+		Event  string `json:"event"`
+		Worker string `json:"worker"`
+	}{
+		Event:  eventID,
+		Worker: workerName,
+	}
+	messageBody, err := json.Marshal(messageBodyStruct)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error encoding execution task for event %q worker %q",
+			eventID,
+			workerName,
+		)
+	}
+	producer := redisMessaging.NewProducer(projectID, s.redisClient, nil)
 	// TODO: Fix this
 	// There's deliberately a short delay here to minimize the possibility of the
 	// controller trying (and failing) to locate this new event before the
 	// transaction on the store has become durable.
-	if err := s.asyncEngine.SubmitTask(
-		async.NewDelayedTask(
-			"executeWorker",
-			map[string]string{
-				"event":  eventID,
-				"worker": workerName,
-			},
-			5*time.Second,
-		),
+	if err := producer.Publish(
+		messaging.NewDelayedMessage(messageBody, 5*time.Second),
 	); err != nil {
 		return errors.Wrapf(
 			err,
-			"error submitting execution task for worker %q",
+			"error submitting execution task for event %q worker %q",
 			eventID,
+			workerName,
 		)
 	}
 	return nil

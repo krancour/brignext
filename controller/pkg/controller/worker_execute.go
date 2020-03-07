@@ -2,12 +2,12 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
-	"time"
 
-	"github.com/deis/async"
 	"github.com/krancour/brignext"
+	"github.com/krancour/brignext/pkg/messaging"
 	"github.com/pkg/errors"
 )
 
@@ -15,23 +15,19 @@ import (
 // schedules a follow-up task to monitor that pod for completion.
 func (c *controller) workerExecute(
 	ctx context.Context,
-	task async.Task,
-) ([]async.Task, error) {
-	eventID, ok := task.GetArgs()["event"]
-	if !ok {
-		return nil, errors.Errorf(
-			"executeWorker task %q did not include an event ID argument",
-			task.GetID(),
-		)
+	message messaging.Message,
+) error {
+	messageBodyStruct := struct {
+		Event  string `json:"event"`
+		Worker string `json:"worker"`
+	}{}
+	if err := json.Unmarshal(message.Body(), &messageBodyStruct); err != nil {
+		// TODO: How can we make this error a little more descriptive?
+		return errors.Errorf("error decoding message %q", message.ID())
 	}
 
-	workerName, ok := task.GetArgs()["worker"]
-	if !ok {
-		return nil, errors.Errorf(
-			"executeWorker task %q did not include a worker name argument",
-			task.GetID(),
-		)
-	}
+	eventID := messageBodyStruct.Event
+	workerName := messageBodyStruct.Worker
 
 	log.Printf(
 		"INFO: received executeWorker task for worker %q of event %q",
@@ -45,9 +41,9 @@ func (c *controller) workerExecute(
 		if _, ok := err.(*brignext.ErrEventNotFound); ok {
 			// The event wasn't found. The likely scenario is that it was deleted.
 			// We're not going to treat this as an error. We're just going to move on.
-			return nil, nil
+			return nil
 		}
-		return nil, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error retrieving event %q for worker %q execution",
 			eventID,
@@ -57,10 +53,10 @@ func (c *controller) workerExecute(
 
 	worker, ok := event.Workers[workerName]
 	if !ok {
-		return nil, errors.Errorf(
+		return errors.Errorf(
 			"executeWorker task %q failed because event %q did not have a worker "+
 				"named %q",
-			task.GetID(),
+			message.ID(),
 			eventID,
 			workerName,
 		)
@@ -70,25 +66,15 @@ func (c *controller) workerExecute(
 	// the worker status already, unexpectedly in a RUNNING state. This could only
 	// happen if the handler has already run for this event at least once before
 	// and succeeded in updating the worker's status in the database, but the
-	// controller process exited unexpectedly before the task completed-- and
-	// hence before the follow-up task to monitor the worker was added to the
-	// async engine's work queue.
+	// controller process exited unexpectedly before the worker completed.
 	//
 	// So...
 	//
 	// If the status is already RUNNING, don't do any updates to the database.
-	// Just return the follow-up tasks to monitor the worker.
+	// Just start waiting for the worker to complete.
 	if worker.Status == brignext.WorkerStatusRunning {
-		return []async.Task{
-			// A task that will monitor the worker
-			async.NewTask(
-				"monitorWorker",
-				map[string]string{
-					"eventID": event.ID,
-					"worker":  workerName,
-				},
-			),
-		}, nil
+		// TODO: Wait for the worker to complete
+		select {}
 	}
 
 	// If the event status is anything other than PENDING, just log it and move
@@ -101,12 +87,12 @@ func (c *controller) workerExecute(
 			event.ID,
 			worker.Status,
 		)
-		return nil, nil
+		return nil
 	}
 
 	// Get the worker pod up and running if it isn't already
 	if err := c.createWorkerPod(ctx, event, workerName); err != nil {
-		return nil, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error ensuring worker pod running for worker %q of event %q",
 			workerName,
@@ -121,7 +107,7 @@ func (c *controller) workerExecute(
 		workerName,
 		brignext.WorkerStatusRunning,
 	); err != nil {
-		return nil, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error updating status on worker %q of event %q",
 			workerName,
@@ -129,18 +115,8 @@ func (c *controller) workerExecute(
 		)
 	}
 
-	// Schedule a task that will monitor the worker
-	return []async.Task{
-		// A task that will monitor the worker
-		async.NewDelayedTask(
-			"monitorWorker",
-			map[string]string{
-				"eventID": event.ID,
-				"worker":  workerName,
-			},
-			5*time.Second,
-		),
-	}, nil
+	// TODO: Wait for the worker to complete
+	select {}
 }
 
 // TODO: Implement this

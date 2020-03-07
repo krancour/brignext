@@ -615,7 +615,11 @@ func (s *service) CreateEvent(
 					event.ID,
 				)
 			}
-			if err := s.scheduler.ScheduleWorker(event.ID, workerName); err != nil {
+			if err := s.scheduler.ScheduleWorker(
+				event.ProjectID,
+				event.ID,
+				workerName,
+			); err != nil {
 				return errors.Wrapf(
 					err,
 					"error scheduling worker %q for new event %q",
