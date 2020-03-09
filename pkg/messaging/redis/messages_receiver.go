@@ -20,19 +20,19 @@ func (c *consumer) defaultReceiveMessages(
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	for {
-		messageJSON, err := c.redisClient.BRPopLPush(
+		messageJSON, err := c.redisClient.RPopLPush(
 			sourceQueueName,
 			destinationQueueName,
-			// Don't try indefinitely, or else we'll never have the opportunity to
-			// exit if/when context is canceled
-			time.Second*5,
 		).Bytes()
 		if err == redis.Nil {
 			select {
+			// This delay before trying again when we've just found nothing stops us
+			// from taxing the CPU or the network when the queue is empty.
+			// TODO: Make this configurable?
+			case <-time.After(5 * time.Second):
+				continue
 			case <-ctx.Done():
 				return
-			default:
-				continue
 			}
 		}
 		if err != nil {
