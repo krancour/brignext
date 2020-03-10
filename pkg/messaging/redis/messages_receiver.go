@@ -26,6 +26,7 @@ outer:
 		case <-ctx.Done():
 			return
 		}
+		// TODO: Count failures
 		for {
 			res := c.redisClient.RPopLPush(
 				c.pendingListName,
@@ -35,9 +36,9 @@ outer:
 			if err == redis.Nil {
 				select {
 				// This delay before trying again when we've just found nothing stops us
-				// from taxing the CPU or the network when the pending list is empty.
-				// TODO: Make this configurable?
-				case <-time.After(5 * time.Second):
+				// from taxing the CPU, network, or database when the pending list is
+				// empty.
+				case <-time.After(*c.options.ReceiverNoResultPauseInterval):
 					continue
 				case <-ctx.Done():
 					return
@@ -51,11 +52,14 @@ outer:
 			messageJSON, err :=
 				c.redisClient.HGet(c.messagesHashName, messageID).Bytes()
 			if err != nil {
+				// TODO: Distinguish between a real failure and a nil result.
 				c.abort(ctx, err)
 				return
 			}
 			message, err := messaging.NewMessageFromJSON(messageJSON)
 			if err != nil {
+				// TODO: Don't abort here. This is a poison message. Discard it or
+				// maybe move it to a dead letter queue.
 				c.abort(ctx, err)
 				return
 			}

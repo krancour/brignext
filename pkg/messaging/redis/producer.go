@@ -6,11 +6,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ProducerOptions represents configutation options for a Producer.
-type ProducerOptions struct {
-	RedisPrefix string
-}
-
 // producer is a Redis-based implementation of the messaging.Producer interface.
 type producer struct {
 	redisClient *redis.Client

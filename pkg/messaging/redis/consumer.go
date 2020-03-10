@@ -11,12 +11,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// ConsumerOptions represents configutation options for a Consumer.
-type ConsumerOptions struct {
-	RedisPrefix string
-	WorkerCount int
-}
-
 // consumer is a Redis-based implementation of the messaging.Consumer interface.
 type consumer struct {
 	id            string
@@ -69,10 +63,9 @@ func NewConsumer(
 	handler messaging.HandlerFn,
 ) (messaging.Consumer, error) {
 	if options == nil {
-		options = &ConsumerOptions{
-			WorkerCount: 1,
-		}
+		options = &ConsumerOptions{}
 	}
+	options.applyDefaults()
 	consumerID := uuid.NewV4().String()
 	c := &consumer{
 		id:               consumerID,
@@ -147,8 +140,9 @@ func (c *consumer) Run(ctx context.Context) error {
 	go c.runScheduler(ctx)
 
 	// Fan out to desired number of message handlers
-	c.wg.Add(c.options.WorkerCount)
-	for i := 0; i < c.options.WorkerCount; i++ {
+	c.wg.Add(int(*c.options.ConcurrentHandlersCount))
+	var i uint8
+	for i = 0; i < *c.options.ConcurrentHandlersCount; i++ {
 		go c.handleMessages(ctx)
 	}
 
@@ -168,7 +162,7 @@ func (c *consumer) Run(ctx context.Context) error {
 	}()
 	select {
 	case <-doneCh:
-	case <-time.After(time.Minute): // TODO: Make this configurable
+	case <-time.After(*c.options.ShutdownGracePeriod):
 	}
 
 	return err

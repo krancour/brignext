@@ -8,17 +8,21 @@ import (
 	"github.com/pkg/errors"
 )
 
-const heartbeatInterval = 30 * time.Second
-
 // defaultRunHeart emits "heartbeats" at regular intervals as proof of life.
 func (c *consumer) defaultRunHeart(ctx context.Context) {
 	defer c.wg.Done()
-	ticker := time.NewTicker(heartbeatInterval)
+	ticker := time.NewTicker(*c.options.HeartbeatInterval)
 	defer ticker.Stop()
+	var failureCount uint8
 	for {
 		if err := c.heartbeat(); err != nil {
-			c.abort(ctx, err)
-			return
+			failureCount++
+			if failureCount > *c.options.HeartbeatMaxFailures {
+				c.abort(ctx, err)
+				return
+			}
+		} else {
+			failureCount = 0
 		}
 		select {
 		case <-ticker.C:
