@@ -2,6 +2,8 @@ package redis
 
 import (
 	"context"
+	"sync"
+	"time"
 
 	"github.com/go-redis/redis"
 	"github.com/krancour/brignext/pkg/messaging"
@@ -11,154 +13,120 @@ import (
 
 // ConsumerOptions represents configutation options for a Consumer.
 type ConsumerOptions struct {
-	RedisPrefix  string
-	WorkerCount  int
-	WatcherCount int
+	RedisPrefix string
+	WorkerCount int
 }
 
 // consumer is a Redis-based implementation of the messaging.Consumer interface.
 type consumer struct {
 	id            string
-	baseQueueName string
 	redisClient   *redis.Client
+	baseQueueName string
 	options       ConsumerOptions
-	// pendingQueueName is the global queue of messages ready to be handled.
-	pendingQueueName string
-	// deferredQueueName is the global queue of messages to be handled at or after
-	// some message-specific time in the future.
-	deferredQueueName string
-	// consumersSetName is the global set of all consumers.
+	handler       messaging.HandlerFn
+
+	// pendingListName is the key for the global list of IDs for messages ready to
+	// be handled.
+	pendingListName string
+	// messagesHashName is the key for the global hash of messages indexed by
+	// message ID.
+	messagesHashName string
+	// scheduledSetName is the key for the global sorted set of IDs for messages
+	// to be handled at or after some message-specific time in the future.
+	scheduledSetName string
+	// consumersSetName is the key for the global set of all consumers.
 	consumersSetName string
-	// activeQueueName is the set of messages actively being handled by this
-	// consumer.
-	activeQueueName string
-	// watchedQueueName is the set of messages to be handled at or after some
-	// message-specific time in the future, which have been placed into a holding
-	// pattern by this consumer, which will add them to the pendingQueue after the
-	// specified time has elapsed.
-	watchedQueueName string
-	// heartbeatKey is the key where this consumer will publish heartbeats and
-	// where other consumers will look for proof of life.
-	heartbeatKey string
+	// activeListName is the key for the list of messages actively being handled
+	// by this consumer.
+	activeListName string
+
+	// Scripts
+	schedulerScriptSHA string
+	cleanerScriptSHA   string
 
 	// All of the following behaviors can be overridden for testing purposes
-	clean      func(context.Context) error
-	cleanQueue func(
-		ctx context.Context,
-		consumerID string,
-		sourceQueueName string,
-		destinationQueueName string,
-	) error
-	runHeart               func(ctx context.Context) error
+	runHeart               func(context.Context)
+	runCleaner             func(context.Context)
 	heartbeat              func() error
-	receivePendingMessages func(
-		ctx context.Context,
-		sourceQueueName string,
-		destinationQueueName string,
-		messageCh chan<- []byte,
-		errCh chan<- error,
-	)
-	receiveDeferredMessages func(
-		ctx context.Context,
-		sourceQueueName string,
-		destinationQueueName string,
-		messageCh chan<- []byte,
-		errCh chan<- error,
-	)
-	handleMessages func(
-		ctx context.Context,
-		messageCh <-chan []byte,
-		handler messaging.HandlerFn,
-		errCh chan<- error,
-	)
-	watchDeferredMessages func(
-		ctx context.Context,
-		messageCh <-chan []byte,
-		errCh chan<- error,
-	)
+	receivePendingMessages func(context.Context)
+	handleMessages         func(context.Context)
+	runScheduler           func(context.Context)
+
+	handlerReadyCh chan struct{}
+	messageCh      chan messaging.Message
+	// All goroutines we launch will send errors here
+	errCh chan error
+
+	wg *sync.WaitGroup
 }
 
 // NewConsumer returns a new Redis-based implementation of the
 // messaging.Consumer interface.
 func NewConsumer(
-	baseQueueName string,
 	redisClient *redis.Client,
+	baseQueueName string,
 	options *ConsumerOptions,
-) messaging.Consumer {
+	handler messaging.HandlerFn,
+) (messaging.Consumer, error) {
 	if options == nil {
 		options = &ConsumerOptions{
-			WorkerCount:  1,
-			WatcherCount: 100,
+			WorkerCount: 1,
 		}
 	}
 	consumerID := uuid.NewV4().String()
 	c := &consumer{
-		id:                consumerID,
-		baseQueueName:     baseQueueName,
-		redisClient:       redisClient,
-		options:           *options,
-		pendingQueueName:  pendingQueueName(options.RedisPrefix, baseQueueName),
-		deferredQueueName: deferredQueueName(options.RedisPrefix, baseQueueName),
-		consumersSetName:  consumersSetName(options.RedisPrefix, baseQueueName),
-		activeQueueName: activeQueueName(
+		id:               consumerID,
+		redisClient:      redisClient,
+		baseQueueName:    baseQueueName,
+		options:          *options,
+		handler:          handler,
+		pendingListName:  pendingListName(options.RedisPrefix, baseQueueName),
+		messagesHashName: messagesHashName(options.RedisPrefix, baseQueueName),
+		scheduledSetName: scheduledSetName(options.RedisPrefix, baseQueueName),
+		consumersSetName: consumersSetName(options.RedisPrefix, baseQueueName),
+		activeListName: activeListName(
 			options.RedisPrefix,
 			baseQueueName,
 			consumerID,
 		),
-		watchedQueueName: watchedQueueName(
-			options.RedisPrefix,
-			baseQueueName,
-			consumerID,
-		),
-		heartbeatKey: heartbeatKey(options.RedisPrefix, baseQueueName, consumerID),
+		handlerReadyCh: make(chan struct{}),
+		messageCh:      make(chan messaging.Message),
+		errCh:          make(chan error),
+		wg:             &sync.WaitGroup{},
 	}
-	c.clean = c.defaultClean
-	c.cleanQueue = c.defaultCleanQueue
+
+	var err error
+
+	// Scheduler script
+	c.schedulerScriptSHA, err = redisClient.ScriptLoad(schedulerScript).Result()
+	if err != nil {
+		return nil, errors.Wrap(err, "error loading scheduler script")
+	}
+
+	// Cleaner script
+	c.cleanerScriptSHA, err = redisClient.ScriptLoad(cleanerScript).Result()
+	if err != nil {
+		return nil, errors.Wrap(err, "error loading cleaner script")
+	}
+
+	// Behaviors
+	c.runCleaner = c.defaultRunCleaner
 	c.runHeart = c.defaultRunHeart
 	c.heartbeat = c.defaultHeartbeat
-	c.receivePendingMessages = c.defaultReceiveMessages
-	c.receiveDeferredMessages = c.defaultReceiveMessages
+	c.receivePendingMessages = c.defaultReceivePendingMessages
 	c.handleMessages = c.defaultHandleMessages
-	c.watchDeferredMessages = c.defaultWatchDeferredMessages
-	return c
+	c.runScheduler = c.defaultRunScheduler
+
+	return c, nil
 }
 
-func (c *consumer) Consume(
-	ctx context.Context,
-	handler messaging.HandlerFn,
-) error {
-	// This function starts many goroutines. It is designed to exit if the context
-	// it was passed is canceled or if any one of its constituent goroutines
-	// completes. When it exits, context will be canceled and any remaining
-	// goroutines should therefore receive their signal to shut down.
-
+func (c *consumer) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// All goroutines we launch will send errors here
-	errCh := make(chan error)
-
-	// Start the cleaner
-	go func() {
-		err := c.clean(ctx)
-		select {
-		case errCh <- errors.Wrapf(
-			err,
-			"queue %q consumer %q cleaner stopped",
-			c.baseQueueName,
-			c.id,
-		):
-		case <-ctx.Done():
-		}
-	}()
-
-	// As soon as we add the consumer to the consumers set, it's eligible for the
-	// other consumers' cleaners to clean up after it, so it's important that we
-	// guarantee that they will see this consumer as alive. We can't trust that
-	// the heartbeat loop (which we'll shortly start in its own goroutine) will
-	// have sent the first heartbeat BEFORE the consumer is added to the consumers
-	// set. To head off that race condition, we synchronously send the first
-	// heartbeat.
+	// Send the first heartbeat synchronously before we doing anything else so
+	// that over-eager cleaners belonging to other consumers of the same reliable
+	// queue won't think us dead while we're still initializing.
 	if err := c.heartbeat(); err != nil {
 		return errors.Wrapf(
 			err,
@@ -168,132 +136,40 @@ func (c *consumer) Consume(
 		)
 	}
 
-	// Heartbeat loop
-	go func() {
-		err := c.runHeart(ctx)
-		select {
-		case errCh <- errors.Wrapf(
-			err,
-			"queue %q consumer %q heart stopped",
-			c.baseQueueName,
-			c.id,
-		):
-		case <-ctx.Done():
-		}
-	}()
+	c.wg.Add(4)
+	// Start the heartbeat loop
+	go c.runHeart(ctx)
+	// Start the cleaner loop
+	go c.runCleaner(ctx)
+	// Receive pending messages
+	go c.receivePendingMessages(ctx)
+	// Move scheduled tasks to the pending list as they become ready
+	go c.runScheduler(ctx)
 
-	// Announce this consumer's existence
-	if err := c.redisClient.SAdd(c.consumersSetName, c.id).Err(); err != nil {
-		return errors.Wrapf(
-			err,
-			"error adding consumer %q to queue %q consumers set",
-			c.id,
-			c.baseQueueName,
-		)
+	// Fan out to desired number of message handlers
+	c.wg.Add(c.options.WorkerCount)
+	for i := 0; i < c.options.WorkerCount; i++ {
+		go c.handleMessages(ctx)
 	}
 
-	// Assemble and execute a pipeline to receive and handle pending messages...
-	go func() {
-		messageCh := make(chan []byte)
-		receiverErrCh := make(chan error)
-		handlerErrCh := make(chan error)
-		go c.receivePendingMessages(
-			ctx,
-			c.pendingQueueName,
-			c.activeQueueName,
-			messageCh,
-			receiverErrCh,
-		)
-		// Fan out to desired number of message handlers
-		for i := 0; i < c.options.WorkerCount; i++ {
-			go c.handleMessages(
-				ctx,
-				messageCh,
-				handler,
-				handlerErrCh,
-			)
-		}
-		select {
-		case err := <-receiverErrCh:
-			select {
-			case errCh <- errors.Wrapf(
-				err,
-				"queue %q consumer %q pending message receiver stopped",
-				c.baseQueueName,
-				c.id,
-			):
-			case <-ctx.Done():
-			}
-		case err := <-handlerErrCh:
-			select {
-			case errCh <- errors.Wrapf(
-				err,
-				"queue %q consumer %q  message handler stopped",
-				c.baseQueueName,
-				c.id,
-			):
-			case <-ctx.Done():
-			}
-		case <-ctx.Done():
-		}
-	}()
-
-	// Assemble and execute a pipeline to receive and watch deferred messages...
-	go func() {
-		messageCh := make(chan []byte)
-		receiverErrCh := make(chan error)
-		watcherErrCh := make(chan error)
-		go c.receiveDeferredMessages(
-			ctx,
-			c.deferredQueueName,
-			c.watchedQueueName,
-			messageCh,
-			receiverErrCh,
-		)
-		// Fan out to desired number of watchers
-		for i := 0; i < c.options.WatcherCount; i++ {
-			go c.watchDeferredMessages(
-				ctx,
-				messageCh,
-				watcherErrCh,
-			)
-		}
-		select {
-		case err := <-receiverErrCh:
-			select {
-			case errCh <- errors.Wrapf(
-				err,
-				"queue %q consumer %q deferred message receiver stopped",
-				c.baseQueueName,
-				c.id,
-			):
-			case <-ctx.Done():
-			}
-		case err := <-watcherErrCh:
-			select {
-			case errCh <- errors.Wrapf(
-				err,
-				"queue %q consumer %q deferred message watcher stopped",
-				c.baseQueueName,
-				c.id,
-			):
-			case <-ctx.Done():
-			}
-		case <-ctx.Done():
-		}
-	}()
-
-	// Now wait...
+	// Wait for an error or a completed context
 	var err error
 	select {
+	case err = <-c.errCh:
+		cancel() // Shut it all down
 	case <-ctx.Done():
-		err = ctx.Err()
-	case err = <-errCh:
 	}
-	return errors.Wrapf(
-		err,
-		"queue %q consumer %q shutting down",
-		c.baseQueueName,
-		c.id,
-	)
+
+	// Wait for everything to finish
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		c.wg.Wait()
+	}()
+	select {
+	case <-doneCh:
+	case <-time.After(time.Minute): // TODO: Make this configurable
+	}
+
+	return err
 }

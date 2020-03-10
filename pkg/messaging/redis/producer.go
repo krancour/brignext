@@ -13,10 +13,17 @@ type ProducerOptions struct {
 
 // producer is a Redis-based implementation of the messaging.Producer interface.
 type producer struct {
-	redisClient       *redis.Client
-	options           ProducerOptions
-	pendingQueueName  string
-	deferredQueueName string
+	redisClient *redis.Client
+	options     ProducerOptions
+	// pendingListName is the key for the global list of IDs for messages ready to
+	// be handled.
+	pendingListName string
+	// messagesHashName is the key for the global hash of messages indexed by
+	// message ID.
+	messagesHashName string
+	// scheduledSetName is the key for the global sorted set of IDs for messages
+	// to be handled at or after some message-specific time in the future.
+	scheduledSetName string
 }
 
 // NewProducer returns a new Redis-based implementation of the
@@ -30,10 +37,11 @@ func NewProducer(
 		options = &ProducerOptions{}
 	}
 	return &producer{
-		redisClient:       redisClient,
-		options:           *options,
-		pendingQueueName:  pendingQueueName(options.RedisPrefix, baseQueueName),
-		deferredQueueName: deferredQueueName(options.RedisPrefix, baseQueueName),
+		redisClient:      redisClient,
+		options:          *options,
+		pendingListName:  pendingListName(options.RedisPrefix, baseQueueName),
+		messagesHashName: messagesHashName(options.RedisPrefix, baseQueueName),
+		scheduledSetName: scheduledSetName(options.RedisPrefix, baseQueueName),
 	}
 }
 
@@ -43,20 +51,28 @@ func (p *producer) Publish(message messaging.Message) error {
 		return errors.Wrapf(err, "error encoding message %q", message.ID())
 	}
 
-	var queueName string
-	if message.HandleTime() != nil {
-		queueName = p.deferredQueueName
-	} else {
-		queueName = p.pendingQueueName
-	}
+	pipeline := p.redisClient.TxPipeline()
+	pipeline.HSet(p.messagesHashName, message.ID(), messageJSON)
 
-	if err = p.redisClient.LPush(queueName, messageJSON).Err(); err != nil {
-		return errors.Wrapf(
-			err,
-			"error submitting message %q to queue %q",
-			message.ID(),
-			queueName,
+	if message.HandleTime() == nil {
+		pipeline.LPush(p.pendingListName, message.ID())
+	} else {
+		pipeline.ZAdd(
+			p.scheduledSetName,
+			redis.Z{
+				Score:  float64(message.HandleTime().Unix()),
+				Member: message.ID(),
+			},
 		)
 	}
+
+	if _, err := pipeline.Exec(); err != nil {
+		return errors.Wrapf(
+			err,
+			"error publishing message %q",
+			message.ID(),
+		)
+	}
+
 	return nil
 }

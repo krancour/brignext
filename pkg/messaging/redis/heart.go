@@ -4,45 +4,41 @@ import (
 	"context"
 	"time"
 
+	"github.com/go-redis/redis"
 	"github.com/pkg/errors"
 )
 
-// defaultRunHeart emits heartbeats at regular intervals as proof of life to
-// prevent other consumers' cleaners from reclaiming work currently assigned to
-// this consumer. defaultRunHeart always returns a non-nil error.
-func (c *consumer) defaultRunHeart(ctx context.Context) error {
-	ticker := time.NewTicker(cleaningInterval)
+const heartbeatInterval = 30 * time.Second
+
+// defaultRunHeart emits "heartbeats" at regular intervals as proof of life.
+func (c *consumer) defaultRunHeart(ctx context.Context) {
+	defer c.wg.Done()
+	ticker := time.NewTicker(heartbeatInterval)
 	defer ticker.Stop()
 	for {
 		if err := c.heartbeat(); err != nil {
-			return errors.Wrapf(
-				err,
-				"error sending heartbeat for queue %q consumer %q",
-				c.baseQueueName,
-				c.id,
-			) // This is fatal
+			c.abort(ctx, err)
+			return
 		}
 		select {
 		case <-ticker.C:
 		case <-ctx.Done():
-			return errors.Wrapf(
-				ctx.Err(),
-				"queue %q consumer %q heartbeat stopping",
-				c.baseQueueName,
-				c.id,
-			)
+			return
 		}
 	}
 }
 
-// defaultHeartbeat emits a single heartbeat as proof of life to prevent other
-// consumers' cleaners from reclaiming work currently assigned to this consumer.
+// defaultHeartbeat adds/updates a member in a sorted set, scored by the current
+// time. When this consumer inevitably dies, replacement consumers' cleaning
+// processes will easily be able to identify any messages that this consumer
+// died while handling.
 func (c *consumer) defaultHeartbeat() error {
-	const aliveIndicator = "alive"
-	if err := c.redisClient.Set(
-		c.heartbeatKey,
-		aliveIndicator,
-		cleaningInterval*2,
+	if err := c.redisClient.ZAdd(
+		c.consumersSetName,
+		redis.Z{
+			Score:  float64(time.Now().Unix()),
+			Member: c.activeListName,
+		},
 	).Err(); err != nil {
 		return errors.Wrapf(
 			err,
