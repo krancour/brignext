@@ -11,7 +11,7 @@ func (c *consumer) defaultRunScheduler(ctx context.Context) {
 	defer c.wg.Done()
 	ticker := time.NewTicker(*c.options.SchedulerInterval)
 	defer ticker.Stop()
-	var failureCount uint8
+	var failedAttempts uint8
 	for {
 		// TODO: Loop if we didn't move all applicable messages.
 		if err := c.redisClient.EvalSha(
@@ -20,13 +20,13 @@ func (c *consumer) defaultRunScheduler(ctx context.Context) {
 			float64(time.Now().Unix()),
 			50, // Max number of messages to transplant in one shot
 		).Err(); err != nil {
-			failureCount++
-			if failureCount > *c.options.SchedulerMaxFailures {
+			failedAttempts++
+			if failedAttempts == *c.options.SchedulerMaxAttempts {
 				c.abort(ctx, err)
 				return
 			}
 		} else {
-			failureCount = 0
+			failedAttempts = 0
 		}
 		select {
 		case <-ticker.C:

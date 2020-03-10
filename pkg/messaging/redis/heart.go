@@ -13,16 +13,16 @@ func (c *consumer) defaultRunHeart(ctx context.Context) {
 	defer c.wg.Done()
 	ticker := time.NewTicker(*c.options.HeartbeatInterval)
 	defer ticker.Stop()
-	var failureCount uint8
+	var failedAttempts uint8
 	for {
 		if err := c.heartbeat(); err != nil {
-			failureCount++
-			if failureCount > *c.options.HeartbeatMaxFailures {
+			failedAttempts++
+			if failedAttempts == *c.options.HeartbeatMaxAttempts {
 				c.abort(ctx, err)
 				return
 			}
 		} else {
-			failureCount = 0
+			failedAttempts = 0
 		}
 		select {
 		case <-ticker.C:

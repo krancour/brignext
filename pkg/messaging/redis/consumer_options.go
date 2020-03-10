@@ -20,12 +20,12 @@ type ConsumerOptions struct {
 	// Max: 5 minutes
 	// Default: 1 minute
 	CleanerDeadConsumerThreshold *time.Duration
-	// CleanerMaxFailures specifies the maximum number of consecutive times that
+	// CleanerMaxAttempts specifies the maximum number of consecutive times that
 	// the cleanup process may fail before aborting the consumer.
-	// Min: 0
+	// Min: 1
 	// Max: 10
-	// Default: 2
-	CleanerMaxFailures *uint8
+	// Default: 3
+	CleanerMaxAttempts *uint8
 
 	// HeartbeatInterval specifies how frequently to send out a heartbeat
 	// indicating that the consumer is alive and functional.
@@ -33,12 +33,12 @@ type ConsumerOptions struct {
 	// Max: 5 minutes
 	// Default: 30 seconds
 	HeartbeatInterval *time.Duration
-	// HeartbeatMaxFailures specifies the maximum number of consecutive times that
-	// a heartbeat may fail to be sent before aborting.
-	// Min: 0
+	// HeartbeatMaxAttempts specifies the maximum number of consecutive times that
+	// a heartbeat may fail to be sent before aborting the consumer.
+	// Min: 1
 	// Max: 10
-	// Default: 2
-	HeartbeatMaxFailures *uint8
+	// Default: 3
+	HeartbeatMaxAttempts *uint8
 
 	// ReceiverPauseInterval specifies the interval to pause before the next
 	// attempt to retrieve a message from the global list of pending messages if
@@ -50,13 +50,13 @@ type ConsumerOptions struct {
 	// Max: 1 minute
 	// Default: 5 seconds
 	ReceiverNoResultPauseInterval *time.Duration
-	// ReceiverMaxFailures specifies the maximum number of consecutive times that
+	// ReceiverMaxAttempts specifies the maximum number of consecutive times that
 	// an attempt to retrieve a message from the global list of pending messages
 	// may fail before aborting the consumer.
-	// Min: 0
+	// Min: 1
 	// Max: 10
-	// Default: 2
-	ReceiverMaxFailures *uint8
+	// Default: 3
+	ReceiverMaxAttempts *uint8
 
 	// SchedulerInterval specifies the interval at which messages with scheduled
 	// handling times that have elapsed should ve transplanted to the global pending
@@ -65,12 +65,12 @@ type ConsumerOptions struct {
 	// Max: 5 minutes
 	// Default: 5 seconds
 	SchedulerInterval *time.Duration
-	// SchedulerMaxFailures specifies the maximum number of consecutive times that
+	// SchedulerMaxAttempts specifies the maximum number of consecutive times that
 	// the scheduler process may fail before aborting.
-	// Min: 0
+	// Min: 1
 	// Max: 10
-	// Default: 2
-	SchedulerMaxFailures *uint8
+	// Default: 3
+	SchedulerMaxAttempts *uint8
 
 	// ConcurrentHandlersCount specifies how many messages may be handed
 	// concurrently.
@@ -111,12 +111,15 @@ func (c *ConsumerOptions) applyDefaults() {
 		c.CleanerDeadConsumerThreshold = &maxCleanerDeadConsumerThreshold
 	}
 
-	var maxCleanerMaxFailures uint8 = 10
-	var defaultCleanerMaxFailures uint8 = 2
-	if c.CleanerMaxFailures == nil {
-		c.CleanerMaxFailures = &defaultCleanerMaxFailures
-	} else if *c.CleanerMaxFailures > maxCleanerMaxFailures {
-		c.CleanerMaxFailures = &maxCleanerMaxFailures
+	var minCleanerMaxAttemps uint8 = 1
+	var maxCleanerMaxAttemps uint8 = 10
+	var defaultCleanerMaxAttempts uint8 = 3
+	if c.CleanerMaxAttempts == nil {
+		c.CleanerMaxAttempts = &defaultCleanerMaxAttempts
+	} else if *c.CleanerMaxAttempts < minCleanerMaxAttemps {
+		c.CleanerMaxAttempts = &minCleanerMaxAttemps
+	} else if *c.CleanerMaxAttempts > maxCleanerMaxAttemps {
+		c.CleanerMaxAttempts = &maxCleanerMaxAttemps
 	}
 
 	minHeartbeatInterval := 5 * time.Second
@@ -130,12 +133,15 @@ func (c *ConsumerOptions) applyDefaults() {
 		c.HeartbeatInterval = &maxHeartbeatInterval
 	}
 
-	var maxHeartbeatMaxFailures uint8 = 10
-	var defaultHeartbeatMaxFailures uint8 = 2
-	if c.HeartbeatMaxFailures == nil {
-		c.HeartbeatMaxFailures = &defaultHeartbeatMaxFailures
-	} else if *c.HeartbeatMaxFailures > maxHeartbeatMaxFailures {
-		c.HeartbeatMaxFailures = &maxHeartbeatMaxFailures
+	var minHeartbeatMaxAttempts uint8 = 1
+	var maxHeartbeatMaxAttempts uint8 = 10
+	var defaultHeartbeatMaxAttempts uint8 = 3
+	if c.HeartbeatMaxAttempts == nil {
+		c.HeartbeatMaxAttempts = &defaultHeartbeatMaxAttempts
+	} else if *c.HeartbeatMaxAttempts < minHeartbeatMaxAttempts {
+		c.HeartbeatMaxAttempts = &minHeartbeatMaxAttempts
+	} else if *c.HeartbeatMaxAttempts > maxHeartbeatMaxAttempts {
+		c.HeartbeatMaxAttempts = &maxHeartbeatMaxAttempts
 	}
 
 	minReceiverNoResultPauseInterval := time.Second
@@ -149,12 +155,15 @@ func (c *ConsumerOptions) applyDefaults() {
 		c.ReceiverNoResultPauseInterval = &maxReceiverNoResultPauseInterval
 	}
 
-	var maxReceiverMaxFailures uint8 = 10
-	var defaultReceiverMaxFailures uint8 = 2
-	if c.ReceiverMaxFailures == nil {
-		c.ReceiverMaxFailures = &defaultReceiverMaxFailures
-	} else if *c.ReceiverMaxFailures > maxReceiverMaxFailures {
-		c.ReceiverMaxFailures = &maxReceiverMaxFailures
+	var minReceiverMaxAttempts uint8 = 1
+	var maxReceiverMaxAttempts uint8 = 10
+	var defaultReceiverMaxAttempts uint8 = 3
+	if c.ReceiverMaxAttempts == nil {
+		c.ReceiverMaxAttempts = &defaultReceiverMaxAttempts
+	} else if *c.ReceiverMaxAttempts < minReceiverMaxAttempts {
+		c.ReceiverMaxAttempts = &minReceiverMaxAttempts
+	} else if *c.ReceiverMaxAttempts > maxReceiverMaxAttempts {
+		c.ReceiverMaxAttempts = &maxReceiverMaxAttempts
 	}
 
 	minSchedulerInterval := 5 * time.Second
@@ -168,12 +177,15 @@ func (c *ConsumerOptions) applyDefaults() {
 		c.SchedulerInterval = &maxSchedulerInterval
 	}
 
-	var maxSchedulerMaxFailures uint8 = 10
-	var defaultSchedulerMaxFailures uint8 = 2
-	if c.SchedulerMaxFailures == nil {
-		c.SchedulerMaxFailures = &defaultSchedulerMaxFailures
-	} else if *c.SchedulerMaxFailures > maxSchedulerMaxFailures {
-		c.SchedulerMaxFailures = &maxSchedulerMaxFailures
+	var minSchedulerMaxAttempts uint8 = 1
+	var maxSchedulerMaxAttempts uint8 = 10
+	var defaultSchedulerMaxAttempts uint8 = 3
+	if c.SchedulerMaxAttempts == nil {
+		c.SchedulerMaxAttempts = &defaultSchedulerMaxAttempts
+	} else if *c.SchedulerMaxAttempts < minSchedulerMaxAttempts {
+		c.SchedulerMaxAttempts = &minSchedulerMaxAttempts
+	} else if *c.SchedulerMaxAttempts > maxSchedulerMaxAttempts {
+		c.SchedulerMaxAttempts = &maxSchedulerMaxAttempts
 	}
 
 	var minConcurrentHandlersCount uint8 = 1

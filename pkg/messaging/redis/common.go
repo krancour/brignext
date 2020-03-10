@@ -1,7 +1,6 @@
 package redis
 
 import (
-	"context"
 	"fmt"
 )
 
@@ -52,11 +51,4 @@ func heartbeatKey(prefix, baseName, consumerID string) string {
 		prefix,
 		fmt.Sprintf("%s:%s:heartbeat", baseName, consumerID),
 	)
-}
-
-func (c *consumer) abort(ctx context.Context, err error) {
-	select {
-	case c.errCh <- err:
-	case <-ctx.Done():
-	}
 }
