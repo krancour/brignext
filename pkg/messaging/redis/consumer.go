@@ -127,19 +127,23 @@ func (c *consumer) Run(ctx context.Context) error {
 		)
 	}
 
-	c.wg.Add(4)
+	c.wg.Add(3)
 	// Start the heartbeat loop
 	go c.runHeart(ctx)
 	// Start the cleaner loop
 	go c.runCleaner(ctx)
-	// Receive pending messages
-	go c.receivePendingMessages(ctx)
 	// Move scheduled tasks to the pending list as they become ready
 	go c.runScheduler(ctx)
 
+	// Fan out to desired number of message receivers
+	c.wg.Add(int(*c.options.ConcurrentReceiversCount))
+	var i uint8
+	for i = 0; i < *c.options.ConcurrentReceiversCount; i++ {
+		go c.receivePendingMessages(ctx)
+	}
+
 	// Fan out to desired number of message handlers
 	c.wg.Add(int(*c.options.ConcurrentHandlersCount))
-	var i uint8
 	for i = 0; i < *c.options.ConcurrentHandlersCount; i++ {
 		go c.handleMessages(ctx)
 	}

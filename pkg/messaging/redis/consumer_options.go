@@ -72,7 +72,14 @@ type ConsumerOptions struct {
 	// Default: 3
 	SchedulerMaxAttempts *uint8
 
-	// ConcurrentHandlersCount specifies how many messages may be handed
+	// ConcurrentReceiversCount specifies how many messages may be received
+	// concurrently.
+	// Min: 1
+	// Max: 255
+	// Default: 1
+	ConcurrentReceiversCount *uint8
+
+	// ConcurrentHandlersCount specifies how many messages may be handled
 	// concurrently.
 	// Min: 1
 	// Max: 255
@@ -186,6 +193,14 @@ func (c *ConsumerOptions) applyDefaults() {
 		c.SchedulerMaxAttempts = &minSchedulerMaxAttempts
 	} else if *c.SchedulerMaxAttempts > maxSchedulerMaxAttempts {
 		c.SchedulerMaxAttempts = &maxSchedulerMaxAttempts
+	}
+
+	var minConcurrentReceiversCount uint8 = 1
+	var defaultConcurrentReceiversCount uint8 = 5
+	if c.ConcurrentReceiversCount == nil {
+		c.ConcurrentReceiversCount = &defaultConcurrentReceiversCount
+	} else if *c.ConcurrentReceiversCount < minConcurrentReceiversCount {
+		c.ConcurrentReceiversCount = &minConcurrentReceiversCount
 	}
 
 	var minConcurrentHandlersCount uint8 = 1
