@@ -4,44 +4,44 @@ import (
 	"fmt"
 )
 
-func prefixedName(prefix, key string) string {
+func prefixedKey(prefix, key string) string {
 	if prefix == "" {
 		return key
 	}
 	return fmt.Sprintf("%s:%s", prefix, key)
 }
 
-func pendingListName(prefix, baseName string) string {
-	return prefixedName(
+func pendingListKey(prefix, queueName string) string {
+	return prefixedKey(
 		prefix,
-		fmt.Sprintf("%s:pending", baseName),
+		fmt.Sprintf("%s:pending", queueName),
 	)
 }
 
-func messagesHashName(prefix, baseName string) string {
-	return prefixedName(
+func messagesHashKey(prefix, queueName string) string {
+	return prefixedKey(
 		prefix,
-		fmt.Sprintf("%s:messages", baseName),
+		fmt.Sprintf("%s:messages", queueName),
 	)
 }
 
-func scheduledSetName(prefix, baseName string) string {
-	return prefixedName(
+func scheduledSetKey(prefix, queueName string) string {
+	return prefixedKey(
 		prefix,
-		fmt.Sprintf("%s:scheduled", baseName),
+		fmt.Sprintf("%s:scheduled", queueName),
 	)
 }
 
-func consumersSetName(prefix, baseName string) string {
-	return prefixedName(
+func consumersSetKey(prefix, queueName string) string {
+	return prefixedKey(
 		prefix,
-		fmt.Sprintf("%s:consumers", baseName),
+		fmt.Sprintf("%s:consumers", queueName),
 	)
 }
 
-func activeListName(prefix, baseName, consumerID string) string {
-	return prefixedName(
+func activeListKey(prefix, queueName, consumerID string) string {
+	return prefixedKey(
 		prefix,
-		fmt.Sprintf("%s:%s:active", baseName, consumerID),
+		fmt.Sprintf("%s:%s", queueName, consumerID),
 	)
 }

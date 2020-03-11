@@ -33,10 +33,10 @@ func (c *consumer) defaultRunHeart(ctx context.Context) {
 // will easily be able to recognize it as dead.
 func (c *consumer) heartbeat() error {
 	return c.redisClient.ZAdd(
-		c.consumersSetName,
+		c.consumersSetKey,
 		redis.Z{
 			Score:  float64(time.Now().Unix()),
-			Member: c.activeListName,
+			Member: c.activeListKey,
 		},
 	).Err()
 }

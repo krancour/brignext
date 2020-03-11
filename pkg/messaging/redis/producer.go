@@ -10,15 +10,15 @@ import (
 type producer struct {
 	redisClient *redis.Client
 	options     ProducerOptions
-	// pendingListName is the key for the global list of IDs for messages ready to
+	// pendingListKey is the key for the global list of IDs for messages ready to
 	// be handled.
-	pendingListName string
-	// messagesHashName is the key for the global hash of messages indexed by
+	pendingListKey string
+	// messagesHashKey is the key for the global hash of messages indexed by
 	// message ID.
-	messagesHashName string
-	// scheduledSetName is the key for the global sorted set of IDs for messages
+	messagesHashKey string
+	// scheduledSetKey is the key for the global sorted set of IDs for messages
 	// to be handled at or after some message-specific time in the future.
-	scheduledSetName string
+	scheduledSetKey string
 }
 
 // NewProducer returns a new Redis-based implementation of the
@@ -32,11 +32,11 @@ func NewProducer(
 		options = &ProducerOptions{}
 	}
 	return &producer{
-		redisClient:      redisClient,
-		options:          *options,
-		pendingListName:  pendingListName(options.RedisPrefix, baseQueueName),
-		messagesHashName: messagesHashName(options.RedisPrefix, baseQueueName),
-		scheduledSetName: scheduledSetName(options.RedisPrefix, baseQueueName),
+		redisClient:     redisClient,
+		options:         *options,
+		pendingListKey:  pendingListKey(options.RedisPrefix, baseQueueName),
+		messagesHashKey: messagesHashKey(options.RedisPrefix, baseQueueName),
+		scheduledSetKey: scheduledSetKey(options.RedisPrefix, baseQueueName),
 	}
 }
 
@@ -47,13 +47,13 @@ func (p *producer) Publish(message messaging.Message) error {
 	}
 
 	pipeline := p.redisClient.TxPipeline()
-	pipeline.HSet(p.messagesHashName, message.ID(), messageJSON)
+	pipeline.HSet(p.messagesHashKey, message.ID(), messageJSON)
 
 	if message.HandleTime() == nil {
-		pipeline.LPush(p.pendingListName, message.ID())
+		pipeline.LPush(p.pendingListKey, message.ID())
 	} else {
 		pipeline.ZAdd(
-			p.scheduledSetName,
+			p.scheduledSetKey,
 			redis.Z{
 				Score:  float64(message.HandleTime().Unix()),
 				Member: message.ID(),

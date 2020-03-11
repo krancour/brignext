@@ -41,7 +41,7 @@ func (c *consumer) defaultHandleMessages(ctx context.Context) {
 					errors.Wrapf(
 						err,
 						"queue %q consumer %q encountered an error handling message %q",
-						c.baseQueueName,
+						c.queueName,
 						c.id,
 						message.ID(),
 					),
@@ -78,8 +78,8 @@ func (c *consumer) defaultHandleMessages(ctx context.Context) {
 
 func (c *consumer) deleteMessage(messageID string) error {
 	pipeline := c.redisClient.TxPipeline()
-	pipeline.LRem(c.activeListName, -1, messageID)
-	pipeline.HDel(c.messagesHashName, messageID)
+	pipeline.LRem(c.activeListKey, -1, messageID)
+	pipeline.HDel(c.messagesHashKey, messageID)
 	_, err := pipeline.Exec()
 	return err
 }

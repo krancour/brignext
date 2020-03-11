@@ -13,26 +13,26 @@ import (
 
 // consumer is a Redis-based implementation of the messaging.Consumer interface.
 type consumer struct {
-	id            string
-	redisClient   *redis.Client
-	baseQueueName string
-	options       ConsumerOptions
-	handler       messaging.HandlerFn
+	id          string
+	redisClient *redis.Client
+	queueName   string
+	options     ConsumerOptions
+	handler     messaging.HandlerFn
 
-	// pendingListName is the key for the global list of IDs for messages ready to
+	// pendingListKey is the key for the global list of IDs for messages ready to
 	// be handled.
-	pendingListName string
-	// messagesHashName is the key for the global hash of messages indexed by
+	pendingListKey string
+	// messagesHashKey is the key for the global hash of messages indexed by
 	// message ID.
-	messagesHashName string
-	// scheduledSetName is the key for the global sorted set of IDs for messages
+	messagesHashKey string
+	// scheduledSetKey is the key for the global sorted set of IDs for messages
 	// to be handled at or after some message-specific time in the future.
-	scheduledSetName string
-	// consumersSetName is the key for the global set of all consumers.
-	consumersSetName string
-	// activeListName is the key for the list of messages actively being handled
+	scheduledSetKey string
+	// consumersSetKey is the key for the global set of all consumers.
+	consumersSetKey string
+	// activeListKey is the key for the list of messages actively being handled
 	// by this consumer.
-	activeListName string
+	activeListKey string
 
 	// Scripts
 	schedulerScriptSHA string
@@ -57,7 +57,7 @@ type consumer struct {
 // messaging.Consumer interface.
 func NewConsumer(
 	redisClient *redis.Client,
-	baseQueueName string,
+	queueName string,
 	options *ConsumerOptions,
 	handler messaging.HandlerFn,
 ) (messaging.Consumer, error) {
@@ -67,18 +67,18 @@ func NewConsumer(
 	options.applyDefaults()
 	consumerID := uuid.NewV4().String()
 	c := &consumer{
-		id:               consumerID,
-		redisClient:      redisClient,
-		baseQueueName:    baseQueueName,
-		options:          *options,
-		handler:          handler,
-		pendingListName:  pendingListName(options.RedisPrefix, baseQueueName),
-		messagesHashName: messagesHashName(options.RedisPrefix, baseQueueName),
-		scheduledSetName: scheduledSetName(options.RedisPrefix, baseQueueName),
-		consumersSetName: consumersSetName(options.RedisPrefix, baseQueueName),
-		activeListName: activeListName(
+		id:              consumerID,
+		redisClient:     redisClient,
+		queueName:       queueName,
+		options:         *options,
+		handler:         handler,
+		pendingListKey:  pendingListKey(options.RedisPrefix, queueName),
+		messagesHashKey: messagesHashKey(options.RedisPrefix, queueName),
+		scheduledSetKey: scheduledSetKey(options.RedisPrefix, queueName),
+		consumersSetKey: consumersSetKey(options.RedisPrefix, queueName),
+		activeListKey: activeListKey(
 			options.RedisPrefix,
-			baseQueueName,
+			queueName,
 			consumerID,
 		),
 		handlerReadyCh: make(chan struct{}),
@@ -122,7 +122,7 @@ func (c *consumer) Run(ctx context.Context) error {
 		return errors.Wrapf(
 			err,
 			"error sending initial heartbeat for queue %q consumer %q",
-			c.baseQueueName,
+			c.queueName,
 			c.id,
 		)
 	}

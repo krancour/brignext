@@ -30,7 +30,7 @@ func (c *consumer) defaultRunScheduler(ctx context.Context) {
 func (c *consumer) schedule() error {
 	return c.redisClient.EvalSha(
 		c.schedulerScriptSHA,
-		[]string{c.scheduledSetName, c.pendingListName},
+		[]string{c.scheduledSetKey, c.pendingListKey},
 		float64(time.Now().Unix()),
 		50, // Max number of messages to transplant in one shot
 	).Err()

@@ -1,8 +1,5 @@
 package redis
 
-// TODO: This script might not hold up well for large numbers of orphaned
-// messages. Need to chunk up the work.
-
 // nolint: lll
 var cleanerScript = `
 -- KEYS[1]: the consumers set
@@ -20,6 +17,10 @@ for _, deadConsumerActiveList in ipairs(deadConsumerActiveLists) do
   local count = table.getn(messageIDs)
 
   -- Push any orphaned message IDs onto the pending list
+  -- Note: Active queue depth never exceeds the number of handlers, which is
+  -- capped at 255. It's safe to RPUSH 255 UUIDs in one shot, but if the max
+  -- queue depth ever changes, this script may need to do these moves from queue
+  -- to queue in a succession of smaller chunks.
   if count > 0 then
     redis.call("RPUSH", KEYS[2], unpack(messageIDs))
   end

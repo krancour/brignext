@@ -32,9 +32,7 @@ func (c *consumer) defaultRunCleaner(ctx context.Context) {
 func (c *consumer) clean() error {
 	return c.redisClient.EvalSha(
 		c.cleanerScriptSHA,
-		[]string{c.consumersSetName, c.pendingListName},
+		[]string{c.consumersSetKey, c.pendingListKey},
 		time.Now().Add(-*c.options.CleanerDeadConsumerThreshold).Unix(),
-		// TODO: The script doesn't actually do anything with this next arg yet.
-		50, // Max number of messages to transplant in one shot
 	).Err()
 }

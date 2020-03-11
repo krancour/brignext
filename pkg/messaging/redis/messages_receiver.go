@@ -71,7 +71,7 @@ outer:
 				// as a warning and move on.
 				log.Printf(
 					"ERROR: queue %q consumer %q could not locate message %q",
-					c.baseQueueName,
+					c.queueName,
 					c.id,
 					messageID,
 				)
@@ -82,7 +82,7 @@ outer:
 			if err != nil {
 				log.Printf(
 					"ERROR: queue %q consumer %q failed to decode message %q: %s",
-					c.baseQueueName,
+					c.queueName,
 					c.id,
 					messageID,
 					err,
@@ -103,8 +103,8 @@ outer:
 
 func (c *consumer) dequeueMessage() (string, error) {
 	messageID, err := c.redisClient.RPopLPush(
-		c.pendingListName,
-		c.activeListName,
+		c.pendingListKey,
+		c.activeListKey,
 	).Result()
 	if err == redis.Nil {
 		return "", nil
@@ -114,7 +114,7 @@ func (c *consumer) dequeueMessage() (string, error) {
 
 func (c *consumer) getMessageJSON(messageID string) ([]byte, error) {
 	messageJSON, err :=
-		c.redisClient.HGet(c.messagesHashName, messageID).Bytes()
+		c.redisClient.HGet(c.messagesHashKey, messageID).Bytes()
 	if err == redis.Nil {
 		return nil, nil
 	}

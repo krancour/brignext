@@ -23,13 +23,13 @@ func (c *consumer) manageRetries(
 		}
 		log.Printf(
 			"WARNING: queue %q consumer %q failed to %s; will retry: %s",
-			c.baseQueueName,
+			c.queueName,
 			c.id,
 			process,
 			err,
 		)
 		select {
-		// TODO: Don't hardcode this
+		// TODO: Don't hardcode the max delay
 		case <-time.After(expBackoff(attempts, 30*time.Second)):
 		case <-ctx.Done():
 		}
@@ -37,7 +37,7 @@ func (c *consumer) manageRetries(
 	err = errors.Wrapf(
 		err,
 		"queue %q consumer %q failed %d attempt(s) to %s",
-		c.baseQueueName,
+		c.queueName,
 		c.id,
 		*c.options.RedisOperationMaxAttempts,
 		process,
