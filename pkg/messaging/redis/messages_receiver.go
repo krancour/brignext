@@ -2,6 +2,8 @@ package redis
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -26,43 +28,73 @@ outer:
 		case <-ctx.Done():
 			return
 		}
-		// TODO: Count failures
 		for {
-			res := c.redisClient.RPopLPush(
-				c.pendingListName,
-				c.activeListName,
-			)
-			err := res.Err()
-			if err == redis.Nil {
+			var messageID string
+			if ok := c.manageRetries(
+				ctx,
+				"deque a pending message",
+				*c.options.ReceiverMaxAttempts,
+				30*time.Second, // TODO: Don't hardcode this,
+				func() error {
+					var err error
+					messageID, err = c.dequeueMessage()
+					return err
+				},
+			); !ok {
+				return
+			}
+
+			if messageID == "" {
 				select {
-				// This delay before trying again when we've just found nothing stops us
-				// from taxing the CPU, network, or database when the pending list is
-				// empty.
+				// This delay stops us from taxing the CPU, network, or database when
+				// the pending list is empty.
 				case <-time.After(*c.options.ReceiverNoResultPauseInterval):
 					continue
 				case <-ctx.Done():
 					return
 				}
 			}
-			if err != nil {
-				c.abort(ctx, err)
+
+			var messageJSON []byte
+			if ok := c.manageRetries(
+				ctx,
+				fmt.Sprintf("retrieve message %q", messageID),
+				*c.options.ReceiverMaxAttempts,
+				30*time.Second, // TODO: Don't hardcode this,
+				func() error {
+					var err error
+					messageJSON, err = c.getMessageJSON(messageID)
+					return err
+				},
+			); !ok {
 				return
 			}
-			messageID := res.Val()
-			messageJSON, err :=
-				c.redisClient.HGet(c.messagesHashName, messageID).Bytes()
-			if err != nil {
-				// TODO: Distinguish between a real failure and a nil result.
-				c.abort(ctx, err)
-				return
+
+			if messageJSON == nil {
+				// Somehow we couldn't find a message with the indicated ID. Log this
+				// as a warning and move on.
+				log.Printf(
+					"ERROR: queue %q consumer %q could not locate message %q",
+					c.baseQueueName,
+					c.id,
+					messageID,
+				)
+				continue
 			}
+
 			message, err := messaging.NewMessageFromJSON(messageJSON)
 			if err != nil {
-				// TODO: Don't abort here. This is a poison message. Discard it or
-				// maybe move it to a dead letter queue.
-				c.abort(ctx, err)
-				return
+				log.Printf(
+					"ERROR: queue %q consumer %q failed to decode message %q: %s",
+					c.baseQueueName,
+					c.id,
+					messageID,
+					err,
+				)
+				continue
 			}
+
+			// Finally, deliver the message to a waiting handler
 			select {
 			case c.messageCh <- message:
 				continue outer
@@ -71,4 +103,24 @@ outer:
 			}
 		}
 	}
+}
+
+func (c *consumer) dequeueMessage() (string, error) {
+	messageID, err := c.redisClient.RPopLPush(
+		c.pendingListName,
+		c.activeListName,
+	).Result()
+	if err == redis.Nil {
+		return "", nil
+	}
+	return messageID, err
+}
+
+func (c *consumer) getMessageJSON(messageID string) ([]byte, error) {
+	messageJSON, err :=
+		c.redisClient.HGet(c.messagesHashName, messageID).Bytes()
+	if err == redis.Nil {
+		return nil, nil
+	}
+	return messageJSON, err
 }

@@ -2,7 +2,9 @@ package redis
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"time"
 
 	"github.com/pkg/errors"
 )
@@ -60,15 +62,27 @@ func (c *consumer) defaultHandleMessages(ctx context.Context) {
 			}
 			// Error or no error, if we got to here, we know we're really done with
 			// this message for good.
-			pipeline := c.redisClient.TxPipeline()
-			pipeline.LRem(c.activeListName, -1, message.ID())
-			pipeline.HDel(c.messagesHashName, message.ID())
-			if _, err := pipeline.Exec(); err != nil {
-				c.abort(ctx, err)
+			if ok := c.manageRetries(
+				ctx,
+				fmt.Sprintf("delete message %q", message.ID()),
+				*c.options.ReceiverMaxAttempts, // TODO: This isn't the right option
+				30*time.Second,                 // TODO: Don't hardcode this,
+				func() error {
+					return c.deleteMessage(message.ID())
+				},
+			); !ok {
 				return
 			}
 		case <-ctx.Done():
 			return
 		}
 	}
+}
+
+func (c *consumer) deleteMessage(messageID string) error {
+	pipeline := c.redisClient.TxPipeline()
+	pipeline.LRem(c.activeListName, -1, messageID)
+	pipeline.HDel(c.messagesHashName, messageID)
+	_, err := pipeline.Exec()
+	return err
 }

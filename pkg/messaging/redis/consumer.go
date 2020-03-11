@@ -41,7 +41,6 @@ type consumer struct {
 	// All of the following behaviors can be overridden for testing purposes
 	runHeart               func(context.Context)
 	runCleaner             func(context.Context)
-	heartbeat              func() error
 	receivePendingMessages func(context.Context)
 	handleMessages         func(context.Context)
 	runScheduler           func(context.Context)
@@ -105,7 +104,6 @@ func NewConsumer(
 	// Behaviors
 	c.runCleaner = c.defaultRunCleaner
 	c.runHeart = c.defaultRunHeart
-	c.heartbeat = c.defaultHeartbeat
 	c.receivePendingMessages = c.defaultReceivePendingMessages
 	c.handleMessages = c.defaultHandleMessages
 	c.runScheduler = c.defaultRunScheduler

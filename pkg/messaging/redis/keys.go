@@ -45,10 +45,3 @@ func activeListName(prefix, baseName, consumerID string) string {
 		fmt.Sprintf("%s:%s:active", baseName, consumerID),
 	)
 }
-
-func heartbeatKey(prefix, baseName, consumerID string) string {
-	return prefixedName(
-		prefix,
-		fmt.Sprintf("%s:%s:heartbeat", baseName, consumerID),
-	)
-}

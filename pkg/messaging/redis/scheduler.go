@@ -11,22 +11,15 @@ func (c *consumer) defaultRunScheduler(ctx context.Context) {
 	defer c.wg.Done()
 	ticker := time.NewTicker(*c.options.SchedulerInterval)
 	defer ticker.Stop()
-	var failedAttempts uint8
 	for {
-		// TODO: Loop if we didn't move all applicable messages.
-		if err := c.redisClient.EvalSha(
-			c.schedulerScriptSHA,
-			[]string{c.scheduledSetName, c.pendingListName},
-			float64(time.Now().Unix()),
-			50, // Max number of messages to transplant in one shot
-		).Err(); err != nil {
-			failedAttempts++
-			if failedAttempts == *c.options.SchedulerMaxAttempts {
-				c.abort(ctx, err)
-				return
-			}
-		} else {
-			failedAttempts = 0
+		if ok := c.manageRetries(
+			ctx,
+			"schedule messages",
+			*c.options.SchedulerMaxAttempts,
+			30*time.Second, // TODO: Don't hardcode this,
+			c.schedule,
+		); !ok {
+			return
 		}
 		select {
 		case <-ticker.C:
@@ -34,4 +27,13 @@ func (c *consumer) defaultRunScheduler(ctx context.Context) {
 			return
 		}
 	}
+}
+
+func (c *consumer) schedule() error {
+	return c.redisClient.EvalSha(
+		c.schedulerScriptSHA,
+		[]string{c.scheduledSetName, c.pendingListName},
+		float64(time.Now().Unix()),
+		50, // Max number of messages to transplant in one shot
+	).Err()
 }

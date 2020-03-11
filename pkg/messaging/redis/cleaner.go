@@ -13,23 +13,15 @@ func (c *consumer) defaultRunCleaner(ctx context.Context) {
 	defer c.wg.Done()
 	ticker := time.NewTicker(*c.options.CleanerInterval)
 	defer ticker.Stop()
-	var failedAttempts uint8
 	for {
-		// TODO: Loop if we didn't move all applicable messages.
-		if err := c.redisClient.EvalSha(
-			c.cleanerScriptSHA,
-			[]string{c.consumersSetName, c.pendingListName},
-			time.Now().Add(-*c.options.CleanerDeadConsumerThreshold).Unix(),
-			// TODO: The script doesn't actually do anything with this next arg yet.
-			50, // Max number of messages to transplant in one shot
-		).Err(); err != nil {
-			failedAttempts++
-			if failedAttempts == *c.options.CleanerMaxAttempts {
-				c.abort(ctx, err)
-				return
-			}
-		} else {
-			failedAttempts = 0
+		if ok := c.manageRetries(
+			ctx,
+			"clean up after dead consumers",
+			*c.options.CleanerMaxAttempts,
+			30*time.Second, // TODO: Don't hardcode this
+			c.clean,
+		); !ok {
+			return
 		}
 		select {
 		case <-ticker.C:
@@ -37,4 +29,14 @@ func (c *consumer) defaultRunCleaner(ctx context.Context) {
 			return
 		}
 	}
+}
+
+func (c *consumer) clean() error {
+	return c.redisClient.EvalSha(
+		c.cleanerScriptSHA,
+		[]string{c.consumersSetName, c.pendingListName},
+		time.Now().Add(-*c.options.CleanerDeadConsumerThreshold).Unix(),
+		// TODO: The script doesn't actually do anything with this next arg yet.
+		50, // Max number of messages to transplant in one shot
+	).Err()
 }
