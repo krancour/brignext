@@ -16,8 +16,6 @@ func (c *consumer) defaultRunHeart(ctx context.Context) {
 		if ok := c.manageRetries(
 			ctx,
 			"send heartbeat",
-			*c.options.HeartbeatMaxAttempts,
-			30*time.Second, // TODO: Don't hardcode this
 			c.heartbeat,
 		); !ok {
 			return

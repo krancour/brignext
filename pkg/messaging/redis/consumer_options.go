@@ -8,6 +8,13 @@ type ConsumerOptions struct {
 	// rudimentary namespacing within a single Redis database.
 	RedisPrefix string
 
+	// RedisOperationMaxAttempts specifies the maximum number of consecutive times
+	// that any discrete Redis operation may fail before aborting the consumer.
+	// Min: 1
+	// Max: 10
+	// Default: 3
+	RedisOperationMaxAttempts *uint8
+
 	// CleanerInterval specifies how frequently to reclaim messages from dead
 	// consumers.
 	// Min: 5 seconds
@@ -20,12 +27,6 @@ type ConsumerOptions struct {
 	// Max: 5 minutes
 	// Default: 1 minute
 	CleanerDeadConsumerThreshold *time.Duration
-	// CleanerMaxAttempts specifies the maximum number of consecutive times that
-	// the cleanup process may fail before aborting the consumer.
-	// Min: 1
-	// Max: 10
-	// Default: 3
-	CleanerMaxAttempts *uint8
 
 	// HeartbeatInterval specifies how frequently to send out a heartbeat
 	// indicating that the consumer is alive and functional.
@@ -33,12 +34,6 @@ type ConsumerOptions struct {
 	// Max: 5 minutes
 	// Default: 30 seconds
 	HeartbeatInterval *time.Duration
-	// HeartbeatMaxAttempts specifies the maximum number of consecutive times that
-	// a heartbeat may fail to be sent before aborting the consumer.
-	// Min: 1
-	// Max: 10
-	// Default: 3
-	HeartbeatMaxAttempts *uint8
 
 	// ReceiverPauseInterval specifies the interval to pause before the next
 	// attempt to retrieve a message from the global list of pending messages if
@@ -50,13 +45,6 @@ type ConsumerOptions struct {
 	// Max: 1 minute
 	// Default: 5 seconds
 	ReceiverNoResultPauseInterval *time.Duration
-	// ReceiverMaxAttempts specifies the maximum number of consecutive times that
-	// an attempt to retrieve a message from the global list of pending messages
-	// may fail before aborting the consumer.
-	// Min: 1
-	// Max: 10
-	// Default: 3
-	ReceiverMaxAttempts *uint8
 
 	// SchedulerInterval specifies the interval at which messages with scheduled
 	// handling times that have elapsed should ve transplanted to the global pending
@@ -65,12 +53,6 @@ type ConsumerOptions struct {
 	// Max: 5 minutes
 	// Default: 5 seconds
 	SchedulerInterval *time.Duration
-	// SchedulerMaxAttempts specifies the maximum number of consecutive times that
-	// the scheduler process may fail before aborting.
-	// Min: 1
-	// Max: 10
-	// Default: 3
-	SchedulerMaxAttempts *uint8
 
 	// ConcurrentReceiversCount specifies how many messages may be received
 	// concurrently.
@@ -96,6 +78,17 @@ type ConsumerOptions struct {
 }
 
 func (c *ConsumerOptions) applyDefaults() {
+	var minRedisOperationMaxAttemps uint8 = 1
+	var maxRedisOperationMaxAttemps uint8 = 10
+	var defaultRedisOperationMaxAttemps uint8 = 3
+	if c.RedisOperationMaxAttempts == nil {
+		c.RedisOperationMaxAttempts = &defaultRedisOperationMaxAttemps
+	} else if *c.RedisOperationMaxAttempts < minRedisOperationMaxAttemps {
+		c.RedisOperationMaxAttempts = &minRedisOperationMaxAttemps
+	} else if *c.RedisOperationMaxAttempts > maxRedisOperationMaxAttemps {
+		c.RedisOperationMaxAttempts = &maxRedisOperationMaxAttemps
+	}
+
 	minCleanerInterval := 5 * time.Second
 	maxCleanerInterval := 5 * time.Minute
 	defaultCleanerInterval := time.Minute
@@ -118,17 +111,6 @@ func (c *ConsumerOptions) applyDefaults() {
 		c.CleanerDeadConsumerThreshold = &maxCleanerDeadConsumerThreshold
 	}
 
-	var minCleanerMaxAttemps uint8 = 1
-	var maxCleanerMaxAttemps uint8 = 10
-	var defaultCleanerMaxAttempts uint8 = 3
-	if c.CleanerMaxAttempts == nil {
-		c.CleanerMaxAttempts = &defaultCleanerMaxAttempts
-	} else if *c.CleanerMaxAttempts < minCleanerMaxAttemps {
-		c.CleanerMaxAttempts = &minCleanerMaxAttemps
-	} else if *c.CleanerMaxAttempts > maxCleanerMaxAttemps {
-		c.CleanerMaxAttempts = &maxCleanerMaxAttemps
-	}
-
 	minHeartbeatInterval := 5 * time.Second
 	maxHeartbeatInterval := 5 * time.Minute
 	defaultHeartbeatInterval := 30 * time.Second
@@ -138,17 +120,6 @@ func (c *ConsumerOptions) applyDefaults() {
 		c.HeartbeatInterval = &minHeartbeatInterval
 	} else if *c.HeartbeatInterval > maxHeartbeatInterval {
 		c.HeartbeatInterval = &maxHeartbeatInterval
-	}
-
-	var minHeartbeatMaxAttempts uint8 = 1
-	var maxHeartbeatMaxAttempts uint8 = 10
-	var defaultHeartbeatMaxAttempts uint8 = 3
-	if c.HeartbeatMaxAttempts == nil {
-		c.HeartbeatMaxAttempts = &defaultHeartbeatMaxAttempts
-	} else if *c.HeartbeatMaxAttempts < minHeartbeatMaxAttempts {
-		c.HeartbeatMaxAttempts = &minHeartbeatMaxAttempts
-	} else if *c.HeartbeatMaxAttempts > maxHeartbeatMaxAttempts {
-		c.HeartbeatMaxAttempts = &maxHeartbeatMaxAttempts
 	}
 
 	minReceiverNoResultPauseInterval := time.Second
@@ -162,17 +133,6 @@ func (c *ConsumerOptions) applyDefaults() {
 		c.ReceiverNoResultPauseInterval = &maxReceiverNoResultPauseInterval
 	}
 
-	var minReceiverMaxAttempts uint8 = 1
-	var maxReceiverMaxAttempts uint8 = 10
-	var defaultReceiverMaxAttempts uint8 = 3
-	if c.ReceiverMaxAttempts == nil {
-		c.ReceiverMaxAttempts = &defaultReceiverMaxAttempts
-	} else if *c.ReceiverMaxAttempts < minReceiverMaxAttempts {
-		c.ReceiverMaxAttempts = &minReceiverMaxAttempts
-	} else if *c.ReceiverMaxAttempts > maxReceiverMaxAttempts {
-		c.ReceiverMaxAttempts = &maxReceiverMaxAttempts
-	}
-
 	minSchedulerInterval := 5 * time.Second
 	maxSchedulerInterval := 5 * time.Minute
 	defaultSchedulerInterval := 5 * time.Second
@@ -182,17 +142,6 @@ func (c *ConsumerOptions) applyDefaults() {
 		c.SchedulerInterval = &minSchedulerInterval
 	} else if *c.SchedulerInterval > maxSchedulerInterval {
 		c.SchedulerInterval = &maxSchedulerInterval
-	}
-
-	var minSchedulerMaxAttempts uint8 = 1
-	var maxSchedulerMaxAttempts uint8 = 10
-	var defaultSchedulerMaxAttempts uint8 = 3
-	if c.SchedulerMaxAttempts == nil {
-		c.SchedulerMaxAttempts = &defaultSchedulerMaxAttempts
-	} else if *c.SchedulerMaxAttempts < minSchedulerMaxAttempts {
-		c.SchedulerMaxAttempts = &minSchedulerMaxAttempts
-	} else if *c.SchedulerMaxAttempts > maxSchedulerMaxAttempts {
-		c.SchedulerMaxAttempts = &maxSchedulerMaxAttempts
 	}
 
 	var minConcurrentReceiversCount uint8 = 1

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/pkg/errors"
 )
@@ -65,8 +64,6 @@ func (c *consumer) defaultHandleMessages(ctx context.Context) {
 			if ok := c.manageRetries(
 				ctx,
 				fmt.Sprintf("delete message %q", message.ID()),
-				*c.options.ReceiverMaxAttempts, // TODO: This isn't the right option
-				30*time.Second,                 // TODO: Don't hardcode this,
 				func() error {
 					return c.deleteMessage(message.ID())
 				},

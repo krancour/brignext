@@ -33,8 +33,6 @@ outer:
 			if ok := c.manageRetries(
 				ctx,
 				"deque a pending message",
-				*c.options.ReceiverMaxAttempts,
-				30*time.Second, // TODO: Don't hardcode this,
 				func() error {
 					var err error
 					messageID, err = c.dequeueMessage()
@@ -59,8 +57,6 @@ outer:
 			if ok := c.manageRetries(
 				ctx,
 				fmt.Sprintf("retrieve message %q", messageID),
-				*c.options.ReceiverMaxAttempts,
-				30*time.Second, // TODO: Don't hardcode this,
 				func() error {
 					var err error
 					messageJSON, err = c.getMessageJSON(messageID)

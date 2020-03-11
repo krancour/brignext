@@ -17,8 +17,6 @@ func (c *consumer) defaultRunCleaner(ctx context.Context) {
 		if ok := c.manageRetries(
 			ctx,
 			"clean up after dead consumers",
-			*c.options.CleanerMaxAttempts,
-			30*time.Second, // TODO: Don't hardcode this
 			c.clean,
 		); !ok {
 			return

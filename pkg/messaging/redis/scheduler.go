@@ -15,8 +15,6 @@ func (c *consumer) defaultRunScheduler(ctx context.Context) {
 		if ok := c.manageRetries(
 			ctx,
 			"schedule messages",
-			*c.options.SchedulerMaxAttempts,
-			30*time.Second, // TODO: Don't hardcode this,
 			c.schedule,
 		); !ok {
 			return
