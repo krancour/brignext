@@ -13,11 +13,12 @@ import (
 
 // consumer is a Redis-based implementation of the messaging.Consumer interface.
 type consumer struct {
-	id          string
-	redisClient *redis.Client
-	queueName   string
-	options     ConsumerOptions
-	handler     messaging.HandlerFn
+	id                    string
+	redisClient           *redis.Client
+	queueName             string
+	options               ConsumerOptions
+	deadConsumerThreshold time.Duration
+	handler               messaging.HandlerFn
 
 	// pendingListKey is the key for the global list of IDs for messages ready to
 	// be handled.
@@ -67,10 +68,16 @@ func NewConsumer(
 	options.applyDefaults()
 	consumerID := uuid.NewV4().String()
 	c := &consumer{
-		id:              consumerID,
-		redisClient:     redisClient,
-		queueName:       queueName,
-		options:         *options,
+		id:          consumerID,
+		redisClient: redisClient,
+		queueName:   queueName,
+		options:     *options,
+		deadConsumerThreshold: *options.HeartbeatInterval +
+			maxCummulativeBackoff(
+				*options.RedisOperationMaxAttempts,
+				*options.RedisOperationMaxBackoff,
+			) +
+			5*time.Second, // Tolerate a little bit of clock drift
 		handler:         handler,
 		pendingListKey:  pendingListKey(options.RedisPrefix, queueName),
 		messagesHashKey: messagesHashKey(options.RedisPrefix, queueName),

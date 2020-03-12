@@ -30,9 +30,10 @@ func (c *consumer) defaultRunCleaner(ctx context.Context) {
 }
 
 func (c *consumer) clean() error {
+	// TODO: We should log how many messages were reclaimed
 	return c.redisClient.EvalSha(
 		c.cleanerScriptSHA,
 		[]string{c.consumersSetKey, c.pendingListKey},
-		time.Now().Add(-*c.options.CleanerDeadConsumerThreshold).Unix(),
+		time.Now().Add(-c.deadConsumerThreshold).Unix(),
 	).Err()
 }

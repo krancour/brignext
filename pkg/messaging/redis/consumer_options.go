@@ -29,12 +29,6 @@ type ConsumerOptions struct {
 	// Max: 5 minutes
 	// Default: 1 minute
 	CleanerInterval *time.Duration
-	// DeadConsumerThreshold specifies how much time must elapse since its last
-	// heartbeat for a consumer to be considered dead and in need of cleanup.
-	// Min: 5 seconds
-	// Max: 5 minutes
-	// Default: 1 minute
-	CleanerDeadConsumerThreshold *time.Duration
 
 	// HeartbeatInterval specifies how frequently to send out a heartbeat
 	// indicating that the consumer is alive and functional.
@@ -117,19 +111,6 @@ func (c *ConsumerOptions) applyDefaults() {
 		c.CleanerInterval = &minCleanerInterval
 	} else if *c.CleanerInterval > maxCleanerInterval {
 		c.CleanerInterval = &maxCleanerInterval
-	}
-
-	// TODO: This should automatically be derived from the heartbeat interval,
-	// the number of max retries, and the max backoff delay.
-	minCleanerDeadConsumerThreshold := 5 * time.Second
-	maxCleanerDeadConsumerThreshold := 5 * time.Minute
-	defaultCleanerDeadConsumerThreshold := time.Minute
-	if c.CleanerDeadConsumerThreshold == nil {
-		c.CleanerDeadConsumerThreshold = &defaultCleanerDeadConsumerThreshold
-	} else if *c.CleanerDeadConsumerThreshold < minCleanerDeadConsumerThreshold {
-		c.CleanerDeadConsumerThreshold = &minCleanerDeadConsumerThreshold
-	} else if *c.CleanerDeadConsumerThreshold > maxCleanerDeadConsumerThreshold {
-		c.CleanerDeadConsumerThreshold = &maxCleanerDeadConsumerThreshold
 	}
 
 	minHeartbeatInterval := 5 * time.Second

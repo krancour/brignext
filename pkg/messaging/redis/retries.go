@@ -17,21 +17,29 @@ func (c *consumer) manageRetries(
 	process string,
 	fn func() error,
 ) bool {
-	var attempts uint8
+	var failedAttempts uint8
 	var err error
-	for attempts = 1; attempts <= *c.options.RedisOperationMaxAttempts; attempts++ { // nolint: lll
+	for {
 		if err = fn(); err == nil {
 			return true
 		}
+		failedAttempts++
+		if failedAttempts == *c.options.RedisOperationMaxAttempts {
+			break
+		}
+		delay := jitteredExpBackoff(failedAttempts, *c.options.RedisOperationMaxBackoff)
 		log.Printf(
-			"WARNING: queue %q consumer %q failed to %s; will retry: %s",
+			"WARNING: queue %q consumer %q failed %d attempts(s) to %s; will "+
+				"retry in %s: %s",
 			c.queueName,
 			c.id,
+			failedAttempts,
 			process,
+			delay,
 			err,
 		)
 		select {
-		case <-time.After(expBackoff(attempts, *c.options.RedisOperationMaxBackoff)): // nolint: lll
+		case <-time.After(delay):
 		case <-ctx.Done():
 		}
 	}
@@ -50,10 +58,32 @@ func (c *consumer) manageRetries(
 	return false
 }
 
-func expBackoff(failureCount uint8, max time.Duration) time.Duration {
+func jitteredExpBackoff(
+	failureCount uint8,
+	maxDelay time.Duration,
+) time.Duration {
 	base := math.Pow(2, float64(failureCount))
-	jittered := (1 + seededRand.Float64()) * (base / 2)
+	capped := math.Min(base, maxDelay.Seconds())
+	jittered := (1 + seededRand.Float64()) * (capped / 2)
 	scaled := jittered * float64(time.Second)
-	capped := math.Min(scaled, float64(max))
-	return time.Duration(capped)
+	return time.Duration(scaled)
+}
+
+func expBackoff(failureCount uint8, maxDelay time.Duration) time.Duration {
+	base := math.Pow(2, float64(failureCount))
+	capped := math.Min(base, maxDelay.Seconds())
+	scaled := capped * float64(time.Second)
+	return time.Duration(scaled)
+}
+
+func maxCummulativeBackoff(
+	maxTries uint8,
+	maxDelay time.Duration,
+) time.Duration {
+	var sum time.Duration
+	var i uint8
+	for i = 1; i < maxTries; i++ {
+		sum += expBackoff(i, maxDelay)
+	}
+	return sum
 }
