@@ -115,6 +115,10 @@ func (c *consumer) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
+	// TODO: Introduce some kind of "mode" for lone consumers who want to presume
+	// all other consumers dead and eagerly reclaim work before taking on any new
+	// work.
+
 	// Send the first heartbeat synchronously before we doing anything else so
 	// that over-eager cleaners belonging to other consumers of the same reliable
 	// queue won't think us dead while we're still initializing.

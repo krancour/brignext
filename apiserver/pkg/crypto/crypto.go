@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"github.com/krancour/brignext/apiserver/pkg/rand"
+	"github.com/krancour/brignext/pkg/rand"
 )
 
 var seededRand = rand.NewSeeded()

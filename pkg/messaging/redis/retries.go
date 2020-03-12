@@ -4,11 +4,13 @@ import (
 	"context"
 	"log"
 	"math"
-	"math/rand"
 	"time"
 
+	"github.com/krancour/brignext/pkg/rand"
 	"github.com/pkg/errors"
 )
+
+var seededRand = rand.NewSeeded()
 
 func (c *consumer) manageRetries(
 	ctx context.Context,
@@ -29,8 +31,7 @@ func (c *consumer) manageRetries(
 			err,
 		)
 		select {
-		// TODO: Don't hardcode the max delay
-		case <-time.After(expBackoff(attempts, 30*time.Second)):
+		case <-time.After(expBackoff(attempts, *c.options.RedisOperationMaxBackoff)): // nolint: lll
 		case <-ctx.Done():
 		}
 	}
@@ -49,11 +50,9 @@ func (c *consumer) manageRetries(
 	return false
 }
 
-// expBackoff implements a simple exponential backoff function.
 func expBackoff(failureCount uint8, max time.Duration) time.Duration {
 	base := math.Pow(2, float64(failureCount))
-	// TODO: This rand isn't seeded correctly
-	jittered := (1 + rand.Float64()) * (base / 2)
+	jittered := (1 + seededRand.Float64()) * (base / 2)
 	scaled := jittered * float64(time.Second)
 	capped := math.Min(scaled, float64(max))
 	return time.Duration(capped)

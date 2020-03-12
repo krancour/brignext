@@ -35,3 +35,13 @@ func (s *Seeded) Intn(max int) int {
 	defer s.mut.Unlock()
 	return s.seededRand.Intn(max)
 }
+
+// Float64 returns, as a float64, a pseudo-random number in [0.0,1.0) from the
+// internally held seeded random number generator.
+//
+// This function (and its documentation!) is similar to (math/rand).Float64()
+func (s *Seeded) Float64() float64 {
+	s.mut.Lock()
+	defer s.mut.Unlock()
+	return s.seededRand.Float64()
+}

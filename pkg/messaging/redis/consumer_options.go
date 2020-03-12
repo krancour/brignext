@@ -15,6 +15,14 @@ type ConsumerOptions struct {
 	// Default: 3
 	RedisOperationMaxAttempts *uint8
 
+	// RedisOperationMaxBackoff specifies a cap on the exponentially increasing
+	// delay before re-attempting any dsicrete Redis operation that has previously
+	// failed.
+	// Min: 10 seconds
+	// Max: 10 minutes
+	// Default: 1 minute
+	RedisOperationMaxBackoff *time.Duration
+
 	// CleanerInterval specifies how frequently to reclaim messages from dead
 	// consumers.
 	// Min: 5 seconds
@@ -89,6 +97,17 @@ func (c *ConsumerOptions) applyDefaults() {
 		c.RedisOperationMaxAttempts = &maxRedisOperationMaxAttemps
 	}
 
+	var minRedisOperationMaxBackoff = 10 * time.Second
+	var maxRedisOperationMaxBackoff = 10 * time.Minute
+	var defaultRedisOperationMaxBackoff = time.Minute
+	if c.RedisOperationMaxBackoff == nil {
+		c.RedisOperationMaxBackoff = &defaultRedisOperationMaxBackoff
+	} else if *c.RedisOperationMaxBackoff < minRedisOperationMaxBackoff {
+		c.RedisOperationMaxBackoff = &minRedisOperationMaxBackoff
+	} else if *c.RedisOperationMaxBackoff > maxRedisOperationMaxBackoff {
+		c.RedisOperationMaxBackoff = &maxRedisOperationMaxBackoff
+	}
+
 	minCleanerInterval := 5 * time.Second
 	maxCleanerInterval := 5 * time.Minute
 	defaultCleanerInterval := time.Minute
@@ -100,6 +119,8 @@ func (c *ConsumerOptions) applyDefaults() {
 		c.CleanerInterval = &maxCleanerInterval
 	}
 
+	// TODO: This should automatically be derived from the heartbeat interval,
+	// the number of max retries, and the max backoff delay.
 	minCleanerDeadConsumerThreshold := 5 * time.Second
 	maxCleanerDeadConsumerThreshold := 5 * time.Minute
 	defaultCleanerDeadConsumerThreshold := time.Minute
