@@ -56,6 +56,12 @@ type consumer struct {
 
 // NewConsumer returns a new Redis-based implementation of the
 // messaging.Consumer interface.
+//
+// Take care in passing a *redis.Client argument that is well-tuned for the use
+// case(s) in question. For instance, if multiple consumers will share a single
+// client, try to use a connection pool large enough to accommodate all the
+// consumers' concurrent message receivers, but not so large as to monopolize
+// connections if there are other (distributed) consumers of the same queue(s).
 func NewConsumer(
 	redisClient *redis.Client,
 	queueName string,

@@ -36,7 +36,7 @@ type ConsumerOptions struct {
 	// consumers, such that a dead consumer's incomplete work is resumed prior to
 	// taking on new work. To further illustrate, this could be useful when using
 	// a queue to govern/limit concurrent work in some resource-constrained
-	// backend-system.
+	// backend system.
 	LoneConsumer bool
 
 	// CleanerInterval specifies how frequently to reclaim messages from dead
@@ -78,7 +78,26 @@ type ConsumerOptions struct {
 	SchedulerInterval *time.Duration
 
 	// ConcurrentReceiversCount specifies how many messages may be received
-	// concurrently.
+	// concurrently. This number can be adjusted with respect to the number of
+	// concurrent handlers and the number of connections in the Redis client's
+	// connection pool in order to either maximize throughput or conserve
+	// resources.
+	//
+	// Receivers can become a bottleneck if outnumbered by many handlers that each
+	// process a single message very quickly, as many handlers may then sit idle
+	// while waiting for a receiver to pull a messages from the queue. To increase
+	// throughput, consider increasing the number of receivers as high as the
+	// number of handlers. There is no reason to increase the number of handlers
+	// beyond this because some will sit idle at any given moment while waiting
+	// for an available worker. Throughput can be further maximized by using a
+	// Redis client with a connection pool large enough to accommodate all
+	// unblocked goroutines concurrently. This number will be the larger of the
+	// receiver count and the handler count.
+	//
+	// For scenarios where any number of workers each process a single message
+	// more slowly, receivers will often sit idle waiting for an available worker.
+	// In such scenarios where receivers are not the bottleneck, resources can be
+	// conserved by decreasing the number of receivers as low as 1.
 	//
 	// Min: 1
 	// Max: 255
@@ -86,7 +105,9 @@ type ConsumerOptions struct {
 	ConcurrentReceiversCount *uint8
 
 	// ConcurrentHandlersCount specifies how many messages may be handled
-	// concurrently.
+	// concurrently. This number can be adjusted up to improve throughput or down
+	// as a means of governing/limiting concurrent work in some
+	// resource-constrained backend system.
 	//
 	// Min: 1
 	// Max: 255
