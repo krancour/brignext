@@ -122,13 +122,26 @@ func (c *consumer) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// TODO: Introduce some kind of "mode" for lone consumers who want to presume
-	// all other consumers dead and eagerly reclaim work before taking on any new
-	// work.
+	// If we're configured as a "lone consumer" presume all other consumers are
+	// dead and eagerly reclaim ALL messages. This is the ONLY cleaning we'll do
+	// since no other consumers should be running until after this one is dead.
+	// i.e. We won't be running a cleaner loop.
+	if c.options.LoneConsumer {
+		if err := c.clean(time.Since(time.Time{})); err != nil {
+			return errors.Wrap(err, "error cleaning up after dead consumers")
+		}
+	}
 
-	// Send the first heartbeat synchronously before we doing anything else so
-	// that over-eager cleaners belonging to other consumers of the same reliable
-	// queue won't think us dead while we're still initializing.
+	// Send the first heartbeat synchronously before we doing anything else. If we
+	// didn't do this, message receivers could potentially pluck messages off the
+	// global pending message list BEFORE we've broadcast our existece. All those
+	// messages would be subject to being lost permanently if the consumer died
+	// before sending out its first heartbeat (because cleaner processes belonging
+	// to other consumers cannot reclaim work from a consumer they don't know
+	// about).
+	//
+	// If we're configured as a "lone consumer," this is the ONLY heartbeat we
+	// will bother sending.
 	if err := c.heartbeat(); err != nil {
 		return errors.Wrapf(
 			err,
@@ -138,12 +151,18 @@ func (c *consumer) Run(ctx context.Context) error {
 		)
 	}
 
-	c.wg.Add(3)
-	// Start the heartbeat loop
-	go c.runHeart(ctx)
-	// Start the cleaner loop
-	go c.runCleaner(ctx)
+	// Only start heartbeat and cleaner loops if we're NOT configured as a "lone
+	// consumer"
+	if !c.options.LoneConsumer {
+		c.wg.Add(2)
+		// Start the heartbeat loop
+		go c.runHeart(ctx)
+		// Start the cleaner loop
+		go c.runCleaner(ctx)
+	}
+
 	// Move scheduled tasks to the pending list as they become ready
+	c.wg.Add(1)
 	go c.runScheduler(ctx)
 
 	// Fan out to desired number of message receivers

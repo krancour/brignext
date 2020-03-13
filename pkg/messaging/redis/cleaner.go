@@ -17,7 +17,9 @@ func (c *consumer) defaultRunCleaner(ctx context.Context) {
 		if ok := c.manageRetries(
 			ctx,
 			"clean up after dead consumers",
-			c.clean,
+			func() error {
+				return c.clean(c.deadConsumerThreshold)
+			},
 		); !ok {
 			return
 		}
@@ -29,11 +31,11 @@ func (c *consumer) defaultRunCleaner(ctx context.Context) {
 	}
 }
 
-func (c *consumer) clean() error {
+func (c *consumer) clean(deadConsumerThreshold time.Duration) error {
 	// TODO: We should log how many messages were reclaimed
 	return c.redisClient.EvalSha(
 		c.cleanerScriptSHA,
 		[]string{c.consumersSetKey, c.pendingListKey},
-		time.Now().Add(-c.deadConsumerThreshold).Unix(),
+		time.Now().Add(-deadConsumerThreshold).Unix(),
 	).Err()
 }

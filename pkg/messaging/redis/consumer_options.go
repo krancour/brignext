@@ -10,6 +10,7 @@ type ConsumerOptions struct {
 
 	// RedisOperationMaxAttempts specifies the maximum number of consecutive times
 	// that any discrete Redis operation may fail before aborting the consumer.
+	//
 	// Min: 1
 	// Max: 10
 	// Default: 3
@@ -18,20 +19,38 @@ type ConsumerOptions struct {
 	// RedisOperationMaxBackoff specifies a cap on the exponentially increasing
 	// delay before re-attempting any dsicrete Redis operation that has previously
 	// failed.
+	//
 	// Min: 10 seconds
 	// Max: 10 minutes
 	// Default: 1 minute
 	RedisOperationMaxBackoff *time.Duration
 
+	// LoneConsumer specifies whether the creator of the consumer is offering a
+	// STRONG GUARANTEE that this consumer will NEVER run concurrently with
+	// another consumer of the same queue.
+	//
+	// This is useful for cases where messages must be handled in the order they
+	// were received. A lone consumer that can assume no other consumers run
+	// concurrently with itself can, during initialization, eagerly and
+	// synchronously reclaim ALL messages previously claimed by other (dead)
+	// consumers, such that a dead consumer's incomplete work is resumed prior to
+	// taking on new work. To further illustrate, this could be useful when using
+	// a queue to govern/limit concurrent work in some resource-constrained
+	// backend-system.
+	LoneConsumer bool
+
 	// CleanerInterval specifies how frequently to reclaim messages from dead
-	// consumers.
+	// consumers. This setting is not used by "lone consumers."
+	//
 	// Min: 5 seconds
 	// Max: 5 minutes
 	// Default: 1 minute
 	CleanerInterval *time.Duration
 
 	// HeartbeatInterval specifies how frequently to send out a heartbeat
-	// indicating that the consumer is alive and functional.
+	// indicating that the consumer is alive and functional. This setting is not
+	// used by "lone consumers."
+	//
 	// Min: 5 seconds
 	// Max: 5 minutes
 	// Default: 30 seconds
@@ -43,14 +62,16 @@ type ConsumerOptions struct {
 	// achieve a balance between latency and the desire to not tax the CPU, the
 	// network, or the database in situations where the global list of pending
 	// messages is empty for a prolonged period.
+	//
 	// Min: 1 second
 	// Max: 1 minute
 	// Default: 5 seconds
 	ReceiverNoResultPauseInterval *time.Duration
 
 	// SchedulerInterval specifies the interval at which messages with scheduled
-	// handling times that have elapsed should ve transplanted to the global pending
-	// messages list.
+	// handling times that have elapsed should ve transplanted to the global
+	// pending messages list.
+	//
 	// Min: 5 seconds
 	// Max: 5 minutes
 	// Default: 5 seconds
@@ -58,6 +79,7 @@ type ConsumerOptions struct {
 
 	// ConcurrentReceiversCount specifies how many messages may be received
 	// concurrently.
+	//
 	// Min: 1
 	// Max: 255
 	// Default: 1
@@ -65,6 +87,7 @@ type ConsumerOptions struct {
 
 	// ConcurrentHandlersCount specifies how many messages may be handled
 	// concurrently.
+	//
 	// Min: 1
 	// Max: 255
 	// Default: 5
@@ -73,6 +96,7 @@ type ConsumerOptions struct {
 	// ShutdownGracePeriod specifies the maximum interval to wait for all of the
 	// consumer's concurrently executing components to shut down gracefully before
 	// the Run function returns control to the caller.
+	//
 	// Min: 0
 	// Max: none
 	// Default: 10 seconds
