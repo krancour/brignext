@@ -133,7 +133,8 @@ func (c *consumer) Run(ctx context.Context) error {
 	// since no other consumers should be running until after this one is dead.
 	// i.e. We won't be running a cleaner loop.
 	if c.options.LoneConsumer {
-		if err := c.clean(time.Since(time.Time{})); err != nil {
+		maxFutureDate := time.Unix(1<<63-62135596801, 999999999)
+		if err := c.clean(maxFutureDate); err != nil {
 			return errors.Wrap(err, "error cleaning up after dead consumers")
 		}
 	}

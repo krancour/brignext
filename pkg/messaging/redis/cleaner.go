@@ -18,7 +18,7 @@ func (c *consumer) defaultRunCleaner(ctx context.Context) {
 			ctx,
 			"clean up after dead consumers",
 			func() error {
-				return c.clean(c.deadConsumerThreshold)
+				return c.clean(time.Now().Add(-c.deadConsumerThreshold))
 			},
 		); !ok {
 			return
@@ -31,11 +31,14 @@ func (c *consumer) defaultRunCleaner(ctx context.Context) {
 	}
 }
 
-func (c *consumer) clean(deadConsumerThreshold time.Duration) error {
+// clean transplants messages claimed by any consumer that hasn't been heard
+// from (i.e. has sent no heartbeat) since BEFORE the specified threshold time
+// back to the global pending message list.
+func (c *consumer) clean(deadConsumerThreshold time.Time) error {
 	// TODO: We should log how many messages were reclaimed
 	return c.redisClient.EvalSha(
 		c.cleanerScriptSHA,
 		[]string{c.consumersSetKey, c.pendingListKey},
-		time.Now().Add(-deadConsumerThreshold).Unix(),
+		deadConsumerThreshold.Unix(),
 	).Err()
 }
