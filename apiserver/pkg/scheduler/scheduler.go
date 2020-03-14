@@ -188,14 +188,13 @@ func (s *sched) CreateProjectNamespace(projectID string) (string, error) {
 }
 
 func (s *sched) ScheduleWorker(projectID, eventID, workerName string) error {
-	messageBodyStruct := struct {
+	messageBody, err := json.Marshal(struct {
 		Event  string `json:"event"`
 		Worker string `json:"worker"`
 	}{
 		Event:  eventID,
 		Worker: workerName,
-	}
-	messageBody, err := json.Marshal(messageBodyStruct)
+	})
 	if err != nil {
 		return errors.Wrapf(
 			err,

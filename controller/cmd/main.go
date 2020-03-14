@@ -38,7 +38,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	controller := controller.NewController(apiClient, redisClient, kubeClient)
+	controller := controller.NewController(
+		config,
+		apiClient,
+		redisClient,
+		kubeClient,
+	)
 
 	log.Println(controller.Run(signals.Context()))
 }
