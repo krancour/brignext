@@ -448,7 +448,7 @@ mongodb:
   ## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
   ##
   persistence:
-    enabled: true
+    enabled: false
     ## A manually managed Persistent Volume and Claim
     ## Requires persistence.enabled: true
     ## If defined, PVC must be created manually before volume will be bound
@@ -994,7 +994,7 @@ redis:
     ## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
     ##
     persistence:
-      enabled: true
+      enabled: false
       ## The path the volume will be mounted at, useful when using different
       ## Redis images.
       path: /data
@@ -1114,7 +1114,7 @@ redis:
     ## ref: http://kubernetes.io/docs/user-guide/persistent-volumes/
     ##
     persistence:
-      enabled: true
+      enabled: false
       ## The path the volume will be mounted at, useful when using different
       ## Redis images.
       path: /data
