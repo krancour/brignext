@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/krancour/brignext/client"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -27,13 +28,15 @@ func login(c *cli.Context) error {
 	password := c.String(flagPassword)
 	rootLogin := c.Bool(flagRoot)
 
-	client, err := getClient(c)
-	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
-	}
+	client := client.NewClient(
+		address,
+		"",
+		c.GlobalBool(flagInsecure),
+	)
 
 	var token, authURL string
 
+	var err error
 	if rootLogin {
 		reader := bufio.NewReader(os.Stdin)
 		for {
