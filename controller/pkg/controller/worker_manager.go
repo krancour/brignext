@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -189,6 +190,16 @@ func (c *controller) createWorkerPod(
 ) error {
 	worker := event.Workers[workerName]
 
+	imagePullSecrets := []corev1.LocalObjectReference{}
+	if worker.Kubernetes.ImagePullSecrets != "" {
+		imagePullSecrets = append(
+			imagePullSecrets,
+			corev1.LocalObjectReference{
+				Name: worker.Kubernetes.ImagePullSecrets,
+			},
+		)
+	}
+
 	image := worker.Container.Image
 	if image == "" {
 		image = "krancour/brignext-worker:latest" // TODO: Change this
@@ -226,6 +237,115 @@ func (c *controller) createWorkerPod(
 		i++
 	}
 
+	volumes := []corev1.Volume{
+		corev1.Volume{
+			Name: "event",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: event.ID,
+					},
+				},
+			},
+		},
+		corev1.Volume{
+			Name: "worker",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: qualifiedWorkerKey(event.ID, workerName),
+					},
+				},
+			},
+		},
+		corev1.Volume{
+			Name: "workspace",
+			VolumeSource: corev1.VolumeSource{
+				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: qualifiedWorkerKey(event.ID, workerName),
+				},
+			},
+		},
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		corev1.VolumeMount{
+			Name:      "event",
+			MountPath: "/var/event",
+			ReadOnly:  true,
+		},
+		corev1.VolumeMount{
+			Name:      "worker",
+			MountPath: "/var/worker",
+			ReadOnly:  true,
+		},
+		corev1.VolumeMount{
+			Name:      "workspace",
+			MountPath: "/var/workspace",
+			ReadOnly:  true,
+		},
+	}
+
+	// TODO: If there's any git configuration, we need an init container
+	initContainers := []corev1.Container{}
+	if worker.Git.CloneURL != "" {
+		volumes = append(
+			volumes,
+			corev1.Volume{
+				Name: "vcs",
+				VolumeSource: corev1.VolumeSource{
+					EmptyDir: &corev1.EmptyDirVolumeSource{},
+				},
+			},
+		)
+
+		vcsVolumeMount := corev1.VolumeMount{
+			Name:      "vcs",
+			MountPath: "/var/vcs",
+		}
+
+		volumeMounts = append(volumeMounts, vcsVolumeMount)
+
+		initContainers = append(
+			initContainers,
+			corev1.Container{
+				Name:            "vcs",
+				Image:           "brigadecore/git-sidecar:latest",
+				ImagePullPolicy: corev1.PullAlways,
+				VolumeMounts: []corev1.VolumeMount{
+					vcsVolumeMount,
+				},
+				// TODO: The existing brigadecore/git-sidecar:latest image that we're
+				// using from Brigade 1.x needs args passed as env vars. We'll do that
+				// for now, but eventually, we probably want to make a replacement for
+				// this image that takes these inputs from a mounted configmap-- same
+				// as the worker itself will.
+				Env: []corev1.EnvVar{
+					corev1.EnvVar{
+						Name:  "BRIGADE_REMOTE_URL",
+						Value: worker.Git.CloneURL,
+					},
+					corev1.EnvVar{
+						Name:  "BRIGADE_COMMIT_ID",
+						Value: worker.Git.Commit,
+					},
+					corev1.EnvVar{
+						Name:  "BRIGADE_COMMIT_REF",
+						Value: worker.Git.Ref,
+					},
+					corev1.EnvVar{
+						Name:  "BRIGADE_WORKSPACE",
+						Value: "/var/vcs",
+					},
+					corev1.EnvVar{
+						Name:  "BRIGADE_SUBMODULES",
+						Value: strconv.FormatBool(worker.Git.InitSubmodules),
+					},
+				},
+			},
+		)
+	}
+
 	workerPod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      qualifiedWorkerKey(event.ID, workerName),
@@ -238,8 +358,10 @@ func (c *controller) createWorkerPod(
 			},
 		},
 		Spec: corev1.PodSpec{
-			// TODO: If there's any git configuration, we need an init container
-			RestartPolicy: corev1.RestartPolicyNever,
+			ServiceAccountName: "workers",
+			ImagePullSecrets:   imagePullSecrets,
+			RestartPolicy:      corev1.RestartPolicyNever,
+			InitContainers:     initContainers,
 			Containers: []corev1.Container{
 				corev1.Container{
 					Name:            strings.ToLower(workerName),
@@ -247,57 +369,12 @@ func (c *controller) createWorkerPod(
 					ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),
 					// TODO: This probably isn't a good enough way, to split up command
 					// tokens, but it's what Brigade 1.x does. Good enough for PoC.
-					Command: strings.Split(worker.Container.Command, ""),
-					Env:     envVars, // These are the secrets
-					VolumeMounts: []corev1.VolumeMount{
-						corev1.VolumeMount{
-							Name:      "event",
-							MountPath: "/var/event",
-							ReadOnly:  true,
-						},
-						corev1.VolumeMount{
-							Name:      "worker",
-							MountPath: "/var/worker",
-							ReadOnly:  true,
-						},
-						corev1.VolumeMount{
-							Name:      "workspace",
-							MountPath: "/var/workspace",
-							ReadOnly:  true,
-						},
-					},
+					Command:      strings.Split(worker.Container.Command, ""),
+					Env:          envVars, // These are the secrets
+					VolumeMounts: volumeMounts,
 				},
 			},
-			Volumes: []corev1.Volume{
-				corev1.Volume{
-					Name: "event",
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: event.ID,
-							},
-						},
-					},
-				},
-				corev1.Volume{
-					Name: "worker",
-					VolumeSource: corev1.VolumeSource{
-						ConfigMap: &corev1.ConfigMapVolumeSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: qualifiedWorkerKey(event.ID, workerName),
-							},
-						},
-					},
-				},
-				corev1.Volume{
-					Name: "workspace",
-					VolumeSource: corev1.VolumeSource{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: qualifiedWorkerKey(event.ID, workerName),
-						},
-					},
-				},
-			},
+			Volumes: volumes,
 		},
 	}
 
