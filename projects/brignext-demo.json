@@ -35,15 +35,6 @@
           "cacheStorageClass": "nfs"
         }
       }
-    },
-    "myGitHubWorker": {
-      "events": [
-        {
-          "provider": "github",
-          "types": ["push"]
-        }
-      ]
-    },
-    "myAlwaysWorker": {}
+    }
   }
 }
