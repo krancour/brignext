@@ -4,7 +4,6 @@ go 1.13
 
 require (
 	github.com/coreos/go-oidc v2.2.1+incompatible
-	github.com/deis/async v1.1.0
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/go-redis/redis v6.15.7+incompatible
 	github.com/gorilla/mux v1.7.4
@@ -16,7 +15,6 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
 	github.com/satori/go.uuid v1.2.0
-	github.com/sirupsen/logrus v1.4.2
 	github.com/stretchr/testify v1.5.0
 	github.com/urfave/cli v1.22.2
 	github.com/xeipuuv/gojsonschema v1.2.0

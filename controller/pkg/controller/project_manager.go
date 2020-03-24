@@ -9,8 +9,6 @@ import (
 )
 
 func (c *controller) defaultManageProjectWorkerQueueConsumers(ctx context.Context) {
-	defer c.wg.Done()
-
 	// Maintain a map of functions for canceling the contexts of queue consumers
 	// for each known project.
 	consumerContextCancelFns := map[string]func(){}
@@ -41,7 +39,7 @@ func (c *controller) defaultManageProjectWorkerQueueConsumers(ctx context.Contex
 
 		// 1. Stop queue consumers for projects that have been deleted
 		for projectID, cancelFn := range consumerContextCancelFns {
-			if _, ok := currentProjects[projectID]; !ok {
+			if _, stillExists := currentProjects[projectID]; !stillExists {
 				log.Printf("DEBUG: stopping queue consumer for project %q", projectID)
 				cancelFn()
 				// Surprisingly, Go lets us delete from a map we are currently iterating
@@ -54,7 +52,7 @@ func (c *controller) defaultManageProjectWorkerQueueConsumers(ctx context.Contex
 		var receiverCount uint8 = 1
 		var handlerCount uint8 = 2 // TODO: Do not hardcode this
 		for projectID := range currentProjects {
-			if _, ok := consumerContextCancelFns[projectID]; !ok {
+			if _, known := consumerContextCancelFns[projectID]; !known {
 				log.Printf("DEBUG: starting queue consumer for project %q", projectID)
 				consumer, err := redisMessaging.NewConsumer(
 					c.redisClient,

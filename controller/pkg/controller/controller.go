@@ -8,7 +8,9 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/krancour/brignext/client"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
+	core_v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 type Controller interface {
@@ -21,16 +23,24 @@ type controller struct {
 	redisClient      *redis.Client
 	kubeClient       *kubernetes.Clientset
 
+	// New stuff
+	// TODO: Organize this better
+	podsClient            core_v1.PodInterface
+	workerPodsSelector    labels.Selector
+	workerPodsSet         map[string]struct{}
+	deletingWorkerPodsSet map[string]struct{}
+	workerPodsSetLock     sync.Mutex
+	availabilityCh        chan struct{}
+
 	// All of the following behaviors can be overridden for testing purposes
-	manageWorkers                     func(context.Context)
-	resumeWorkers                     func(context.Context) error
+	syncExistingWorkerPods            func() error
+	manageCapacity                    func(context.Context)
+	continuouslySyncWorkerPods        func(context.Context)
 	manageProjectWorkerQueueConsumers func(context.Context)
 
 	workerContextCh chan workerContext
 	// All goroutines we launch will send errors here
 	errCh chan error
-
-	wg *sync.WaitGroup
 }
 
 func NewController(
@@ -39,19 +49,34 @@ func NewController(
 	redisClient *redis.Client,
 	kubeClient *kubernetes.Clientset,
 ) Controller {
+	podsClient := kubeClient.CoreV1().Pods("")
+	workerPodsSelector := labels.Set(
+		map[string]string{
+			"brignext.io/component": "worker",
+		},
+	).AsSelector()
 	c := &controller{
 		controllerConfig: controllerConfig,
 		apiClient:        apiClient,
 		redisClient:      redisClient,
 		kubeClient:       kubeClient,
-		workerContextCh:  make(chan workerContext),
-		errCh:            make(chan error),
-		wg:               &sync.WaitGroup{},
+
+		// New stuff
+		// TODO: Organize this better
+		podsClient:            podsClient,
+		workerPodsSelector:    workerPodsSelector,
+		workerPodsSet:         map[string]struct{}{},
+		deletingWorkerPodsSet: map[string]struct{}{},
+		availabilityCh:        make(chan struct{}),
+
+		workerContextCh: make(chan workerContext),
+		errCh:           make(chan error),
 	}
 
 	// Behaviors
-	c.manageWorkers = c.defaultManageWorkers
-	c.resumeWorkers = c.defaultResumeWorkers
+	c.syncExistingWorkerPods = c.defaultSyncExistingWorkerPods
+	c.manageCapacity = c.defaultManageCapacity
+	c.continuouslySyncWorkerPods = c.defaultContinuouslySyncWorkerPods
 	c.manageProjectWorkerQueueConsumers =
 		c.defaultManageProjectWorkerQueueConsumers
 
@@ -62,23 +87,36 @@ func (c *controller) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// Run the main control loop
-	c.wg.Add(1)
-	go c.manageWorkers(ctx)
-
-	// Synchronously resume monitoring any in-progress workers. This will block
-	// until we have capacity to start new workers.
-	if err := c.resumeWorkers(ctx); err != nil {
-		return errors.Wrap(err, "error resuming in-progress workers")
+	// Synchronously start tracking existing workers pods. This happens
+	// syncronously so that the controller is guaranteed a complete picture of
+	// what capacity is available before we start taking on new work.
+	if err := c.syncExistingWorkerPods(); err != nil {
+		return errors.Wrap(err, "error syncing existing worker pods")
 	}
+
+	wg := sync.WaitGroup{}
+
+	// Continuously sync worker pods
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		c.continuouslySyncWorkerPods(ctx)
+	}()
+
+	// Manage available capacity
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		c.manageCapacity(ctx)
+	}()
 
 	// Monitor for new/deleted projects at a regular interval. Launch or stop
 	// new project-specific queue consumers as needed.
-	//
-	// This is deliberately started last so that there's never an attempt to
-	// start new workers until all in-progress workers have been prioritized.
-	c.wg.Add(1)
-	go c.manageProjectWorkerQueueConsumers(ctx)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		c.manageProjectWorkerQueueConsumers(ctx)
+	}()
 
 	// Wait for an error or a completed context
 	var err error
@@ -92,7 +130,7 @@ func (c *controller) Run(ctx context.Context) error {
 	doneCh := make(chan struct{})
 	go func() {
 		defer close(doneCh)
-		c.wg.Wait()
+		wg.Wait()
 	}()
 	select {
 	case <-doneCh:
