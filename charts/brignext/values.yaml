@@ -122,7 +122,7 @@ apiserver:
   service:
     ## If you're going to use an ingress controller, you can change the service
     ## type to CLusterIP.
-    type: LoadBalancer
+    type: NodePort
 
 controller:
 
@@ -329,7 +329,7 @@ mongodb:
     ## Provide any additional annotations which may be required.
     ## The value is evaluated as a template, so, for example, the value can depend on .Release or .Chart
     annotations: {}
-    type: ClusterIP
+    type: NodePort
     # clusterIP: None
     port: 27017
 
@@ -718,7 +718,7 @@ redis:
 
   ## Cluster settings
   cluster:
-    enabled: true
+    enabled: false
     slaveCount: 2
 
   ## Use redis sentinel in the redis pod. This will disable the master and slave services and
@@ -973,7 +973,7 @@ redis:
     ## Redis Master Service properties
     service:
       ##  Redis Master Service type
-      type: ClusterIP
+      type: NodePort
       port: 6379
 
       ## Specify the nodePort value for the LoadBalancer and NodePort service types.
