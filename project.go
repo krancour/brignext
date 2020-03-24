@@ -56,6 +56,12 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 				worker.Git.Ref = event.Git.Ref
 			}
 
+			if worker.Git.CloneURL != "" &&
+				worker.Git.Commit == "" &&
+				worker.Git.Ref == "" {
+				worker.Git.Ref = "master"
+			}
+
 			if worker.Kubernetes.WorkspaceStorageClass == "" {
 				worker.Kubernetes.WorkspaceStorageClass = "default"
 			}
