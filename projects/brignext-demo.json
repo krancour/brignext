@@ -17,10 +17,6 @@
           "types": ["exec"]
         }
       ],
-      "container": {
-        "image": "brigadecore/brigade-worker:v1.2.1",
-        "imagePullPolicy": "IfNotPresent"
-      },
       "workspaceSize": "10Gi",
       "git": {
         "cloneURL": "https://github.com/brigadecore/empty-testbed.git"
