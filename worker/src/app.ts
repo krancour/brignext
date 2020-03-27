@@ -7,15 +7,6 @@ import * as k8s from "./k8s";
 import * as brigadier from "./brigadier";
 import { Logger, ContextLogger } from "./brigadier/logger";
 
-interface BuildStorage {
-  create(
-    e: events.BrigadeEvent,
-    project: events.Project,
-    size?: string
-  ): Promise<string>;
-  destroy(): Promise<boolean>;
-}
-
 /**
  * ProjectLoader describes a function able to load a Project.
  */
@@ -51,15 +42,6 @@ export class App {
 
   // true if the "after" event has fired.
   protected afterHasFired: boolean = false;
-  protected storageIsDestroyed: boolean = false;
-  /**
-   * loadProject is a function that loads projects.
-   */
-  public loadProject: ProjectLoader = k8s.loadProject;
-  /**
-   * buildStorage controls the per-build storage layer.
-   */
-  public buildStorage: BuildStorage = new k8s.BuildStorage();
 
   protected exitCode: number = 0;
 
@@ -80,40 +62,10 @@ export class App {
     this.lastEvent = e;
     this.logger.logLevel = e.logLevel;
 
-    // This closure destroys storage for us. It is called by event handlers.
-    let destroyStorage = () => {
-      // Since we catch a destroy error, the outer wrapper will
-      // not get that error. Essentially, we swallow the error to prevent
-      // cleanup from exiting > 0.
-      return this.buildStorage
-        .destroy()
-        .then(destroyed => {
-          if (!destroyed) {
-            this.logger.log(`storage not destroyed for ${e.workerID}`);
-          }
-        })
-        .catch(reason => {
-          // Kubernetes objects put error messages here:
-          const msg = reason.body ? reason.body.message : reason;
-          this.logger.log(
-            `failed to destroy storage for ${e.workerID}: ${msg}`
-          );
-        });
-    };
-
     // We need at least one error trap to avoid losing the error to a new
     // throw from EventEmitter.
     brigadier.events.once("error", () => {
       this.logger.log("error handler is cleaning up");
-      if (this.exitOnError) {
-        destroyStorage().then(() => {
-          // Docs say this should work, but it produces an tsc error.
-          // process.exitCode = 1
-          // So we work around by storing state and calling process.exit()
-          // in the "exit" event handler.
-          this.exitCode = 1;
-        });
-      }
     });
 
     // We need to ensure that after is called exactly once. So we need an
@@ -148,11 +100,6 @@ export class App {
 
       if (this.afterHasFired) {
         // So at this point, the after event has fired and we can cleanup.
-        if (!this.storageIsDestroyed) {
-          this.logger.log("beforeExit(2): destroying storage");
-          this.storageIsDestroyed = true;
-          destroyStorage();
-        }
         return;
       }
 
@@ -180,18 +127,7 @@ export class App {
       }
     });
 
-    // Now that we have all the handlers registered, load the project and
-    // execute the event.
-    return this.loadProject(this.projectID, this.projectNS)
-      .then(p => {
-        this.proj = p;
-        // Setup storage
-        return this.buildStorage.create(e, p, p.kubernetes.buildStorageSize);
-      })
-      .then(() => {
-        brigadier.fire(e, this.proj);
-        return true;
-      }); // We want to trigger the main rejection handler, so we do not catch().
+    return Promise.resolve(true)
   }
 
   /**

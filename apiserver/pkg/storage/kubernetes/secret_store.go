@@ -107,12 +107,13 @@ func (s *secretStore) CreateEventConfigMap(event brignext.Event) error {
 
 	eventJSON, err := json.MarshalIndent(
 		struct {
-			ID         string `json:"id"`
-			ProjectID  string `json:"projectID"`
-			Provider   string `json:"provider"`
-			Type       string `json:"type"`
-			ShortTitle string `json:"shortTitle"`
-			LongTitle  string `json:"longTitle"`
+			ID         string                         `json:"id"`
+			ProjectID  string                         `json:"projectID"`
+			Provider   string                         `json:"provider"`
+			Type       string                         `json:"type"`
+			ShortTitle string                         `json:"shortTitle"`
+			LongTitle  string                         `json:"longTitle"`
+			Kubernetes brignext.EventKubernetesConfig `json:"kubernetes"`
 		}{
 			ID:         event.ID,
 			ProjectID:  event.ProjectID,
@@ -120,6 +121,7 @@ func (s *secretStore) CreateEventConfigMap(event brignext.Event) error {
 			Type:       event.Type,
 			ShortTitle: event.ShortTitle,
 			LongTitle:  event.LongTitle,
+			Kubernetes: *event.Kubernetes,
 		},
 		"",
 		"  ",

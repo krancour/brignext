@@ -66,10 +66,6 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 				worker.Kubernetes.WorkspaceStorageClass = "default"
 			}
 
-			if worker.Jobs.Kubernetes.CacheStorageClass == "" {
-				worker.Jobs.Kubernetes.CacheStorageClass = "default"
-			}
-
 			if worker.LogLevel == "" {
 				worker.LogLevel = LogLevelInfo
 			}

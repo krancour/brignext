@@ -52,13 +52,9 @@ const wrapClient = fns => {
   }
 };
 wrapClient([
-  defaultClient.createNamespacedPersistentVolumeClaim,
-  defaultClient.deleteNamespacedPersistentVolumeClaim,
-  defaultClient.readNamespacedSecret,
   defaultClient.readNamespacedPodLog,
   defaultClient.createNamespacedSecret,
   defaultClient.createNamespacedPod,
-  defaultClient.readNamespacedPersistentVolumeClaim,
   defaultClient.deleteNamespacedPod
 ]);
 
@@ -90,9 +86,7 @@ const kc = getKubeConfig();
  */
 export var options: KubernetesOptions = {
   serviceAccount: "brigade-worker",
-  mountPath: "/src",
-  defaultBuildStorageClass: "",
-  defaultCacheStorageClass: ""
+  mountPath: "/src"
 };
 
 /**
@@ -101,8 +95,6 @@ export var options: KubernetesOptions = {
 export class KubernetesOptions {
   serviceAccount: string;
   mountPath: string;
-  defaultBuildStorageClass: string;
-  defaultCacheStorageClass: string;
 }
 
 class K8sResult implements jobs.Result {
@@ -116,128 +108,12 @@ class K8sResult implements jobs.Result {
 }
 
 /**
- * BuildStorage manages per-build storage for a build.
- *
- * BuildStorage implements the app.BuildStorage interface.
- *
- * Storage is implemented as a PVC. The PVC backing it MUST be ReadWriteMany.
- */
-export class BuildStorage {
-  proj: Project;
-  name: string;
-  build: string;
-  logger: ContextLogger = new ContextLogger("k8s");
-  options: KubernetesOptions = Object.assign({}, options);
-
-  /**
-   * create initializes a new PVC for storing data.
-   */
-  public create(
-    e: BrigadeEvent,
-    project: Project,
-    size: string
-  ): Promise<string> {
-    this.proj = project;
-    this.name = e.workerID.toLowerCase();
-    this.build = e.buildID;
-    this.logger.logLevel = e.logLevel;
-
-    let pvc = this.buildPVC(size);
-    this.logger.log(`Creating PVC named ${this.name}`);
-    return Promise.resolve<string>(
-      defaultClient
-        .createNamespacedPersistentVolumeClaim(
-          this.proj.kubernetes.namespace,
-          pvc
-        )
-        .then(() => {
-          return this.name;
-        })
-    );
-  }
-  /**
-   * destroy deletes the PVC.
-   */
-  public destroy(): Promise<boolean> {
-    if (!this.proj && !this.name) {
-      this.logger.log("Build storage not exists");
-      return Promise.resolve(false);
-    }
-
-    this.logger.log(`Destroying PVC named ${this.name}`);
-    let opts = new kubernetes.V1DeleteOptions();
-    return Promise.resolve<boolean>(
-      defaultClient
-        .deleteNamespacedPersistentVolumeClaim(
-          this.name,
-          this.proj.kubernetes.namespace,
-          "true",
-          opts
-        )
-        .then(() => {
-          return true;
-        })
-    );
-  }
-  /**
-   * Get a PVC for a volume that lives for the duration of a build.
-   */
-  protected buildPVC(size: string): kubernetes.V1PersistentVolumeClaim {
-    let s = new kubernetes.V1PersistentVolumeClaim();
-    s.metadata = new kubernetes.V1ObjectMeta();
-    s.metadata.name = this.name;
-    s.metadata.labels = {
-      heritage: "brigade",
-      component: "buildStorage",
-      project: this.proj.id,
-      worker: this.name,
-      build: this.build
-    };
-
-    s.spec = new kubernetes.V1PersistentVolumeClaimSpec();
-    s.spec.accessModes = ["ReadWriteMany"];
-
-    let res = new kubernetes.V1ResourceRequirements();
-    res.requests = { storage: size };
-    s.spec.resources = res;
-    if (this.proj.kubernetes.buildStorageClass.length > 0) {
-      s.spec.storageClassName = this.proj.kubernetes.buildStorageClass;
-    } else if (
-      this.options.defaultBuildStorageClass &&
-      this.options.defaultBuildStorageClass.length > 0
-    ) {
-      s.spec.storageClassName = this.options.defaultBuildStorageClass;
-    }
-    return s;
-  }
-}
-
-/**
- * loadProject takes a Secret name and namespace and loads the Project
- * from the secret.
- */
-export function loadProject(name: string, ns: string): Promise<Project> {
-  return Promise.resolve<Project>(
-    defaultClient
-      .readNamespacedSecret(name, ns)
-      .catch(reason => {
-        const msg = reason.body ? reason.body.message : reason;
-        return Promise.reject(new Error(`Project not found: ${msg}`));
-      })
-      .then(result => {
-        return secretToProject(ns, result.body);
-      })
-  );
-}
-
-/**
  * JobRunner provides a Kubernetes implementation of the JobRunner interface.
  */
 export class JobRunner implements jobs.JobRunner {
   name: string;
   secret: kubernetes.V1Secret;
   runner: kubernetes.V1Pod;
-  pvc: kubernetes.V1PersistentVolumeClaim;
   project: Project;
   event: BrigadeEvent;
   job: jobs.Job;
@@ -401,31 +277,6 @@ export class JobRunner implements jobs.JobRunner {
       }
     }
 
-    // If the job requests a cache, set up the cache.
-    if (job.cache.enabled) {
-      this.pvc = this.cachePVC();
-
-      // Now add volume mount to pod:
-      let mountName = this.cacheName();
-      this.runner.spec.volumes.push({
-        name: mountName,
-        persistentVolumeClaim: { claimName: mountName }
-      } as kubernetes.V1Volume);
-      let mnt = volumeMount(mountName, job.cache.path);
-      this.runner.spec.containers[0].volumeMounts.push(mnt);
-    }
-
-    // If the job needs build-wide storage, enable it.
-    if (job.storage.enabled) {
-      const vname = "build-storage";
-      this.runner.spec.volumes.push({
-        name: vname,
-        persistentVolumeClaim: { claimName: e.workerID.toLowerCase() }
-      } as kubernetes.V1Volume);
-      let mnt = volumeMount(vname, job.storage.path);
-      this.runner.spec.containers[0].volumeMounts.push(mnt);
-    }
-
     // If the job needs access to a docker daemon, mount in the host's docker socket
     if (job.docker.enabled && project.allowHostMounts) {
       var dockerVol = new kubernetes.V1Volume();
@@ -439,27 +290,6 @@ export class JobRunner implements jobs.JobRunner {
       this.runner.spec.volumes.push(dockerVol);
       for (let i = 0; i < this.runner.spec.containers.length; i++) {
         this.runner.spec.containers[i].volumeMounts.push(dockerMount);
-      }
-    }
-
-    // If the job defines volumes, add them to the pod's volume list.
-    // If the volume type is `hostPath`, first check if the project allows host mounts
-    // and throw an error if it it does not.
-    for (let v of job.volumes) {
-      if (v.hostPath != undefined && !project.allowHostMounts) {
-        throw new Error(`allowHostMounts is false in this project, not mounting ${v.hostPath.path}`);
-      }
-      this.runner.spec.volumes.push(v);
-    }
-
-    // If the job defines volume mounts, add them to every container's spec.
-    for (let m of job.volumeMounts) {
-      if (!volumeExists(m, job.volumes)) {
-        throw new Error(`volume ${m.name} referenced in volume mount is not defined`);
-      }
-
-      for (let i = 0; i < this.runner.spec.containers.length; i++) {
-        this.runner.spec.containers[i].volumeMounts.push(m);
       }
     }
 
@@ -481,19 +311,6 @@ export class JobRunner implements jobs.JobRunner {
       }
     }
     return this;
-  }
-
-  /**
-   * cacheName returns the name of this job's cache PVC.
-   */
-  protected cacheName(): string {
-    // The Kubernetes rules on pvc names are stupid^b^b^b^b strict. Name must
-    // be DNS-like, and less than 64 chars. This rules out using project ID,
-    // project name, etc. For now, we use project name with slashes replaced,
-    // appended to job name.
-    return `${this.project.name.replace(/[.\/]/g, "-")}-${
-      this.job.name
-      }`.toLowerCase();
   }
 
   public logs(): Promise<string> {
@@ -534,14 +351,9 @@ export class JobRunner implements jobs.JobRunner {
 
     let ns = this.project.kubernetes.namespace;
     let k = this.client;
-    let pvcPromise = this.checkOrCreateCache();
 
     return new Promise((resolve, reject) => {
-      pvcPromise
-        .then(() => {
-          this.logger.log("Creating secret " + this.secret.metadata.name);
-          return k.createNamespacedSecret(ns, this.secret);
-        })
+      k.createNamespacedSecret(ns, this.secret)
         .then(result => {
           this.logger.log("Creating pod " + this.runner.metadata.name);
           // Once namespace creation has been accepted, we create the pod.
@@ -553,43 +365,6 @@ export class JobRunner implements jobs.JobRunner {
         .catch(reason => {
           reject(new Error(reason.body.message));
         });
-    });
-  }
-
-  /**
-   * checkOrCreateCache handles creating the cache if necessary.
-   *
-   * If no cache is requested by the job, this is a no-op.
-   *
-   * Otherwise, this checks for a cache, and if not found, it creates one.
-   */
-  protected checkOrCreateCache(): Promise<string> {
-    return new Promise((resolve, reject) => {
-      let ns = this.project.kubernetes.namespace;
-      let k = this.client;
-      if (!this.pvc) {
-        resolve("no cache requested");
-      } else {
-        let cname = this.cacheName();
-        this.logger.log(`looking up ${ns}/${cname}`);
-        k.readNamespacedPersistentVolumeClaim(cname, ns)
-          .then(result => {
-            resolve("re-using existing cache");
-          })
-          .catch(result => {
-            // TODO: check if cache exists.
-            this.logger.log(`Creating Job Cache PVC ${cname}`);
-            return k
-              .createNamespacedPersistentVolumeClaim(ns, this.pvc)
-              .then(result => {
-                this.logger.log("created cache");
-                resolve("created job cache");
-              });
-          })
-          .catch(err => {
-            reject(new Error(err.body.message));
-          });
-      }
     });
   }
 
@@ -795,41 +570,7 @@ export class JobRunner implements jobs.JobRunner {
 
     return Promise.race([poll, timer]);
   }
-  /**
-   * cachePVC builds a persistent volume claim for storing a job's cache.
-   *
-   * A cache PVC persists between builds. So this is addressable as a Job on a Project.
-   */
-  protected cachePVC(): kubernetes.V1PersistentVolumeClaim {
-    let s = new kubernetes.V1PersistentVolumeClaim();
-    s.metadata = new kubernetes.V1ObjectMeta();
-    s.metadata.name = this.cacheName();
-    s.metadata.labels = {
-      heritage: "brigade",
-      component: "jobCache",
-      job: this.job.name,
-      project: this.project.id
-    };
 
-    s.spec = new kubernetes.V1PersistentVolumeClaimSpec();
-    s.spec.accessModes = ["ReadWriteMany"];
-    if (
-      this.project.kubernetes.cacheStorageClass &&
-      this.project.kubernetes.cacheStorageClass.length > 0
-    ) {
-      s.spec.storageClassName = this.project.kubernetes.cacheStorageClass;
-    } else if (
-      this.options.defaultCacheStorageClass &&
-      this.options.defaultCacheStorageClass.length > 0
-    ) {
-      s.spec.storageClassName = this.options.defaultCacheStorageClass;
-    }
-    let res = new kubernetes.V1ResourceRequirements();
-    res.requests = { storage: this.job.cache.size };
-    s.spec.resources = res;
-
-    return s;
-  }
 }
 
 function sidecarSpec(
@@ -1068,14 +809,11 @@ export function secretToProject(
     name: secret.metadata.annotations["projectName"],
     kubernetes: {
       namespace: secret.metadata.namespace || ns,
-      buildStorageSize: "50Mi",
       vcsSidecar: "",
       vcsSidecarResourcesLimitsCPU: "",
       vcsSidecarResourcesLimitsMemory: "",
       vcsSidecarResourcesRequestsCPU: "",
-      vcsSidecarResourcesRequestsMemory: "",
-      cacheStorageClass: "",
-      buildStorageClass: ""
+      vcsSidecarResourcesRequestsMemory: ""
     },
     secrets: {},
     allowPrivilegedJobs: true,
@@ -1115,9 +853,6 @@ export function secretToProject(
       secret.data["vcsSidecarResources.requests.memory"]
     );
   }
-  if (secret.data.buildStorageSize) {
-    p.kubernetes.buildStorageSize = b64dec(secret.data.buildStorageSize);
-  }
   if (secret.data.cloneURL) {
     p.repo.cloneURL = b64dec(secret.data.cloneURL);
   }
@@ -1142,26 +877,5 @@ export function secretToProject(
   if (secret.data["github.token"]) {
     p.repo.token = b64dec(secret.data["github.token"]);
   }
-  if (secret.data["kubernetes.cacheStorageClass"]) {
-    p.kubernetes.cacheStorageClass = b64dec(
-      secret.data["kubernetes.cacheStorageClass"]
-    );
-  }
-  if (secret.data["kubernetes.buildStorageClass"]) {
-    p.kubernetes.buildStorageClass = b64dec(
-      secret.data["kubernetes.buildStorageClass"]
-    );
-  }
   return p;
-}
-
-// helper function to check if the volume referenced by a volume mount is defined by the job
-function volumeExists(volumeMount: kubernetes.V1VolumeMount, volumes: kubernetes.V1Volume[]): boolean {
-  for (let v of volumes) {
-    if (volumeMount.name === v.name) {
-      return true;
-    }
-  }
-
-  return false;
 }

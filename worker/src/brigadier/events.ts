@@ -9,6 +9,49 @@
 import { EventEmitter } from "events";
 import { LogLevel } from "./logger";
 
+// -----------------------------------------------------------------------------
+
+export interface BrignextEvent {
+  id: string
+  projectID: string
+  provider: string
+  type: string
+  shortTitle?: string
+  longTitle?: string
+  kubernetes: EventKubernetesConfig
+}
+
+export interface EventKubernetesConfig {
+  namespace: string
+}
+
+export interface BrignextWorker {
+  name: string
+  git: GitConfig
+  jobs: JobsConfig
+}
+
+export interface GitConfig {
+  cloneURL: string
+  commit: string
+  ref: string
+  initSubmodules: boolean
+}
+
+export interface JobsConfig {
+  allowPrivileged: boolean
+  allowHostMounts: boolean
+  kubernetes: JobsKubernetesConfig
+}
+
+export interface JobsKubernetesConfig {
+  cacheStorageClass: string
+  allowSecretKeyRef: boolean
+  imagePullSecrets: string
+}
+
+// -----------------------------------------------------------------------------
+
 /**
  * BrigadeEvent describes an event.
  *
@@ -186,21 +229,6 @@ export interface KubernetesConfig {
    * vcsSidecarResourcesRequestsMemory is the memory requests name for the sidecar container.
    */
   vcsSidecarResourcesRequestsMemory: string;
-
-  /**
-   *  buildStorageSize is the size of the build shared storage space used by the jobs
-   */
-  buildStorageSize: string;
-
-  /**
-   * cacheStorageClass is the storage class for job caches.
-   */
-  cacheStorageClass: string;
-
-  /**
-   * buildStorageClass is the storage class for build storage.
-   */
-  buildStorageClass: string;
 }
 
 /**

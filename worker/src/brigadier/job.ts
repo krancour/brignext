@@ -22,8 +22,6 @@ const defaultTimeout: number = 1000 * 60 * 15;
  */
 const brigadeImage: string = "debian:jessie-slim";
 
-export const brigadeCachePath = "/mnt/brigade/cache";
-export const brigadeStoragePath = "/mnt/brigade/share";
 export const dockerSocketMountPath = "/var/run/docker.sock";
 export const dockerSocketMountName = "docker-socket";
 
@@ -46,46 +44,6 @@ export interface JobRunner {
  */
 export interface Result {
   toString(): string;
-}
-
-/**
- * Cache controls the job's cache.
- *
- * A cache is a small storage space that is shared between different instances
- * if the same job.
- *
- * Cache is just a plain filesystem, and as such comes with no guarantees about
- * consistency, etc. It should be treated as volatile.
- */
-export class JobCache {
-  /**
-   * If enabled=true, a storage cache will be attached.
-   */
-  public enabled: boolean = false;
-  /**
-   * size is the amount of storage space assigned to the cache. The default is
-   * 5Mi.
-   * For sizing information, see https://github.com/kubernetes/community/blob/master/contributors/design-proposals/resources.md
-   */
-  public size: string = "5Mi";
-
-  // EXPERIMENTAL: Allow script authors to change this location.
-  // Before Brigade 0.15, this used a getter to prevent scripters from setting
-  // this path directly.
-  public path: string = brigadeCachePath;
-}
-
-/**
- * JobStorage configures build-wide storage preferences for this job.
- *
- * Changes to this object only impact the job, not the entire build.
- */
-export class JobStorage {
-  public enabled: boolean = false;
-
-  // EXPERIMENTAL: Allow setting the path.
-  // Prior to Brigade 0.15, this was read-only.
-  public path: string = brigadeStoragePath;
 }
 
 /**
@@ -219,37 +177,6 @@ export abstract class Job {
   public host: JobHost;
 
   /**
-   * cache controls per-Job caching preferences.
-   */
-  public cache: JobCache;
-  /**
-   * storage controls this job's preferences on the build-wide storage.
-   */
-  public storage: JobStorage;
-
-  /**
-   * EXPERIMENTAL: define volumes for the job.
-   * The property is defined as a list of Kubernetes volumes, and supports all Kubernetes volume types.
-   * Use the job's volumeMounts property to mount a volume defined to a path in the job's container.
-   * The names for the volume and the desired volume mount must match. 
-   * For more info, see https://kubernetes.io/docs/concepts/storage/volumes/
-   * 
-   * For a simple shared volume between all the containers of a job, use JobStorage.
-   */
-  public volumes: V1Volume[];
-
-  /**
-   * EXPERIMENTAL: define volume mounts for the job.
-   * The property is defined as a list of Kubernetes volume mounts.
-   * Use the job's volumes property to define volumes.
-   * The names for the volume and the desired volume mount must match.
-   * For more info, see https://kubernetes.io/docs/concepts/storage/volumes/
-   * 
-   * For a simple shared volume between all the containers of a job, use JobStorage.
-   */
-  public volumeMounts: V1VolumeMount[];
-
-  /**
    * docker controls the job's preferences on mounting the host's docker daemon.
    */
   public docker: JobDockerMount;
@@ -295,14 +222,10 @@ export abstract class Job {
     this.tasks = tasks || [];
     this.args = [];
     this.env = {};
-    this.cache = new JobCache();
-    this.storage = new JobStorage();
     this.docker = new JobDockerMount();
     this.host = new JobHost();
     this.resourceRequests = new JobResourceRequest();
     this.resourceLimits = new JobResourceLimit();
-    this.volumes = [];
-    this.volumeMounts = [];
   }
 
   /** run executes the job and then */

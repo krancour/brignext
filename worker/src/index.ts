@@ -6,8 +6,6 @@
  *
  * - `BRIGADE_EVENT_TYPE`: The event type, such as `push`, `pull_request`
  * - `BRIGADE_EVENT_PROVIDER`: The name of the event provider, such as `github` or `dockerhub`
- * - `BRIGADE_PROJECT_ID`: The project ID. This is used to load the Project
- *   object from configuration.
  * - `BRIGADE_REMOTE_URL`: The URL from which to obtain source code to be built.
  *   This is optional. If left unset by the controller, the worker will fall
  *   back to a project-level URL.
@@ -21,10 +19,6 @@
  * - `BRIGADE_BUILD_ID`: The ULID for the build. This is unique.
  * - `BRIGADE_BUILD_NAME`: This is actually the ID of the worker.
  * - `BRIGADE_SERVICE_ACCOUNT`: The service account to use.
- * - `BRIGADE_DEFAULT_BUILD_STORAGE_CLASS`: The Kubernetes StorageClass to use
- *   for shared build storage if none is specified in project configuration.
- * - `BRIGADE_DEFAULT_CACHE_STORAGE_CLASS`: The Kubernetes StorageClass to use
- *   for caching jobs if none is specified in project configuration.
  *
  * Also, the Brigade script must be written to `brigade.js`.
  */
@@ -46,20 +40,8 @@ import { options } from "./k8s";
 
 // Script locations in order of precedence.
 const scripts = [
-  // manual override for debugging
-  process.env.BRIGADE_SCRIPT,
-
-  // data mounted from event secret (e.g. brig run)
-  "/etc/brigade/script",
-
   // checked out in repo
-  "/vcs/brigade.js",
-
-  // data mounted from project.DefaultScript
-  "/etc/brigade-project/defaultScript",
-
-  // mounted configmap named in brigade.sh/project.DefaultScriptName
-  "/etc/brigade-default-script/brigade.js"
+  "/var/vcs/brigade.js"
 ];
 
 function findScript() {
@@ -72,6 +54,7 @@ function findScript() {
 
 // Search for the Brigade script and, if found, execute it.
 const script = findScript();
+
 if (script) {
   // Install aliases for common ways of referring to Brigade/Brigadier.
   moduleAlias.addAliases({
@@ -111,23 +94,17 @@ if (script) {
   require(script);
 }
 
+var event: events.BrignextEvent = require("/var/event/event.json")
+var worker: events.BrignextWorker = require("/var/worker/worker.json")
+
 // Log level may come in as lowercased 'log', 'info', etc., if run by the brig cli
-const logLevel = LogLevel[process.env.BRIGADE_LOG_LEVEL.toUpperCase() || "LOG"];
+// TODO: We can get this info elsewhere
+const logLevel = LogLevel["LOG"];
 const logger = new ContextLogger([], logLevel);
 
 const version = require("../package.json").version;
 logger.log(`brigade-worker version: ${version}`);
 
-const requiredEnvVar = (name: string): string => {
-  if (!process.env[name]) {
-    logger.log(`Missing required env ${name}`);
-    process.exit(1);
-  }
-  return process.env[name];
-};
-
-const projectID: string = requiredEnvVar("BRIGADE_PROJECT_ID");
-const projectNamespace: string = requiredEnvVar("BRIGADE_PROJECT_NAMESPACE");
 const defaultULID = ulid().toLocaleLowerCase();
 let e: events.BrigadeEvent = {
   buildID: process.env.BRIGADE_BUILD_ID || defaultULID,
@@ -160,12 +137,5 @@ if (process.env.BRIGADE_SERVICE_ACCOUNT_REGEX) {
   }
 }
 
-if (process.env.BRIGADE_DEFAULT_BUILD_STORAGE_CLASS) {
-  options.defaultBuildStorageClass = process.env.BRIGADE_DEFAULT_BUILD_STORAGE_CLASS
-}
-if (process.env.BRIGADE_DEFAULT_CACHE_STORAGE_CLASS) {
-  options.defaultCacheStorageClass = process.env.BRIGADE_DEFAULT_CACHE_STORAGE_CLASS
-}
-
 // Run the app.
-new App(projectID, projectNamespace).run(e);
+new App(event.projectID, event.kubernetes.namespace).run(e);

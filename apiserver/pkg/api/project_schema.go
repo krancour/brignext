@@ -99,13 +99,6 @@ var projectSchemaBytes = []byte(`
 			"type": "object",
 			"description": "Jobs configuration pertaining specifically to Kubernetes",
 			"properties": {
-				"cacheStorageClass": {
-					"oneOf": [
-						{ "$ref": "#/definitions/empty" },
-						{ "$ref": "#/definitions/identifier" }
-					],
-					"description": "The Kubernetes storage class that a worker may use when provisioning a volume to cache artifacts across multiple executions of a job"
-				},
 				"allowSecretKeyRef": {
 					"type": "boolean",
 					"description": "Whether to permit the worker to reference Kubernetes secrets when defining environment variables for jobs"

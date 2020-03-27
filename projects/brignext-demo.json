@@ -17,19 +17,19 @@
           "types": ["exec"]
         }
       ],
+      "container": {
+        "imagePullPolicy": "Always"
+      },
       "workspaceSize": "10Gi",
       "git": {
-        "cloneURL": "https://github.com/brigadecore/empty-testbed.git"
+        "cloneURL": "https://github.com/krancour/empty-testbed.git"
       },
       "kubernetes": {
         "workspaceStorageClass": "nfs"
       },
       "jobs": {
         "allowPrivileged": true,
-        "allowHostMounts": true,
-        "kubernetes": {
-          "cacheStorageClass": "nfs"
-        }
+        "allowHostMounts": true
       }
     }
   }
