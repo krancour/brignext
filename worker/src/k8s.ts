@@ -1,29 +1,14 @@
-/**
- * k8s contains the Kubernetes implementation of Brigade.
- */
+import * as kubernetes from "@kubernetes/client-node"
+import * as jobs from "./brigadier/job"
+import { ContextLogger } from "./brigadier/logger"
+import { BrignextEvent, BrignextWorker } from "./brigadier/events"
+import * as fs from "fs"
+import * as path from "path"
+import * as request from "request"
+import * as byline_1 from "byline"
 
-/** */
+const defaultClient = kubernetes.Config.defaultClient()
 
-import * as kubernetes from "@kubernetes/client-node";
-import * as jobs from "./brigadier/job";
-import { LogLevel, ContextLogger } from "./brigadier/logger";
-import { BrigadeEvent, Project } from "./brigadier/events";
-import * as fs from "fs";
-import * as path from "path";
-import * as request from "request";
-import * as byline_1 from "byline";
-
-// The internals for running tasks. This must be loaded before any of the
-// objects that use run().
-//
-// All Kubernetes API calls should be localized here. Other modules should not
-// call 'kubernetes' directly.
-
-// expiresInMSec is the number of milliseconds until pod expiration
-// After this point, the pod can be garbage collected (a feature not yet implemented)
-const expiresInMSec = 1000 * 60 * 60 * 24 * 30;
-
-const defaultClient = kubernetes.Config.defaultClient();
 const retry = (fn, args, delay, times) => {
   // exponential back-off retry if status is in the 500s
   return fn.apply(defaultClient, args).catch(err => {
@@ -35,227 +20,128 @@ const retry = (fn, args, delay, times) => {
     ) {
       return new Promise(resolve => {
         setTimeout(() => {
-          resolve(retry(fn, args, delay * 2, times - 1));
-        }, delay);
-      });
+          resolve(retry(fn, args, delay * 2, times - 1))
+        }, delay)
+      })
     }
-    return Promise.reject(err);
-  });
-};
+    return Promise.reject(err)
+  })
+}
+
 const wrapClient = fns => {
   // wrap client methods with retry logic
   for (let fn of fns) {
-    let originalFn = defaultClient[fn.name];
+    let originalFn = defaultClient[fn.name]
     defaultClient[fn.name] = function () {
-      return retry(originalFn, arguments, 4000, 5);
-    };
+      return retry(originalFn, arguments, 4000, 5)
+    }
   }
-};
+}
+
 wrapClient([
   defaultClient.readNamespacedPodLog,
   defaultClient.createNamespacedSecret,
   defaultClient.createNamespacedPod,
   defaultClient.deleteNamespacedPod
-]);
+]) 
 
 const getKubeConfig = (): kubernetes.KubeConfig => {
-  const kc = new kubernetes.KubeConfig();
+  const kc = new kubernetes.KubeConfig()
   const config =
-    process.env.KUBECONFIG || path.join(process.env.HOME, ".kube", "config");
+    process.env.KUBECONFIG || path.join(process.env.HOME, ".kube", "config")
   if (fs.existsSync(config)) {
-    kc.loadFromFile(config);
+    kc.loadFromFile(config)
   } else {
-    kc.loadFromCluster();
+    kc.loadFromCluster()
   }
-  return kc;
-};
-const kc = getKubeConfig();
-
-/**
- * options is the set of configuration options for the library.
- *
- * The k8s library provides a backend for the brigade.js objects. But it needs
- * some configuration that is to be passed directly to the library, not via the
- * brigade.js. To allow for this plus overrides (e.g. by Project or Job objects),
- * we maintain a top-level singleton object that holds configuration.
- *
- * It is initially populated with defaults. The defaults can be overridden first
- * by the app (app.ts), then by the project (where allowed). Certain jobs may be
- * allowed to override (or ignore) 'options', though they should never modify
- * it.
- */
-export var options: KubernetesOptions = {
-  serviceAccount: "brigade-worker",
-  mountPath: "/src"
-};
-
-/**
- * KubernetesOptions exposes options for Kubernetes configuration.
- */
-export class KubernetesOptions {
-  serviceAccount: string;
-  mountPath: string;
+  return kc
 }
+
+const kc = getKubeConfig()
 
 class K8sResult implements jobs.Result {
-  data: string;
+  data: string
   constructor(msg: string) {
-    this.data = msg;
+    this.data = msg
   }
   toString(): string {
-    return this.data;
+    return this.data
   }
 }
 
-/**
- * JobRunner provides a Kubernetes implementation of the JobRunner interface.
- */
+// JobRunner provides a Kubernetes implementation of the JobRunner interface.
 export class JobRunner implements jobs.JobRunner {
-  name: string;
-  secret: kubernetes.V1Secret;
-  runner: kubernetes.V1Pod;
-  project: Project;
-  event: BrigadeEvent;
-  job: jobs.Job;
-  client: kubernetes.CoreV1Api;
-  options: KubernetesOptions;
-  serviceAccount: string;
-  logger: ContextLogger;
-  pod: kubernetes.V1Pod;
-  cancel: boolean;
-  reconnect: boolean;
+  name: string
+  
+  event: BrignextEvent
+  worker: BrignextWorker
+  job: jobs.Job
+  
+  client: kubernetes.CoreV1Api
+  logger: ContextLogger
 
-  constructor() { }
+  runner: kubernetes.V1Pod
 
-  /**
-   * init takes a generic so we can run this against mocks as well as against the real Job type.
-   * @param job The Job object
-   * @param e  The event that was fired
-   * @param project  The project in which this job runs
-   * @param allowSecretKeyRef  Allow secretKeyRef in the job's environment
-   */
-  public init<T extends jobs.Job>(job: T, e: BrigadeEvent, project: Project, allowSecretKeyRef: boolean = true) {
-    this.options = Object.assign({}, options);
-    this.event = e;
-    this.logger = new ContextLogger("k8s", e.logLevel);
-    this.job = job;
-    this.project = project;
-    this.client = defaultClient;
-    this.serviceAccount = job.serviceAccount || this.options.serviceAccount;
-    this.pod = undefined;
-    this.cancel = false;
-    this.reconnect = false;
+  cancel: boolean = false
+  reconnect: boolean = false
 
-    // $JOB-$BUILD
-    this.name = `${job.name}-${this.event.buildID}`;
-    let commit = e.revision.commit || "master";
-    let secName = this.name;
-    let runnerName = this.name;
+  // TODO: This `pod` attribute seems to be for reflecting current status of
+  // the worker pod. This stands in contrast to the `runner` attrbiute, whose
+  // role seems only to have to do with defining / creating the worker pod.
+  pod: kubernetes.V1Pod
 
-    this.secret = newSecret(secName);
+  constructor(e: BrignextEvent, w: BrignextWorker, job: jobs.Job) {
+    this.name = `${this.event.id}-${this.worker.name}`
+
+    this.event = e
+    this.worker = w
+    this.job = job
+
+    this.client = defaultClient
+    this.logger = new ContextLogger("k8s", w.logLevel)
+
     this.runner = newRunnerPod(
-      runnerName,
-      job.image,
-      job.imageForcePull,
-      this.serviceAccount,
-      job.resourceRequests,
-      job.resourceLimits,
-      job.annotations,
-      job.shell
-    );
+      this.name,
+      this.event,
+      this.worker,
+      this.job
+    )
 
-    // Experimenting with setting a deadline field after which something
-    // can clean up existing builds.
-    let expiresAt = Date.now() + expiresInMSec;
-
-    this.runner.metadata.labels.jobname = job.name;
-    this.runner.metadata.labels.project = project.id;
-    this.runner.metadata.labels.worker = e.workerID;
-    this.runner.metadata.labels.build = e.buildID;
-
-    this.secret.metadata.labels.jobname = job.name;
-    this.secret.metadata.labels.project = project.id;
-    this.secret.metadata.labels.expires = String(expiresAt);
-    this.secret.metadata.labels.worker = e.workerID;
-    this.secret.metadata.labels.build = e.buildID;
-
-    let envVars: kubernetes.V1EnvVar[] = [];
+    // TODO: A lot of this and a lot of what follows can probably be moved into
+    // the newRunnerPod function.
+    let envVars: kubernetes.V1EnvVar[] = []
     for (let key in job.env) {
-      let val = job.env[key];
-
-      if (typeof val === "string") {
-        // For environmental variables that are submitted as strings,
-        // add to the job's secret and add a reference.
-
-        this.secret.data[key] = b64enc(val);
-        // Add reference to pod
-        envVars.push({
+      let val = job.env[key]
+      envVars.push(
+        {
           name: key,
-          valueFrom: {
-            secretKeyRef: {
-              name: secName,
-              key: key
-            }
-          }
-        } as kubernetes.V1EnvVar);
-      } else if (val === null) {
-        envVars.push({
-          name: key,
-          value: ""
-        } as kubernetes.V1EnvVar);
-      } else {
-        // For environmental variables that are directly references,
-        // add the reference to the env var list.
-
-        if (val.secretKeyRef != null && !allowSecretKeyRef) {
-          // allowSecretKeyRef is not to true so disallow setting secrets in the environment
-          this.logger.warn(`Using secretKeyRef is not allowed in this project, not setting environment variable ${key}`);
-          continue
+          value: val
         }
-
-        envVars.push({
-          name: key,
-          valueFrom: val
-        } as kubernetes.V1EnvVar);
-      }
+      )
     }
 
-    this.runner.spec.containers[0].env = envVars;
+    this.runner.spec.containers[0].env = envVars
 
-    let mountPath = job.mountPath || this.options.mountPath;
-
-    // Add secret volume
-    this.runner.spec.volumes = [
-      { name: secName, secret: { secretName: secName } } as kubernetes.V1Volume
-    ];
-    this.runner.spec.containers[0].volumeMounts = [
-      { name: secName, mountPath: "/hook" } as kubernetes.V1VolumeMount
-    ];
-
-    this.runner.spec.initContainers = [];
-    if (job.useSource && project.repo.cloneURL && project.kubernetes.vcsSidecar) {
-      // Add the sidecar.
-      let sidecar = sidecarSpec(
-        e,
-        "/src",
-        project.kubernetes.vcsSidecar,
-        project
-      );
-      this.runner.spec.initContainers = [sidecar];
+    this.runner.spec.initContainers = []
+    if (job.useSource && this.worker.git.cloneURL != "") {
+      // Add the VCS init container.
+      this.runner.spec.initContainers = [
+        vcsInitContainerSpec(e, w, "/src")
+      ]
 
       // Add volume/volume mounts
       this.runner.spec.volumes.push(
-        { name: "vcs-sidecar", emptyDir: {} } as kubernetes.V1Volume
-      );
+        { name: "vcs", emptyDir: {} } as kubernetes.V1Volume
+      )
       this.runner.spec.containers[0].volumeMounts.push(
-        { name: "vcs-sidecar", mountPath: mountPath } as kubernetes.V1VolumeMount
-      );
+        { name: "vcs", mountPath: "/var/vcs" } as kubernetes.V1VolumeMount
+      )
     }
 
     if (job.imagePullSecrets) {
-      this.runner.spec.imagePullSecrets = [];
+      this.runner.spec.imagePullSecrets = []
       for (let secret of job.imagePullSecrets) {
-        this.runner.spec.imagePullSecrets.push({ name: secret });
+        this.runner.spec.imagePullSecrets.push({ name: secret })
       }
     }
 
@@ -263,69 +149,68 @@ export class JobRunner implements jobs.JobRunner {
     if (job.host.os) {
       this.runner.spec.nodeSelector = {
         "beta.kubernetes.io/os": job.host.os
-      };
+      }
     }
     if (job.host.name) {
-      this.runner.spec.nodeName = job.host.name;
+      this.runner.spec.nodeName = job.host.name
     }
     if (job.host.nodeSelector && job.host.nodeSelector.size > 0) {
       if (!this.runner.spec.nodeSelector) {
-        this.runner.spec.nodeSelector = {};
+        this.runner.spec.nodeSelector = {}
       }
       for (const k of job.host.nodeSelector.keys()) {
-        this.runner.spec.nodeSelector[k] = job.host.nodeSelector.get(k);
+        this.runner.spec.nodeSelector[k] = job.host.nodeSelector.get(k)
       }
     }
 
     // If the job needs access to a docker daemon, mount in the host's docker socket
-    if (job.docker.enabled && project.allowHostMounts) {
-      var dockerVol = new kubernetes.V1Volume();
-      var dockerMount = new kubernetes.V1VolumeMount();
-      var hostPath = new kubernetes.V1HostPathVolumeSource();
-      hostPath.path = jobs.dockerSocketMountPath;
-      dockerVol.name = jobs.dockerSocketMountName;
-      dockerVol.hostPath = hostPath;
-      dockerMount.name = jobs.dockerSocketMountName;
-      dockerMount.mountPath = jobs.dockerSocketMountPath;
-      this.runner.spec.volumes.push(dockerVol);
+    if (job.docker.enabled && this.worker.jobs.allowHostMounts) {
+      var dockerVol = new kubernetes.V1Volume()
+      var dockerMount = new kubernetes.V1VolumeMount()
+      var hostPath = new kubernetes.V1HostPathVolumeSource()
+      hostPath.path = jobs.dockerSocketMountPath
+      dockerVol.name = jobs.dockerSocketMountName
+      dockerVol.hostPath = hostPath
+      dockerMount.name = jobs.dockerSocketMountName
+      dockerMount.mountPath = jobs.dockerSocketMountPath
+      this.runner.spec.volumes.push(dockerVol)
       for (let i = 0; i < this.runner.spec.containers.length; i++) {
-        this.runner.spec.containers[i].volumeMounts.push(dockerMount);
+        this.runner.spec.containers[i].volumeMounts.push(dockerMount)
       }
     }
 
     if (job.args.length > 0) {
-      this.runner.spec.containers[0].args = job.args;
+      this.runner.spec.containers[0].args = job.args
     }
 
-    let newCmd = generateScript(job);
+    let newCmd = generateScript(job)
     if (!newCmd) {
-      this.runner.spec.containers[0].command = null;
+      this.runner.spec.containers[0].command = null
     } else {
-      this.secret.data["main.sh"] = b64enc(newCmd);
+      this.secret.data["main.sh"] = b64enc(newCmd)
     }
 
     // If the job asks for privileged mode and the project allows this, enable it.
-    if (job.privileged && project.allowPrivilegedJobs) {
+    if (job.privileged && this.worker.jobs.allowPrivileged) {
       for (let i = 0; i < this.runner.spec.containers.length; i++) {
-        this.runner.spec.containers[i].securityContext.privileged = true;
+        this.runner.spec.containers[i].securityContext.privileged = true
       }
     }
-    return this;
+    return this
   }
 
   public logs(): Promise<string> {
-    let podName = this.name;
-    let k = this.client;
-    let ns = this.project.kubernetes.namespace;
+    let podName = this.name
+    let k = this.client
     if (this.cancel && this.pod == undefined || this.pod.status.phase == "Pending") {
       return Promise.resolve<string>(
         "pod " + podName + " still unscheduled or pending when job was canceled; no logs to return.")
     }
     return Promise.resolve<string>(
-      k.readNamespacedPodLog(podName, ns).then(result => {
-        return result.body;
+      k.readNamespacedPodLog(podName, this.event.kubernetes.namespace).then(result => {
+        return result.body
       })
-    );
+    )
   }
 
   /**
@@ -338,97 +223,93 @@ export class JobRunner implements jobs.JobRunner {
     return this.start()
       .then(r => r.wait())
       .then(r => {
-        return this.logs();
+        return this.logs()
       })
       .then(response => {
-        return new K8sResult(response);
-      });
+        return new K8sResult(response)
+      })
   }
 
   /** start begins a job, and returns once it is scheduled to run.*/
   public start(): Promise<jobs.JobRunner> {
     // Now we have pod and a secret defined. Time to create them.
 
-    let ns = this.project.kubernetes.namespace;
-    let k = this.client;
+    let k = this.client
 
     return new Promise((resolve, reject) => {
-      k.createNamespacedSecret(ns, this.secret)
+      k.createNamespacedSecret(this.event.kubernetes.namespace, this.secret)
         .then(result => {
-          this.logger.log("Creating pod " + this.runner.metadata.name);
+          this.logger.log("Creating pod " + this.runner.metadata.name)
           // Once namespace creation has been accepted, we create the pod.
-          return k.createNamespacedPod(ns, this.runner);
+          return k.createNamespacedPod(this.event.kubernetes.namespace, this.runner)
         })
         .then(result => {
-          resolve(this);
+          resolve(this)
         })
         .catch(reason => {
-          reject(new Error(reason.body.message));
-        });
-    });
+          reject(new Error(reason.body.message))
+        })
+    })
   }
 
   /**
    * update pod info on event using watch
    */
   private startUpdatingPod(): request.Request {
-    const url = `${kc.getCurrentCluster().server}/api/v1/namespaces/${
-      this.project.kubernetes.namespace
-      }/pods`;
+    const url = `${kc.getCurrentCluster().server}/api/v1/namespaces/${this.event.kubernetes.namespace}/pods`
     const requestOptions = {
       qs: {
         watch: true,
         timeoutSeconds: 200,
-        labelSelector: `build=${this.event.buildID},jobname=${this.job.name}`
+        labelSelector: `project=${this.event.projectID},event=${this.event.id},worker=${this.worker.name},job=${this.job.name}`
       },
       method: "GET",
       uri: url,
       useQuerystring: true,
       json: true
-    };
-    kc.applyToRequest(requestOptions);
-    const stream = new byline_1.LineStream();
+    }
+    kc.applyToRequest(requestOptions)
+    const stream = new byline_1.LineStream()
     stream.on("data", data => {
-      let obj = null;
+      let obj = null
       try {
         if (data instanceof Buffer) {
-          obj = JSON.parse(data.toString());
+          obj = JSON.parse(data.toString())
         } else {
-          obj = JSON.parse(data);
+          obj = JSON.parse(data)
         }
       } catch (e) { } //let it stay connected.
       if (obj && obj.object) {
-        this.pod = obj.object as kubernetes.V1Pod;
+        this.pod = obj.object as kubernetes.V1Pod
       }
-    });
+    })
     const req = request(requestOptions, (error, response, body) => {
       if (error) {
-        this.logger.error(error.body.message);
-        this.reconnect = true; //reconnect unless aborted
+        this.logger.error(error.body.message)
+        this.reconnect = true //reconnect unless aborted
       }
-    });
-    req.pipe(stream);
+    })
+    req.pipe(stream)
     req.on("end", () => {
-      this.reconnect = true;
-    }); //stay connected on transient faults
-    return req;
+      this.reconnect = true
+    }) //stay connected on transient faults
+    return req
   }
 
   /** wait listens for the running job to complete.*/
   public wait(): Promise<jobs.Result> {
     // Should probably protect against the case where start() was not called
-    let k = this.client;
-    let timeout = this.job.timeout || 60000;
-    let name = this.name;
-    let ns = this.project.kubernetes.namespace;
-    let podUpdater: request.Request = undefined;
+    let k = this.client
+    let timeout = this.job.timeout || 60000
+    let name = this.name
+    let podUpdater: request.Request = undefined
 
     // This is a handle to clear the setTimeout when the promise is fulfilled.
-    let waiter;
+    let waiter
     // Handle to abort the request on completion and only to ensure that we hook the 'follow logs' events only once
-    let followLogsRequest: request.Request = null;
+    let followLogsRequest: request.Request = null
 
-    this.logger.log(`Timeout set at ${timeout} milliseconds`);
+    this.logger.log(`Timeout set at ${timeout} milliseconds`)
 
     // At intervals, poll the Kubernetes server and get the pod phase. If the
     // phase is Succeeded or Failed, bail out. Otherwise, keep polling.
@@ -444,40 +325,40 @@ export class JobRunner implements jobs.JobRunner {
     let poll = new Promise((resolve, reject) => {
       let pollOnce = (name, ns, i) => {
         if (!podUpdater) {
-          podUpdater = this.startUpdatingPod();
+          podUpdater = this.startUpdatingPod()
         } else if (!this.cancel && this.reconnect) {
           //if not intentionally cancelled, reconnect
-          this.reconnect = false;
+          this.reconnect = false
           try {
-            podUpdater.abort();
+            podUpdater.abort()
           } catch (e) {
-            this.logger.log(e);
+            this.logger.log(e)
           }
-          podUpdater = this.startUpdatingPod();
+          podUpdater = this.startUpdatingPod()
         }
         if (!this.pod || this.pod.status == undefined) {
-          this.logger.log("Pod not yet scheduled");
-          return;
+          this.logger.log("Pod not yet scheduled")
+          return
         }
 
-        let phase = this.pod.status.phase;
+        let phase = this.pod.status.phase
         if (phase == "Succeeded") {
-          clearTimers();
-          let result = new K8sResult(phase);
-          resolve(result);
+          clearTimers()
+          let result = new K8sResult(phase)
+          resolve(result)
         }
         // make sure Pod is running before we start following its logs
         else if (phase == "Running") {
           // do that only if we haven't hooked up the follow request before
           if (followLogsRequest == null && this.job.streamLogs) {
-            followLogsRequest = followLogs(this.pod.metadata.namespace, this.pod.metadata.name);
+            followLogsRequest = followLogs(this.pod.metadata.namespace, this.pod.metadata.name)
           }
         } else if (phase == "Failed") {
-          clearTimers();
-          reject(new Error(`Pod ${name} failed to run to completion`));
+          clearTimers()
+          reject(new Error(`Pod ${name} failed to run to completion`))
         } else if (phase == "Pending") {
           // Trap image pull errors and consider them fatal.
-          let cs = this.pod.status.containerStatuses;
+          let cs = this.pod.status.containerStatuses
           if (
             cs &&
             cs.length > 0 &&
@@ -489,38 +370,38 @@ export class JobRunner implements jobs.JobRunner {
               ns,
               "true",
               new kubernetes.V1DeleteOptions()
-            ).catch(e => this.logger.error(e.body.message));
-            clearTimers();
-            reject(new Error(cs[0].state.waiting.message));
+            ).catch(e => this.logger.error(e.body.message))
+            clearTimers()
+            reject(new Error(cs[0].state.waiting.message))
           }
         }
         if (!this.job.streamLogs || (this.job.streamLogs && this.pod.status.phase != "Running")) {
           // don't display "Running" when we're asked to display job Pod logs
-          this.logger.log(`${this.pod.metadata.namespace}/${this.pod.metadata.name} phase ${this.pod.status.phase}`);
+          this.logger.log(`${this.pod.metadata.namespace}/${this.pod.metadata.name} phase ${this.pod.status.phase}`)
         }
         // In all other cases we fall through and let the fn be run again.
-      };
+      }
       let interval = setInterval(() => {
         if (this.cancel) {
-          podUpdater.abort();
-          clearInterval(interval);
-          clearTimeout(waiter);
-          return;
+          podUpdater.abort()
+          clearInterval(interval)
+          clearTimeout(waiter)
+          return
         }
-        pollOnce(name, ns, interval);
-      }, 2000);
+        pollOnce(name, this.event.kubernetes.namespace, interval)
+      }, 2000)
       let clearTimers = () => {
-        podUpdater.abort();
-        clearInterval(interval);
-        clearTimeout(waiter);
+        podUpdater.abort()
+        clearInterval(interval)
+        clearTimeout(waiter)
         if (followLogsRequest != null) {
-          followLogsRequest.abort();
+          followLogsRequest.abort()
         }
-      };
+      }
 
       // follows logs for the specified namespace/Pod combination
       let followLogs = (namespace: string, podName: string): request.Request => {
-        const url = `${kc.getCurrentCluster().server}/api/v1/namespaces/${namespace}/pods/${podName}/log`;
+        const url = `${kc.getCurrentCluster().server}/api/v1/namespaces/${namespace}/pods/${podName}/log`
         //https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#pod-v1-core
         const requestOptions = {
           qs: {
@@ -530,352 +411,159 @@ export class JobRunner implements jobs.JobRunner {
           method: "GET",
           uri: url,
           useQuerystring: true
-        };
-        kc.applyToRequest(requestOptions);
-        const stream = new byline_1.LineStream();
+        }
+        kc.applyToRequest(requestOptions)
+        const stream = new byline_1.LineStream()
         stream.on("data", data => {
-          let logs = null;
+          let logs = null
           try {
             if (data instanceof Buffer) {
-              logs = data.toString();
+              logs = data.toString()
             } else {
-              logs = data;
+              logs = data
             }
             this.logger.log(
               `${this.pod.metadata.namespace}/${this.pod.metadata.name} logs ${logs}`
-            );
+            )
           } catch (e) { } //let it stay connected.
-        });
+        })
         const req = request(requestOptions, (error, response, body) => {
           if (error) {
             if (error.body) {
-              this.logger.error(error.body.message);
+              this.logger.error(error.body.message)
             }
-            this.reconnect = true; //reconnect unless aborted
+            this.reconnect = true //reconnect unless aborted
           }
-        });
-        req.pipe(stream);
-        return req;
+        })
+        req.pipe(stream)
+        return req
       }
 
-    });
+    })
 
     // This will fail if the timelimit is reached.
     let timer = new Promise((solve, reject) => {
       waiter = setTimeout(() => {
-        this.cancel = true;
-        reject(new Error("time limit (" + timeout + " ms) exceeded"));
-      }, timeout);
-    });
+        this.cancel = true
+        reject(new Error("time limit (" + timeout + " ms) exceeded"))
+      }, timeout)
+    })
 
-    return Promise.race([poll, timer]);
+    return Promise.race([poll, timer])
   }
 
 }
 
-function sidecarSpec(
-  e: BrigadeEvent,
-  local: string,
-  image: string,
-  project: Project
+function vcsInitContainerSpec(
+  e: BrignextEvent,
+  w: BrignextWorker,
+  local: string
 ): kubernetes.V1Container {
-  var imageTag = image;
-  let initGitSubmodules = project.repo.initGitSubmodules;
-
-  if (!imageTag) {
-    imageTag = "brigadecore/git-sidecar:latest";
-  }
-
-  // Try to get cloneURL from the event first. This allows gateways to override
-	// the project-level cloneURL if the commit that should be built, for
-	// instance, exists only within a fork. If this isn't set at the event-level,
-	// fall back to the project-level default.
-  let cloneURL = e.cloneURL;
-  if (cloneURL == "") {
-    cloneURL = project.repo.cloneURL
-  }
-
-  let spec = new kubernetes.V1Container();
-  (spec.name = "vcs-sidecar"),
-    (spec.env = [
-      envVar("CI", "true"),
-      envVar("BRIGADE_BUILD_ID", e.buildID),
-      envVar("BRIGADE_COMMIT_ID", e.revision.commit),
-      envVar("BRIGADE_COMMIT_REF", e.revision.ref),
-      envVar("BRIGADE_EVENT_PROVIDER", e.provider),
-      envVar("BRIGADE_EVENT_TYPE", e.type),
-      envVar("BRIGADE_PROJECT_ID", project.id),
-      envVar("BRIGADE_REMOTE_URL", cloneURL),
-      envVar("BRIGADE_WORKSPACE", local),
-      envVar("BRIGADE_PROJECT_NAMESPACE", project.kubernetes.namespace),
-      envVar("BRIGADE_SUBMODULES", initGitSubmodules.toString()),
-      envVar("BRIGADE_LOG_LEVEL", LogLevel[e.logLevel])
-    ]);
-  spec.image = imageTag;
-  (spec.imagePullPolicy = "IfNotPresent"),
-    (spec.volumeMounts = [volumeMount("vcs-sidecar", local)]);
-
-  if (project.repo.sshKey) {
-    spec.env.push({
-      name: "BRIGADE_REPO_KEY",
-      valueFrom: {
-        secretKeyRef: {
-          key: "sshKey",
-          name: project.id
-        }
-      }
-    } as kubernetes.V1EnvVar);
-    spec.env.push({
-      name: "BRIGADE_REPO_SSH_CERT",
-      valueFrom: {
-        secretKeyRef: {
-          key: "sshCert",
-          name: project.id
-        }
-      }
-    } as kubernetes.V1EnvVar);
-
-  }
-
-  if (project.repo.token) {
-    spec.env.push({
-      name: "BRIGADE_REPO_AUTH_TOKEN",
-      valueFrom: {
-        secretKeyRef: {
-          key: "github.token",
-          name: project.id
-        }
-      }
-    } as kubernetes.V1EnvVar);
-  }
-
-  spec.resources = new kubernetes.V1ResourceRequirements();
-  spec.resources.limits = {};
-  spec.resources.requests = {};
-  if (project.kubernetes.vcsSidecarResourcesLimitsCPU) {
-    spec.resources.limits["cpu"] =
-      project.kubernetes.vcsSidecarResourcesLimitsCPU;
-  }
-  if (project.kubernetes.vcsSidecarResourcesLimitsMemory) {
-    spec.resources.limits["memory"] =
-      project.kubernetes.vcsSidecarResourcesLimitsMemory;
-  }
-  if (project.kubernetes.vcsSidecarResourcesRequestsCPU) {
-    spec.resources.requests["cpu"] =
-      project.kubernetes.vcsSidecarResourcesRequestsCPU;
-  }
-  if (project.kubernetes.vcsSidecarResourcesRequestsMemory) {
-    spec.resources.requests["memory"] =
-      project.kubernetes.vcsSidecarResourcesRequestsMemory;
-  }
-
-  return spec;
+  let spec = new kubernetes.V1Container()
+  spec.name = "vcs"
+  spec.env = [
+    envVar("BRIGADE_REMOTE_URL", w.git.cloneURL),
+    envVar("BRIGADE_COMMIT_ID", w.git.commit),
+    envVar("BRIGADE_COMMIT_REF", w.git.ref),
+    envVar("BRIGADE_WORKSPACE", "/var/vcs"),
+    envVar("BRIGADE_SUBMODULES", w.git.initSubmodules.toString())
+  ]
+  spec.image = "brigadecore/git-sidecar:latest"
+  spec.imagePullPolicy = "Always"
+  spec.volumeMounts = [volumeMount("vcs", local)]
+  return spec
 }
 
 function newRunnerPod(
   podname: string,
-  brigadeImage: string,
-  imageForcePull: boolean,
-  serviceAccount: string,
-  resourceRequests: jobs.JobResourceRequest,
-  resourceLimits: jobs.JobResourceLimit,
-  jobAnnotations: { [key: string]: string },
-  jobShell: string
+  e: BrignextEvent,
+  w: BrignextWorker,
+  j: jobs.Job
 ): kubernetes.V1Pod {
-  let pod = new kubernetes.V1Pod();
-  pod.metadata = new kubernetes.V1ObjectMeta();
-  pod.metadata.name = podname;
+  let pod = new kubernetes.V1Pod()
+  pod.metadata = new kubernetes.V1ObjectMeta()
+  pod.metadata.name = podname
   pod.metadata.labels = {
-    heritage: "brigade",
-    component: "job"
-  };
-  pod.metadata.annotations = jobAnnotations;
+    "brignext.io/component": "job",
+    "brignext.io/project": e.projectID,
+    "brignext.io/event": e.id,
+    "brignext.io/worker": w.name,
+    "brignext.io/job": "job"
+  }
+  pod.metadata.annotations = j.annotations
 
-  let c1 = new kubernetes.V1Container();
-  c1.name = "brigaderun";
-  c1.image = brigadeImage;
+  let c1 = new kubernetes.V1Container()
+  c1.name = "brigaderun"
+  c1.image = j.image
 
+  let jobShell = j.shell
   if (jobShell == "") {
-    jobShell = "/bin/sh";
+    jobShell = "/bin/sh"
   }
-  c1.command = [jobShell, "/hook/main.sh"];
+  c1.command = [jobShell, "/hook/main.sh"]
 
-  c1.imagePullPolicy = imageForcePull ? "Always" : "IfNotPresent";
-  c1.securityContext = new kubernetes.V1SecurityContext();
+  c1.imagePullPolicy = j.imageForcePull ? "Always" : "IfNotPresent"
+  c1.securityContext = new kubernetes.V1SecurityContext()
 
-  // Setup pod container resources (requests and limits).
-  let resourceRequirements = new kubernetes.V1ResourceRequirements();
-  if (resourceRequests) {
-    resourceRequirements.requests = {
-      cpu: resourceRequests.cpu,
-      memory: resourceRequests.memory
-    };
-  }
-  if (resourceLimits) {
-    resourceRequirements.limits = {
-      cpu: resourceLimits.cpu,
-      memory: resourceLimits.memory
-    };
-  }
-
-  c1.resources = resourceRequirements;
-  pod.spec = new kubernetes.V1PodSpec();
-  pod.spec.containers = [c1];
-  pod.spec.restartPolicy = "Never";
-  pod.spec.serviceAccount = serviceAccount;
-  pod.spec.serviceAccountName = serviceAccount;
-  return pod;
-}
-
-function newSecret(name: string): kubernetes.V1Secret {
-  let s = new kubernetes.V1Secret();
-  s.type = "brigade.sh/job";
-  s.metadata = new kubernetes.V1ObjectMeta();
-  s.metadata.name = name;
-  s.metadata.labels = {
-    heritage: "brigade",
-    component: "job"
-  };
-  s.data = {}; //{"main.sh": b64enc("echo hello && echo goodbye")}
-
-  return s;
+  
+  pod.spec = new kubernetes.V1PodSpec()
+  pod.spec.containers = [c1]
+  pod.spec.restartPolicy = "Never"
+  pod.spec.serviceAccount = "jobs"
+  pod.spec.serviceAccountName = "jobs"
+  return pod
 }
 
 function envVar(key: string, value: string): kubernetes.V1EnvVar {
-  let e = new kubernetes.V1EnvVar();
-  e.name = key;
-  e.value = value;
-  return e;
+  let e = new kubernetes.V1EnvVar()
+  e.name = key
+  e.value = value
+  return e
 }
 
 function volumeMount(
   name: string,
   mountPath: string
 ): kubernetes.V1VolumeMount {
-  let v = new kubernetes.V1VolumeMount();
-  v.name = name;
-  v.mountPath = mountPath;
-  return v;
+  let v = new kubernetes.V1VolumeMount()
+  v.name = name
+  v.mountPath = mountPath
+  return v
 }
 
 export function b64enc(original: string): string {
-  return Buffer.from(original).toString("base64");
+  return Buffer.from(original).toString("base64")
 }
 
 export function b64dec(encoded: string): string {
-  return Buffer.from(encoded, "base64").toString("utf8");
+  return Buffer.from(encoded, "base64").toString("utf8")
 }
 
 function generateScript(job: jobs.Job): string | null {
   if (job.tasks.length == 0) {
-    return null;
+    return null
   }
-  let newCmd = "#!" + job.shell + "\n\n";
+  let newCmd = "#!" + job.shell + "\n\n"
 
   // if shells that support the `set` command are selected, let's add some sane defaults
   switch (job.shell) {
     case "/bin/sh":
       // The -e option will cause a bash script to exit immediately when a command fails
-      newCmd += "set -e\n\n";
-      break;
+      newCmd += "set -e\n\n"
+      break 
     case "/bin/bash":
       // The -e option will cause a bash script to exit immediately when a command fails
       // The -o pipefail option sets the exit code of a pipeline to that of the rightmost command
       // to exit with a non-zero status, or to zero if all commands of the pipeline exit successfully.
-      newCmd += "set -eo pipefail\n\n";
-      break;
+      newCmd += "set -eo pipefail\n\n"
+      break
     default:
       // No-op currently
   }
 
   // Join the tasks to make a new command:
   if (job.tasks) {
-    newCmd += job.tasks.join("\n");
+    newCmd += job.tasks.join("\n") 
   }
-  return newCmd;
-}
-
-/**
- * secretToProject transforms a properly formatted Secret into a Project.
- *
- * This is exported for testability, and is not considered part of the stable API.
- */
-export function secretToProject(
-  ns: string,
-  secret: kubernetes.V1Secret
-): Project {
-  let p: Project = {
-    id: secret.metadata.name,
-    name: secret.metadata.annotations["projectName"],
-    kubernetes: {
-      namespace: secret.metadata.namespace || ns,
-      vcsSidecar: "",
-      vcsSidecarResourcesLimitsCPU: "",
-      vcsSidecarResourcesLimitsMemory: "",
-      vcsSidecarResourcesRequestsCPU: "",
-      vcsSidecarResourcesRequestsMemory: ""
-    },
-    secrets: {},
-    allowPrivilegedJobs: true,
-    allowHostMounts: false
-  };
-  if (secret.data.repository != null) {
-    // For legacy/backwards-compatibility reasons,
-    // we set project name and repo name to the following values,
-    // despite the fact that they should logically be swapped.
-    p.name = b64dec(secret.data.repository)
-    p.repo = {
-      name: secret.metadata.annotations["projectName"],
-      cloneURL: null,
-      initGitSubmodules: false
-    }
-  }
-  if (secret.data.vcsSidecar) {
-    p.kubernetes.vcsSidecar = b64dec(secret.data.vcsSidecar);
-  }
-  if (secret.data["vcsSidecarResources.limits.cpu"]) {
-    p.kubernetes.vcsSidecarResourcesLimitsCPU = b64dec(
-      secret.data["vcsSidecarResources.limits.cpu"]
-    );
-  }
-  if (secret.data["vcsSidecarResources.limits.memory"]) {
-    p.kubernetes.vcsSidecarResourcesLimitsMemory = b64dec(
-      secret.data["vcsSidecarResources.limits.memory"]
-    );
-  }
-  if (secret.data["vcsSidecarResources.requests.cpu"]) {
-    p.kubernetes.vcsSidecarResourcesRequestsCPU = b64dec(
-      secret.data["vcsSidecarResources.requests.cpu"]
-    );
-  }
-  if (secret.data["vcsSidecarResources.requests.memory"]) {
-    p.kubernetes.vcsSidecarResourcesRequestsMemory = b64dec(
-      secret.data["vcsSidecarResources.requests.memory"]
-    );
-  }
-  if (secret.data.cloneURL) {
-    p.repo.cloneURL = b64dec(secret.data.cloneURL);
-  }
-  if (secret.data.initGitSubmodules) {
-    p.repo.initGitSubmodules = b64dec(secret.data.initGitSubmodules) == "true";
-  }
-  if (secret.data.secrets) {
-    p.secrets = JSON.parse(b64dec(secret.data.secrets));
-  }
-  if (secret.data.allowPrivilegedJobs) {
-    p.allowPrivilegedJobs = b64dec(secret.data.allowPrivilegedJobs) == "true";
-  }
-  if (secret.data.allowHostMounts) {
-    p.allowHostMounts = b64dec(secret.data.allowHostMounts) == "true";
-  }
-  if (secret.data.sshKey) {
-    p.repo.sshKey = b64dec(secret.data.sshKey);
-  }
-  if (secret.data.sshCert) {
-    p.repo.sshCert = b64dec(secret.data.sshCert);
-  }
-  if (secret.data["github.token"]) {
-    p.repo.token = b64dec(secret.data["github.token"]);
-  }
-  return p;
+  return newCmd
 }
