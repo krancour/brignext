@@ -18,15 +18,7 @@ export enum LogLevel {
   NONE
 }
 
-export interface Logger {
-  logLevel: LogLevel
-  error(message?: any, ...optionalParams: any[]): void
-  warn(message?: any, ...optionalParams: any[]): void
-  info(message?: any, ...optionalParams: any[]): void
-  log(message?: any, ...optionalParams: any[]): void
-}
-
-export class ContextLogger implements Logger {
+export class Logger {
   context: string
   logLevel: LogLevel
   constructor(ctx: string[] | string = [], logLevel = LogLevel.LOG) {

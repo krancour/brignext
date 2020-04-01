@@ -4,16 +4,14 @@ const defaultTimeout: number = 1000 * 60 * 15
 
 const brigadeImage: string = "debian:jessie-slim"
 
-export const dockerSocketMountPath = "/var/run/docker.sock"
-export const dockerSocketMountName = "docker-socket"
-
-export interface JobRunner {
-  start(): Promise<JobRunner>
-  wait(): Promise<Result>
-}
-
-export interface Result {
-  toString(): string
+export class Result {
+  data: string
+  constructor(msg: string) {
+    this.data = msg
+  }
+  toString(): string {
+    return this.data
+  }
 }
 
 export class JobHost {
@@ -39,14 +37,12 @@ export abstract class Job {
   public env: { [key: string]: string }
   public image: string = brigadeImage
   public imageForcePull: boolean = false
-  public imagePullSecrets: string[] = []
   public mountPath: string = "/src"
   public timeout: number = defaultTimeout
   public useSource: boolean = true
   public privileged: boolean = false
   public host: JobHost
   public docker: JobDockerMount
-  public annotations: { [key: string]: string } = {}
   public streamLogs: boolean = false
 
   constructor(

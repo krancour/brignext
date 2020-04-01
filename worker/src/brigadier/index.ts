@@ -1,28 +1,22 @@
-import * as jobImpl from "./job"
-import * as groupImpl from "./group"
-import * as eventsImpl from "./events"
+import * as jobs from "./jobs"
+import * as groups from "./groups"
+import { EventRegistry } from "./events"
 
 // events is the main event registry
-export var events = new eventsImpl.EventRegistry()
+export let events = new EventRegistry()
 
-export function fire(e: eventsImpl.BrignextEvent) {
-  events.fire(e)
-}
+export class Job extends jobs.Job {
 
-export class Job extends jobImpl.Job {
-  public runResponse: string = "skipped run"
-  public logsResponse: string = "skipped logs"
-
-  run(): Promise<jobImpl.Result> {
-      return Promise.resolve(this.runResponse)
+  run(): Promise<jobs.Result> {
+    return Promise.resolve(new jobs.Result("skipped run"))
   }
 
   logs(): Promise<string> {
-      return Promise.resolve(this.logsResponse)
+    return Promise.resolve("skipped logs")
   }
+  
 }
 
-export class Group extends groupImpl.Group {
+export class Group extends groups.Group {
   // This seems to be how you expose an existing class as an export.
 }
-

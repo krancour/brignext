@@ -1,10 +1,13 @@
 import * as fs from "fs"
 import * as moduleAlias from "module-alias"
 import * as path from "path"
-import { run } from "./app"
-import { ContextLogger, LogLevel } from "./brigadier/logger"
 
-const logger = new ContextLogger([], LogLevel["LOG"])
+import { Logger, LogLevel } from "./brigadier/logger"
+import { Event } from "./brigadier/events"
+import { Worker } from "./workers"
+import * as brigadier from "./brigadier"
+
+const logger = new Logger([], LogLevel["LOG"])
 const version = require("../package.json").version
 logger.log(`brigade-worker version: ${version}`)
 
@@ -12,7 +15,7 @@ const scriptLocations = [
   "/var/vcs/brigade.js"
 ]
 
-var script: string = ""
+let script: string = ""
 for (let scriptLocation of scriptLocations) {
   if (fs.existsSync(scriptLocation) && fs.readFileSync(scriptLocation, "utf8") != "") {
     script = scriptLocation
@@ -41,8 +44,8 @@ if (script) {
 
     // For entry scripts outside /vcs only, rewrite dot-slash-prefixed requires
     // to be rooted at `/vcs`.
-    if (!fromPath.startsWith("/vcs") && fromPath === realScriptPath) {
-      return "/vcs"
+    if (!fromPath.startsWith("/var/vcs") && fromPath === realScriptPath) {
+      return "/var/vcs"
     }
 
     // For all other dot-slash-prefixed requires, resolve as usual.
@@ -58,4 +61,21 @@ if (script) {
   require(script)
 }
 
-run()
+const event: Event = require("/var/event/event.json")
+const worker: Worker = require("/var/worker/worker.json")
+
+let exitCode: number = 0
+
+process.on("unhandledRejection", (reason: any, p: Promise<any>) => {
+  logger.error(reason)
+  exitCode = 1
+})
+
+process.on("exit", code => {
+  if (exitCode != 0) {
+    process.exit(exitCode)
+  }
+})
+
+brigadier.fire(event, worker)
+
