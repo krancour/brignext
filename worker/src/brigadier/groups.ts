@@ -2,12 +2,12 @@ import { Job, Result } from "./jobs"
 
 export class Group {
 
-  public static runAll(jobs: Job[]): Promise<Result[]> {
+  public static async runAll(jobs: Job[]): Promise<Result[]> {
     let g = new Group(jobs)
     return g.runAll()
   }
 
-  public static runEach(jobs: Job[]): Promise<Result[]> {
+  public static async runEach(jobs: Job[]): Promise<Result[]> {
     let g = new Group(jobs)
     return g.runEach()
   }
@@ -28,22 +28,16 @@ export class Group {
     return this.jobs.length
   }
 
-  public runEach(): Promise<Result[]> {
-    // TODO: Rewrite this using async/await, which will make it much cleaner.
-    return this.jobs.reduce(
-      (promise: Promise<Result[]>, job: Job) => {
-        return promise.then((results: Result[]) => {
-          return job.run().then(jobResult => {
-            results.push(jobResult)
-            return results
-          })
-        })
-      },
-      Promise.resolve([])
-    )
+  public async runEach(): Promise<Result[]> {
+    let results: Result[] = []
+    for (let job of this.jobs) {
+      let result = await job.run()
+      results.push(result)
+    }
+    return results
   }
 
-  public runAll(): Promise<Result[]> {
+  public async runAll(): Promise<Result[]> {
     let plist: Promise<Result>[] = []
     for (let j of this.jobs) {
       plist.push(j.run())

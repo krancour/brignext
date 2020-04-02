@@ -79,7 +79,7 @@ export class Job extends jobs.Job {
       }
       await this.wait()
       let logs = await this.logs()
-      return Promise.resolve(new jobs.Result(logs))
+      return new jobs.Result(logs)
     }
     catch(err) {
       // Wrap the original error to give clear context.
@@ -503,17 +503,21 @@ export class Job extends jobs.Job {
 
   async logs(): Promise<string> {
     if (this.cancel && this.pod == undefined || this.pod.status.phase == "Pending") {
-      return Promise.resolve<string>(
-        "pod " + this.podName + " still unscheduled or pending when job was canceled; no logs to return.")
+      return "pod " + this.podName + " still unscheduled or pending when job was canceled; no logs to return."
     }
-    return Promise.resolve<string>(
-      this.client.readNamespacedPodLog(this.podName, currentEvent.kubernetes.namespace)
-      .then(result => {
-        return result.body
-      })
-    )
+    try {
+      let result = await this.client.readNamespacedPodLog(
+        this.podName,
+        currentEvent.kubernetes.namespace
+      )
+      return result.body
+    }
+    catch(err) {
+      // This specifically handles errors from reading the pod logs, unpacks it,
+      // and rethrows.
+      throw new Error(err.response.body.message)
+    }
   }
-
 }
 
 export class Group extends groups.Group {
