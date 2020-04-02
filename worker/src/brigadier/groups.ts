@@ -13,7 +13,7 @@ export class Group {
   }
 
   protected jobs: Job[] = []
-  
+
   public constructor(jobs?: Job[]) {
     this.jobs = jobs || []
   }

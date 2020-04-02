@@ -1,14 +1,3 @@
-import * as PrettyError from "pretty-error"
-import * as path from "path"
-
-const rootPath = path.join(__dirname, "..")
-const pe = new PrettyError()
-  .skipNodeFiles()
-  .skipPackage("ts-node")
-  .skipPackage("bluebird")
-  .alias(rootPath, ".")
-pe.start()
-
 export enum LogLevel {
   ALL = 0,
   LOG,

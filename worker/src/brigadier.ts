@@ -48,38 +48,50 @@ export class Job extends jobs.Job {
     this.logger = new Logger(`job ${name}`)
   }
 
-  run(): Promise<jobs.Result> {
-    let jobScriptConfigMap = this.newJobScriptConfigMap()
-    return this.client.createNamespacedConfigMap(
-      currentEvent.kubernetes.namespace,
-      jobScriptConfigMap
-    )
-    .catch(response => { // TODO: Try to understand if this is in the right spot
-      // This specifically handles errors from creating the configmap, unpacks
-      // it, and rethrows
-      throw new Error(response.response.body.message)
-    })
-    .then(() => {
+  async run(): Promise<jobs.Result> {
+    try {
+      let jobScriptConfigMap = this.newJobScriptConfigMap()
+      if (jobScriptConfigMap) {
+        try {
+          await this.client.createNamespacedConfigMap(
+            currentEvent.kubernetes.namespace,
+            jobScriptConfigMap
+          )
+        }
+        catch(err) {
+          // This specifically handles errors from creating the configmap,
+          // unpacks it, and rethrows.
+          throw new Error(err.response.body.message) 
+        }
+      }
       this.logger.log("Creating pod " + this.podName)
       let jobPod = this.newJobPod(jobScriptConfigMap)
-      return this.client.createNamespacedPod(
-        currentEvent.kubernetes.namespace,
-        jobPod
-      )
-    })
-    .then(() => this.wait())
-    .then(() => this.logs())
-    .then(response => {
-      return new jobs.Result(response)
-    })
-    .catch(err => { // This handles the rest of the errors
-      // Wrap the message to give clear context.
-      let msg = `job ${this.name}: ${err}`
-      return Promise.reject(new Error(msg))
-    })
+      try {
+        await this.client.createNamespacedPod(
+          currentEvent.kubernetes.namespace,
+          jobPod
+        )
+      }
+      catch(err) {
+        // This specifically handles errors from creating the pod,
+        // unpacks it, and rethrows.
+        throw new Error(err.response.body.message) 
+      }
+      await this.wait()
+      let logs = await this.logs()
+      return Promise.resolve(new jobs.Result(logs))
+    }
+    catch(err) {
+      // Wrap the original error to give clear context.
+      throw new Error(`job ${this.name}: ${err}`)
+    }
   }
 
   private newJobScriptConfigMap(): kubernetes.V1ConfigMap {
+    let script = this.generateScript()
+    if (!script) {
+      return null
+    }
     let configMap = new kubernetes.V1ConfigMap();
     configMap.metadata = new kubernetes.V1ObjectMeta();
     configMap.metadata.name = this.podName;
@@ -90,11 +102,8 @@ export class Job extends jobs.Job {
       "brignext.io/worker": currentWorker.name,
       "brignext.io/job": this.name
     }
-    let script = this.generateScript()
-    if (script) {
-      configMap.data = {
-        "main.sh": script
-      }
+    configMap.data = {
+      "main.sh": script
     }
     return configMap
   }
@@ -104,7 +113,7 @@ export class Job extends jobs.Job {
       return null
     }
     let newCmd = "#!" + this.shell + "\n\n"
-  
+
     // if shells that support the `set` command are selected, let's add some
     // sane defaults
     switch (this.shell) {
@@ -124,7 +133,7 @@ export class Job extends jobs.Job {
       default:
         // No-op currently
     }
-  
+
     // Join the tasks to make a new command:
     if (this.tasks) {
       newCmd += this.tasks.join("\n") 
@@ -146,13 +155,13 @@ export class Job extends jobs.Job {
       "brignext.io/worker": currentWorker.name,
       "brignext.io/job": this.name
     }
-  
+
     pod.spec = new kubernetes.V1PodSpec()
     pod.spec.volumes = []
 
     let container = new kubernetes.V1Container()
     container.volumeMounts = []
-  
+
     // Conditionally describe the vcs init container
     if (this.useSource && currentWorker.git.cloneURL != "") {
       let vcsInitContainer = new kubernetes.V1Container()
@@ -169,25 +178,25 @@ export class Job extends jobs.Job {
           value: currentWorker.git.initSubmodules.toString()
         }
       ]
-      
+
       let vcsVolumeMount = new kubernetes.V1VolumeMount()
       vcsVolumeMount.name = "vcs"
       vcsVolumeMount.mountPath = "/var/vcs"
-      
+
       // Init container volume mount
       vcsInitContainer.volumeMounts = [vcsVolumeMount]
-      
+
       pod.spec.initContainers = [vcsInitContainer]
-      
+
       // The main job container needs a similar volume mount
       container.volumeMounts.push(vcsVolumeMount)
-  
+
       // Also add the volume shared by both containers to the pod spec
       pod.spec.volumes.push(
         { name: "vcs", emptyDir: {} }
       )
     }
-  
+
     // Describe the main job container
     container.name = this.name
     container.image = this.image
@@ -197,8 +206,19 @@ export class Job extends jobs.Job {
       if (jobShell == "") {
         jobShell = "/bin/sh"
       }
-      // TODO: We still need to mount this to the container!!!
-      container.command = [jobShell, "/var/hook/main.sh"]
+      container.command = [jobShell, "/var/scripts/main.sh"]
+
+      container.volumeMounts.push({
+        name: "scripts",
+        mountPath: "/var/scripts"
+      })
+
+      pod.spec.volumes.push({
+        name: "scripts",
+        configMap: {
+          name: this.podName,
+        }
+      })
     }
     if (this.args.length > 0) {
       container.args = this.args
@@ -213,54 +233,54 @@ export class Job extends jobs.Job {
         }
       )
     }
-  
+
     // If the job requests access to the host's Docker daemon AND it's
     // allowed...
     if (this.docker.enabled && currentWorker.jobs.allowHostMounts) {
       const dockerSocketVolumeName = "docker-socket"
       const dockerSocketPath = "/var/run/docker.sock"
-  
+
       let dockerSocketVolumeSource = new kubernetes.V1HostPathVolumeSource()
       dockerSocketVolumeSource.path = dockerSocketPath
       let dockerSocketVolume = new kubernetes.V1Volume()
       dockerSocketVolume.name = dockerSocketVolumeName
       dockerSocketVolume.hostPath = dockerSocketVolumeSource
       pod.spec.volumes.push(dockerSocketVolume)
-  
+
       let dockerSocketVolumeMount = new kubernetes.V1VolumeMount()
       dockerSocketVolumeMount.name = dockerSocketVolumeName
       dockerSocketVolumeMount.mountPath = dockerSocketPath
       container.volumeMounts.push(dockerSocketVolumeMount)
     }
-  
+
     // If the job requests a privileged security context and it's allowed,
     // enable it...
     if (this.privileged && currentWorker.jobs.allowPrivileged) {
       container.securityContext = new kubernetes.V1SecurityContext()
       container.securityContext.privileged = true
     }
-  
+
     // Finally add the main container to the pod spec
     pod.spec.containers = [container]
-    
+
     // Jobs run once and succeed or fail. They don't restart.
     pod.spec.restartPolicy = "Never"
-  
+
     // Security related settings
-  
+
     // Every Brigade project has, in its dedicated namespace, a service account
     // named "jobs", which exists for the express use of all jobs in the
     // project.
     pod.spec.serviceAccountName = "jobs"
-  
+
     if (currentWorker.jobs.kubernetes.imagePullSecrets) {
       pod.spec.imagePullSecrets = [
         { name: currentWorker.jobs.kubernetes.imagePullSecrets }
       ]
     }
-  
+
     // Misc. node selection settings
-  
+
     // If host os is set, specify it.
     if (this.host.os) {
       pod.spec.nodeSelector = {
@@ -280,11 +300,11 @@ export class Job extends jobs.Job {
         pod.spec.nodeSelector[k] = this.host.nodeSelector.get(k)
       }
     }
-  
+
     return pod
   }
 
-  private wait(): Promise<void> {
+  private async wait(): Promise<void> {
     let timeout = this.timeout || 60000
     let name = this.name
     let podUpdater: request.Request = undefined
@@ -481,7 +501,7 @@ export class Job extends jobs.Job {
     return req
   }
 
-  logs(): Promise<string> {
+  async logs(): Promise<string> {
     if (this.cancel && this.pod == undefined || this.pod.status.phase == "Pending") {
       return Promise.resolve<string>(
         "pod " + this.podName + " still unscheduled or pending when job was canceled; no logs to return.")

@@ -14,7 +14,7 @@ export class Job extends jobs.Job {
   logs(): Promise<string> {
     return Promise.resolve("skipped logs")
   }
-  
+
 }
 
 export class Group extends groups.Group {
