@@ -36,6 +36,10 @@ rules:
   resources:
   - pods
   verbs:
+  - create
+  - get
+  - list
+  - watch
   - delete
   - deletecollection
 - apiGroups:

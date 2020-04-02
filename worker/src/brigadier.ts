@@ -43,43 +43,40 @@ export class Job extends jobs.Job {
     imageForcePull: boolean = false
   ) {
     super(name, image, tasks, imageForcePull)
-    this.podName = `${currentEvent.id}-${currentWorker.name}`
+    this.podName = `${currentEvent.id}-${currentWorker.name.toLowerCase()}-${name.toLowerCase()}`
     this.client = k8s.defaultClient
     this.logger = new Logger("k8s", currentWorker.logLevel)
   }
 
   run(): Promise<jobs.Result> {
-    return this.start()
-    .then(r => r.wait())
-    .then(r => {
-      return this.logs()
+    let jobScriptConfigMap = this.newJobScriptConfigMap()
+    return this.client.createNamespacedConfigMap(
+      currentEvent.kubernetes.namespace,
+      jobScriptConfigMap
+    )
+    .catch(response => {
+      // This specifically handles errors from creating the configmap, unpacks
+      // it, and rethrows
+      throw new Error(response.response.body.message)
     })
+    .then(() => {
+      this.logger.log("Creating pod " + this.podName)
+      console.log("Creating pod " + this.podName)
+      let jobPod = this.newJobPod(jobScriptConfigMap)
+      return this.client.createNamespacedPod(
+        currentEvent.kubernetes.namespace,
+        jobPod
+      )
+    })
+    .then(() => this.wait())
+    .then(() => this.logs())
     .then(response => {
       return new jobs.Result(response)
     })
-    .catch(err => {
+    .catch(err => { // This handles the rest of the errors
       // Wrap the message to give clear context.
-      console.error(err)
-      let msg = `job ${ this.name }: ${err}`
+      let msg = `job ${this.name}: ${err}`
       return Promise.reject(new Error(msg))
-    })
-  }
-
-  private start(): Promise<Job> {
-    return new Promise((resolve, reject) => {
-      let jobScriptConfigMap = this.newJobScriptConfigMap()
-      this.client.createNamespacedConfigMap(currentEvent.kubernetes.namespace, jobScriptConfigMap)
-      .then(result => {
-        this.logger.log("Creating pod " + this.podName)
-        let jobPod = this.newJobPod(jobScriptConfigMap)    
-        return this.client.createNamespacedPod(currentEvent.kubernetes.namespace, jobPod)
-      })
-      .then(result => {
-        resolve(this)
-      })
-      .catch(reason => {
-        reject(new Error(reason.body.message))
-      })
     })
   }
 
@@ -109,16 +106,20 @@ export class Job extends jobs.Job {
     }
     let newCmd = "#!" + this.shell + "\n\n"
   
-    // if shells that support the `set` command are selected, let's add some sane defaults
+    // if shells that support the `set` command are selected, let's add some
+    // sane defaults
     switch (this.shell) {
       case "/bin/sh":
-        // The -e option will cause a bash script to exit immediately when a command fails
+        // The -e option will cause a bash script to exit immediately when a
+        // command fails
         newCmd += "set -e\n\n"
         break 
       case "/bin/bash":
-        // The -e option will cause a bash script to exit immediately when a command fails
-        // The -o pipefail option sets the exit code of a pipeline to that of the rightmost command
-        // to exit with a non-zero status, or to zero if all commands of the pipeline exit successfully.
+        // The -e option will cause a bash script to exit immediately when a
+        // command fails.
+        // The -o pipefail option sets the exit code of a pipeline to that of
+        // the rightmost command to exit with a non-zero status, or to zero if
+        // all commands of the pipeline exit successfully.
         newCmd += "set -eo pipefail\n\n"
         break
       default:
@@ -137,7 +138,7 @@ export class Job extends jobs.Job {
   ): kubernetes.V1Pod {
     let pod = new kubernetes.V1Pod()
     pod.metadata = new kubernetes.V1ObjectMeta()
-    pod.metadata.name = name
+    pod.metadata.name = this.podName
     pod.metadata.namespace = currentEvent.kubernetes.namespace
     pod.metadata.labels = {
       "brignext.io/component": "job",
@@ -148,7 +149,10 @@ export class Job extends jobs.Job {
     }
   
     pod.spec = new kubernetes.V1PodSpec()
+    pod.spec.volumes = []
+
     let container = new kubernetes.V1Container()
+    container.volumeMounts = []
   
     // Conditionally describe the vcs init container
     if (this.useSource && currentWorker.git.cloneURL != "") {
@@ -161,7 +165,10 @@ export class Job extends jobs.Job {
         { name: "BRIGADE_COMMIT_ID", value: currentWorker.git.commit },
         { name: "BRIGADE_COMMIT_REF", value: currentWorker.git.ref },
         { name: "BRIGADE_WORKSPACE", value: "/var/vcs" },
-        { name: "BRIGADE_SUBMODULES", value: currentWorker.git.initSubmodules.toString() }
+        {
+          name: "BRIGADE_SUBMODULES",
+          value: currentWorker.git.initSubmodules.toString()
+        }
       ]
       
       let vcsVolumeMount = new kubernetes.V1VolumeMount()
@@ -174,7 +181,7 @@ export class Job extends jobs.Job {
       pod.spec.initContainers = [vcsInitContainer]
       
       // The main job container needs a similar volume mount
-      container.volumeMounts = [vcsVolumeMount]
+      container.volumeMounts.push(vcsVolumeMount)
   
       // Also add the volume shared by both containers to the pod spec
       pod.spec.volumes.push(
@@ -208,7 +215,8 @@ export class Job extends jobs.Job {
       )
     }
   
-    // If the job requests access to the host's Docker daemon AND it's allowed...
+    // If the job requests access to the host's Docker daemon AND it's
+    // allowed...
     if (this.docker.enabled && currentWorker.jobs.allowHostMounts) {
       const dockerSocketVolumeName = "docker-socket"
       const dockerSocketPath = "/var/run/docker.sock"
@@ -226,8 +234,8 @@ export class Job extends jobs.Job {
       container.volumeMounts.push(dockerSocketVolumeMount)
     }
   
-    // If the job requests a privileged security context and it's allowed, enable
-    // it...
+    // If the job requests a privileged security context and it's allowed,
+    // enable it...
     if (this.privileged && currentWorker.jobs.allowPrivileged) {
       container.securityContext = new kubernetes.V1SecurityContext()
       container.securityContext.privileged = true
@@ -242,7 +250,8 @@ export class Job extends jobs.Job {
     // Security related settings
   
     // Every Brigade project has, in its dedicated namespace, a service account
-    // named "jobs", which exists for the express use of all jobs in the project.
+    // named "jobs", which exists for the express use of all jobs in the
+    // project.
     pod.spec.serviceAccountName = "jobs"
   
     if (currentWorker.jobs.kubernetes.imagePullSecrets) {
@@ -276,14 +285,15 @@ export class Job extends jobs.Job {
     return pod
   }
 
-  private wait(): Promise<jobs.Result> {
+  private wait(): Promise<void> {
     let timeout = this.timeout || 60000
     let name = this.name
     let podUpdater: request.Request = undefined
 
     // This is a handle to clear the setTimeout when the promise is fulfilled.
     let waiter
-    // Handle to abort the request on completion and only to ensure that we hook the 'follow logs' events only once
+    // Handle to abort the request on completion and only to ensure that we hook
+    // the 'follow logs' events only once
     let followLogsRequest: request.Request = null
 
     this.logger.log(`Timeout set at ${timeout} milliseconds`)
@@ -294,12 +304,12 @@ export class Job extends jobs.Job {
     // The timeout sets an upper limit, and if that limit is reached, the
     // polling will be stopped.
     //
-    // Essentially, we track two Timer objects: the setTimeout and the setInterval.
-    // That means we have to kill both before exit, otherwise the node.js process
-    // will remain running until all timeouts have executed.
+    // Essentially, we track two Timer objects: the setTimeout and the
+    // setInterval. That means we have to kill both before exit, otherwise the
+    // node.js process will remain running until all timeouts have executed.
 
     // Poll the server waiting for a Succeeded.
-    let poll : Promise<jobs.Result> = new Promise((resolve, reject) => {
+    let poll : Promise<void> = new Promise((resolve, reject) => {
       let pollOnce = (name, ns, i) => {
         if (!podUpdater) {
           podUpdater = this.startUpdatingPod()
@@ -321,14 +331,16 @@ export class Job extends jobs.Job {
         let phase = this.pod.status.phase
         if (phase == "Succeeded") {
           clearTimers()
-          let result = new jobs.Result(phase)
-          resolve(result)
+          resolve()
         }
         // make sure Pod is running before we start following its logs
         else if (phase == "Running") {
           // do that only if we haven't hooked up the follow request before
           if (followLogsRequest == null && this.streamLogs) {
-            followLogsRequest = followLogs(this.pod.metadata.namespace, this.pod.metadata.name)
+            followLogsRequest = followLogs(
+              this.pod.metadata.namespace,
+              this.pod.metadata.name
+            )
           }
         } else if (phase == "Failed") {
           clearTimers()
@@ -344,9 +356,7 @@ export class Job extends jobs.Job {
           ) {
             this.client.deleteNamespacedPod(
               name,
-              ns,
-              "true",
-              new kubernetes.V1DeleteOptions()
+              ns
             ).catch(e => this.logger.error(e.body.message))
             clearTimers()
             reject(new Error(cs[0].state.waiting.message))
@@ -354,7 +364,9 @@ export class Job extends jobs.Job {
         }
         if (!this.streamLogs || (this.streamLogs && this.pod.status.phase != "Running")) {
           // don't display "Running" when we're asked to display job Pod logs
-          this.logger.log(`${this.pod.metadata.namespace}/${this.pod.metadata.name} phase ${this.pod.status.phase}`)
+          this.logger.log(
+            `${this.pod.metadata.namespace}/${this.pod.metadata.name} phase ${this.pod.status.phase}`
+          )
         }
         // In all other cases we fall through and let the fn be run again.
       }
@@ -379,7 +391,7 @@ export class Job extends jobs.Job {
       // follows logs for the specified namespace/Pod combination
       let followLogs = (namespace: string, podName: string): request.Request => {
         const url = `${k8s.config.getCurrentCluster().server}/api/v1/namespaces/${namespace}/pods/${podName}/log`
-        //https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#pod-v1-core
+        // https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#pod-v1-core
         const requestOptions = {
           qs: {
             follow: true,
@@ -419,7 +431,7 @@ export class Job extends jobs.Job {
     })
 
     // This will fail if the time limit is reached.
-    let timer : Promise<jobs.Result> = new Promise((resolve, reject) => {
+    let timer : Promise<void> = new Promise((resolve, reject) => {
       waiter = setTimeout(() => {
         this.cancel = true
         reject(new Error("time limit (" + timeout + " ms) exceeded"))

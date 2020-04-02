@@ -75,7 +75,18 @@ func (s *sched) CreateProjectNamespace(projectID string) (string, error) {
 				Namespace: namespace,
 			},
 			// TODO: Add the correct rules here
-			Rules: []rbac_v1.PolicyRule{},
+			Rules: []rbac_v1.PolicyRule{
+				rbac_v1.PolicyRule{
+					APIGroups: []string{""},
+					Resources: []string{"configmaps"},
+					Verbs:     []string{"create"},
+				},
+				rbac_v1.PolicyRule{
+					APIGroups: []string{""},
+					Resources: []string{"pods"},
+					Verbs:     []string{"create", "get", "list", "watch"},
+				},
+			},
 		},
 	); err != nil {
 		return "", errors.Wrapf(
