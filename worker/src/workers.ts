@@ -1,10 +1,7 @@
-import { LogLevel } from "./brigadier/logger"
-
 export interface Worker {
   name: string
   git: GitConfig
   jobs: JobsConfig
-  logLevel: LogLevel
 }
 
 export interface GitConfig {

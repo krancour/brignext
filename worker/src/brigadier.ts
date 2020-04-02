@@ -45,7 +45,7 @@ export class Job extends jobs.Job {
     super(name, image, tasks, imageForcePull)
     this.podName = `${currentEvent.id}-${currentWorker.name.toLowerCase()}-${name.toLowerCase()}`
     this.client = k8s.defaultClient
-    this.logger = new Logger("k8s", currentWorker.logLevel)
+    this.logger = new Logger(`job ${name}`)
   }
 
   run(): Promise<jobs.Result> {
@@ -54,14 +54,13 @@ export class Job extends jobs.Job {
       currentEvent.kubernetes.namespace,
       jobScriptConfigMap
     )
-    .catch(response => {
+    .catch(response => { // TODO: Try to understand if this is in the right spot
       // This specifically handles errors from creating the configmap, unpacks
       // it, and rethrows
       throw new Error(response.response.body.message)
     })
     .then(() => {
       this.logger.log("Creating pod " + this.podName)
-      console.log("Creating pod " + this.podName)
       let jobPod = this.newJobPod(jobScriptConfigMap)
       return this.client.createNamespacedPod(
         currentEvent.kubernetes.namespace,

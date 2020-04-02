@@ -2,12 +2,12 @@ import * as fs from "fs"
 import * as moduleAlias from "module-alias"
 import * as path from "path"
 
-import { Logger, LogLevel } from "./brigadier/logger"
+import { Logger } from "./brigadier/logger"
 import { Event } from "./brigadier/events"
 import { Worker } from "./workers"
 import * as brigadier from "./brigadier"
 
-const logger = new Logger([], LogLevel["LOG"])
+const logger = new Logger([])
 const version = require("../package.json").version
 logger.log(`brigade-worker version: ${version}`)
 
