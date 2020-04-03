@@ -77,7 +77,7 @@ func (s *sched) CreateProjectNamespace(projectID string) (string, error) {
 			Rules: []rbac_v1.PolicyRule{
 				rbac_v1.PolicyRule{
 					APIGroups: []string{""},
-					Resources: []string{"configmaps", "secrets", "pods"},
+					Resources: []string{"configmaps", "secrets", "pods", "pods/log"},
 					Verbs:     []string{"create", "get", "list", "watch"},
 				},
 			},

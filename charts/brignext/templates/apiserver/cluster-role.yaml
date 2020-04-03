@@ -15,6 +15,7 @@ rules:
   - configmaps
   - secrets
   - pods
+  - pods/log
   verbs:
   - create
   - get

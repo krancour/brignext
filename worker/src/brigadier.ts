@@ -499,7 +499,7 @@ export class Job extends jobs.Job {
       qs: {
         watch: true,
         timeoutSeconds: 200,
-        labelSelector: `project=${currentEvent.projectID},event=${currentEvent.id},worker=${currentWorker.name},job=${this.name}`
+        fieldSelector: `metadata.name=${this.podName}`
       },
       method: "GET",
       uri: url,
