@@ -34,11 +34,12 @@ const wrapClient = fns => {
 }
 
 wrapClient([
-  defaultClient.readNamespacedPodLog,
-  defaultClient.createNamespacedSecret,
+  defaultClient.readNamespacedSecret,
+  defaultClient.createNamespacedConfigMap,
   defaultClient.createNamespacedPod,
-  defaultClient.deleteNamespacedPod
-]) 
+  defaultClient.deleteNamespacedPod,
+  defaultClient.readNamespacedPodLog
+])
 
 const getKubeConfig = (): kubernetes.KubeConfig => {
   const kc = new kubernetes.KubeConfig()

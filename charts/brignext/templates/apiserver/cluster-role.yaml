@@ -11,29 +11,9 @@ rules:
   - ""
   resources:
   - namespaces
-  - configmaps
-  verbs:
-  - create
-  - delete
-  - deletecollection
-- apiGroups:
-  - ""
-  resources:
   - serviceaccounts
-  verbs:
-  - create
-- apiGroups:
-  - ""
-  resources:
+  - configmaps
   - secrets
-  verbs:
-  - create
-  - get
-  - update
-  - delete
-- apiGroups:
-  - ""
-  resources:
   - pods
   verbs:
   - create

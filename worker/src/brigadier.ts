@@ -50,6 +50,7 @@ export class Job extends jobs.Job {
 
   async run(): Promise<jobs.Result> {
     try {
+      let eventSecret = await this.getJobSecret()
       let jobScriptConfigMap = this.newJobScriptConfigMap()
       if (jobScriptConfigMap) {
         try {
@@ -65,7 +66,7 @@ export class Job extends jobs.Job {
         }
       }
       this.logger.log("Creating pod " + this.podName)
-      let jobPod = this.newJobPod(jobScriptConfigMap)
+      let jobPod = this.newJobPod(eventSecret, jobScriptConfigMap)
       try {
         await this.client.createNamespacedPod(
           currentEvent.kubernetes.namespace,
@@ -84,6 +85,21 @@ export class Job extends jobs.Job {
     catch(err) {
       // Wrap the original error to give clear context.
       throw new Error(`job ${this.name}: ${err}`)
+    }
+  }
+
+  private async getJobSecret(): Promise<kubernetes.V1Secret> {
+    try {
+      let response = await this.client.readNamespacedSecret(
+        currentEvent.id,
+        currentEvent.kubernetes.namespace
+      )
+      return response.body
+    }
+    catch(err) {
+      // This specifically handles errors from creating the configmap,
+      // unpacks it, and rethrows.
+      throw new Error(err.response.body.message) 
     }
   }
 
@@ -142,6 +158,7 @@ export class Job extends jobs.Job {
   }
 
   private newJobPod(
+    eventSecrets: kubernetes.V1Secret,
     jobScriptConfigMap: kubernetes.V1ConfigMap
   ): kubernetes.V1Pod {
     let pod = new kubernetes.V1Pod()
@@ -224,7 +241,23 @@ export class Job extends jobs.Job {
       container.args = this.args
     }
     container.env = []
-    // TODO: Need to also add event secrets!!!
+    
+    // Add all the event secrets
+    for (let key in eventSecrets.data) {
+      container.env.push(
+        {
+          name: key,
+          valueFrom: {
+            secretKeyRef: {
+              name: currentEvent.id,
+              key: key
+            }
+          }
+        }
+      )
+    }
+    
+    // Add any job-specific secrets
     for (let key in this.env) {
       container.env.push(
         {
