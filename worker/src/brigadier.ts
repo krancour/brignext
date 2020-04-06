@@ -390,8 +390,8 @@ export class Job extends jobs.Job {
           // do that only if we haven't hooked up the follow request before
           if (followLogsRequest == null && this.streamLogs) {
             followLogsRequest = followLogs(
-              this.pod.metadata.namespace,
-              this.pod.metadata.name
+              currentEvent.kubernetes.namespace,
+              this.podName
             )
           }
         } else if (phase == "Failed") {
@@ -417,7 +417,7 @@ export class Job extends jobs.Job {
         if (!this.streamLogs || (this.streamLogs && this.pod.status.phase != "Running")) {
           // don't display "Running" when we're asked to display job Pod logs
           this.logger.log(
-            `${this.pod.metadata.namespace}/${this.pod.metadata.name} phase ${this.pod.status.phase}`
+            `${currentEvent.kubernetes.namespace}/${this.podName} phase ${this.pod.status.phase}`
           )
         }
         // In all other cases we fall through and let the fn be run again.
@@ -464,7 +464,7 @@ export class Job extends jobs.Job {
               logs = data
             }
             this.logger.log(
-              `${this.pod.metadata.namespace}/${this.pod.metadata.name} logs ${logs}`
+              `${currentEvent.kubernetes.namespace}/${this.podName} logs ${logs}`
             )
           } catch (e) { } //let it stay connected.
         })
