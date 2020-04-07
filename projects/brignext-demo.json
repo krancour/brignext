@@ -9,7 +9,7 @@
     "FOO": "bar",
     "BAT": "baz"
   },
-  "workers": {
+  "workerConfigs": {
     "myCLIWorker": {
       "events": [
         {
@@ -27,7 +27,7 @@
       "kubernetes": {
         "workspaceStorageClass": "nfs"
       },
-      "jobs": {
+      "jobsConfig": {
         "allowPrivileged": true,
         "allowHostMounts": true
       }

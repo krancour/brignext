@@ -269,7 +269,7 @@ export class Job extends jobs.Job {
 
     // If the job requests access to the host's Docker daemon AND it's
     // allowed...
-    if (this.docker.enabled && currentWorker.jobs.allowHostMounts) {
+    if (this.docker.enabled && currentWorker.jobsConfig.allowHostMounts) {
       const dockerSocketVolumeName = "docker-socket"
       const dockerSocketPath = "/var/run/docker.sock"
 
@@ -288,7 +288,7 @@ export class Job extends jobs.Job {
 
     // If the job requests a privileged security context and it's allowed,
     // enable it...
-    if (this.privileged && currentWorker.jobs.allowPrivileged) {
+    if (this.privileged && currentWorker.jobsConfig.allowPrivileged) {
       container.securityContext = new kubernetes.V1SecurityContext()
       container.securityContext.privileged = true
     }
@@ -306,9 +306,9 @@ export class Job extends jobs.Job {
     // project.
     pod.spec.serviceAccountName = "jobs"
 
-    if (currentWorker.jobs.kubernetes.imagePullSecrets) {
+    if (currentWorker.jobsConfig.kubernetes.imagePullSecrets) {
       pod.spec.imagePullSecrets = [
-        { name: currentWorker.jobs.kubernetes.imagePullSecrets }
+        { name: currentWorker.jobsConfig.kubernetes.imagePullSecrets }
       ]
     }
 

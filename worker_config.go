@@ -16,7 +16,7 @@ type WorkerConfig struct {
 	WorkspaceSize    string                 `json:"workspaceSize" bson:"workspaceSize"`
 	Git              WorkerGitConfig        `json:"git" bson:"git"`
 	Kubernetes       WorkerKubernetesConfig `json:"kubernetes" bson:"kubernetes"`
-	Jobs             JobsConfig             `json:"jobs" bson:"jobs"`
+	JobsConfig       JobsConfig             `json:"jobsConfig" bson:"jobsConfig"`
 	LogLevel         LogLevel               `json:"logLevel" bson:"logLevel"`
 }
 

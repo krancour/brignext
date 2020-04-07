@@ -9,11 +9,11 @@ import (
 
 // nolint: lll
 type Project struct {
-	ID          string                   `json:"id" bson:"_id"`
-	Description string                   `json:"description" bson:"description"`
-	Tags        ProjectTags              `json:"tags" bson:"tags"`
-	Workers     map[string]WorkerConfig  `json:"workers" bson:"workers"`
-	Kubernetes  *ProjectKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
+	ID            string                   `json:"id" bson:"_id"`
+	Description   string                   `json:"description" bson:"description"`
+	Tags          ProjectTags              `json:"tags" bson:"tags"`
+	WorkerConfigs map[string]WorkerConfig  `json:"workerConfigs" bson:"workerConfigs"`
+	Kubernetes    *ProjectKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
 	// TODO: Secrets should be broken out into their own thing and shouldn't
 	// directly be a project field
 	Secrets map[string]string `json:"secrets" bson:"-"`
@@ -24,14 +24,14 @@ type ProjectTags map[string]string
 
 func (p *Project) GetWorkers(event Event) map[string]Worker {
 	workers := map[string]Worker{}
-	for workerName, workerConfig := range p.Workers {
+	for workerName, workerConfig := range p.WorkerConfigs {
 		if workerConfig.Matches(event.Provider, event.Type) {
 			worker := Worker{
 				Container:     workerConfig.Container,
 				WorkspaceSize: workerConfig.WorkspaceSize,
 				Git:           workerConfig.Git,
 				Kubernetes:    workerConfig.Kubernetes,
-				Jobs:          workerConfig.Jobs,
+				JobsConfig:    workerConfig.JobsConfig,
 				LogLevel:      workerConfig.LogLevel,
 				Status:        WorkerStatusPending,
 			}

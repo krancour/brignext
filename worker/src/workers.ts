@@ -1,7 +1,7 @@
 export interface Worker {
   name: string
   git: GitConfig
-  jobs: JobsConfig
+  jobsConfig: JobsConfig
 }
 
 export interface GitConfig {

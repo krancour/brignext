@@ -231,15 +231,15 @@ func (s *secretStore) CreateWorkerConfigMap(
 
 	workerJSON, err := json.MarshalIndent(
 		struct {
-			Name     string                   `json:"name"`
-			Git      brignext.WorkerGitConfig `json:"git"`
-			Jobs     brignext.JobsConfig      `json:"jobs"`
-			LogLevel brignext.LogLevel        `json:"logLevel"`
+			Name       string                   `json:"name"`
+			Git        brignext.WorkerGitConfig `json:"git"`
+			JobsConfig brignext.JobsConfig      `json:"jobsConfig"`
+			LogLevel   brignext.LogLevel        `json:"logLevel"`
 		}{
-			Name:     workerName,
-			Git:      worker.Git,
-			Jobs:     worker.Jobs,
-			LogLevel: worker.LogLevel,
+			Name:       workerName,
+			Git:        worker.Git,
+			JobsConfig: worker.JobsConfig,
+			LogLevel:   worker.LogLevel,
 		},
 		"",
 		"  ",

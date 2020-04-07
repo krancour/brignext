@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/krancour/brignext"
@@ -520,9 +521,9 @@ func (s *store) UpdateProject(
 		},
 		bson.M{
 			"$set": bson.M{
-				"description": project.Description,
-				"tags":        project.Tags,
-				"workers":     project.Workers,
+				"description":   project.Description,
+				"tags":          project.Tags,
+				"workerConfigs": project.WorkerConfigs,
 			},
 		},
 	)
@@ -670,6 +671,18 @@ func (s *store) UpdateEventWorkerStatus(
 			WorkerName: workerName,
 		}
 	}
+	return nil
+}
+
+// TODO: Update this
+func (s *store) UpdateEventWorkerJobStatus(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+	status brignext.JobStatus,
+) error {
+	log.Println("----> event worker status updated!")
 	return nil
 }
 

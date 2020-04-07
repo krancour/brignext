@@ -172,7 +172,7 @@ var projectSchemaBytes = []byte(`
 				},
 				"git": { "$ref": "#/definitions/gitConfig" },
 				"kubernetes": { "$ref": "#/definitions/kubernetesConfig" },
-				"jobs": { "$ref": "#/definitions/jobsConfig" },
+				"jobsConfig": { "$ref": "#/definitions/jobsConfig" },
 				"logLevel": {
 					"type": "string",
 					"description": "Log level to be observed by the worker",
@@ -210,7 +210,7 @@ var projectSchemaBytes = []byte(`
 			"type": [ "object", "null" ],
 			"description": "A map of project secrets"
 		},
-		"workers": {
+		"workerConfigs": {
 			"type": [ "object", "null" ],
 			"description": "A map of worker configurations indexed by unique names",
 			"additionalProperties": false,
