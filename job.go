@@ -20,6 +20,8 @@ const (
 	// JobStatusFailed represents the state wherein a job has run to
 	// completion but experienced errors.
 	JobStatusFailed JobStatus = "FAILED"
+	// JobStatusUnknown represents the state wherein a job's status is unknown.
+	JobStatusUnknown JobStatus = "UNKNOWN"
 )
 
 // Job is a single job that is executed by a worker that processes an event.

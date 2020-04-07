@@ -45,56 +45,59 @@ func (c *controller) syncJobPod(obj interface{}) {
 	c.podsLock.Lock()
 	defer c.podsLock.Unlock()
 	jobPod := obj.(*corev1.Pod)
-	namespacedJobPodName := namespacedPodName(jobPod.Namespace, jobPod.Name)
-	if jobPod.Status.Phase == corev1.PodSucceeded ||
-		jobPod.Status.Phase == corev1.PodFailed ||
-		jobPod.DeletionTimestamp != nil {
-		// Use the API to update job status so it corresponds to job pod status
-		if jobPod.Status.Phase == corev1.PodSucceeded ||
-			jobPod.Status.Phase == corev1.PodFailed {
-			eventID := jobPod.Labels["brignext.io/event"]
-			workerName := jobPod.Labels["brignext.io/worker"]
-			jobName := jobPod.Labels["brignext.io/job"]
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			var status brignext.JobStatus
-			if jobPod.Status.Phase == corev1.PodSucceeded {
-				status = brignext.JobStatusSucceeded
-			} else {
-				status = brignext.JobStatusFailed
-			}
-			if err := c.apiClient.UpdateJobStatus(
-				ctx,
-				eventID,
-				workerName,
-				jobName,
-				status,
-			); err != nil {
-				// TODO: Can we return this over the errCh somehow? Only problem is we
-				// don't want to block forever and we don't have access to the context
-				// here. Maybe we can make the context an attribute of the controller?
-				log.Printf(
-					"error updating status for event %q worker %q job %q: %s",
-					eventID,
-					workerName,
-					jobName,
-					err,
-				)
-			}
-		}
 
-		if jobPod.DeletionTimestamp == nil {
-			// We want to delete this pod after a short delay, but first let's make
-			// sure we aren't already working on that. If we schedule this for
-			// deletion more than once, we'll end up causing some errors.
-			_, alreadyDeleting := c.deletingPodsSet[namespacedJobPodName]
-			if !alreadyDeleting {
-				log.Printf("scheduling pod %s deletion\n", namespacedJobPodName)
-				c.deletingPodsSet[namespacedJobPodName] = struct{}{}
-				// Do NOT pass the pointer. It seems to be reused by the informer.
-				// Pass the thing it points TO.
-				go c.deletePod(*jobPod)
-			}
+	// Use the API to update job status so it corresponds to job pod status
+	eventID := jobPod.Labels["brignext.io/event"]
+	workerName := jobPod.Labels["brignext.io/worker"]
+	jobName := jobPod.Labels["brignext.io/job"]
+
+	var status brignext.JobStatus
+	switch jobPod.Status.Phase {
+	case corev1.PodPending:
+		status = brignext.JobStatusPending
+	case corev1.PodRunning:
+		status = brignext.JobStatusRunning
+	case corev1.PodSucceeded:
+		status = brignext.JobStatusSucceeded
+	case corev1.PodFailed:
+		status = brignext.JobStatusFailed
+	case corev1.PodUnknown:
+		status = brignext.JobStatusUnknown
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := c.apiClient.UpdateJobStatus(
+		ctx,
+		eventID,
+		workerName,
+		jobName,
+		status,
+	); err != nil {
+		// TODO: Can we return this over the errCh somehow? Only problem is we
+		// don't want to block forever and we don't have access to the context
+		// here. Maybe we can make the context an attribute of the controller?
+		log.Printf(
+			"error updating status for event %q worker %q job %q: %s",
+			eventID,
+			workerName,
+			jobName,
+			err,
+		)
+	}
+
+	if jobPod.DeletionTimestamp == nil {
+		namespacedJobPodName := namespacedPodName(jobPod.Namespace, jobPod.Name)
+		// We want to delete this pod after a short delay, but first let's make
+		// sure we aren't already working on that. If we schedule this for
+		// deletion more than once, we'll end up causing some errors.
+		_, alreadyDeleting := c.deletingPodsSet[namespacedJobPodName]
+		if !alreadyDeleting {
+			log.Printf("scheduling pod %s deletion\n", namespacedJobPodName)
+			c.deletingPodsSet[namespacedJobPodName] = struct{}{}
+			// Do NOT pass the pointer. It seems to be reused by the informer.
+			// Pass the thing it points TO.
+			go c.deletePod(*jobPod)
 		}
 	}
 }
