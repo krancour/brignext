@@ -34,6 +34,7 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 				JobsConfig:    workerConfig.JobsConfig,
 				LogLevel:      workerConfig.LogLevel,
 				Status:        WorkerStatusPending,
+				Jobs:          map[string]Job{},
 			}
 			if worker.Container.Image == "" {
 				worker.Container.Image = "krancour/brignext-worker:latest"
