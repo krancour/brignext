@@ -48,7 +48,7 @@ func (s *server) eventUpdateWorkerStatus(
 	}
 
 	if err :=
-		s.service.UpdateEventWorkerStatus(
+		s.service.UpdateWorkerStatus(
 			r.Context(),
 			eventID,
 			workerName,

@@ -42,18 +42,13 @@ type Client interface {
 	CreateEvent(context.Context, brignext.Event) (string, error)
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
-	UpdateEventStatus(
-		ctx context.Context,
-		id string,
-		status brignext.EventStatus,
-	) error
-	UpdateEventWorkerStatus(
+	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
 		workerName string,
 		status brignext.WorkerStatus,
 	) error
-	UpdateEventWorkerJobStatus(
+	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
 		workerName string,
@@ -771,7 +766,7 @@ func (c *client) GetEvent(ctx context.Context, id string) (brignext.Event, error
 	return event, nil
 }
 
-func (c *client) UpdateEventWorkerStatus(
+func (c *client) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
 	workerName string,
@@ -816,7 +811,7 @@ func (c *client) UpdateEventWorkerStatus(
 	return nil
 }
 
-func (c *client) UpdateEventWorkerJobStatus(
+func (c *client) UpdateJobStatus(
 	ctx context.Context,
 	eventID string,
 	workerName string,
@@ -859,47 +854,6 @@ func (c *client) UpdateEventWorkerJobStatus(
 			EventID:    eventID,
 			WorkerName: workerName,
 		}
-	}
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	return nil
-}
-
-func (c *client) UpdateEventStatus(
-	ctx context.Context,
-	id string,
-	status brignext.EventStatus,
-) error {
-	statusBytes, err := json.Marshal(
-		struct {
-			Status brignext.EventStatus `json:"status"`
-		}{
-			Status: status,
-		},
-	)
-	if err != nil {
-		return errors.Wrap(err, "error marshaling status")
-	}
-
-	req, err := c.buildRequest(
-		http.MethodPut,
-		fmt.Sprintf("v2/events/%s/status", id),
-		statusBytes,
-	)
-	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrEventNotFound{id}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("received %d from API server", resp.StatusCode)

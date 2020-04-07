@@ -75,7 +75,7 @@ func (c *controller) handleProjectWorkerMessage(
 					workerContext.WorkerName,
 				)
 			}
-			if err := c.apiClient.UpdateEventWorkerStatus(
+			if err := c.apiClient.UpdateWorkerStatus(
 				ctx,
 				workerContext.EventID,
 				workerContext.WorkerName,

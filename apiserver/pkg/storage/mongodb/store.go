@@ -637,7 +637,7 @@ func (s *store) UpdateEventStatus(
 	return nil
 }
 
-func (s *store) UpdateEventWorkerStatus(
+func (s *store) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
 	workerName string,
@@ -675,7 +675,7 @@ func (s *store) UpdateEventWorkerStatus(
 }
 
 // TODO: Update this
-func (s *store) UpdateEventWorkerJobStatus(
+func (s *store) UpdateJobStatus(
 	ctx context.Context,
 	eventID string,
 	workerName string,

@@ -136,12 +136,6 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.eventGet),
 	).Methods(http.MethodGet)
 
-	// Update event status
-	s.router.HandleFunc(
-		"/v2/events/{id}/status",
-		tokenAuthFilter.Decorate(s.eventUpdateStatus),
-	).Methods(http.MethodPut)
-
 	// Update event worker status
 	s.router.HandleFunc(
 		"/v2/events/{eventID}/workers/{workerName}/status",

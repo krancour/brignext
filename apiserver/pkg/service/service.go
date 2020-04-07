@@ -51,18 +51,13 @@ type Service interface {
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
 	GetEvent(context.Context, string) (brignext.Event, error)
-	UpdateEventStatus(
-		ctx context.Context,
-		id string,
-		status brignext.EventStatus,
-	) error
-	UpdateEventWorkerStatus(
+	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
 		workerName string,
 		status brignext.WorkerStatus,
 	) error
-	UpdateEventWorkerJobStatus(
+	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
 		workerName string,
@@ -686,24 +681,13 @@ func (s *service) GetEvent(
 	return event, nil
 }
 
-func (s *service) UpdateEventStatus(
-	ctx context.Context,
-	id string,
-	status brignext.EventStatus,
-) error {
-	if err := s.store.UpdateEventStatus(ctx, id, status); err != nil {
-		return errors.Wrapf(err, "error updating event %q status in store", id)
-	}
-	return nil
-}
-
-func (s *service) UpdateEventWorkerStatus(
+func (s *service) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
 	workerName string,
 	status brignext.WorkerStatus,
 ) error {
-	if err := s.store.UpdateEventWorkerStatus(
+	if err := s.store.UpdateWorkerStatus(
 		ctx,
 		eventID,
 		workerName,
@@ -777,14 +761,14 @@ func (s *service) UpdateEventWorkerStatus(
 	return nil
 }
 
-func (s *service) UpdateEventWorkerJobStatus(
+func (s *service) UpdateJobStatus(
 	ctx context.Context,
 	eventID string,
 	workerName string,
 	jobName string,
 	status brignext.JobStatus,
 ) error {
-	if err := s.store.UpdateEventWorkerJobStatus(
+	if err := s.store.UpdateJobStatus(
 		ctx,
 		eventID,
 		workerName,

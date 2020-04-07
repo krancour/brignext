@@ -50,7 +50,7 @@ func (s *server) eventUpdateWorkerJobStatus(
 	}
 
 	if err :=
-		s.service.UpdateEventWorkerJobStatus(
+		s.service.UpdateJobStatus(
 			r.Context(),
 			eventID,
 			workerName,

@@ -64,13 +64,13 @@ type Store interface {
 		id string,
 		status brignext.EventStatus,
 	) error
-	UpdateEventWorkerStatus(
+	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
 		workerName string,
 		status brignext.WorkerStatus,
 	) error
-	UpdateEventWorkerJobStatus(
+	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
 		workerName string,

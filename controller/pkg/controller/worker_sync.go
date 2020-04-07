@@ -86,7 +86,7 @@ func (c *controller) syncWorkerPod(obj interface{}) {
 			} else {
 				status = brignext.WorkerStatusFailed
 			}
-			if err := c.apiClient.UpdateEventWorkerStatus(
+			if err := c.apiClient.UpdateWorkerStatus(
 				ctx,
 				eventID,
 				workerName,
