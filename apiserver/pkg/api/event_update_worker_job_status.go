@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *server) eventUpdateWorkerStatus(
+func (s *server) eventUpdateWorkerJobStatus(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -21,12 +21,14 @@ func (s *server) eventUpdateWorkerStatus(
 
 	workerName := mux.Vars(r)["workerName"]
 
+	jobName := mux.Vars(r)["jobName"]
+
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Println(
 			errors.Wrap(
 				err,
-				"error reading body of update event worker status request",
+				"error reading body of update event worker job status request",
 			),
 		)
 		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
@@ -34,13 +36,13 @@ func (s *server) eventUpdateWorkerStatus(
 	}
 
 	status := struct {
-		Status brignext.WorkerStatus `json:"status"`
+		Status brignext.JobStatus `json:"status"`
 	}{}
 	if err := json.Unmarshal(bodyBytes, &status); err != nil {
 		log.Println(
 			errors.Wrap(
 				err,
-				"error unmarshaling body of update event worker status request",
+				"error unmarshaling body of update event worker job status request",
 			),
 		)
 		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
@@ -48,10 +50,11 @@ func (s *server) eventUpdateWorkerStatus(
 	}
 
 	if err :=
-		s.service.UpdateEventWorkerStatus(
+		s.service.UpdateEventWorkerJobStatus(
 			r.Context(),
 			eventID,
 			workerName,
+			jobName,
 			status.Status,
 		); err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrWorkerNotFound); ok {
@@ -61,8 +64,9 @@ func (s *server) eventUpdateWorkerStatus(
 		log.Println(
 			errors.Wrapf(
 				err,
-				"error updating status on worker %q of event %q",
+				"error updating status on worker %q job %q of event %q",
 				workerName,
+				jobName,
 				eventID,
 			),
 		)

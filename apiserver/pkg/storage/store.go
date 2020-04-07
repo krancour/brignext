@@ -70,6 +70,13 @@ type Store interface {
 		workerName string,
 		status brignext.WorkerStatus,
 	) error
+	UpdateEventWorkerJobStatus(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		jobName string,
+		status brignext.JobStatus,
+	) error
 	DeleteEvent(
 		ctx context.Context,
 		id string,

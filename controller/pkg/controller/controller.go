@@ -25,18 +25,20 @@ type controller struct {
 
 	// New stuff
 	// TODO: Organize this better
-	podsClient            core_v1.PodInterface
-	workerPodsSelector    labels.Selector
-	workerPodsSet         map[string]struct{}
-	deletingWorkerPodsSet map[string]struct{}
-	workerPodsSetLock     sync.Mutex
-	availabilityCh        chan struct{}
+	podsClient         core_v1.PodInterface
+	workerPodsSelector labels.Selector
+	workerPodsSet      map[string]struct{}
+	deletingPodsSet    map[string]struct{}
+	podsLock           sync.Mutex
+	availabilityCh     chan struct{}
+	jobPodsSelector    labels.Selector
 
 	// All of the following behaviors can be overridden for testing purposes
 	syncExistingWorkerPods            func() error
 	manageCapacity                    func(context.Context)
 	continuouslySyncWorkerPods        func(context.Context)
 	manageProjectWorkerQueueConsumers func(context.Context)
+	continuouslySyncJobPods           func(context.Context)
 
 	workerContextCh chan workerContext
 	// All goroutines we launch will send errors here
@@ -55,6 +57,11 @@ func NewController(
 			"brignext.io/component": "worker",
 		},
 	).AsSelector()
+	jobPodsSelector := labels.Set(
+		map[string]string{
+			"brignext.io/component": "job",
+		},
+	).AsSelector()
 	c := &controller{
 		controllerConfig: controllerConfig,
 		apiClient:        apiClient,
@@ -63,11 +70,12 @@ func NewController(
 
 		// New stuff
 		// TODO: Organize this better
-		podsClient:            podsClient,
-		workerPodsSelector:    workerPodsSelector,
-		workerPodsSet:         map[string]struct{}{},
-		deletingWorkerPodsSet: map[string]struct{}{},
-		availabilityCh:        make(chan struct{}),
+		podsClient:         podsClient,
+		workerPodsSelector: workerPodsSelector,
+		workerPodsSet:      map[string]struct{}{},
+		deletingPodsSet:    map[string]struct{}{},
+		availabilityCh:     make(chan struct{}),
+		jobPodsSelector:    jobPodsSelector,
 
 		workerContextCh: make(chan workerContext),
 		errCh:           make(chan error),
@@ -79,6 +87,7 @@ func NewController(
 	c.continuouslySyncWorkerPods = c.defaultContinuouslySyncWorkerPods
 	c.manageProjectWorkerQueueConsumers =
 		c.defaultManageProjectWorkerQueueConsumers
+	c.continuouslySyncJobPods = c.defaultContinuouslySyncJobPods
 
 	return c
 }
@@ -108,6 +117,13 @@ func (c *controller) Run(ctx context.Context) error {
 	go func() {
 		defer wg.Done()
 		c.manageCapacity(ctx)
+	}()
+
+	// Continuously sync job pods
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		c.continuouslySyncJobPods(ctx)
 	}()
 
 	// Monitor for new/deleted projects at a regular interval. Launch or stop

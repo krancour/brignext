@@ -51,15 +51,15 @@ func (c *controller) defaultContinuouslySyncWorkerPods(ctx context.Context) {
 			UpdateFunc: func(_, newObj interface{}) {
 				c.syncWorkerPod(newObj)
 			},
-			DeleteFunc: c.syncDeletedWorkerPod,
+			DeleteFunc: c.syncDeletedPod,
 		},
 	)
 	workerPodsInformer.Run(ctx.Done())
 }
 
 func (c *controller) syncWorkerPod(obj interface{}) {
-	c.workerPodsSetLock.Lock()
-	defer c.workerPodsSetLock.Unlock()
+	c.podsLock.Lock()
+	defer c.podsLock.Unlock()
 	workerPod := obj.(*corev1.Pod)
 	namespacedWorkerPodName := namespacedPodName(
 		workerPod.Namespace,
@@ -108,13 +108,13 @@ func (c *controller) syncWorkerPod(obj interface{}) {
 			// We want to delete this pod after a short delay, but first let's make
 			// sure we aren't already working on that. If we schedule this for
 			// deletion more than once, we'll end up causing some errors.
-			_, alreadyDeleting := c.deletingWorkerPodsSet[namespacedWorkerPodName]
+			_, alreadyDeleting := c.deletingPodsSet[namespacedWorkerPodName]
 			if !alreadyDeleting {
 				log.Printf("scheduling pod %s deletion\n", namespacedWorkerPodName)
-				c.deletingWorkerPodsSet[namespacedWorkerPodName] = struct{}{}
+				c.deletingPodsSet[namespacedWorkerPodName] = struct{}{}
 				// Do NOT pass the pointer. It seems to be reused by the informer.
 				// Pass the thing it points TO.
-				go c.deleteWorkerPod(*workerPod)
+				go c.deletePod(*workerPod)
 			}
 		}
 	} else {
@@ -122,44 +122,4 @@ func (c *controller) syncWorkerPod(obj interface{}) {
 		// capacity.
 		c.workerPodsSet[namespacedWorkerPodName] = struct{}{}
 	}
-}
-
-// syncDeletedWorkerPod only fires when worker pod deletion is COMPLETE. i.e.
-// The pod is completely gone.
-func (c *controller) syncDeletedWorkerPod(obj interface{}) {
-	c.workerPodsSetLock.Lock()
-	defer c.workerPodsSetLock.Unlock()
-	workerPod := obj.(*corev1.Pod)
-	namespacedWorkerPodName := namespacedPodName(
-		workerPod.Namespace,
-		workerPod.Name,
-	)
-	log.Printf("notified of pod %s deletion", namespacedWorkerPodName)
-	// Remove this worker pod from the set of pods we were tracking for deletion.
-	// Managing this set is essential to not leaking memory.
-	delete(c.deletingWorkerPodsSet, namespacedWorkerPodName)
-}
-
-// deleteWorkerPod deletes a worker pod after a 60 second delay. The delay is
-// to ensure any log aggregators have a chance to get all logs from a completed
-// worker pod before it is torpedoed.
-func (c *controller) deleteWorkerPod(workerPod corev1.Pod) {
-	<-time.After(60 * time.Second)
-	// Can't use the podsClient that is stored as a controller attribute. We
-	// need to grab a namespaced one.
-	podsClient := c.kubeClient.CoreV1().Pods(workerPod.Namespace)
-	namespacedWorkerPodName := namespacedPodName(
-		workerPod.Namespace,
-		workerPod.Name,
-	)
-	log.Printf("finally deleting pod %s", namespacedWorkerPodName)
-	if err :=
-		podsClient.Delete(workerPod.Name, &metav1.DeleteOptions{}); err != nil {
-		log.Printf("error deleting pod %s: %s", namespacedWorkerPodName, err)
-	}
-	// TODO: Also need to delete workspace
-	// TODO: Also need to delete worker configmap
-	// TODO: When do the event configmap and event secret get deleted???
-	// TODO: Maybe we should actually let the API handle all of that! When the
-	// worker status is updated, delete whatever isn't needed anymore.
 }

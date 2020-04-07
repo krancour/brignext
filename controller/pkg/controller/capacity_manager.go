@@ -13,11 +13,11 @@ func (c *controller) defaultManageCapacity(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 	for {
-		c.workerPodsSetLock.Lock()
+		c.podsLock.Lock()
 		runningWorkerPods := len(c.workerPodsSet)
 		// Give up this lock before we potentially block waiting on someone who's
 		// ready for the capacity we might be allocating.
-		c.workerPodsSetLock.Unlock()
+		c.podsLock.Unlock()
 		// TODO: Make this configurable
 		if runningWorkerPods < 2 {
 			log.Println("found available capacity")

@@ -62,6 +62,13 @@ type Service interface {
 		workerName string,
 		status brignext.WorkerStatus,
 	) error
+	UpdateEventWorkerJobStatus(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		jobName string,
+		status brignext.JobStatus,
+	) error
 	DeleteEvent(
 		ctx context.Context,
 		id string,
@@ -172,8 +179,9 @@ func (s *service) CreateRootSession(ctx context.Context) (string, error) {
 		Root:          true,
 		HashedToken:   crypto.ShortSHA("", token),
 		Authenticated: true,
-		Expires:       now.Add(10 * time.Minute),
-		Created:       now,
+		// TODO: This is too long. It's just to help me out while I hack.
+		Expires: now.Add(24 * time.Hour),
+		Created: now,
 	}
 	if err := s.store.CreateSession(ctx, session); err != nil {
 		return "", errors.Wrapf(
@@ -705,6 +713,89 @@ func (s *service) UpdateEventWorkerStatus(
 			err,
 			"error updating status on worker %q of event %q in store",
 			workerName,
+			eventID,
+		)
+	}
+
+	event, err := s.store.GetEvent(ctx, eventID)
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
+	}
+
+	// Bail early if the event is already in a terminal state
+	switch event.Status {
+	case brignext.EventStatusPending:
+	case brignext.EventStatusProcessing:
+	default:
+		return nil
+	}
+
+	// Determine how collective worker statuses change event status...
+
+	var anyStarted bool // Will be true if any worker has (at least) started
+	var anyFailed bool  // Will be true if any worker has failed
+	// Will remain true only if all workers are in a terminal state
+	allFinished := true
+
+	for _, worker := range event.Workers {
+		switch worker.Status {
+		case brignext.WorkerStatusPending:
+			allFinished = false
+		case brignext.WorkerStatusRunning:
+			anyStarted = true
+			allFinished = false
+		case brignext.WorkerStatusSucceeded:
+			anyStarted = true
+		case brignext.WorkerStatusFailed:
+			anyStarted = true
+			anyFailed = true
+		}
+	}
+
+	// Note there are no transitions to aborted or canceled states here. Those are
+	// handled separately, from the top down, instead of determining event status
+	// based on worker statuses like we are doing here.
+	var eventStatus brignext.EventStatus
+	if !anyStarted {
+		eventStatus = brignext.EventStatusPending
+	} else if allFinished {
+		// We're done-- figure out more specific state
+		if anyFailed {
+			eventStatus = brignext.EventStatusFailed
+		} else {
+			eventStatus = brignext.EventStatusSucceeded
+		}
+	} else {
+		// We've started, but haven't finished, so we're processing
+		eventStatus = brignext.EventStatusProcessing
+	}
+
+	if err := s.store.UpdateEventStatus(ctx, eventID, eventStatus); err != nil {
+		return errors.Wrapf(err, "error updating event %q status in store", eventID)
+	}
+
+	return nil
+}
+
+func (s *service) UpdateEventWorkerJobStatus(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+	status brignext.JobStatus,
+) error {
+	if err := s.store.UpdateEventWorkerJobStatus(
+		ctx,
+		eventID,
+		workerName,
+		jobName,
+		status,
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating status on worker %q job %q of event %q in store",
+			workerName,
+			jobName,
 			eventID,
 		)
 	}

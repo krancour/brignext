@@ -148,6 +148,12 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.eventUpdateWorkerStatus),
 	).Methods(http.MethodPut)
 
+	// Update job status
+	s.router.HandleFunc(
+		"/v2/events/{eventID}/workers/{workerName}/jobs/{jobName}/status",
+		tokenAuthFilter.Decorate(s.eventUpdateWorkerJobStatus),
+	).Methods(http.MethodPut)
+
 	// TODO: Logs should actually be a property of a worker; not an event
 	// Stream logs
 	s.router.HandleFunc(

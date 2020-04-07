@@ -1,14 +1,24 @@
 package brignext
 
-// type JobStatus string
+type JobStatus string
 
-// const (
-// 	JobPending   JobStatus = "Pending"
-// 	JobRunning   JobStatus = "Running"
-// 	JobSucceeded JobStatus = "Succeeded"
-// 	JobFailed    JobStatus = "Failed"
-// 	JobUnknown   JobStatus = "Unknown"
-// )
+const (
+	// JobStatusPending represents the state wherein a jon is awaiting
+	// execution.
+	JobStatusPending JobStatus = "PENDING"
+	// JobStatusRunning represents the state wherein a job is currently
+	// being executed.
+	JobStatusRunning JobStatus = "RUNNING"
+	// JobStatusAborted represents the state wherein a job was forcefully
+	// stopped during execution.
+	JobStatusAborted JobStatus = "ABORTED"
+	// JobStatusSucceeded represents the state where a job has run to
+	// completion without error.
+	JobStatusSucceeded JobStatus = "SUCCEEDED"
+	// JobStatusFailed represents the state wherein a job has run to
+	// completion but experienced errors.
+	JobStatusFailed JobStatus = "FAILED"
+)
 
 // // Job is a single job that is executed by the worker that processes and event.
 // type Job struct {
