@@ -36,4 +36,5 @@ type Worker struct {
 	Started       *time.Time             `json:"started" bson:"started"`
 	Ended         *time.Time             `json:"ended" bson:"ended"`
 	Status        WorkerStatus           `json:"status" bson:"status"`
+	Jobs          map[string]Job         `json:"jobs" bson:"jobs"`
 }
