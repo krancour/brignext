@@ -62,6 +62,8 @@ type Service interface {
 		eventID string,
 		workerName string,
 		jobName string,
+		started *time.Time,
+		ended *time.Time,
 		status brignext.JobStatus,
 	) error
 	DeleteEvent(
@@ -766,6 +768,8 @@ func (s *service) UpdateJobStatus(
 	eventID string,
 	workerName string,
 	jobName string,
+	started *time.Time,
+	ended *time.Time,
 	status brignext.JobStatus,
 ) error {
 	if err := s.store.UpdateJobStatus(
@@ -773,6 +777,8 @@ func (s *service) UpdateJobStatus(
 		eventID,
 		workerName,
 		jobName,
+		started,
+		ended,
 		status,
 	); err != nil {
 		return errors.Wrapf(

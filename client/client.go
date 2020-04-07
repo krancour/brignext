@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/krancour/brignext"
 	"github.com/pkg/errors"
@@ -53,6 +54,8 @@ type Client interface {
 		eventID string,
 		workerName string,
 		jobName string,
+		started *time.Time,
+		ended *time.Time,
 		status brignext.JobStatus,
 	) error
 	GetEvent(context.Context, string) (brignext.Event, error)
@@ -816,13 +819,19 @@ func (c *client) UpdateJobStatus(
 	eventID string,
 	workerName string,
 	jobName string,
+	started *time.Time,
+	ended *time.Time,
 	status brignext.JobStatus,
 ) error {
 	statusBytes, err := json.Marshal(
 		struct {
-			Status brignext.JobStatus `json:"status"`
+			Started *time.Time         `json:"started"`
+			Ended   *time.Time         `json:"ended"`
+			Status  brignext.JobStatus `json:"status"`
 		}{
-			Status: status,
+			Started: started,
+			Ended:   ended,
+			Status:  status,
 		},
 	)
 	if err != nil {

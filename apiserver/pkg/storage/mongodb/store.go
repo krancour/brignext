@@ -678,6 +678,8 @@ func (s *store) UpdateJobStatus(
 	eventID string,
 	workerName string,
 	jobName string,
+	started *time.Time,
+	ended *time.Time,
 	status brignext.JobStatus,
 ) error {
 	workerKey := fmt.Sprintf("workers.%s", workerName)
@@ -691,7 +693,9 @@ func (s *store) UpdateJobStatus(
 		bson.M{
 			"$set": bson.M{
 				jobKey: bson.M{
-					"status": status,
+					"started": started,
+					"ended":   ended,
+					"status":  status,
 				},
 			},
 		},

@@ -28,5 +28,5 @@ const (
 type Job struct {
 	Started *time.Time `json:"started" bson:"started"`
 	Ended   *time.Time `json:"ended" bson:"ended"`
-	Status  JobStatus  `json:"status,omitempty" bson:"status,"`
+	Status  JobStatus  `json:"status,omitempty" bson:"status"`
 }

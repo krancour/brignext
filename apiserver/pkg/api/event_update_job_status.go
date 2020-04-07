@@ -5,13 +5,14 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext"
 	"github.com/pkg/errors"
 )
 
-func (s *server) eventUpdateWorkerJobStatus(
+func (s *server) eventUpdateJobStatus(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -36,7 +37,9 @@ func (s *server) eventUpdateWorkerJobStatus(
 	}
 
 	status := struct {
-		Status brignext.JobStatus `json:"status"`
+		Started *time.Time         `json:"started"`
+		Ended   *time.Time         `json:"ended"`
+		Status  brignext.JobStatus `json:"status"`
 	}{}
 	if err := json.Unmarshal(bodyBytes, &status); err != nil {
 		log.Println(
@@ -55,6 +58,8 @@ func (s *server) eventUpdateWorkerJobStatus(
 			eventID,
 			workerName,
 			jobName,
+			status.Started,
+			status.Ended,
 			status.Status,
 		); err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrWorkerNotFound); ok {

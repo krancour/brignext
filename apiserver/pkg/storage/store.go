@@ -75,6 +75,8 @@ type Store interface {
 		eventID string,
 		workerName string,
 		jobName string,
+		started *time.Time,
+		ended *time.Time,
 		status brignext.JobStatus,
 	) error
 	DeleteEvent(

@@ -65,6 +65,13 @@ func (c *controller) syncJobPod(obj interface{}) {
 		status = brignext.JobStatusUnknown
 	}
 
+	started := &jobPod.Status.StartTime.Time
+	var ended *time.Time
+	if len(jobPod.Status.ContainerStatuses) > 0 &&
+		jobPod.Status.ContainerStatuses[0].State.Terminated != nil {
+		ended = &jobPod.Status.ContainerStatuses[0].State.Terminated.FinishedAt.Time
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := c.apiClient.UpdateJobStatus(
@@ -72,6 +79,8 @@ func (c *controller) syncJobPod(obj interface{}) {
 		eventID,
 		workerName,
 		jobName,
+		started,
+		ended,
 		status,
 	); err != nil {
 		// TODO: Can we return this over the errCh somehow? Only problem is we
