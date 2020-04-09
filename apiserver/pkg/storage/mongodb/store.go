@@ -640,19 +640,21 @@ func (s *store) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
 	workerName string,
+	started *time.Time,
+	ended *time.Time,
 	status brignext.WorkerStatus,
 ) error {
-	workerKey := fmt.Sprintf("workers.%s", workerName)
-	workerStatusKey := fmt.Sprintf("workers.%s.status", workerName)
 	res, err := s.eventsCollection.UpdateOne(
 		ctx,
 		bson.M{
-			"_id":     eventID,
-			workerKey: bson.M{"$exists": true},
+			"_id":                                 eventID,
+			fmt.Sprintf("workers.%s", workerName): bson.M{"$exists": true},
 		},
 		bson.M{
 			"$set": bson.M{
-				workerStatusKey: status,
+				fmt.Sprintf("workers.%s.started", workerName): started,
+				fmt.Sprintf("workers.%s.ended", workerName):   ended,
+				fmt.Sprintf("workers.%s.status", workerName):  status,
 			},
 		},
 	)

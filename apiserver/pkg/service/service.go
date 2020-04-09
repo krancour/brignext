@@ -55,6 +55,8 @@ type Service interface {
 		ctx context.Context,
 		eventID string,
 		workerName string,
+		started *time.Time,
+		ended *time.Time,
 		status brignext.WorkerStatus,
 	) error
 	UpdateJobStatus(
@@ -687,12 +689,16 @@ func (s *service) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
 	workerName string,
+	started *time.Time,
+	ended *time.Time,
 	status brignext.WorkerStatus,
 ) error {
 	if err := s.store.UpdateWorkerStatus(
 		ctx,
 		eventID,
 		workerName,
+		started,
+		ended,
 		status,
 	); err != nil {
 		return errors.Wrapf(

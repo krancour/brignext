@@ -46,6 +46,14 @@ func (c *controller) syncJobPod(obj interface{}) {
 	defer c.podsLock.Unlock()
 	jobPod := obj.(*corev1.Pod)
 
+	// Job pods are only deleted by the API (during event or worker abortion or
+	// cancelation) or by the controller. In EITHER case, the job pod has already
+	// reached a terminal state and that has already been recorded in the
+	// database, so there's nothing to do.
+	if jobPod.DeletionTimestamp != nil {
+		return
+	}
+
 	// Use the API to update job status so it corresponds to job pod status
 	eventID := jobPod.Labels["brignext.io/event"]
 	workerName := jobPod.Labels["brignext.io/worker"]
@@ -54,7 +62,9 @@ func (c *controller) syncJobPod(obj interface{}) {
 	var status brignext.JobStatus
 	switch jobPod.Status.Phase {
 	case corev1.PodPending:
-		status = brignext.JobStatusPending
+		// This pod is on its way up. For Brigade's purposes, this counts as
+		// running.
+		status = brignext.JobStatusRunning
 	case corev1.PodRunning:
 		status = brignext.JobStatusRunning
 	case corev1.PodSucceeded:
@@ -65,8 +75,11 @@ func (c *controller) syncJobPod(obj interface{}) {
 		status = brignext.JobStatusUnknown
 	}
 
-	started := &jobPod.Status.StartTime.Time
+	var started *time.Time
 	var ended *time.Time
+	if jobPod.Status.StartTime != nil {
+		started = &jobPod.Status.StartTime.Time
+	}
 	if len(jobPod.Status.ContainerStatuses) > 0 &&
 		jobPod.Status.ContainerStatuses[0].State.Terminated != nil {
 		ended = &jobPod.Status.ContainerStatuses[0].State.Terminated.FinishedAt.Time
@@ -95,14 +108,15 @@ func (c *controller) syncJobPod(obj interface{}) {
 		)
 	}
 
-	if jobPod.DeletionTimestamp == nil {
+	if jobPod.Status.Phase == corev1.PodSucceeded ||
+		jobPod.Status.Phase == corev1.PodFailed {
 		namespacedJobPodName := namespacedPodName(jobPod.Namespace, jobPod.Name)
 		// We want to delete this pod after a short delay, but first let's make
 		// sure we aren't already working on that. If we schedule this for
 		// deletion more than once, we'll end up causing some errors.
 		_, alreadyDeleting := c.deletingPodsSet[namespacedJobPodName]
 		if !alreadyDeleting {
-			log.Printf("scheduling pod %s deletion\n", namespacedJobPodName)
+			log.Printf("scheduling job pod %s deletion\n", namespacedJobPodName)
 			c.deletingPodsSet[namespacedJobPodName] = struct{}{}
 			// Do NOT pass the pointer. It seems to be reused by the informer.
 			// Pass the thing it points TO.

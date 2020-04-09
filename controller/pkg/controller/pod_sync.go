@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"log"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -13,11 +12,9 @@ func (c *controller) syncDeletedPod(obj interface{}) {
 	c.podsLock.Lock()
 	defer c.podsLock.Unlock()
 	pod := obj.(*corev1.Pod)
-	namespacedPodName := namespacedPodName(pod.Namespace, pod.Name)
-	log.Printf("notified of pod %s deletion", namespacedPodName)
 	// Remove this pod from the set of pods we were tracking for deletion.
 	// Managing this set is essential to not leaking memory.
-	delete(c.deletingPodsSet, namespacedPodName)
+	delete(c.deletingPodsSet, namespacedPodName(pod.Namespace, pod.Name))
 }
 
 // deletePod deletes a pod after a 60 second delay. The delay is to ensure any

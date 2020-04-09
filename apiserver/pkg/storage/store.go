@@ -68,6 +68,8 @@ type Store interface {
 		ctx context.Context,
 		eventID string,
 		workerName string,
+		started *time.Time,
+		ended *time.Time,
 		status brignext.WorkerStatus,
 	) error
 	UpdateJobStatus(

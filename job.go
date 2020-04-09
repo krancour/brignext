@@ -5,9 +5,6 @@ import "time"
 type JobStatus string
 
 const (
-	// JobStatusPending represents the state wherein a jon is awaiting
-	// execution.
-	JobStatusPending JobStatus = "PENDING"
 	// JobStatusRunning represents the state wherein a job is currently
 	// being executed.
 	JobStatusRunning JobStatus = "RUNNING"

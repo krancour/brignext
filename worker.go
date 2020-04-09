@@ -8,12 +8,12 @@ const (
 	// WorkerStatusPending represents the state wherein a worker is awaiting
 	// execution.
 	WorkerStatusPending WorkerStatus = "PENDING"
-	// WorkerStatusCanceled represents the state wherein a pending worker was
-	// canceled prior to execution.
-	WorkerStatusCanceled WorkerStatus = "CANCELED"
 	// WorkerStatusRunning represents the state wherein a worker is currently
 	// being executed.
 	WorkerStatusRunning WorkerStatus = "RUNNING"
+	// WorkerStatusCanceled represents the state wherein a pending worker was
+	// canceled prior to execution.
+	WorkerStatusCanceled WorkerStatus = "CANCELED"
 	// WorkerStatusAborted represents the state wherein a worker was forcefully
 	// stopped during execution.
 	WorkerStatusAborted WorkerStatus = "ABORTED"
@@ -23,6 +23,9 @@ const (
 	// WorkerStatusFailed represents the state wherein a worker has run to
 	// completion but experienced errors.
 	WorkerStatusFailed WorkerStatus = "FAILED"
+	// WorkerStatusUnknown represents the state wherein a worker's status is
+	// unknown.
+	WorkerStatusUnknown WorkerStatus = "UNKNOWN"
 )
 
 // nolint: lll

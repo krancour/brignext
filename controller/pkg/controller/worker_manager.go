@@ -75,19 +75,6 @@ func (c *controller) handleProjectWorkerMessage(
 					workerContext.WorkerName,
 				)
 			}
-			if err := c.apiClient.UpdateWorkerStatus(
-				ctx,
-				workerContext.EventID,
-				workerContext.WorkerName,
-				brignext.WorkerStatusRunning,
-			); err != nil {
-				return errors.Wrapf(
-					err,
-					"error updating status for event %q worker %q",
-					workerContext.EventID,
-					workerContext.WorkerName,
-				)
-			}
 		case <-ctx.Done():
 			return nil
 		}

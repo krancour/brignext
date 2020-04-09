@@ -47,6 +47,8 @@ type Client interface {
 		ctx context.Context,
 		eventID string,
 		workerName string,
+		started *time.Time,
+		ended *time.Time,
 		status brignext.WorkerStatus,
 	) error
 	UpdateJobStatus(
@@ -773,13 +775,19 @@ func (c *client) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
 	workerName string,
+	started *time.Time,
+	ended *time.Time,
 	status brignext.WorkerStatus,
 ) error {
 	statusBytes, err := json.Marshal(
 		struct {
-			Status brignext.WorkerStatus `json:"status"`
+			Started *time.Time            `json:"started"`
+			Ended   *time.Time            `json:"ended"`
+			Status  brignext.WorkerStatus `json:"status"`
 		}{
-			Status: status,
+			Started: started,
+			Ended:   ended,
+			Status:  status,
 		},
 	)
 	if err != nil {
