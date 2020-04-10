@@ -336,6 +336,12 @@ func (c *controller) createWorkerPod(
 			Name:      qualifiedWorkerKey(event.ID, workerName),
 			Namespace: event.Kubernetes.Namespace,
 			Labels: map[string]string{
+				// TODO: These duplicate labels are temporary until I figure out how to
+				// deal with these more complex labels in fluentd
+				"component":             "worker",
+				"project":               event.ProjectID,
+				"event":                 event.ID,
+				"worker":                workerName,
 				"brignext.io/component": "worker",
 				"brignext.io/project":   event.ProjectID,
 				"brignext.io/event":     event.ID,
