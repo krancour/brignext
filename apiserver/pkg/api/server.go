@@ -32,6 +32,8 @@ type server struct {
 	serviceAccountSchemaLoader gojsonschema.JSONLoader
 	projectSchemaLoader        gojsonschema.JSONLoader
 	eventSchemaLoader          gojsonschema.JSONLoader
+	workerStatusSchemaLoader   gojsonschema.JSONLoader
+	jobStatusSchemaLoader      gojsonschema.JSONLoader
 }
 
 // NewServer returns an HTTP router
@@ -50,6 +52,8 @@ func NewServer(
 		serviceAccountSchemaLoader: gojsonschema.NewBytesLoader(serviceAccountSchemaBytes), // nolint: lll
 		projectSchemaLoader:        gojsonschema.NewBytesLoader(projectSchemaBytes),
 		eventSchemaLoader:          gojsonschema.NewBytesLoader(eventSchemaBytes),
+		workerStatusSchemaLoader:   gojsonschema.NewBytesLoader(workerStatusSchemaBytes),
+		jobStatusSchemaLoader:      gojsonschema.NewBytesLoader(jobStatusSchemaBytes),
 	}
 
 	// Most requests are authenticated with a bearer token
@@ -136,16 +140,16 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.eventGet),
 	).Methods(http.MethodGet)
 
-	// Update event worker status
+	// Update worker status
 	s.router.HandleFunc(
 		"/v2/events/{eventID}/workers/{workerName}/status",
-		tokenAuthFilter.Decorate(s.eventUpdateWorkerStatus),
+		tokenAuthFilter.Decorate(s.workerUpdateStatus),
 	).Methods(http.MethodPut)
 
 	// Update job status
 	s.router.HandleFunc(
 		"/v2/events/{eventID}/workers/{workerName}/jobs/{jobName}/status",
-		tokenAuthFilter.Decorate(s.eventUpdateJobStatus),
+		tokenAuthFilter.Decorate(s.jobUpdateStatus),
 	).Methods(http.MethodPut)
 
 	// TODO: Logs should actually be a property of a worker; not an event

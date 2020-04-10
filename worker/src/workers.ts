@@ -13,7 +13,7 @@ export interface GitConfig {
 
 export interface JobsConfig {
   allowPrivileged: boolean
-  allowHostMounts: boolean
+  allowDockerSocketMount: boolean
   kubernetes: JobsKubernetesConfig
 }
 

@@ -42,7 +42,7 @@ func eventGet(c *cli.Context) error {
 	switch strings.ToLower(output) {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "PROJECT", "PROVIDER", "TYPE", "AGE", "STATUS")
+		table.AddRow("ID", "PROJECT", "PROVIDER", "TYPE", "AGE", "PHASE")
 		var age string
 		if event.Created != nil {
 			age = duration.ShortHumanDuration(time.Since(*event.Created))
@@ -53,27 +53,29 @@ func eventGet(c *cli.Context) error {
 			event.Provider,
 			event.Type,
 			age,
-			event.Status,
+			event.Status.Phase,
 		)
 		fmt.Println(table)
 
 		if len(event.Workers) > 0 {
 			fmt.Printf("\nEvent %q workers:\n\n", event.ID)
 			table = uitable.New()
-			table.AddRow("NAME", "STARTED", "ENDED", "STATUS")
+			table.AddRow("NAME", "STARTED", "ENDED", "PHASE")
 			for workerName, worker := range event.Workers {
 				var started, ended string
-				if worker.Started != nil {
-					started = duration.ShortHumanDuration(time.Since(*worker.Started))
+				if worker.Status.Started != nil {
+					started =
+						duration.ShortHumanDuration(time.Since(*worker.Status.Started))
 				}
-				if worker.Ended != nil {
-					ended = duration.ShortHumanDuration(time.Since(*worker.Ended))
+				if worker.Status.Ended != nil {
+					ended =
+						duration.ShortHumanDuration(time.Since(*worker.Status.Ended))
 				}
 				table.AddRow(
 					workerName,
 					started,
 					ended,
-					worker.Status,
+					worker.Status.Phase,
 				)
 			}
 			fmt.Println(table)

@@ -269,7 +269,7 @@ export class Job extends jobs.Job {
 
     // If the job requests access to the host's Docker daemon AND it's
     // allowed...
-    if (this.docker.enabled && currentWorker.jobsConfig.allowHostMounts) {
+    if (this.docker.enabled && currentWorker.jobsConfig.allowDockerSocketMount) {
       const dockerSocketVolumeName = "docker-socket"
       const dockerSocketPath = "/var/run/docker.sock"
 

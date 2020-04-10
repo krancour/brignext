@@ -33,8 +33,10 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 				Kubernetes:    workerConfig.Kubernetes,
 				JobsConfig:    workerConfig.JobsConfig,
 				LogLevel:      workerConfig.LogLevel,
-				Status:        WorkerStatusPending,
 				Jobs:          map[string]Job{},
+				Status: WorkerStatus{
+					Phase: WorkerPhasePending,
+				},
 			}
 			if worker.Container.Image == "" {
 				worker.Container.Image = "krancour/brignext-worker:latest"

@@ -2,28 +2,32 @@ package brignext
 
 import "time"
 
-type JobStatus string
+type JobPhase string
 
 const (
-	// JobStatusRunning represents the state wherein a job is currently
+	// JobPhaseRunning represents the state wherein a job is currently
 	// being executed.
-	JobStatusRunning JobStatus = "RUNNING"
-	// JobStatusAborted represents the state wherein a job was forcefully
+	JobPhaseRunning JobPhase = "RUNNING"
+	// JobPhaseAborted represents the state wherein a job was forcefully
 	// stopped during execution.
-	JobStatusAborted JobStatus = "ABORTED"
-	// JobStatusSucceeded represents the state where a job has run to
+	JobPhaseAborted JobPhase = "ABORTED"
+	// JobPhaseSucceeded represents the state where a job has run to
 	// completion without error.
-	JobStatusSucceeded JobStatus = "SUCCEEDED"
-	// JobStatusFailed represents the state wherein a job has run to
+	JobPhaseSucceeded JobPhase = "SUCCEEDED"
+	// JobPhaseFailed represents the state wherein a job has run to
 	// completion but experienced errors.
-	JobStatusFailed JobStatus = "FAILED"
-	// JobStatusUnknown represents the state wherein a job's status is unknown.
-	JobStatusUnknown JobStatus = "UNKNOWN"
+	JobPhaseFailed JobPhase = "FAILED"
+	// JobPhaseUnknown represents the state wherein a job's state is unknown.
+	JobPhaseUnknown JobPhase = "UNKNOWN"
 )
 
 // Job is a single job that is executed by a worker that processes an event.
 type Job struct {
+	Status JobStatus `json:"status" bson:"status"`
+}
+
+type JobStatus struct {
 	Started *time.Time `json:"started" bson:"started"`
 	Ended   *time.Time `json:"ended" bson:"ended"`
-	Status  JobStatus  `json:"status,omitempty" bson:"status"`
+	Phase   JobPhase   `json:"phase" bson:"phase"`
 }

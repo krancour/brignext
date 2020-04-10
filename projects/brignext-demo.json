@@ -29,7 +29,7 @@
       },
       "jobsConfig": {
         "allowPrivileged": true,
-        "allowHostMounts": true
+        "allowDockerSocketMount": true
       }
     }
   }

@@ -2,17 +2,18 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext"
 	"github.com/pkg/errors"
+	"github.com/xeipuuv/gojsonschema"
 )
 
-func (s *server) eventUpdateWorkerStatus(
+func (s *server) workerUpdateStatus(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -34,11 +35,24 @@ func (s *server) eventUpdateWorkerStatus(
 		return
 	}
 
-	status := struct {
-		Started *time.Time            `json:"started"`
-		Ended   *time.Time            `json:"ended"`
-		Status  brignext.WorkerStatus `json:"status"`
-	}{}
+	if validationResult, err := gojsonschema.Validate(
+		s.workerStatusSchemaLoader,
+		gojsonschema.NewBytesLoader(bodyBytes),
+	); err != nil {
+		log.Println(
+			errors.Wrap(err, "error validating update worker status request"),
+		)
+		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		return
+	} else if !validationResult.Valid() {
+		fmt.Println("----------")
+		fmt.Println(validationResult.Errors())
+		fmt.Println("----------")
+		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
+		return
+	}
+
+	status := brignext.WorkerStatus{}
 	if err := json.Unmarshal(bodyBytes, &status); err != nil {
 		log.Println(
 			errors.Wrap(
@@ -55,9 +69,7 @@ func (s *server) eventUpdateWorkerStatus(
 			r.Context(),
 			eventID,
 			workerName,
-			status.Started,
-			status.Ended,
-			status.Status,
+			status,
 		); err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrWorkerNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)

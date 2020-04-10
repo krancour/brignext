@@ -54,35 +54,34 @@ func (c *controller) syncJobPod(obj interface{}) {
 		return
 	}
 
-	// Use the API to update job status so it corresponds to job pod status
+	// Use the API to update job phase so it corresponds to job pod phase
 	eventID := jobPod.Labels["brignext.io/event"]
 	workerName := jobPod.Labels["brignext.io/worker"]
 	jobName := jobPod.Labels["brignext.io/job"]
 
-	var status brignext.JobStatus
+	status := brignext.JobStatus{}
 	switch jobPod.Status.Phase {
 	case corev1.PodPending:
 		// This pod is on its way up. For Brigade's purposes, this counts as
 		// running.
-		status = brignext.JobStatusRunning
+		status.Phase = brignext.JobPhaseRunning
 	case corev1.PodRunning:
-		status = brignext.JobStatusRunning
+		status.Phase = brignext.JobPhaseRunning
 	case corev1.PodSucceeded:
-		status = brignext.JobStatusSucceeded
+		status.Phase = brignext.JobPhaseSucceeded
 	case corev1.PodFailed:
-		status = brignext.JobStatusFailed
+		status.Phase = brignext.JobPhaseFailed
 	case corev1.PodUnknown:
-		status = brignext.JobStatusUnknown
+		status.Phase = brignext.JobPhaseUnknown
 	}
 
-	var started *time.Time
-	var ended *time.Time
 	if jobPod.Status.StartTime != nil {
-		started = &jobPod.Status.StartTime.Time
+		status.Started = &jobPod.Status.StartTime.Time
 	}
 	if len(jobPod.Status.ContainerStatuses) > 0 &&
 		jobPod.Status.ContainerStatuses[0].State.Terminated != nil {
-		ended = &jobPod.Status.ContainerStatuses[0].State.Terminated.FinishedAt.Time
+		status.Ended =
+			&jobPod.Status.ContainerStatuses[0].State.Terminated.FinishedAt.Time
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -92,8 +91,6 @@ func (c *controller) syncJobPod(obj interface{}) {
 		eventID,
 		workerName,
 		jobName,
-		started,
-		ended,
 		status,
 	); err != nil {
 		// TODO: Can we return this over the errCh somehow? Only problem is we

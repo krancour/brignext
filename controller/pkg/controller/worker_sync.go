@@ -76,11 +76,11 @@ func (c *controller) syncWorkerPod(obj interface{}) {
 		return
 	}
 
-	// Use the API to update worker status so it corresponds to worker pod status
+	// Use the API to update worker phase so it corresponds to worker pod phase
 	eventID := workerPod.Labels["brignext.io/event"]
 	workerName := workerPod.Labels["brignext.io/worker"]
 
-	var status brignext.WorkerStatus
+	status := brignext.WorkerStatus{}
 	switch workerPod.Status.Phase {
 	case corev1.PodPending:
 		// A pending pod is on its way up. We need to count this as consuming
@@ -88,39 +88,37 @@ func (c *controller) syncWorkerPod(obj interface{}) {
 		c.workerPodsSet[namespacedWorkerPodName] = struct{}{}
 
 		// For Brigade's purposes, this counts as running
-		status = brignext.WorkerStatusRunning
+		status.Phase = brignext.WorkerPhaseRunning
 	case corev1.PodRunning:
 		// Make sure this pod IS counted as consuming capacity
 		c.workerPodsSet[namespacedWorkerPodName] = struct{}{}
 
-		status = brignext.WorkerStatusRunning
+		status.Phase = brignext.WorkerPhaseRunning
 	case corev1.PodSucceeded:
 		// Make sure this pod IS NOT counted as consuming capacity
 		delete(c.workerPodsSet, namespacedWorkerPodName)
 
-		status = brignext.WorkerStatusSucceeded
+		status.Phase = brignext.WorkerPhaseSucceeded
 	case corev1.PodFailed:
 		// Make sure this pod IS NOT counted as consuming capacity
 		delete(c.workerPodsSet, namespacedWorkerPodName)
 
-		status = brignext.WorkerStatusFailed
+		status.Phase = brignext.WorkerPhaseFailed
 	case corev1.PodUnknown:
 		// Make sure this pod IS counted as consuming capacity... because we just
 		// don't know. (If someone or something deletes it, it will all work itself
 		// out.)
 		c.workerPodsSet[namespacedWorkerPodName] = struct{}{}
 
-		status = brignext.WorkerStatusUnknown
+		status.Phase = brignext.WorkerPhaseUnknown
 	}
 
-	var started *time.Time
-	var ended *time.Time
 	if workerPod.Status.StartTime != nil {
-		started = &workerPod.Status.StartTime.Time
+		status.Started = &workerPod.Status.StartTime.Time
 	}
 	if len(workerPod.Status.ContainerStatuses) > 0 &&
 		workerPod.Status.ContainerStatuses[0].State.Terminated != nil {
-		ended =
+		status.Ended =
 			&workerPod.Status.ContainerStatuses[0].State.Terminated.FinishedAt.Time
 	}
 
@@ -130,8 +128,6 @@ func (c *controller) syncWorkerPod(obj interface{}) {
 		ctx,
 		eventID,
 		workerName,
-		started,
-		ended,
 		status,
 	); err != nil {
 		// TODO: Can we return this over the errCh somehow? Only problem is we

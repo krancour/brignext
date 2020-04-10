@@ -30,7 +30,7 @@ func (s *server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 		s.projectSchemaLoader,
 		gojsonschema.NewBytesLoader(bodyBytes),
 	); err != nil {
-		log.Println(errors.Wrap(err, "error validating request"))
+		log.Println(errors.Wrap(err, "error validating update project request"))
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
 	} else if !validationResult.Valid() {

@@ -27,7 +27,9 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 		s.serviceAccountSchemaLoader,
 		gojsonschema.NewBytesLoader(bodyBytes),
 	); err != nil {
-		log.Println(errors.Wrap(err, "error validating request"))
+		log.Println(
+			errors.Wrap(err, "error validating create service account request"),
+		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
 	} else if !validationResult.Valid() {

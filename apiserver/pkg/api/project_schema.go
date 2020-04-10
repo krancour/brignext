@@ -87,9 +87,9 @@ var projectSchemaBytes = []byte(`
 					"type": "boolean",
 					"description": "Whether job containers are permitted to be run as privileged"
 				},
-				"allowHostMounts": {
+				"allowDockerSocketMount": {
 					"type": "boolean",
-					"description": "Whether job containers are permitted to mount files or directories from the container host"
+					"description": "Whether job containers are permitted to mount the host's Docker socket"
 				},
 				"kubernetes": { "$ref": "#/definitions/jobsKubernetesConfig" }
 			}
@@ -99,10 +99,6 @@ var projectSchemaBytes = []byte(`
 			"type": "object",
 			"description": "Jobs configuration pertaining specifically to Kubernetes",
 			"properties": {
-				"allowSecretKeyRef": {
-					"type": "boolean",
-					"description": "Whether to permit the worker to reference Kubernetes secrets when defining environment variables for jobs"
-				},
 				"imagePullSecrets": {
 					"oneOf": [
 						{ "$ref": "#/definitions/empty" },

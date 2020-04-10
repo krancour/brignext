@@ -5,14 +5,14 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext"
 	"github.com/pkg/errors"
+	"github.com/xeipuuv/gojsonschema"
 )
 
-func (s *server) eventUpdateJobStatus(
+func (s *server) jobUpdateStatus(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -29,23 +29,31 @@ func (s *server) eventUpdateJobStatus(
 		log.Println(
 			errors.Wrap(
 				err,
-				"error reading body of update event worker job status request",
+				"error reading body of update job status request",
 			),
 		)
 		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
 		return
 	}
 
-	status := struct {
-		Started *time.Time         `json:"started"`
-		Ended   *time.Time         `json:"ended"`
-		Status  brignext.JobStatus `json:"status"`
-	}{}
+	if validationResult, err := gojsonschema.Validate(
+		s.jobStatusSchemaLoader,
+		gojsonschema.NewBytesLoader(bodyBytes),
+	); err != nil {
+		log.Println(errors.Wrap(err, "error validating update job status request"))
+		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		return
+	} else if !validationResult.Valid() {
+		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
+		return
+	}
+
+	status := brignext.JobStatus{}
 	if err := json.Unmarshal(bodyBytes, &status); err != nil {
 		log.Println(
 			errors.Wrap(
 				err,
-				"error unmarshaling body of update event worker job status request",
+				"error unmarshaling body of update job status request",
 			),
 		)
 		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
@@ -58,9 +66,7 @@ func (s *server) eventUpdateJobStatus(
 			eventID,
 			workerName,
 			jobName,
-			status.Started,
-			status.Ended,
-			status.Status,
+			status,
 		); err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrWorkerNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)

@@ -622,9 +622,7 @@ func (s *store) UpdateEventStatus(
 			"_id": id,
 		},
 		bson.M{
-			"$set": bson.M{
-				"status": status,
-			},
+			"$set": bson.M{"status": status},
 		},
 	)
 	if err != nil {
@@ -640,8 +638,6 @@ func (s *store) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
 	workerName string,
-	started *time.Time,
-	ended *time.Time,
 	status brignext.WorkerStatus,
 ) error {
 	res, err := s.eventsCollection.UpdateOne(
@@ -652,9 +648,7 @@ func (s *store) UpdateWorkerStatus(
 		},
 		bson.M{
 			"$set": bson.M{
-				fmt.Sprintf("workers.%s.started", workerName): started,
-				fmt.Sprintf("workers.%s.ended", workerName):   ended,
-				fmt.Sprintf("workers.%s.status", workerName):  status,
+				fmt.Sprintf("workers.%s.status", workerName): status,
 			},
 		},
 	)
@@ -680,24 +674,18 @@ func (s *store) UpdateJobStatus(
 	eventID string,
 	workerName string,
 	jobName string,
-	started *time.Time,
-	ended *time.Time,
 	status brignext.JobStatus,
 ) error {
-	workerKey := fmt.Sprintf("workers.%s", workerName)
-	jobKey := fmt.Sprintf("workers.%s.jobs.%s", workerName, jobName)
 	res, err := s.eventsCollection.UpdateOne(
 		ctx,
 		bson.M{
-			"_id":     eventID,
-			workerKey: bson.M{"$exists": true},
+			"_id":                                 eventID,
+			fmt.Sprintf("workers.%s", workerName): bson.M{"$exists": true},
 		},
 		bson.M{
 			"$set": bson.M{
-				jobKey: bson.M{
-					"started": started,
-					"ended":   ended,
-					"status":  status,
+				fmt.Sprintf("workers.%s.jobs.%s", workerName, jobName): brignext.Job{
+					Status: status,
 				},
 			},
 		},
@@ -729,24 +717,24 @@ func (s *store) DeleteEvent(
 	if _, err := s.GetEvent(ctx, id); err != nil {
 		return false, err
 	}
-	statusesToDelete := []brignext.EventStatus{
-		brignext.EventStatusMoot,
-		brignext.EventStatusCanceled,
-		brignext.EventStatusAborted,
-		brignext.EventStatusSucceeded,
-		brignext.EventStatusFailed,
+	phasesToDelete := []brignext.EventPhase{
+		brignext.EventPhaseMoot,
+		brignext.EventPhaseCanceled,
+		brignext.EventPhaseAborted,
+		brignext.EventPhaseSucceeded,
+		brignext.EventPhaseFailed,
 	}
 	if deletePending {
-		statusesToDelete = append(statusesToDelete, brignext.EventStatusPending)
+		phasesToDelete = append(phasesToDelete, brignext.EventPhasePending)
 	}
 	if deleteProcessing {
-		statusesToDelete = append(statusesToDelete, brignext.EventStatusProcessing)
+		phasesToDelete = append(phasesToDelete, brignext.EventPhaseProcessing)
 	}
 	res, err := s.eventsCollection.DeleteOne(
 		ctx,
 		bson.M{
-			"_id":    id,
-			"status": bson.M{"$in": statusesToDelete},
+			"_id":          id,
+			"status.phase": bson.M{"$in": phasesToDelete},
 		},
 	)
 	if err != nil {

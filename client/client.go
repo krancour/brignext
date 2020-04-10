@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/krancour/brignext"
 	"github.com/pkg/errors"
@@ -47,8 +46,6 @@ type Client interface {
 		ctx context.Context,
 		eventID string,
 		workerName string,
-		started *time.Time,
-		ended *time.Time,
 		status brignext.WorkerStatus,
 	) error
 	UpdateJobStatus(
@@ -56,8 +53,6 @@ type Client interface {
 		eventID string,
 		workerName string,
 		jobName string,
-		started *time.Time,
-		ended *time.Time,
 		status brignext.JobStatus,
 	) error
 	GetEvent(context.Context, string) (brignext.Event, error)
@@ -775,19 +770,13 @@ func (c *client) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
 	workerName string,
-	started *time.Time,
-	ended *time.Time,
 	status brignext.WorkerStatus,
 ) error {
 	statusBytes, err := json.Marshal(
-		struct {
-			Started *time.Time            `json:"started"`
-			Ended   *time.Time            `json:"ended"`
-			Status  brignext.WorkerStatus `json:"status"`
-		}{
-			Started: started,
-			Ended:   ended,
-			Status:  status,
+		brignext.WorkerStatus{
+			Started: status.Started,
+			Ended:   status.Ended,
+			Phase:   status.Phase,
 		},
 	)
 	if err != nil {
@@ -827,19 +816,13 @@ func (c *client) UpdateJobStatus(
 	eventID string,
 	workerName string,
 	jobName string,
-	started *time.Time,
-	ended *time.Time,
 	status brignext.JobStatus,
 ) error {
 	statusBytes, err := json.Marshal(
-		struct {
-			Started *time.Time         `json:"started"`
-			Ended   *time.Time         `json:"ended"`
-			Status  brignext.JobStatus `json:"status"`
-		}{
-			Started: started,
-			Ended:   ended,
-			Status:  status,
+		brignext.JobStatus{
+			Started: status.Started,
+			Ended:   status.Ended,
+			Phase:   status.Phase,
 		},
 	)
 	if err != nil {

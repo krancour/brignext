@@ -27,7 +27,7 @@ func (s *server) eventCreate(w http.ResponseWriter, r *http.Request) {
 		s.eventSchemaLoader,
 		gojsonschema.NewBytesLoader(bodyBytes),
 	); err != nil {
-		log.Println(errors.Wrap(err, "error validating request"))
+		log.Println(errors.Wrap(err, "error validating create event request"))
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
 	} else if !validationResult.Valid() {

@@ -68,8 +68,6 @@ type Store interface {
 		ctx context.Context,
 		eventID string,
 		workerName string,
-		started *time.Time,
-		ended *time.Time,
 		status brignext.WorkerStatus,
 	) error
 	UpdateJobStatus(
@@ -77,8 +75,6 @@ type Store interface {
 		eventID string,
 		workerName string,
 		jobName string,
-		started *time.Time,
-		ended *time.Time,
 		status brignext.JobStatus,
 	) error
 	DeleteEvent(

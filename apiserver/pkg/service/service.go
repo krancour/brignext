@@ -55,8 +55,6 @@ type Service interface {
 		ctx context.Context,
 		eventID string,
 		workerName string,
-		started *time.Time,
-		ended *time.Time,
 		status brignext.WorkerStatus,
 	) error
 	UpdateJobStatus(
@@ -64,8 +62,6 @@ type Service interface {
 		eventID string,
 		workerName string,
 		jobName string,
-		started *time.Time,
-		ended *time.Time,
 		status brignext.JobStatus,
 	) error
 	DeleteEvent(
@@ -567,13 +563,14 @@ func (s *service) CreateEvent(
 	}
 	// "Split" the event into many workers.
 	event.Workers = project.GetWorkers(event)
-	if len(event.Workers) == 0 {
-		event.Status = brignext.EventStatusMoot
-	} else {
-		event.Status = brignext.EventStatusPending
-	}
 	now := time.Now()
 	event.Created = &now
+	event.Status = &brignext.EventStatus{}
+	if len(event.Workers) == 0 {
+		event.Status.Phase = brignext.EventPhaseMoot
+	} else {
+		event.Status.Phase = brignext.EventPhasePending
+	}
 
 	if err := s.store.DoTx(ctx, func(ctx context.Context) error {
 
@@ -689,16 +686,12 @@ func (s *service) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
 	workerName string,
-	started *time.Time,
-	ended *time.Time,
 	status brignext.WorkerStatus,
 ) error {
 	if err := s.store.UpdateWorkerStatus(
 		ctx,
 		eventID,
 		workerName,
-		started,
-		ended,
 		status,
 	); err != nil {
 		return errors.Wrapf(
@@ -714,55 +707,75 @@ func (s *service) UpdateWorkerStatus(
 		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
 
-	// Bail early if the event is already in a terminal state
-	switch event.Status {
-	case brignext.EventStatusPending:
-	case brignext.EventStatusProcessing:
+	// Bail early if the event is already in a terminal phase
+	switch event.Status.Phase {
+	case brignext.EventPhasePending:
+	case brignext.EventPhaseProcessing:
 	default:
 		return nil
 	}
 
-	// Determine how collective worker statuses change event status...
+	// Determine how collective worker phases change event phase...
 
 	var anyStarted bool // Will be true if any worker has (at least) started
 	var anyFailed bool  // Will be true if any worker has failed
 	// Will remain true only if all workers are in a terminal state
 	allFinished := true
 
+	eventStatus := brignext.EventStatus{}
+	var latestWorkerEnd *time.Time
+
 	for _, worker := range event.Workers {
-		switch worker.Status {
-		case brignext.WorkerStatusPending:
+		if eventStatus.Started == nil ||
+			(worker.Status.Started != nil &&
+				worker.Status.Started.Before(*eventStatus.Started)) {
+			eventStatus.Started = worker.Status.Started
+		}
+		if latestWorkerEnd == nil ||
+			(worker.Status.Ended != nil &&
+				worker.Status.Ended.After(*latestWorkerEnd)) {
+			latestWorkerEnd = worker.Status.Ended
+		}
+		switch worker.Status.Phase {
+		case brignext.WorkerPhasePending:
 			allFinished = false
-		case brignext.WorkerStatusRunning:
+		case brignext.WorkerPhaseRunning:
 			anyStarted = true
 			allFinished = false
-		case brignext.WorkerStatusSucceeded:
+		case brignext.WorkerPhaseSucceeded:
 			anyStarted = true
-		case brignext.WorkerStatusFailed:
+		case brignext.WorkerPhaseFailed:
 			anyStarted = true
 			anyFailed = true
 		}
 	}
 
-	// Note there are no transitions to aborted or canceled states here. Those are
-	// handled separately, from the top down, instead of determining event status
-	// based on worker statuses like we are doing here.
-	var eventStatus brignext.EventStatus
+	// Note there are no transitions to aborted or canceled phases here. Those are
+	// handled separately, from the top down, instead of determining event phase
+	// based on worker phases like we are doing here.
 	if !anyStarted {
-		eventStatus = brignext.EventStatusPending
+		eventStatus.Phase = brignext.EventPhasePending
 	} else if allFinished {
 		// We're done-- figure out more specific state
 		if anyFailed {
-			eventStatus = brignext.EventStatusFailed
+			eventStatus.Phase = brignext.EventPhaseFailed
 		} else {
-			eventStatus = brignext.EventStatusSucceeded
+			eventStatus.Phase = brignext.EventPhaseSucceeded
 		}
 	} else {
 		// We've started, but haven't finished, so we're processing
-		eventStatus = brignext.EventStatusProcessing
+		eventStatus.Phase = brignext.EventPhaseProcessing
 	}
 
-	if err := s.store.UpdateEventStatus(ctx, eventID, eventStatus); err != nil {
+	if allFinished {
+		eventStatus.Ended = latestWorkerEnd
+	}
+
+	if err := s.store.UpdateEventStatus(
+		ctx,
+		eventID,
+		eventStatus,
+	); err != nil {
 		return errors.Wrapf(err, "error updating event %q status in store", eventID)
 	}
 
@@ -774,8 +787,6 @@ func (s *service) UpdateJobStatus(
 	eventID string,
 	workerName string,
 	jobName string,
-	started *time.Time,
-	ended *time.Time,
 	status brignext.JobStatus,
 ) error {
 	if err := s.store.UpdateJobStatus(
@@ -783,8 +794,6 @@ func (s *service) UpdateJobStatus(
 		eventID,
 		workerName,
 		jobName,
-		started,
-		ended,
 		status,
 	); err != nil {
 		return errors.Wrapf(
