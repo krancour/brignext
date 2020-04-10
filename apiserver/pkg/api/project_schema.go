@@ -100,11 +100,9 @@ var projectSchemaBytes = []byte(`
 			"description": "Jobs configuration pertaining specifically to Kubernetes",
 			"properties": {
 				"imagePullSecrets": {
-					"oneOf": [
-						{ "$ref": "#/definitions/empty" },
-						{ "$ref": "#/definitions/identifier" }
-					],
-					"description": "A Kubernetes secret that can be used as an image pull secret for job images"
+					"type": [ "array", "null" ],
+					"description": "Kubernetes secrets that can be used as image pull secrets for job images",
+					"items": { "$ref": "#/definitions/identifier" }
 				}
 			}
 		},
@@ -139,11 +137,9 @@ var projectSchemaBytes = []byte(`
 					"description": "The Kubernetes storage class that a worker may use when provisioning a volume to be shared across multiple jobs"
 				},
 				"imagePullSecrets": {
-					"oneOf": [
-						{ "$ref": "#/definitions/empty" },
-						{ "$ref": "#/definitions/identifier" }
-					],
-					"description": "A Kubernetes secret that can be used as an image pull secret for the worker's image"
+					"type": [ "array", "null" ],
+					"description": "Kubernetes secrets that can be used as image pull secrets for the worker's images",
+					"items": { "$ref": "#/definitions/identifier" }
 				}
 			}
 		},

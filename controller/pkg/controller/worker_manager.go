@@ -170,7 +170,6 @@ func (c *controller) createWorkspacePVC(
 	return nil
 }
 
-// TODO: Finish implementing this
 func (c *controller) createWorkerPod(
 	event brignext.Event,
 	workerName string,
@@ -178,11 +177,11 @@ func (c *controller) createWorkerPod(
 	worker := event.Workers[workerName]
 
 	imagePullSecrets := []corev1.LocalObjectReference{}
-	if worker.Kubernetes.ImagePullSecrets != "" {
+	for _, imagePullSecret := range worker.Kubernetes.ImagePullSecrets {
 		imagePullSecrets = append(
 			imagePullSecrets,
 			corev1.LocalObjectReference{
-				Name: worker.Kubernetes.ImagePullSecrets,
+				Name: imagePullSecret,
 			},
 		)
 	}
@@ -273,7 +272,6 @@ func (c *controller) createWorkerPod(
 		},
 	}
 
-	// TODO: If there's any git configuration, we need an init container
 	initContainers := []corev1.Container{}
 	if worker.Git.CloneURL != "" {
 		volumes = append(

@@ -306,10 +306,11 @@ export class Job extends jobs.Job {
     // project.
     pod.spec.serviceAccountName = "jobs"
 
-    if (currentWorker.jobsConfig.kubernetes.imagePullSecrets) {
-      pod.spec.imagePullSecrets = [
-        { name: currentWorker.jobsConfig.kubernetes.imagePullSecrets }
-      ]
+    pod.spec.imagePullSecrets = []
+    for (let imagePullSecret of currentWorker.jobsConfig.kubernetes.imagePullSecrets) {
+      pod.spec.imagePullSecrets.push(
+        { name: imagePullSecret }
+      )
     }
 
     // Misc. node selection settings

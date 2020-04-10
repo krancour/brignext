@@ -18,5 +18,5 @@ export interface JobsConfig {
 }
 
 export interface JobsKubernetesConfig {
-  imagePullSecrets: string
+  imagePullSecrets: string[]
 }
