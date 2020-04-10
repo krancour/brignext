@@ -57,16 +57,16 @@ var eventSchemaBytes = []byte(`
 
 	"title": "Event",
 	"type": "object",
-	"required": ["projectID", "provider", "type"],
+	"required": ["projectID", "source", "type"],
 	"additionalProperties": false,
 	"properties": {
 		"projectID": {
 			"allOf": [{ "$ref": "#/definitions/identifier" }],
 			"description": "The ID of the project the event is for"
 		},
-		"provider": {
+		"source": {
 			"allOf": [{ "$ref": "#/definitions/identifier" }],
-			"description": "The name of the provider that is sending the event"
+			"description": "The name of the source that is sending the event"
 		},
 		"type": {
 			"allOf": [{ "$ref": "#/definitions/identifier" }],

@@ -13,7 +13,7 @@
     "myCLIWorker": {
       "events": [
         {
-          "provider": "brignext-cli",
+          "source": "brignext-cli",
           "types": ["exec"]
         }
       ],

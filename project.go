@@ -25,7 +25,7 @@ type ProjectTags map[string]string
 func (p *Project) GetWorkers(event Event) map[string]Worker {
 	workers := map[string]Worker{}
 	for workerName, workerConfig := range p.WorkerConfigs {
-		if workerConfig.Matches(event.Provider, event.Type) {
+		if workerConfig.Matches(event.Source, event.Type) {
 			worker := Worker{
 				Container:     workerConfig.Container,
 				WorkspaceSize: workerConfig.WorkspaceSize,

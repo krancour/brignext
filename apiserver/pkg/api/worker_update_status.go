@@ -45,9 +45,7 @@ func (s *server) workerUpdateStatus(
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
 	} else if !validationResult.Valid() {
-		fmt.Println("----------")
 		fmt.Println(validationResult.Errors())
-		fmt.Println("----------")
 		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
 		return
 	}

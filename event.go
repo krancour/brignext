@@ -36,7 +36,7 @@ const (
 type Event struct {
 	ID         string                 `json:"id,omitempty" bson:"_id"`
 	ProjectID  string                 `json:"projectID" bson:"projectID"`
-	Provider   string                 `json:"provider" bson:"provider"`
+	Source     string                 `json:"source" bson:"source"`
 	Type       string                 `json:"type" bson:"type"`
 	ShortTitle string                 `json:"shortTitle" bson:"shortTitle"`
 	LongTitle  string                 `json:"longTitle" bson:"longTitle"`

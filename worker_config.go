@@ -21,27 +21,27 @@ type WorkerConfig struct {
 }
 
 type TriggeringEvents struct {
-	Provider string   `json:"provider" bson:"provider"`
-	Types    []string `json:"types" bson:"types"`
+	Source string   `json:"source" bson:"source"`
+	Types  []string `json:"types" bson:"types"`
 }
 
-func (w *WorkerConfig) Matches(eventProvider, eventType string) bool {
+func (w *WorkerConfig) Matches(eventSource, eventType string) bool {
 	if len(w.TriggeringEvents) == 0 {
 		return true
 	}
 	for _, tes := range w.TriggeringEvents {
-		if tes.Matches(eventProvider, eventType) {
+		if tes.Matches(eventSource, eventType) {
 			return true
 		}
 	}
 	return false
 }
 
-func (t *TriggeringEvents) Matches(eventProvider, eventType string) bool {
-	if t.Provider == "" ||
-		eventProvider == "" ||
+func (t *TriggeringEvents) Matches(eventSource, eventType string) bool {
+	if t.Source == "" ||
+		eventSource == "" ||
 		eventType == "" ||
-		t.Provider != eventProvider {
+		t.Source != eventSource {
 		return false
 	}
 	if len(t.Types) == 0 {

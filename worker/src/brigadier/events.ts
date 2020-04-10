@@ -3,7 +3,7 @@ import { EventEmitter } from "events"
 export interface Event {
   id: string
   projectID: string
-  provider: string
+  source: string
   type: string
   shortTitle?: string
   longTitle?: string
@@ -23,7 +23,7 @@ export class EventRegistry extends EventEmitter {
   }
 
   public fire(event: Event) {
-    this.emit(`${event.provider}:${event.type}`, event)
+    this.emit(`${event.source}:${event.type}`, event)
   }
 
 }

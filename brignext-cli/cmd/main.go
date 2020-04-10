@@ -47,8 +47,8 @@ func main() {
 					ArgsUsage: "PROJECT_ID",
 					Flags: []cli.Flag{
 						cli.StringFlag{
-							Name:  flagsProvider,
-							Usage: "The event provider",
+							Name:  flagsSource,
+							Usage: "The event source",
 							Value: "brignext-cli",
 						},
 						cli.StringFlag{

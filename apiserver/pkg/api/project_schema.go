@@ -43,16 +43,16 @@ var projectSchemaBytes = []byte(`
 		"triggeringEvents": {
 			"type": "object",
 			"description": "Describes a set of events that trigger a worker",
-			"required": ["provider"],
+			"required": ["source"],
 			"additionalProperties": false,
 			"properties": {
-				"provider": {
+				"source": {
 					"allOf": [{ "$ref": "#/definitions/identifier" }],
-					"description": "The name of the event provider"
+					"description": "The name of the event source"
 				},
 				"types": {
 					"type": [ "array", "null" ],
-					"description": "Types of events from the provider",
+					"description": "Types of events from the source",
 					"items": { "$ref": "#/definitions/identifier" }
 				}
 			}

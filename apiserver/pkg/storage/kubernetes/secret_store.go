@@ -109,7 +109,7 @@ func (s *secretStore) CreateEventConfigMap(event brignext.Event) error {
 		struct {
 			ID         string                         `json:"id"`
 			ProjectID  string                         `json:"projectID"`
-			Provider   string                         `json:"provider"`
+			Source     string                         `json:"source"`
 			Type       string                         `json:"type"`
 			ShortTitle string                         `json:"shortTitle"`
 			LongTitle  string                         `json:"longTitle"`
@@ -117,7 +117,7 @@ func (s *secretStore) CreateEventConfigMap(event brignext.Event) error {
 		}{
 			ID:         event.ID,
 			ProjectID:  event.ProjectID,
-			Provider:   event.Provider,
+			Source:     event.Source,
 			Type:       event.Type,
 			ShortTitle: event.ShortTitle,
 			LongTitle:  event.LongTitle,

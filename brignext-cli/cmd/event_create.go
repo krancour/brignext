@@ -21,11 +21,11 @@ func eventCreate(c *cli.Context) error {
 
 	// Command-specific flags
 	eventType := c.String(flagType)
-	provider := c.String(flagProvider)
+	source := c.String(flagSource)
 
 	event := brignext.Event{
 		ProjectID: projectID,
-		Provider:  provider,
+		Source:    source,
 		Type:      eventType,
 	}
 

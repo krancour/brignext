@@ -8,35 +8,35 @@ import (
 
 func TestTriggeringEventsMatches(t *testing.T) {
 	testCases := []struct {
-		name          string
-		tes           TriggeringEvents
-		eventProvider string
-		eventType     string
-		shouldMatch   bool
+		name        string
+		tes         TriggeringEvents
+		eventSource string
+		eventType   string
+		shouldMatch bool
 	}{
 		{
 			// Edge case-- really this shouldn't ever happen
-			name: "triggering event provider not specified",
+			name: "triggering event source not specified",
 			tes: TriggeringEvents{
 				Types: []string{"push"},
 			},
-			eventProvider: "github",
-			eventType:     "push",
-			shouldMatch:   false,
+			eventSource: "github",
+			eventType:   "push",
+			shouldMatch: false,
 		},
 		{
 			// Edge case-- really this shouldn't ever happen
-			name: "event provider not specified",
+			name: "event source not specified",
 			tes: TriggeringEvents{
-				Provider: "github",
-				Types:    []string{"push"},
+				Source: "github",
+				Types:  []string{"push"},
 			},
 			eventType:   "push",
 			shouldMatch: false,
 		},
 		{
 			// Edge case-- really this shouldn't ever happen
-			name: "neither triggering event provider nor event provider specified",
+			name: "neither triggering event source nor event source specified",
 			tes: TriggeringEvents{
 				Types: []string{"push"},
 			},
@@ -44,43 +44,43 @@ func TestTriggeringEventsMatches(t *testing.T) {
 			shouldMatch: false,
 		},
 		{
-			name: "provider does not match",
+			name: "source does not match",
 			tes: TriggeringEvents{
-				Provider: "github",
-				Types:    []string{"push"},
+				Source: "github",
+				Types:  []string{"push"},
 			},
-			eventProvider: "bitbucket",
-			eventType:     "push",
-			shouldMatch:   false,
+			eventSource: "bitbucket",
+			eventType:   "push",
+			shouldMatch: false,
 		},
 		{
-			name: "provider matches, no triggering types specified",
+			name: "source matches, no triggering types specified",
 			tes: TriggeringEvents{
-				Provider: "github",
+				Source: "github",
 			},
-			eventProvider: "github",
-			eventType:     "push",
-			shouldMatch:   true,
+			eventSource: "github",
+			eventType:   "push",
+			shouldMatch: true,
 		},
 		{
-			name: "provider matches, type does not",
+			name: "source matches, type does not",
 			tes: TriggeringEvents{
-				Provider: "github",
-				Types:    []string{"push"},
+				Source: "github",
+				Types:  []string{"push"},
 			},
-			eventProvider: "github",
-			eventType:     "issue_comment",
-			shouldMatch:   false,
+			eventSource: "github",
+			eventType:   "issue_comment",
+			shouldMatch: false,
 		},
 		{
-			name: "provider and type both match",
+			name: "source and type both match",
 			tes: TriggeringEvents{
-				Provider: "github",
-				Types:    []string{"push"},
+				Source: "github",
+				Types:  []string{"push"},
 			},
-			eventProvider: "github",
-			eventType:     "push",
-			shouldMatch:   true,
+			eventSource: "github",
+			eventType:   "push",
+			shouldMatch: true,
 		},
 	}
 
@@ -89,7 +89,7 @@ func TestTriggeringEventsMatches(t *testing.T) {
 			require.Equal(
 				t,
 				testCase.shouldMatch,
-				testCase.tes.Matches(testCase.eventProvider, testCase.eventType),
+				testCase.tes.Matches(testCase.eventSource, testCase.eventType),
 			)
 		})
 	}
