@@ -166,13 +166,6 @@ export class Job extends jobs.Job {
     pod.metadata.name = this.podName
     pod.metadata.namespace = currentEvent.kubernetes.namespace
     pod.metadata.labels = {
-      // TODO: These duplicate labels are temporary until I figure out how to
-      // deal with these more complex labels in fluentd
-      "component": "job",
-      "project": currentEvent.projectID,
-      "event": currentEvent.id,
-      "worker": currentWorker.name,
-      "job": this.name,
       "brignext.io/component": "job",
       "brignext.io/project": currentEvent.projectID,
       "brignext.io/event": currentEvent.id,
