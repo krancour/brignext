@@ -2,6 +2,7 @@ package storage
 
 import "github.com/krancour/brignext"
 
+// TODO: Move this stuff into the scheduler component
 type SecretStore interface {
 	CreateProjectSecrets(namespace, id string, secrets map[string]string) error
 	UpdateProjectSecrets(namespace, id string, secrets map[string]string) error

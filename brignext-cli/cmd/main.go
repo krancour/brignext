@@ -39,7 +39,7 @@ func main() {
 								"(ignores EVENT_ID argument)",
 						},
 					},
-					Action: eventDelete,
+					Action: eventCancel,
 				},
 				{
 					Name:      "create",

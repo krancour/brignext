@@ -116,6 +116,12 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.projectDelete),
 	).Methods(http.MethodDelete)
 
+	// Cancel project's events
+	s.router.HandleFunc(
+		"/v2/projects/{projectID}/events/cancel",
+		tokenAuthFilter.Decorate(s.eventsCancel),
+	).Methods(http.MethodPut)
+
 	// Delete project's events
 	s.router.HandleFunc(
 		"/v2/projects/{projectID}/events",
@@ -146,6 +152,12 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.workerUpdateStatus),
 	).Methods(http.MethodPut)
 
+	// Cancel worker
+	s.router.HandleFunc(
+		"/v2/events/{eventID}/workers/{workerName}/cancel",
+		tokenAuthFilter.Decorate(s.workerCancel),
+	).Methods(http.MethodPut)
+
 	// Update job status
 	s.router.HandleFunc(
 		"/v2/events/{eventID}/workers/{workerName}/jobs/{jobName}/status",
@@ -158,6 +170,12 @@ func NewServer(
 		"/v2/events/{id}/logs",
 		tokenAuthFilter.Decorate(s.eventLogs),
 	).Methods(http.MethodGet)
+
+	// Cancel event
+	s.router.HandleFunc(
+		"/v2/events/{id}/cancel",
+		tokenAuthFilter.Decorate(s.eventsCancel),
+	).Methods(http.MethodPut)
 
 	// Delete event
 	s.router.HandleFunc(

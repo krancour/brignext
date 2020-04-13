@@ -64,19 +64,11 @@ type Store interface {
 		id string,
 		status brignext.EventStatus,
 	) error
-	UpdateWorkerStatus(
+	CancelEvent(
 		ctx context.Context,
-		eventID string,
-		workerName string,
-		status brignext.WorkerStatus,
-	) error
-	UpdateJobStatus(
-		ctx context.Context,
-		eventID string,
-		workerName string,
-		jobName string,
-		status brignext.JobStatus,
-	) error
+		id string,
+		cancelProcessing bool,
+	) (bool, error)
 	DeleteEvent(
 		ctx context.Context,
 		id string,
@@ -84,4 +76,19 @@ type Store interface {
 		deleteProcessing bool,
 	) (bool, error)
 	DeleteEventsByProject(ctx context.Context, projectID string) error
+
+	UpdateWorkerStatus(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		status brignext.WorkerStatus,
+	) error
+
+	UpdateJobStatus(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		jobName string,
+		status brignext.JobStatus,
+	) error
 }

@@ -51,19 +51,16 @@ type Service interface {
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
 	GetEvent(context.Context, string) (brignext.Event, error)
-	UpdateWorkerStatus(
+	CancelEvent(
 		ctx context.Context,
-		eventID string,
-		workerName string,
-		status brignext.WorkerStatus,
-	) error
-	UpdateJobStatus(
+		id string,
+		cancelProcessing bool,
+	) (bool, error)
+	CancelEventsByProject(
 		ctx context.Context,
-		eventID string,
-		workerName string,
-		jobName string,
-		status brignext.JobStatus,
-	) error
+		projectID string,
+		cancelingProcessing bool,
+	) (int64, error)
 	DeleteEvent(
 		ctx context.Context,
 		id string,
@@ -76,6 +73,27 @@ type Service interface {
 		deletePending bool,
 		deleteProcessing bool,
 	) (int64, error)
+
+	UpdateWorkerStatus(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		status brignext.WorkerStatus,
+	) error
+	CancelWorker(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		cancelRunning bool,
+	) (bool, error)
+
+	UpdateJobStatus(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		jobName string,
+		status brignext.JobStatus,
+	) error
 }
 
 type service struct {
@@ -682,129 +700,130 @@ func (s *service) GetEvent(
 	return event, nil
 }
 
-func (s *service) UpdateWorkerStatus(
+func (s *service) CancelEvent(
 	ctx context.Context,
-	eventID string,
-	workerName string,
-	status brignext.WorkerStatus,
-) error {
-	if err := s.store.UpdateWorkerStatus(
-		ctx,
-		eventID,
-		workerName,
-		status,
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error updating status on worker %q of event %q in store",
-			workerName,
-			eventID,
-		)
-	}
-
-	event, err := s.store.GetEvent(ctx, eventID)
+	id string,
+	cancelProcessing bool,
+) (bool, error) {
+	event, err := s.store.GetEvent(ctx, id)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
+		return false, errors.Wrapf(err, "error retrieving event %q from store", id)
 	}
 
-	// Bail early if the event is already in a terminal phase
-	switch event.Status.Phase {
-	case brignext.EventPhasePending:
-	case brignext.EventPhaseProcessing:
-	default:
+	var ok bool
+	err = s.store.DoTx(ctx, func(ctx context.Context) error {
+
+		if ok, err = s.store.CancelEvent(
+			ctx,
+			id,
+			cancelProcessing,
+		); err != nil {
+			return errors.Wrapf(err, "error updating event %q in store", id)
+		}
+
+		if ok {
+			if err := s.scheduler.AbortWorkersByEvent(
+				event.Kubernetes.Namespace,
+				id,
+			); err != nil {
+				return errors.Wrapf(
+					err,
+					"error aborting running workers for event %q",
+					id,
+				)
+			}
+
+			if err := s.secretStore.DeleteEventConfigMaps(
+				event.Kubernetes.Namespace,
+				event.ID,
+			); err != nil {
+				return errors.Wrapf(
+					err,
+					"error deleting config maps for event %q",
+					event.ID,
+				)
+			}
+
+			if err := s.secretStore.DeleteEventSecrets(
+				event.Kubernetes.Namespace,
+				event.ID,
+			); err != nil {
+				return errors.Wrapf(
+					err,
+					"error deleting secrets for event %q",
+					event.ID,
+				)
+			}
+		}
+
 		return nil
-	}
+	})
 
-	// Determine how collective worker phases change event phase...
-
-	var anyStarted bool // Will be true if any worker has (at least) started
-	var anyFailed bool  // Will be true if any worker has failed
-	// Will remain true only if all workers are in a terminal state
-	allFinished := true
-
-	eventStatus := brignext.EventStatus{}
-	var latestWorkerEnd *time.Time
-
-	for _, worker := range event.Workers {
-		if eventStatus.Started == nil ||
-			(worker.Status.Started != nil &&
-				worker.Status.Started.Before(*eventStatus.Started)) {
-			eventStatus.Started = worker.Status.Started
-		}
-		if latestWorkerEnd == nil ||
-			(worker.Status.Ended != nil &&
-				worker.Status.Ended.After(*latestWorkerEnd)) {
-			latestWorkerEnd = worker.Status.Ended
-		}
-		switch worker.Status.Phase {
-		case brignext.WorkerPhasePending:
-			allFinished = false
-		case brignext.WorkerPhaseRunning:
-			anyStarted = true
-			allFinished = false
-		case brignext.WorkerPhaseSucceeded:
-			anyStarted = true
-		case brignext.WorkerPhaseFailed:
-			anyStarted = true
-			anyFailed = true
-		}
-	}
-
-	// Note there are no transitions to aborted or canceled phases here. Those are
-	// handled separately, from the top down, instead of determining event phase
-	// based on worker phases like we are doing here.
-	if !anyStarted {
-		eventStatus.Phase = brignext.EventPhasePending
-	} else if allFinished {
-		// We're done-- figure out more specific state
-		if anyFailed {
-			eventStatus.Phase = brignext.EventPhaseFailed
-		} else {
-			eventStatus.Phase = brignext.EventPhaseSucceeded
-		}
-	} else {
-		// We've started, but haven't finished, so we're processing
-		eventStatus.Phase = brignext.EventPhaseProcessing
-	}
-
-	if allFinished {
-		eventStatus.Ended = latestWorkerEnd
-	}
-
-	if err := s.store.UpdateEventStatus(
-		ctx,
-		eventID,
-		eventStatus,
-	); err != nil {
-		return errors.Wrapf(err, "error updating event %q status in store", eventID)
-	}
-
-	return nil
+	return ok, err
 }
 
-func (s *service) UpdateJobStatus(
+func (s *service) CancelEventsByProject(
 	ctx context.Context,
-	eventID string,
-	workerName string,
-	jobName string,
-	status brignext.JobStatus,
-) error {
-	if err := s.store.UpdateJobStatus(
-		ctx,
-		eventID,
-		workerName,
-		jobName,
-		status,
-	); err != nil {
-		return errors.Wrapf(
+	projectID string,
+	cancelProcessing bool,
+) (int64, error) {
+
+	// Find all events. We'll iterate over all of them and try to cancel each.
+	// It sounds inefficient and it probably is, but this allows us to cancel
+	// each event in its own transaction.
+	events, err := s.store.GetEventsByProject(ctx, projectID)
+	if err != nil {
+		return 0, errors.Wrapf(
 			err,
-			"error updating status on worker %q job %q of event %q in store",
-			workerName,
-			jobName,
-			eventID,
+			"error retrieving events for project %q",
+			projectID,
 		)
 	}
-	return nil
+
+	var canceledCount int64
+	for _, event := range events {
+		if err := s.store.DoTx(ctx, func(ctx context.Context) error {
+			ok, err := s.store.CancelEvent(ctx, event.ID, cancelProcessing)
+			if err != nil {
+				return errors.Wrapf(
+					err,
+					"error updating event %q in store",
+					event.ID,
+				)
+			}
+			if ok {
+				canceledCount++
+
+				if err := s.secretStore.DeleteEventConfigMaps(
+					event.Kubernetes.Namespace,
+					event.ID,
+				); err != nil {
+					return errors.Wrapf(
+						err,
+						"error deleting config maps for event %q",
+						event.ID,
+					)
+				}
+
+				if err := s.secretStore.DeleteEventSecrets(
+					event.Kubernetes.Namespace,
+					event.ID,
+				); err != nil {
+					return errors.Wrapf(
+						err,
+						"error deleting secrets for event %q",
+						event.ID,
+					)
+				}
+			}
+
+			return nil
+		}); err != nil {
+			return canceledCount, err
+		}
+	}
+
+	return canceledCount, nil
 }
 
 func (s *service) DeleteEvent(
@@ -905,5 +924,204 @@ func (s *service) DeleteEventsByProject(
 		}
 	}
 
+	// TODO: We have some configmaps and secrets to clean up
+
 	return deletedCount, nil
+}
+
+func (s *service) UpdateWorkerStatus(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	status brignext.WorkerStatus,
+) error {
+	if err := s.store.UpdateWorkerStatus(
+		ctx,
+		eventID,
+		workerName,
+		status,
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating status on worker %q of event %q in store",
+			workerName,
+			eventID,
+		)
+	}
+
+	event, err := s.store.GetEvent(ctx, eventID)
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
+	}
+
+	// Bail early if the event is already in a terminal phase
+	switch event.Status.Phase {
+	case brignext.EventPhasePending:
+	case brignext.EventPhaseProcessing:
+	default:
+		return nil
+	}
+
+	// Determine how collective worker phases change event phase...
+
+	var anyStarted bool // Will be true if any worker has (at least) started
+	var anyFailed bool  // Will be true if any worker has failed
+	// Will remain true only if all workers are in a terminal state
+	allFinished := true
+
+	eventStatus := brignext.EventStatus{}
+	var latestWorkerEnd *time.Time
+
+	for _, worker := range event.Workers {
+		if eventStatus.Started == nil ||
+			(worker.Status.Started != nil &&
+				worker.Status.Started.Before(*eventStatus.Started)) {
+			eventStatus.Started = worker.Status.Started
+		}
+		if latestWorkerEnd == nil ||
+			(worker.Status.Ended != nil &&
+				worker.Status.Ended.After(*latestWorkerEnd)) {
+			latestWorkerEnd = worker.Status.Ended
+		}
+		switch worker.Status.Phase {
+		case brignext.WorkerPhasePending:
+			allFinished = false
+		case brignext.WorkerPhaseRunning:
+			anyStarted = true
+			allFinished = false
+		case brignext.WorkerPhaseSucceeded:
+			anyStarted = true
+		case brignext.WorkerPhaseFailed:
+			anyStarted = true
+			anyFailed = true
+		}
+	}
+
+	// Note there are no transitions to aborted or canceled phases here. Those are
+	// handled separately, from the top down, instead of determining event phase
+	// based on worker phases like we are doing here.
+	if !anyStarted {
+		eventStatus.Phase = brignext.EventPhasePending
+	} else if allFinished {
+		// We're done-- figure out more specific state
+		if anyFailed {
+			eventStatus.Phase = brignext.EventPhaseFailed
+		} else {
+			eventStatus.Phase = brignext.EventPhaseSucceeded
+		}
+	} else {
+		// We've started, but haven't finished, so we're processing
+		eventStatus.Phase = brignext.EventPhaseProcessing
+	}
+
+	if allFinished {
+		eventStatus.Ended = latestWorkerEnd
+	}
+
+	if err := s.store.UpdateEventStatus(
+		ctx,
+		eventID,
+		eventStatus,
+	); err != nil {
+		return errors.Wrapf(err, "error updating event %q status in store", eventID)
+	}
+
+	return nil
+}
+
+func (s *service) CancelWorker(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	cancelRunning bool,
+) (bool, error) {
+	event, err := s.store.GetEvent(ctx, eventID)
+	if err != nil {
+		return false, errors.Wrapf(
+			err,
+			"error retrieving event %q from store",
+			eventID,
+		)
+	}
+
+	worker, ok := event.Workers[workerName]
+	if !ok {
+		return false, &brignext.ErrWorkerNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+		}
+	}
+
+	if worker.Status.Phase == brignext.WorkerPhasePending {
+		worker.Status.Phase = brignext.WorkerPhaseCanceled
+	} else if cancelRunning &&
+		worker.Status.Phase == brignext.WorkerPhaseRunning {
+		worker.Status.Phase = brignext.WorkerPhaseAborted
+	} else {
+		return false, nil
+	}
+
+	err = s.store.DoTx(ctx, func(ctx context.Context) error {
+
+		if err = s.store.UpdateWorkerStatus(
+			ctx,
+			eventID,
+			workerName,
+			worker.Status,
+		); err != nil {
+			return errors.Wrapf(
+				err,
+				"error updating event %q worker %q status in store",
+				eventID,
+				workerName,
+			)
+		}
+
+		if err := s.scheduler.AbortWorker(
+			event.Kubernetes.Namespace,
+			eventID,
+			workerName,
+		); err != nil {
+			return errors.Wrapf(
+				err,
+				"error aborting event %q worker %q",
+				eventID,
+				workerName,
+			)
+		}
+
+		// TODO: We might have some worker-specific configmaps and secrets to
+		// delete
+
+		return nil
+	})
+
+	return ok, err
+
+	return false, nil
+}
+
+func (s *service) UpdateJobStatus(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+	status brignext.JobStatus,
+) error {
+	if err := s.store.UpdateJobStatus(
+		ctx,
+		eventID,
+		workerName,
+		jobName,
+		status,
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating status on worker %q job %q of event %q in store",
+			workerName,
+			jobName,
+			eventID,
+		)
+	}
+	return nil
 }

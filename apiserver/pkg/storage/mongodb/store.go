@@ -634,6 +634,114 @@ func (s *store) UpdateEventStatus(
 	return nil
 }
 
+func (s *store) CancelEvent(
+	ctx context.Context,
+	id string,
+	cancelProcessing bool,
+) (bool, error) {
+	event, err := s.GetEvent(ctx, id)
+	if err != nil {
+		return false, err
+	}
+	phasesToCancel := []brignext.EventPhase{
+		brignext.EventPhasePending,
+	}
+	if cancelProcessing {
+		phasesToCancel = append(phasesToCancel, brignext.EventPhaseProcessing)
+	}
+
+	if event.Status.Phase == brignext.EventPhasePending {
+		event.Status.Phase = brignext.EventPhaseCanceled
+	} else if cancelProcessing &&
+		event.Status.Phase == brignext.EventPhaseProcessing {
+		event.Status.Phase = brignext.EventPhaseAborted
+	} else {
+		return false, nil
+	}
+
+	for workerName, worker := range event.Workers {
+		if worker.Status.Phase == brignext.WorkerPhasePending {
+			worker.Status.Phase = brignext.WorkerPhaseCanceled
+			event.Workers[workerName] = worker
+		} else if cancelProcessing &&
+			worker.Status.Phase == brignext.WorkerPhaseRunning {
+			worker.Status.Phase = brignext.WorkerPhaseAborted
+			// There may be running jobs that need to be recorded as aborted
+			for jobName, job := range worker.Jobs {
+				if job.Status.Phase == brignext.JobPhaseRunning {
+					job.Status.Phase = brignext.JobPhaseAborted
+					worker.Jobs[jobName] = job
+				}
+			}
+			event.Workers[workerName] = worker
+		}
+	}
+
+	if _, err = s.eventsCollection.ReplaceOne(
+		ctx,
+		bson.M{
+			"_id": id,
+		},
+		event,
+	); err != nil {
+		return false, errors.Wrapf(err, "error canceling event %q", id)
+	}
+
+	return true, nil
+}
+
+func (s *store) DeleteEvent(
+	ctx context.Context,
+	id string,
+	deletePending bool,
+	deleteProcessing bool,
+) (bool, error) {
+	if _, err := s.GetEvent(ctx, id); err != nil {
+		return false, err
+	}
+	phasesToDelete := []brignext.EventPhase{
+		brignext.EventPhaseMoot,
+		brignext.EventPhaseCanceled,
+		brignext.EventPhaseAborted,
+		brignext.EventPhaseSucceeded,
+		brignext.EventPhaseFailed,
+	}
+	if deletePending {
+		phasesToDelete = append(phasesToDelete, brignext.EventPhasePending)
+	}
+	if deleteProcessing {
+		phasesToDelete = append(phasesToDelete, brignext.EventPhaseProcessing)
+	}
+	res, err := s.eventsCollection.DeleteOne(
+		ctx,
+		bson.M{
+			"_id":          id,
+			"status.phase": bson.M{"$in": phasesToDelete},
+		},
+	)
+	if err != nil {
+		return false, errors.Wrapf(err, "error deleting event %q", id)
+	}
+	return res.DeletedCount == 1, nil
+}
+
+func (s *store) DeleteEventsByProject(
+	ctx context.Context,
+	projectID string,
+) error {
+	if _, err := s.eventsCollection.DeleteMany(
+		ctx,
+		bson.M{"projectID": projectID},
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error deleting events for project %q",
+			projectID,
+		)
+	}
+	return nil
+}
+
 func (s *store) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
@@ -704,58 +812,6 @@ func (s *store) UpdateJobStatus(
 			EventID:    eventID,
 			WorkerName: workerName,
 		}
-	}
-	return nil
-}
-
-func (s *store) DeleteEvent(
-	ctx context.Context,
-	id string,
-	deletePending bool,
-	deleteProcessing bool,
-) (bool, error) {
-	if _, err := s.GetEvent(ctx, id); err != nil {
-		return false, err
-	}
-	phasesToDelete := []brignext.EventPhase{
-		brignext.EventPhaseMoot,
-		brignext.EventPhaseCanceled,
-		brignext.EventPhaseAborted,
-		brignext.EventPhaseSucceeded,
-		brignext.EventPhaseFailed,
-	}
-	if deletePending {
-		phasesToDelete = append(phasesToDelete, brignext.EventPhasePending)
-	}
-	if deleteProcessing {
-		phasesToDelete = append(phasesToDelete, brignext.EventPhaseProcessing)
-	}
-	res, err := s.eventsCollection.DeleteOne(
-		ctx,
-		bson.M{
-			"_id":          id,
-			"status.phase": bson.M{"$in": phasesToDelete},
-		},
-	)
-	if err != nil {
-		return false, errors.Wrapf(err, "error deleting event %q", id)
-	}
-	return res.DeletedCount == 1, nil
-}
-
-func (s *store) DeleteEventsByProject(
-	ctx context.Context,
-	projectID string,
-) error {
-	if _, err := s.eventsCollection.DeleteMany(
-		ctx,
-		bson.M{"projectID": projectID},
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error deleting events for project %q",
-			projectID,
-		)
 	}
 	return nil
 }

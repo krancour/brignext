@@ -1,64 +1,65 @@
 package main
 
 import (
+	"context"
+	"fmt"
+
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
 func eventCancel(c *cli.Context) error {
-	// // Command-specific flags
-	// cancelProcessing := c.Bool(flagProcessing)
-	// projectID := c.String(flagProject)
+	// Command-specific flags
+	cancelProcessing := c.Bool(flagProcessing)
+	projectID := c.String(flagProject)
 
-	// // Args
-	// var eventID string
-	// if projectID == "" {
-	// 	if len(c.Args()) != 1 {
-	// 		return errors.New(
-	// 			"event cancel requires one argument-- an event ID",
-	// 		)
-	// 	}
-	// 	eventID = c.Args()[0]
-	// } else if len(c.Args()) != 0 {
-	// 	return errors.New(
-	// 		"event cancel requires no arguments when the --project flag is used",
-	// 	)
-	// }
+	// Args
+	var eventID string
+	if projectID == "" {
+		if len(c.Args()) != 1 {
+			return errors.New(
+				"event cancel requires one argument-- an event ID",
+			)
+		}
+		eventID = c.Args()[0]
+	} else if len(c.Args()) != 0 {
+		return errors.New(
+			"event cancel requires no arguments when the --project flag is used",
+		)
+	}
 
-	// // Global flags
-	// allowInsecure := c.GlobalBool(flagInsecure)
+	client, err := getClient(c)
+	if err != nil {
+		return errors.Wrap(err, "error getting brignext client")
+	}
 
-	// var path string
-	// if eventID != "" {
-	// 	path = fmt.Sprintf("v2/events/%s/stop", eventID)
-	// } else {
-	// 	path = fmt.Sprintf("v2/projects/%s/events/stop", projectID)
-	// }
+	if eventID != "" {
+		if canceled, err := client.CancelEvent(
+			context.TODO(),
+			eventID,
+			cancelProcessing,
+		); err != nil {
+			return err
+		} else if canceled {
+			fmt.Printf("Event %q canceled.\n", eventID)
+		} else {
+			return errors.Errorf(
+				"event %q was not canceled because specified conditions were not "+
+					"satisfied",
+				eventID,
+			)
+		}
+	}
 
-	// req, err := buildRequest(http.MethodPost, path, nil)
-	// if err != nil {
-	// 	return errors.Wrap(err, "error creating HTTP request")
-	// }
-	// q := req.URL.Query()
-	// if cancelProcessing {
-	// 	q.Set("abortProcessing", "true")
-	// }
-	// req.URL.RawQuery = q.Encode()
-
-	// resp, err := getHTTPClient(allowInsecure).Do(req)
-	// if err != nil {
-	// 	return errors.Wrap(err, "error invoking API")
-	// }
-	// defer resp.Body.Close()
-
-	// if resp.StatusCode != http.StatusOK {
-	// 	return errors.Errorf("received %d from API server", resp.StatusCode)
-	// }
-
-	// if eventID != "" {
-	// 	fmt.Printf("Event %q canceled.\n", eventID)
-	// } else {
-	// 	fmt.Printf("All events for project %q canceled.\n", projectID)
-	// }
+	if canceled, err := client.CancelEventsByProject(
+		context.TODO(),
+		projectID,
+		cancelProcessing,
+	); err != nil {
+		return err
+	} else {
+		fmt.Printf("Canceled %d events for project %q.\n", canceled, projectID)
+	}
 
 	return nil
 }

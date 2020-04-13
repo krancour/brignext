@@ -42,20 +42,17 @@ type Client interface {
 	CreateEvent(context.Context, brignext.Event) (string, error)
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
-	UpdateWorkerStatus(
-		ctx context.Context,
-		eventID string,
-		workerName string,
-		status brignext.WorkerStatus,
-	) error
-	UpdateJobStatus(
-		ctx context.Context,
-		eventID string,
-		workerName string,
-		jobName string,
-		status brignext.JobStatus,
-	) error
 	GetEvent(context.Context, string) (brignext.Event, error)
+	CancelEvent(
+		ctx context.Context,
+		id string,
+		cancelProcessing bool,
+	) (bool, error)
+	CancelEventsByProject(
+		ctx context.Context,
+		projectID string,
+		cancelProcessing bool,
+	) (int64, error)
 	DeleteEvent(
 		ctx context.Context,
 		id string,
@@ -68,6 +65,27 @@ type Client interface {
 		deletePending bool,
 		deleteProcessing bool,
 	) (int64, error)
+
+	UpdateWorkerStatus(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		status brignext.WorkerStatus,
+	) error
+	CancelWorker(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		cancelRunning bool,
+	) (bool, error)
+
+	UpdateJobStatus(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		jobName string,
+		status brignext.JobStatus,
+	) error
 }
 
 type client struct {
@@ -766,100 +784,98 @@ func (c *client) GetEvent(ctx context.Context, id string) (brignext.Event, error
 	return event, nil
 }
 
-func (c *client) UpdateWorkerStatus(
+func (c *client) CancelEvent(
 	ctx context.Context,
-	eventID string,
-	workerName string,
-	status brignext.WorkerStatus,
-) error {
-	statusBytes, err := json.Marshal(
-		brignext.WorkerStatus{
-			Started: status.Started,
-			Ended:   status.Ended,
-			Phase:   status.Phase,
-		},
-	)
-	if err != nil {
-		return errors.Wrap(err, "error marshaling status")
-	}
-
+	id string,
+	cancelProcessing bool,
+) (bool, error) {
 	req, err := c.buildRequest(
 		http.MethodPut,
-		fmt.Sprintf("v2/events/%s/workers/%s/status", eventID, workerName),
-		statusBytes,
+		fmt.Sprintf("v2/events/%s/cancel", id),
+		nil,
 	)
 	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
+		return false, errors.Wrap(err, "error creating HTTP request")
 	}
+	q := req.URL.Query()
+	if cancelProcessing {
+		q.Set("cancelProcessing", "true")
+	}
+	req.URL.RawQuery = q.Encode()
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "error invoking API")
+		return false, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-		}
+		return false, &brignext.ErrEventNotFound{id}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
+		return false, errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	return nil
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return false, errors.Wrap(err, "error reading response body")
+	}
+
+	respStruct := struct {
+		Canceled bool `json:"canceled"`
+	}{}
+	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
+		return false, errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	return respStruct.Canceled, nil
 }
 
-func (c *client) UpdateJobStatus(
+func (c *client) CancelEventsByProject(
 	ctx context.Context,
-	eventID string,
-	workerName string,
-	jobName string,
-	status brignext.JobStatus,
-) error {
-	statusBytes, err := json.Marshal(
-		brignext.JobStatus{
-			Started: status.Started,
-			Ended:   status.Ended,
-			Phase:   status.Phase,
-		},
-	)
-	if err != nil {
-		return errors.Wrap(err, "error marshaling status")
-	}
-
+	projectID string,
+	cancelProcessing bool,
+) (int64, error) {
 	req, err := c.buildRequest(
 		http.MethodPut,
-		fmt.Sprintf(
-			"v2/events/%s/workers/%s/jobs/%s/status",
-			eventID,
-			workerName,
-			jobName,
-		),
-		statusBytes,
+		fmt.Sprintf("v2/projects/%s/events/cancel", projectID),
+		nil,
 	)
 	if err != nil {
-		return errors.Wrap(err, "error creating HTTP request")
+		return 0, errors.Wrap(err, "error creating HTTP request")
 	}
+	q := req.URL.Query()
+	if cancelProcessing {
+		q.Set("cancelProcessing", "true")
+	}
+	req.URL.RawQuery = q.Encode()
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "error invoking API")
+		return 0, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-		}
+		return 0, &brignext.ErrProjectNotFound{projectID}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("received %d from API server", resp.StatusCode)
+		return 0, errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
-	return nil
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return 0, errors.Wrap(err, "error reading response body")
+	}
+
+	respStruct := struct {
+		Canceled int64 `json:"canceled"`
+	}{}
+	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
+		return 0, errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	return respStruct.Canceled, nil
 }
 
 func (c *client) DeleteEvent(
@@ -988,4 +1004,152 @@ func (c *client) buildRequest(
 	)
 
 	return req, nil
+}
+
+func (c *client) UpdateWorkerStatus(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	status brignext.WorkerStatus,
+) error {
+	statusBytes, err := json.Marshal(
+		brignext.WorkerStatus{
+			Started: status.Started,
+			Ended:   status.Ended,
+			Phase:   status.Phase,
+		},
+	)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling status")
+	}
+
+	req, err := c.buildRequest(
+		http.MethodPut,
+		fmt.Sprintf("v2/events/%s/workers/%s/status", eventID, workerName),
+		statusBytes,
+	)
+	if err != nil {
+		return errors.Wrap(err, "error creating HTTP request")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return &brignext.ErrWorkerNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// TODO: Implement this
+func (c *client) CancelWorker(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	cancelRunning bool,
+) (bool, error) {
+	req, err := c.buildRequest(
+		http.MethodPut,
+		fmt.Sprintf("v2/events/%s/workers/%s/cancel", eventID, workerName),
+		nil,
+	)
+	if err != nil {
+		return false, errors.Wrap(err, "error creating HTTP request")
+	}
+	q := req.URL.Query()
+	if cancelRunning {
+		q.Set("cancelRunning", "true")
+	}
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return false, errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return false, &brignext.ErrWorkerNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return false, errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return false, errors.Wrap(err, "error reading response body")
+	}
+
+	respStruct := struct {
+		Canceled bool `json:"canceled"`
+	}{}
+	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
+		return false, errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	return respStruct.Canceled, nil
+}
+
+func (c *client) UpdateJobStatus(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+	status brignext.JobStatus,
+) error {
+	statusBytes, err := json.Marshal(
+		brignext.JobStatus{
+			Started: status.Started,
+			Ended:   status.Ended,
+			Phase:   status.Phase,
+		},
+	)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling status")
+	}
+
+	req, err := c.buildRequest(
+		http.MethodPut,
+		fmt.Sprintf(
+			"v2/events/%s/workers/%s/jobs/%s/status",
+			eventID,
+			workerName,
+			jobName,
+		),
+		statusBytes,
+	)
+	if err != nil {
+		return errors.Wrap(err, "error creating HTTP request")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return &brignext.ErrWorkerNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	return nil
 }

@@ -1,49 +1,48 @@
 package main
 
 import (
+	"context"
+	"fmt"
+
+	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
 
 func workerCancel(c *cli.Context) error {
-	// // Args
-	// if len(c.Args()) != 1 {
-	// 	return errors.New(
-	// 		"worker cancel requires one argument-- a worker ID",
-	// 	)
-	// }
-	// id := c.Args()[0]
+	// Command-specific flags
+	cancelRunning := c.Bool(flagRunning)
 
-	// // Global flags
-	// allowInsecure := c.GlobalBool(flagInsecure)
+	// Args
+	if len(c.Args()) != 1 {
+		return errors.New(
+			"worker cancel requires two arguments-- thr event ID and job name",
+		)
+	}
+	eventID := c.Args()[0]
+	workerName := c.Args()[1]
 
-	// // Command-specific flags
-	// abortRunning := c.Bool(flagRunning)
+	client, err := getClient(c)
+	if err != nil {
+		return errors.Wrap(err, "error getting brignext client")
+	}
 
-	// req, err := buildRequest(
-	// 	http.MethodPost,
-	// 	fmt.Sprintf("v2/workers/%s/stop",
-	// 		id,
-	// 	), nil)
-	// if err != nil {
-	// 	return errors.Wrap(err, "error creating HTTP request")
-	// }
-	// q := req.URL.Query()
-	// if abortRunning {
-	// 	q.Set("abortRunning", "true")
-	// }
-	// req.URL.RawQuery = q.Encode()
-
-	// resp, err := getHTTPClient(allowInsecure).Do(req)
-	// if err != nil {
-	// 	return errors.Wrap(err, "error invoking API")
-	// }
-	// defer resp.Body.Close()
-
-	// if resp.StatusCode != http.StatusOK {
-	// 	return errors.Errorf("received %d from API server", resp.StatusCode)
-	// }
-
-	// fmt.Printf("Worker %q canceled.\n", id)
+	if canceled, err := client.CancelWorker(
+		context.TODO(),
+		eventID,
+		workerName,
+		cancelRunning,
+	); err != nil {
+		return err
+	} else if canceled {
+		fmt.Printf("Event %q worker %q canceled.\n", eventID, workerName)
+	} else {
+		return errors.Errorf(
+			"event %q workjer %q was not canceled because specified conditions "+
+				"were not satisfied",
+			eventID,
+			workerName,
+		)
+	}
 
 	return nil
 }
