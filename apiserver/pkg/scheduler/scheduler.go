@@ -21,9 +21,10 @@ import (
 )
 
 const (
-	projectLabel = "brignext.io/project"
-	eventLabel   = "brignext.io/event"
-	workerLabel  = "brignext.io/worker"
+	componentLabel = "brignext.io/component"
+	projectLabel   = "brignext.io/project"
+	eventLabel     = "brignext.io/event"
+	workerLabel    = "brignext.io/worker"
 )
 
 type Scheduler interface {
@@ -32,12 +33,9 @@ type Scheduler interface {
 	DeleteProject(project brignext.Project) error
 
 	CreateEvent(event brignext.Event) error
-	DeleteEventConfigMaps(namespace, id string) error
-	DeleteEventSecrets(namespace, id string) error
+	DeleteEvent(event brignext.Event) error
 
-	ScheduleWorker(projectID, eventID, workerName string) error
-	AbortWorker(namespace, eventID, workerName string) error
-	AbortWorkersByEvent(namespace, eventID string) error
+	DeleteWorker(event brignext.Event, workerName string) error
 }
 
 type sched struct {
@@ -257,59 +255,6 @@ func (s *sched) UpdateProject(project brignext.Project) error {
 	return nil
 }
 
-func (s *sched) ScheduleWorker(projectID, eventID, workerName string) error {
-	messageBody, err := json.Marshal(struct {
-		Event  string `json:"event"`
-		Worker string `json:"worker"`
-	}{
-		Event:  eventID,
-		Worker: workerName,
-	})
-	if err != nil {
-		return errors.Wrapf(
-			err,
-			"error encoding execution task for event %q worker %q",
-			eventID,
-			workerName,
-		)
-	}
-	producer := redisMessaging.NewProducer(projectID, s.redisClient, nil)
-	// TODO: Fix this
-	// There's deliberately a short delay here to minimize the possibility of the
-	// controller trying (and failing) to locate this new event before the
-	// transaction on the store has become durable.
-	if err := producer.Publish(
-		messaging.NewDelayedMessage(messageBody, 5*time.Second),
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error submitting execution task for event %q worker %q",
-			eventID,
-			workerName,
-		)
-	}
-	return nil
-}
-
-func (s *sched) AbortWorker(namespace, eventID, workerName string) error {
-	return s.deletePodsByLabelsMap(
-		namespace,
-		map[string]string{
-			eventLabel:  eventID,
-			workerLabel: workerName,
-		},
-	)
-}
-
-func (s *sched) AbortWorkersByEvent(namespace, eventID string) error {
-	return s.deletePodsByLabelsMap(
-		namespace,
-		map[string]string{
-			eventLabel: eventID,
-		},
-	)
-}
-
 func (s *sched) DeleteProject(project brignext.Project) error {
 	if err := s.kubeClient.CoreV1().Namespaces().Delete(
 		project.Kubernetes.Namespace,
@@ -320,22 +265,6 @@ func (s *sched) DeleteProject(project brignext.Project) error {
 			"error deleting namespace %q",
 			project.Kubernetes.Namespace,
 		)
-	}
-	return nil
-}
-
-func (s *sched) deletePodsByLabelsMap(
-	namespace string,
-	labelsMap map[string]string,
-) error {
-	podsClient := s.kubeClient.CoreV1().Pods(namespace)
-	if err := podsClient.DeleteCollection(
-		&meta_v1.DeleteOptions{},
-		meta_v1.ListOptions{
-			LabelSelector: labels.SelectorFromSet(labelsMap).String(),
-		},
-	); err != nil {
-		return errors.Wrap(err, "error deleting pods")
 	}
 	return nil
 }
@@ -476,48 +405,159 @@ func (s *sched) CreateEvent(event brignext.Event) error {
 		}
 	}
 
-	return nil
-}
-
-func (s *sched) DeleteEventConfigMaps(
-	namespace string,
-	eventID string,
-) error {
-	return s.deleteConfigMapsByLabelsMap(
-		namespace,
-		map[string]string{
-			eventLabel: eventID,
-		},
-	)
-}
-
-func (s *sched) DeleteEventSecrets(namespace, id string) error {
-	secretsClient := s.kubeClient.CoreV1().Secrets(namespace)
-
-	if err := secretsClient.Delete(id, &meta_v1.DeleteOptions{}); err != nil {
-		return errors.Wrapf(
-			err,
-			"error deleting event secret %q in namespace %q",
-			id,
-			namespace,
-		)
+	// Schedule all workers for asynchronous execution
+	producer := redisMessaging.NewProducer(event.ProjectID, s.redisClient, nil)
+	for workerName := range event.Workers {
+		messageBody, err := json.Marshal(struct {
+			Event  string `json:"event"`
+			Worker string `json:"worker"`
+		}{
+			Event:  event.ID,
+			Worker: workerName,
+		})
+		if err != nil {
+			return errors.Wrapf(
+				err,
+				"error encoding execution task for event %q worker %q",
+				event.ID,
+				workerName,
+			)
+		}
+		// TODO: Fix this
+		// There's deliberately a short delay here to minimize the possibility of the
+		// controller trying (and failing) to locate this new event before the
+		// transaction on the store has become durable.
+		if err := producer.Publish(
+			messaging.NewDelayedMessage(messageBody, 5*time.Second),
+		); err != nil {
+			return errors.Wrapf(
+				err,
+				"error submitting execution task for event %q worker %q",
+				event.ID,
+				workerName,
+			)
+		}
 	}
 
 	return nil
 }
 
-func (s *sched) deleteConfigMapsByLabelsMap(
+func (s *sched) DeleteEvent(event brignext.Event) error {
+	labels := map[string]string{
+		eventLabel: event.ID,
+	}
+	if err := s.deletePodsByLabels(
+		event.Kubernetes.Namespace,
+		labels,
+	); err != nil {
+		errors.Wrapf(
+			err,
+			"error deleting event %q config maps in namespace %q",
+			event.ID,
+			event.Kubernetes.Namespace,
+		)
+	}
+	if err := s.deleteConfigMapsByLabels(
+		event.Kubernetes.Namespace,
+		labels,
+	); err != nil {
+		errors.Wrapf(
+			err,
+			"error deleting event %q config maps in namespace %q",
+			event.ID,
+			event.Kubernetes.Namespace,
+		)
+	}
+	if err := s.deleteSecretsByLabels(
+		event.Kubernetes.Namespace,
+		labels,
+	); err != nil {
+		errors.Wrapf(
+			err,
+			"error deleting event %q secrets in namespace %q",
+			event.ID,
+			event.Kubernetes.Namespace,
+		)
+	}
+	return nil
+}
+
+func (s *sched) DeleteWorker(event brignext.Event, workerName string) error {
+	labels := map[string]string{
+		eventLabel:  event.ID,
+		workerLabel: workerName,
+	}
+	if err := s.deletePodsByLabels(
+		event.Kubernetes.Namespace,
+		labels,
+	); err != nil {
+		errors.Wrapf(
+			err,
+			"error deleting event %q worker %q config maps in namespace %q",
+			event.ID,
+			workerName,
+			event.Kubernetes.Namespace,
+		)
+	}
+	if err := s.deleteConfigMapsByLabels(
+		event.Kubernetes.Namespace,
+		labels,
+	); err != nil {
+		errors.Wrapf(
+			err,
+			"error deleting event %q worker %q config maps in namespace %q",
+			event.ID,
+			workerName,
+			event.Kubernetes.Namespace,
+		)
+	}
+	if err := s.deleteSecretsByLabels(
+		event.Kubernetes.Namespace,
+		labels,
+	); err != nil {
+		errors.Wrapf(
+			err,
+			"error deleting event %q worker %q secrets in namespace %q",
+			event.ID,
+			workerName,
+			event.Kubernetes.Namespace,
+		)
+	}
+	return nil
+}
+
+func (s *sched) deletePodsByLabels(
 	namespace string,
 	labelsMap map[string]string,
 ) error {
-	configMapsClient := s.kubeClient.CoreV1().ConfigMaps(namespace)
-	if err := configMapsClient.DeleteCollection(
+	return s.kubeClient.CoreV1().Pods(namespace).DeleteCollection(
 		&meta_v1.DeleteOptions{},
 		meta_v1.ListOptions{
 			LabelSelector: labels.SelectorFromSet(labelsMap).String(),
 		},
-	); err != nil {
-		return errors.Wrap(err, "error deleting config maps")
-	}
-	return nil
+	)
+}
+
+func (s *sched) deleteConfigMapsByLabels(
+	namespace string,
+	labelsMap map[string]string,
+) error {
+	return s.kubeClient.CoreV1().ConfigMaps(namespace).DeleteCollection(
+		&meta_v1.DeleteOptions{},
+		meta_v1.ListOptions{
+			LabelSelector: labels.SelectorFromSet(labelsMap).String(),
+		},
+	)
+}
+
+func (s *sched) deleteSecretsByLabels(
+	namespace string,
+	labelsMap map[string]string,
+) error {
+	return s.kubeClient.CoreV1().Secrets(namespace).DeleteCollection(
+		&meta_v1.DeleteOptions{},
+		meta_v1.ListOptions{
+			LabelSelector: labels.SelectorFromSet(labelsMap).String(),
+		},
+	)
 }

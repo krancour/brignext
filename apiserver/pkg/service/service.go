@@ -636,7 +636,6 @@ func (s *service) CancelEvent(
 
 	var ok bool
 	err = s.store.DoTx(ctx, func(ctx context.Context) error {
-
 		if ok, err = s.store.CancelEvent(
 			ctx,
 			id,
@@ -644,42 +643,15 @@ func (s *service) CancelEvent(
 		); err != nil {
 			return errors.Wrapf(err, "error updating event %q in store", id)
 		}
-
 		if ok {
-			if err := s.scheduler.AbortWorkersByEvent(
-				event.Kubernetes.Namespace,
-				id,
-			); err != nil {
+			if err := s.scheduler.DeleteEvent(event); err != nil {
 				return errors.Wrapf(
 					err,
-					"error aborting running workers for event %q",
+					"error deleting event %q from scheduler",
 					id,
 				)
 			}
-
-			if err := s.scheduler.DeleteEventConfigMaps(
-				event.Kubernetes.Namespace,
-				event.ID,
-			); err != nil {
-				return errors.Wrapf(
-					err,
-					"error deleting config maps for event %q",
-					event.ID,
-				)
-			}
-
-			if err := s.scheduler.DeleteEventSecrets(
-				event.Kubernetes.Namespace,
-				event.ID,
-			); err != nil {
-				return errors.Wrapf(
-					err,
-					"error deleting secrets for event %q",
-					event.ID,
-				)
-			}
 		}
-
 		return nil
 	})
 
@@ -717,30 +689,14 @@ func (s *service) CancelEventsByProject(
 			}
 			if ok {
 				canceledCount++
-
-				if err := s.scheduler.DeleteEventConfigMaps(
-					event.Kubernetes.Namespace,
-					event.ID,
-				); err != nil {
+				if err := s.scheduler.DeleteEvent(event); err != nil {
 					return errors.Wrapf(
 						err,
-						"error deleting config maps for event %q",
-						event.ID,
-					)
-				}
-
-				if err := s.scheduler.DeleteEventSecrets(
-					event.Kubernetes.Namespace,
-					event.ID,
-				); err != nil {
-					return errors.Wrapf(
-						err,
-						"error deleting secrets for event %q",
+						"error deleting event %q from scheduler",
 						event.ID,
 					)
 				}
 			}
-
 			return nil
 		}); err != nil {
 			return canceledCount, err
@@ -774,36 +730,11 @@ func (s *service) DeleteEvent(
 		}
 
 		if ok {
-			if err := s.scheduler.AbortWorkersByEvent(
-				event.Kubernetes.Namespace,
-				id,
-			); err != nil {
+			if err := s.scheduler.DeleteEvent(event); err != nil {
 				return errors.Wrapf(
 					err,
-					"error aborting running workers for event %q",
+					"error deleting event %q from scheduler",
 					id,
-				)
-			}
-
-			if err := s.scheduler.DeleteEventConfigMaps(
-				event.Kubernetes.Namespace,
-				event.ID,
-			); err != nil {
-				return errors.Wrapf(
-					err,
-					"error deleting config maps for event %q",
-					event.ID,
-				)
-			}
-
-			if err := s.scheduler.DeleteEventSecrets(
-				event.Kubernetes.Namespace,
-				event.ID,
-			); err != nil {
-				return errors.Wrapf(
-					err,
-					"error deleting secrets for event %q",
-					event.ID,
 				)
 			}
 		}
@@ -835,20 +766,35 @@ func (s *service) DeleteEventsByProject(
 
 	var deletedCount int64
 	for _, event := range events {
-		ok, err := s.DeleteEvent(ctx, event.ID, deletePending, deleteProcessing)
-		if err != nil {
-			return 0, errors.Wrapf(
-				err,
-				"error removing event %q from store",
+		if err := s.store.DoTx(ctx, func(ctx context.Context) error {
+			ok, err := s.store.DeleteEvent(
+				ctx,
 				event.ID,
+				deletePending,
+				deleteProcessing,
 			)
-		}
-		if ok {
-			deletedCount++
+			if err != nil {
+				return errors.Wrapf(
+					err,
+					"error deleting event %q from store",
+					event.ID,
+				)
+			}
+			if ok {
+				deletedCount++
+				if err := s.scheduler.DeleteEvent(event); err != nil {
+					return errors.Wrapf(
+						err,
+						"error deleting event %q from scheduler",
+						event.ID,
+					)
+				}
+			}
+			return nil
+		}); err != nil {
+			return deletedCount, err
 		}
 	}
-
-	// TODO: We have some configmaps and secrets to clean up
 
 	return deletedCount, nil
 }
@@ -986,7 +932,6 @@ func (s *service) CancelWorker(
 	}
 
 	err = s.store.DoTx(ctx, func(ctx context.Context) error {
-
 		if err = s.store.UpdateWorkerStatus(
 			ctx,
 			eventID,
@@ -1000,29 +945,18 @@ func (s *service) CancelWorker(
 				workerName,
 			)
 		}
-
-		if err := s.scheduler.AbortWorker(
-			event.Kubernetes.Namespace,
-			eventID,
-			workerName,
-		); err != nil {
+		if err := s.scheduler.DeleteWorker(event, workerName); err != nil {
 			return errors.Wrapf(
 				err,
-				"error aborting event %q worker %q",
+				"error deleting event %q worker %q from scheduler",
 				eventID,
 				workerName,
 			)
 		}
-
-		// TODO: We might have some worker-specific configmaps and secrets to
-		// delete
-
 		return nil
 	})
 
-	return ok, err
-
-	return false, nil
+	return true, nil
 }
 
 func (s *service) UpdateJobStatus(
