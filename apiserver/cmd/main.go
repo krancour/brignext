@@ -8,7 +8,6 @@ import (
 	"github.com/krancour/brignext/apiserver/pkg/oidc"
 	"github.com/krancour/brignext/apiserver/pkg/scheduler"
 	"github.com/krancour/brignext/apiserver/pkg/service"
-	secrets "github.com/krancour/brignext/apiserver/pkg/storage/kubernetes"
 	"github.com/krancour/brignext/apiserver/pkg/storage/mongodb"
 	"github.com/krancour/brignext/pkg/kubernetes"
 	"github.com/krancour/brignext/pkg/redis"
@@ -57,10 +56,7 @@ func main() {
 	}
 	scheduler := scheduler.NewScheduler(redisClient, kubeClient)
 
-	// Secrets store
-	secretStore := secrets.NewSecretStore(kubeClient)
-
-	service := service.NewService(store, secretStore, scheduler, logStore)
+	service := service.NewService(store, scheduler, logStore)
 
 	log.Println(
 		api.NewServer(

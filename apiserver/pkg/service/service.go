@@ -97,23 +97,20 @@ type Service interface {
 }
 
 type service struct {
-	store       storage.Store
-	secretStore storage.SecretStore
-	scheduler   scheduler.Scheduler
-	logStore    storage.LogStore
+	store     storage.Store
+	scheduler scheduler.Scheduler
+	logStore  storage.LogStore
 }
 
 func NewService(
 	store storage.Store,
-	secretStore storage.SecretStore,
 	scheduler scheduler.Scheduler,
 	logStore storage.LogStore,
 ) Service {
 	return &service{
-		store:       store,
-		secretStore: secretStore,
-		scheduler:   scheduler,
-		logStore:    logStore,
+		store:     store,
+		scheduler: scheduler,
+		logStore:  logStore,
 	}
 }
 
@@ -421,42 +418,23 @@ func (s *service) CreateProject(
 		return &brignext.ErrProjectIDConflict{project.ID}
 	}
 
-	namespace, err := s.scheduler.CreateProjectNamespace(project.ID)
+	project, err := s.scheduler.CreateProject(project)
 	if err != nil {
 		return errors.Wrapf(
 			err,
-			"error creating new namespace for project %q",
+			"error creating project %q in the scheduler",
 			project.ID,
 		)
 	}
 
-	project.Kubernetes = &brignext.ProjectKubernetesConfig{
-		Namespace: namespace,
-	}
 	now := time.Now()
 	project.Created = &now
 
-	return s.store.DoTx(ctx, func(ctx context.Context) error {
+	if err := s.store.CreateProject(ctx, project); err != nil {
+		return errors.Wrapf(err, "error storing new project %q", project.ID)
+	}
 
-		if err := s.store.CreateProject(ctx, project); err != nil {
-			return errors.Wrapf(err, "error storing new project %q", project.ID)
-		}
-
-		secrets := project.Secrets
-		if secrets == nil {
-			secrets = map[string]string{}
-		}
-
-		if err := s.secretStore.CreateProjectSecrets(
-			project.Kubernetes.Namespace,
-			project.ID,
-			secrets,
-		); err != nil {
-			return errors.Wrapf(err, "error storing project %q secrets", project.ID)
-		}
-
-		return nil
-	})
+	return nil
 }
 
 func (s *service) GetProjects(ctx context.Context) ([]brignext.Project, error) {
@@ -496,6 +474,7 @@ func (s *service) UpdateProject(
 			)
 		}
 
+		// Save these because they won't be in the database, but we'll need them
 		secrets := project.Secrets
 		if secrets == nil {
 			secrets = map[string]string{}
@@ -512,12 +491,15 @@ func (s *service) UpdateProject(
 			)
 		}
 
-		if err := s.secretStore.UpdateProjectSecrets(
-			project.Kubernetes.Namespace,
-			project.ID,
-			secrets,
-		); err != nil {
-			return errors.Wrapf(err, "error updating project %q secrets", project.ID)
+		// Put the secrets back
+		project.Secrets = secrets
+
+		if err := s.scheduler.UpdateProject(project); err != nil {
+			return errors.Wrapf(
+				err,
+				"error updating project %q in shceduler",
+				project.ID,
+			)
 		}
 
 		return nil
@@ -544,14 +526,10 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 			)
 		}
 
-		// Deleting the namespace should take care of config maps, secrets, and
-		// running pods as well.
-		if err := s.scheduler.DeleteProjectNamespace(
-			project.Kubernetes.Namespace,
-		); err != nil {
+		if err := s.scheduler.DeleteProject(project); err != nil {
 			return errors.Wrapf(
 				err,
-				"error deleting namespace %q for project %q",
+				"error deleting project %q from scheduler",
 				project.Kubernetes.Namespace,
 				id,
 			)
@@ -591,66 +569,12 @@ func (s *service) CreateEvent(
 	}
 
 	if err := s.store.DoTx(ctx, func(ctx context.Context) error {
-
 		if err := s.store.CreateEvent(ctx, event); err != nil {
 			return errors.Wrapf(err, "error storing new event %q", event.ID)
 		}
-
-		// This config map will contain a JSON file with event details. It will
-		// get mounted into each of the event's worker pods.
-		if err := s.secretStore.CreateEventConfigMap(event); err != nil {
-			return errors.Wrapf(
-				err,
-				"error creating config map for event %q",
-				event.ID,
-			)
+		if err := s.scheduler.CreateEvent(event); err != nil {
+			return errors.Wrapf(err, "error creating event %q in scheduler", event.ID)
 		}
-
-		// This secret will be a snapshot of the project's secrets as they are in
-		// this moment. Since all other aspects of the event and its workers are
-		// based on a snapshot of the project configuration at the moment the event
-		// was created, we need to do the same for the project's secrets. This way
-		// project secrets are free to change, but the event will still be processed
-		// using secrets as they were when the event was created.
-		if err := s.secretStore.CreateEventSecrets(
-			event.Kubernetes.Namespace,
-			event.ProjectID,
-			event.ID,
-		); err != nil {
-			return errors.Wrap(err, "error creating event secrets")
-		}
-
-		// This config maps will each contain a JSON file with worker details. Each
-		// will get mounted into the applicable worker pod.
-		for workerName, worker := range event.Workers {
-			if err := s.secretStore.CreateWorkerConfigMap(
-				event.Kubernetes.Namespace,
-				event.ProjectID,
-				event.ID,
-				workerName,
-				worker,
-			); err != nil {
-				return errors.Wrapf(
-					err,
-					"error creating config map for worker %q of new event %q",
-					workerName,
-					event.ID,
-				)
-			}
-			if err := s.scheduler.ScheduleWorker(
-				event.ProjectID,
-				event.ID,
-				workerName,
-			); err != nil {
-				return errors.Wrapf(
-					err,
-					"error scheduling worker %q for new event %q",
-					workerName,
-					event.ID,
-				)
-			}
-		}
-
 		return nil
 	}); err != nil {
 		return "", err
@@ -733,7 +657,7 @@ func (s *service) CancelEvent(
 				)
 			}
 
-			if err := s.secretStore.DeleteEventConfigMaps(
+			if err := s.scheduler.DeleteEventConfigMaps(
 				event.Kubernetes.Namespace,
 				event.ID,
 			); err != nil {
@@ -744,7 +668,7 @@ func (s *service) CancelEvent(
 				)
 			}
 
-			if err := s.secretStore.DeleteEventSecrets(
+			if err := s.scheduler.DeleteEventSecrets(
 				event.Kubernetes.Namespace,
 				event.ID,
 			); err != nil {
@@ -794,7 +718,7 @@ func (s *service) CancelEventsByProject(
 			if ok {
 				canceledCount++
 
-				if err := s.secretStore.DeleteEventConfigMaps(
+				if err := s.scheduler.DeleteEventConfigMaps(
 					event.Kubernetes.Namespace,
 					event.ID,
 				); err != nil {
@@ -805,7 +729,7 @@ func (s *service) CancelEventsByProject(
 					)
 				}
 
-				if err := s.secretStore.DeleteEventSecrets(
+				if err := s.scheduler.DeleteEventSecrets(
 					event.Kubernetes.Namespace,
 					event.ID,
 				); err != nil {
@@ -861,7 +785,7 @@ func (s *service) DeleteEvent(
 				)
 			}
 
-			if err := s.secretStore.DeleteEventConfigMaps(
+			if err := s.scheduler.DeleteEventConfigMaps(
 				event.Kubernetes.Namespace,
 				event.ID,
 			); err != nil {
@@ -872,7 +796,7 @@ func (s *service) DeleteEvent(
 				)
 			}
 
-			if err := s.secretStore.DeleteEventSecrets(
+			if err := s.scheduler.DeleteEventSecrets(
 				event.Kubernetes.Namespace,
 				event.ID,
 			); err != nil {
