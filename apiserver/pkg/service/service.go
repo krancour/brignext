@@ -115,19 +115,10 @@ func NewService(
 }
 
 func (s *service) CreateUser(ctx context.Context, user brignext.User) error {
-	if _, err := s.store.GetUser(ctx, user.ID); err != nil {
-		if _, ok := err.(*brignext.ErrUserNotFound); !ok {
-			return errors.Wrapf(err, "error searching for existing user %q", user.ID)
-		}
-	} else {
-		return &brignext.ErrUserIDConflict{user.ID}
-	}
-
 	user.FirstSeen = time.Now()
 	if err := s.store.CreateUser(ctx, user); err != nil {
 		return errors.Wrapf(err, "error storing new user %q", user.ID)
 	}
-
 	return nil
 }
 
@@ -304,18 +295,6 @@ func (s *service) CreateServiceAccount(
 	ctx context.Context,
 	serviceAccount brignext.ServiceAccount,
 ) (string, error) {
-	if _, err := s.store.GetServiceAccount(ctx, serviceAccount.ID); err != nil {
-		if _, ok := err.(*brignext.ErrServiceAccountNotFound); !ok {
-			return "", errors.Wrapf(
-				err,
-				"error checking for existing service account %q",
-				serviceAccount.ID,
-			)
-		}
-	} else {
-		return "", &brignext.ErrServiceAccountIDConflict{serviceAccount.ID}
-	}
-
 	token := crypto.NewToken(256)
 	serviceAccount.HashedToken = crypto.ShortSHA("", token)
 	now := time.Now()
@@ -406,18 +385,6 @@ func (s *service) CreateProject(
 	ctx context.Context,
 	project brignext.Project,
 ) error {
-	if _, err := s.store.GetProject(ctx, project.ID); err != nil {
-		if _, ok := err.(*brignext.ErrProjectNotFound); !ok {
-			return errors.Wrapf(
-				err,
-				"error checking for existing project %q",
-				project.ID,
-			)
-		}
-	} else {
-		return &brignext.ErrProjectIDConflict{project.ID}
-	}
-
 	project, err := s.scheduler.CreateProject(project)
 	if err != nil {
 		return errors.Wrapf(
@@ -426,14 +393,11 @@ func (s *service) CreateProject(
 			project.ID,
 		)
 	}
-
 	now := time.Now()
 	project.Created = &now
-
 	if err := s.store.CreateProject(ctx, project); err != nil {
 		return errors.Wrapf(err, "error storing new project %q", project.ID)
 	}
-
 	return nil
 }
 
@@ -530,7 +494,6 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 			return errors.Wrapf(
 				err,
 				"error deleting project %q from scheduler",
-				project.Kubernetes.Namespace,
 				id,
 			)
 		}

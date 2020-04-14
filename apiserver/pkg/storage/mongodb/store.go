@@ -142,6 +142,14 @@ func (s *store) DoTx(
 func (s *store) CreateUser(ctx context.Context, user brignext.User) error {
 	if _, err :=
 		s.usersCollection.InsertOne(ctx, user); err != nil {
+		if writeException, ok := err.(mongo.WriteException); ok {
+			if len(writeException.WriteErrors) == 1 &&
+				writeException.WriteErrors[0].Code == 11000 {
+				return &brignext.ErrUserIDConflict{
+					ID: user.ID,
+				}
+			}
+		}
 		return errors.Wrapf(err, "error inserting new user %q", user.ID)
 	}
 	return nil
@@ -323,6 +331,14 @@ func (s *store) CreateServiceAccount(
 		ctx,
 		serviceAccount,
 	); err != nil {
+		if writeException, ok := err.(mongo.WriteException); ok {
+			if len(writeException.WriteErrors) == 1 &&
+				writeException.WriteErrors[0].Code == 11000 {
+				return &brignext.ErrServiceAccountIDConflict{
+					ID: serviceAccount.ID,
+				}
+			}
+		}
 		return errors.Wrapf(
 			err,
 			"error inserting new service account %q",
@@ -441,6 +457,14 @@ func (s *store) UnlockServiceAccount(
 
 func (s *store) CreateProject(ctx context.Context, project brignext.Project) error {
 	if _, err := s.projectsCollection.InsertOne(ctx, project); err != nil {
+		if writeException, ok := err.(mongo.WriteException); ok {
+			if len(writeException.WriteErrors) == 1 &&
+				writeException.WriteErrors[0].Code == 11000 {
+				return &brignext.ErrProjectIDConflict{
+					ID: project.ID,
+				}
+			}
+		}
 		return errors.Wrapf(err, "error inserting new project %q", project.ID)
 	}
 	return nil
