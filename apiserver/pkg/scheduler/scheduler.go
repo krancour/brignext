@@ -38,7 +38,7 @@ type Scheduler interface {
 	DeleteWorker(event brignext.Event, workerName string) error
 }
 
-type sched struct {
+type scheduler struct {
 	redisClient *redis.Client
 	kubeClient  *kubernetes.Clientset
 }
@@ -47,13 +47,13 @@ func NewScheduler(
 	redisClient *redis.Client,
 	kubeClient *kubernetes.Clientset,
 ) Scheduler {
-	return &sched{
+	return &scheduler{
 		redisClient: redisClient,
 		kubeClient:  kubeClient,
 	}
 }
 
-func (s *sched) CreateProject(
+func (s *scheduler) CreateProject(
 	project brignext.Project,
 ) (brignext.Project, error) {
 	// Create a unique namespace name for the project
@@ -234,7 +234,7 @@ func (s *sched) CreateProject(
 	return project, nil
 }
 
-func (s *sched) UpdateProject(project brignext.Project) error {
+func (s *scheduler) UpdateProject(project brignext.Project) error {
 	if _, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
 	).Update(
@@ -255,7 +255,7 @@ func (s *sched) UpdateProject(project brignext.Project) error {
 	return nil
 }
 
-func (s *sched) DeleteProject(project brignext.Project) error {
+func (s *scheduler) DeleteProject(project brignext.Project) error {
 	if err := s.kubeClient.CoreV1().Namespaces().Delete(
 		project.Kubernetes.Namespace,
 		&meta_v1.DeleteOptions{},
@@ -269,7 +269,7 @@ func (s *sched) DeleteProject(project brignext.Project) error {
 	return nil
 }
 
-func (s *sched) CreateEvent(event brignext.Event) error {
+func (s *scheduler) CreateEvent(event brignext.Event) error {
 	// Create a config map with event details
 	eventJSON, err := json.MarshalIndent(
 		struct {
@@ -424,8 +424,8 @@ func (s *sched) CreateEvent(event brignext.Event) error {
 			)
 		}
 		// TODO: Fix this
-		// There's deliberately a short delay here to minimize the possibility of the
-		// controller trying (and failing) to locate this new event before the
+		// There's deliberately a short delay here to minimize the possibility of
+		// the controller trying (and failing) to locate this new event before the
 		// transaction on the store has become durable.
 		if err := producer.Publish(
 			messaging.NewDelayedMessage(messageBody, 5*time.Second),
@@ -442,7 +442,7 @@ func (s *sched) CreateEvent(event brignext.Event) error {
 	return nil
 }
 
-func (s *sched) DeleteEvent(event brignext.Event) error {
+func (s *scheduler) DeleteEvent(event brignext.Event) error {
 	labels := map[string]string{
 		eventLabel: event.ID,
 	}
@@ -482,7 +482,10 @@ func (s *sched) DeleteEvent(event brignext.Event) error {
 	return nil
 }
 
-func (s *sched) DeleteWorker(event brignext.Event, workerName string) error {
+func (s *scheduler) DeleteWorker(
+	event brignext.Event,
+	workerName string,
+) error {
 	labels := map[string]string{
 		eventLabel:  event.ID,
 		workerLabel: workerName,
@@ -526,7 +529,7 @@ func (s *sched) DeleteWorker(event brignext.Event, workerName string) error {
 	return nil
 }
 
-func (s *sched) deletePodsByLabels(
+func (s *scheduler) deletePodsByLabels(
 	namespace string,
 	labelsMap map[string]string,
 ) error {
@@ -538,7 +541,7 @@ func (s *sched) deletePodsByLabels(
 	)
 }
 
-func (s *sched) deleteConfigMapsByLabels(
+func (s *scheduler) deleteConfigMapsByLabels(
 	namespace string,
 	labelsMap map[string]string,
 ) error {
@@ -550,7 +553,7 @@ func (s *sched) deleteConfigMapsByLabels(
 	)
 }
 
-func (s *sched) deleteSecretsByLabels(
+func (s *scheduler) deleteSecretsByLabels(
 	namespace string,
 	labelsMap map[string]string,
 ) error {

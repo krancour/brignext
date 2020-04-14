@@ -147,12 +147,10 @@ func (s *service) GetUser(
 
 func (s *service) LockUser(ctx context.Context, id string) error {
 	return s.store.DoTx(ctx, func(ctx context.Context) error {
-
 		var err error
 		if err = s.store.LockUser(ctx, id); err != nil {
 			return errors.Wrapf(err, "error locking user %q in store", id)
 		}
-
 		if _, err := s.store.DeleteSessionsByUser(ctx, id); err != nil {
 			return errors.Wrapf(
 				err,
@@ -160,7 +158,6 @@ func (s *service) LockUser(ctx context.Context, id string) error {
 				id,
 			)
 		}
-
 		return nil
 	})
 }
