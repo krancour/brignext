@@ -766,6 +766,27 @@ func (s *store) DeleteEventsByProject(
 	return nil
 }
 
+func (s *store) GetWorker(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+) (brignext.Worker, error) {
+	worker := brignext.Worker{}
+	event, err := s.GetEvent(ctx, eventID)
+	if err != nil {
+		return worker, errors.Wrapf(err, "error finding event %q", eventID)
+	}
+	var ok bool
+	worker, ok = event.Workers[workerName]
+	if !ok {
+		return worker, &brignext.ErrWorkerNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+		}
+	}
+	return worker, nil
+}
+
 func (s *store) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,

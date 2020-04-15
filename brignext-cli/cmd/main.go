@@ -305,6 +305,15 @@ func main() {
 					},
 					Action: workerCancel,
 				},
+				{
+					Name:      "get",
+					Usage:     "Get a worker",
+					ArgsUsage: "EVENT_ID WORKER_NAME",
+					Flags: []cli.Flag{
+						cliFlagOutput,
+					},
+					Action: workerGet,
+				},
 			},
 		},
 	}

@@ -77,6 +77,11 @@ type Store interface {
 	) (bool, error)
 	DeleteEventsByProject(ctx context.Context, projectID string) error
 
+	GetWorker(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+	) (brignext.Worker, error)
 	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,

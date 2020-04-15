@@ -82,6 +82,11 @@ type Service interface {
 		deleteProcessing bool,
 	) (int64, error)
 
+	GetWorker(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+	) (brignext.Worker, error)
 	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
@@ -802,6 +807,23 @@ func (s *service) DeleteEventsByProject(
 	}
 
 	return deletedCount, nil
+}
+
+func (s *service) GetWorker(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+) (brignext.Worker, error) {
+	worker, err := s.store.GetWorker(ctx, eventID, workerName)
+	if err != nil {
+		return worker, errors.Wrapf(
+			err,
+			"error retrieving event %q worker %q from store",
+			eventID,
+			workerName,
+		)
+	}
+	return worker, nil
 }
 
 func (s *service) UpdateWorkerStatus(

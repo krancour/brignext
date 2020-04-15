@@ -74,6 +74,11 @@ type Client interface {
 		deleteProcessing bool,
 	) (int64, error)
 
+	GetWorker(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+	) (brignext.Worker, error)
 	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
@@ -1218,7 +1223,49 @@ func (c *client) UpdateWorkerStatus(
 	return nil
 }
 
-// TODO: Implement this
+func (c *client) GetWorker(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+) (brignext.Worker, error) {
+	worker := brignext.Worker{}
+	req, err := c.buildRequest(
+		http.MethodGet,
+		fmt.Sprintf("v2/events/%s/workers/%s", eventID, workerName),
+		nil,
+	)
+	if err != nil {
+		return worker, errors.Wrap(err, "error creating HTTP request")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return worker, errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return worker, &brignext.ErrWorkerNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return worker, errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return worker, errors.Wrap(err, "error reading response body")
+	}
+
+	if err := json.Unmarshal(respBodyBytes, &worker); err != nil {
+		return worker, errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	return worker, nil
+}
+
 func (c *client) CancelWorker(
 	ctx context.Context,
 	eventID string,
