@@ -178,6 +178,34 @@ func main() {
 			},
 		},
 		{
+			Name:  "secrets",
+			Usage: "Manage project secrets",
+			Subcommands: []cli.Command{
+				{
+					Name:      "list",
+					Usage:     "List a project's secrets",
+					ArgsUsage: "PROJECT_ID",
+					Flags: []cli.Flag{
+						cliFlagOutput,
+					},
+					Action: secretsList,
+				},
+				{
+					Name:  "set",
+					Usage: "Define or redefine the value of a secret",
+					ArgsUsage: "PROJECT_ID KEY_0=VALUE_0 " +
+						"[KEY_1=VALUE_1 .. KEY_N=VALUE_N]",
+					Action: secretsSet,
+				},
+				{
+					Name:      "unset",
+					Usage:     "Clear the value of a secret",
+					ArgsUsage: "PROJECT_ID KEY_0 [KEY_1 .. KEY_N]",
+					Action:    secretsUnset,
+				},
+			},
+		},
+		{
 			Name:  "service-account",
 			Usage: "Manage service accounts",
 			Subcommands: []cli.Command{

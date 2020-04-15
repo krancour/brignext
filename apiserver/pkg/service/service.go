@@ -47,6 +47,14 @@ type Service interface {
 	UpdateProject(context.Context, brignext.Project) error
 	DeleteProject(context.Context, string) error
 
+	GetSecrets(ctx context.Context, projectID string) (map[string]string, error)
+	SetSecrets(
+		ctx context.Context,
+		projectID string,
+		secrets map[string]string,
+	) error
+	UnsetSecrets(ctx context.Context, projectID string, keys []string) error
+
 	CreateEvent(context.Context, brignext.Event) (string, error)
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
@@ -425,46 +433,14 @@ func (s *service) UpdateProject(
 	ctx context.Context,
 	project brignext.Project,
 ) error {
-	return s.store.DoTx(ctx, func(ctx context.Context) error {
-
-		if err := s.store.UpdateProject(ctx, project); err != nil {
-			return errors.Wrapf(
-				err,
-				"error updating project %q in store",
-				project.ID,
-			)
-		}
-
-		// Save these because they won't be in the database, but we'll need them
-		secrets := project.Secrets
-		if secrets == nil {
-			secrets = map[string]string{}
-		}
-
-		// Get the updated project because it will contain a value in the namespace
-		// field that the input didn't.
-		project, err := s.store.GetProject(ctx, project.ID)
-		if err != nil {
-			return errors.Wrapf(
-				err,
-				"error retrieving updated project %q from store",
-				project.ID,
-			)
-		}
-
-		// Put the secrets back
-		project.Secrets = secrets
-
-		if err := s.scheduler.UpdateProject(project); err != nil {
-			return errors.Wrapf(
-				err,
-				"error updating project %q in shceduler",
-				project.ID,
-			)
-		}
-
-		return nil
-	})
+	if err := s.store.UpdateProject(ctx, project); err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating project %q in store",
+			project.ID,
+		)
+	}
+	return nil
 }
 
 func (s *service) DeleteProject(ctx context.Context, id string) error {
@@ -497,6 +473,75 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 
 		return nil
 	})
+}
+
+func (s *service) GetSecrets(
+	ctx context.Context,
+	projectID string,
+) (map[string]string, error) {
+	project, err := s.store.GetProject(ctx, projectID)
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			projectID,
+		)
+	}
+	secrets, err := s.scheduler.GetSecrets(project)
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"error getting secrets for project %q from scheduler",
+			projectID,
+		)
+	}
+	return secrets, nil
+}
+
+func (s *service) SetSecrets(
+	ctx context.Context,
+	projectID string,
+	secrets map[string]string,
+) error {
+	project, err := s.store.GetProject(ctx, projectID)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			projectID,
+		)
+	}
+	if err := s.scheduler.SetSecrets(project, secrets); err != nil {
+		return errors.Wrapf(
+			err,
+			"error setting secrets for project %q in scheduler",
+			projectID,
+		)
+	}
+	return nil
+}
+
+func (s *service) UnsetSecrets(
+	ctx context.Context,
+	projectID string,
+	keys []string,
+) error {
+	project, err := s.store.GetProject(ctx, projectID)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			projectID,
+		)
+	}
+	if err := s.scheduler.UnsetSecrets(project, keys); err != nil {
+		return errors.Wrapf(
+			err,
+			"error unsetting secrets for project %q in scheduler",
+			projectID,
+		)
+	}
+	return nil
 }
 
 func (s *service) CreateEvent(

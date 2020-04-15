@@ -29,8 +29,11 @@ const (
 
 type Scheduler interface {
 	CreateProject(project brignext.Project) (brignext.Project, error)
-	UpdateProject(project brignext.Project) error
 	DeleteProject(project brignext.Project) error
+
+	GetSecrets(project brignext.Project) (map[string]string, error)
+	SetSecrets(project brignext.Project, secrets map[string]string) error
+	UnsetSecrets(project brignext.Project, keys []string) error
 
 	CreateEvent(event brignext.Event) error
 	DeleteEvent(event brignext.Event) error
@@ -210,7 +213,7 @@ func (s *scheduler) CreateProject(
 		)
 	}
 
-	// Create project secrets
+	// Create project secret
 	if _, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
 	).Create(
@@ -221,7 +224,6 @@ func (s *scheduler) CreateProject(
 					projectLabel: project.ID,
 				},
 			},
-			StringData: project.Secrets,
 		}); err != nil {
 		return project, errors.Wrapf(
 			err,
@@ -234,17 +236,63 @@ func (s *scheduler) CreateProject(
 	return project, nil
 }
 
-func (s *scheduler) UpdateProject(project brignext.Project) error {
+func (s *scheduler) DeleteProject(project brignext.Project) error {
+	if err := s.kubeClient.CoreV1().Namespaces().Delete(
+		project.Kubernetes.Namespace,
+		&meta_v1.DeleteOptions{},
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error deleting namespace %q",
+			project.Kubernetes.Namespace,
+		)
+	}
+	return nil
+}
+
+func (s *scheduler) GetSecrets(project brignext.Project) (map[string]string, error) {
+	secret, err := s.kubeClient.CoreV1().Secrets(
+		project.Kubernetes.Namespace,
+	).Get(project.ID, meta_v1.GetOptions{})
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"error retrieving project secret %q in namespace %q",
+			project.ID,
+			project.Kubernetes.Namespace,
+		)
+	}
+	secrets := map[string]string{}
+	for key := range secret.Data {
+		secrets[key] = "*** REDACTED ***"
+	}
+	return secrets, nil
+}
+
+func (s *scheduler) SetSecrets(
+	project brignext.Project,
+	secrets map[string]string,
+) error {
+	secret, err := s.kubeClient.CoreV1().Secrets(
+		project.Kubernetes.Namespace,
+	).Get(project.ID, meta_v1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving project secret %q in namespace %q",
+			project.ID,
+			project.Kubernetes.Namespace,
+		)
+	}
+	if secret.Data == nil {
+		secret.Data = map[string][]byte{}
+	}
+	for key, value := range secrets {
+		secret.Data[key] = []byte(value)
+	}
 	if _, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
-	).Update(
-		&v1.Secret{
-			ObjectMeta: meta_v1.ObjectMeta{
-				Name: project.ID,
-			},
-			StringData: project.Secrets,
-		},
-	); err != nil {
+	).Update(secret); err != nil {
 		return errors.Wrapf(
 			err,
 			"error updating project secret %q in namespace %q",
@@ -255,14 +303,28 @@ func (s *scheduler) UpdateProject(project brignext.Project) error {
 	return nil
 }
 
-func (s *scheduler) DeleteProject(project brignext.Project) error {
-	if err := s.kubeClient.CoreV1().Namespaces().Delete(
+func (s *scheduler) UnsetSecrets(project brignext.Project, keys []string) error {
+	secret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
-		&meta_v1.DeleteOptions{},
-	); err != nil {
+	).Get(project.ID, meta_v1.GetOptions{})
+	if err != nil {
 		return errors.Wrapf(
 			err,
-			"error deleting namespace %q",
+			"error retrieving project secret %q in namespace %q",
+			project.ID,
+			project.Kubernetes.Namespace,
+		)
+	}
+	for _, key := range keys {
+		delete(secret.Data, key)
+	}
+	if _, err := s.kubeClient.CoreV1().Secrets(
+		project.Kubernetes.Namespace,
+	).Update(secret); err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating project secret %q in namespace %q",
+			project.ID,
 			project.Kubernetes.Namespace,
 		)
 	}

@@ -14,10 +14,7 @@ type Project struct {
 	Tags          ProjectTags              `json:"tags" bson:"tags"`
 	WorkerConfigs map[string]WorkerConfig  `json:"workerConfigs" bson:"workerConfigs"`
 	Kubernetes    *ProjectKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
-	// TODO: Secrets should be broken out into their own thing and shouldn't
-	// directly be a project field
-	Secrets map[string]string `json:"secrets" bson:"-"`
-	Created *time.Time        `json:"created,omitempty" bson:"created"`
+	Created       *time.Time               `json:"created,omitempty" bson:"created"`
 }
 
 type ProjectTags map[string]string

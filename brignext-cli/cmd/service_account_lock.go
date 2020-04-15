@@ -12,8 +12,7 @@ func serviceAccountLock(c *cli.Context) error {
 	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"service-account lock requires one argument-- a service account ID " +
-				"(case insensitive)",
+			"service-account lock requires one argument-- a service account ID",
 		)
 	}
 	id := c.Args()[0]

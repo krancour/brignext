@@ -18,7 +18,7 @@ func projectGet(c *cli.Context) error {
 	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"project get requires one argument-- a project ID (case insensitive)",
+			"project get requires one argument-- a project ID",
 		)
 	}
 	id := c.Args()[0]

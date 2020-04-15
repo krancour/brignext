@@ -39,6 +39,14 @@ type Client interface {
 	UpdateProject(context.Context, brignext.Project) error
 	DeleteProject(context.Context, string) error
 
+	GetSecrets(ctx context.Context, projectID string) (map[string]string, error)
+	SetSecrets(
+		ctx context.Context,
+		projectID string,
+		secrets map[string]string,
+	) error
+	UnsetSecrets(ctx context.Context, projectID string, keys []string) error
+
 	CreateEvent(context.Context, brignext.Event) (string, error)
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
@@ -155,7 +163,9 @@ func (c *client) GetUser(_ context.Context, id string) (brignext.User, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return user, &brignext.ErrUserNotFound{id}
+		return user, &brignext.ErrUserNotFound{
+			ID: id,
+		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return user, errors.Errorf("received %d from API server", resp.StatusCode)
@@ -190,7 +200,9 @@ func (c *client) LockUser(_ context.Context, id string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrUserNotFound{id}
+		return &brignext.ErrUserNotFound{
+			ID: id,
+		}
 	}
 	if resp.StatusCode != http.StatusCreated {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
@@ -216,7 +228,9 @@ func (c *client) UnlockUser(_ context.Context, id string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrUserNotFound{id}
+		return &brignext.ErrUserNotFound{
+			ID: id,
+		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
@@ -341,7 +355,9 @@ func (c *client) CreateServiceAccount(_ context.Context, serviceAccount brignext
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusConflict {
-		return "", &brignext.ErrServiceAccountIDConflict{serviceAccount.ID}
+		return "", &brignext.ErrServiceAccountIDConflict{
+			ID: serviceAccount.ID,
+		}
 	}
 	if resp.StatusCode != http.StatusCreated {
 		return "", errors.Errorf("received %d from API server", resp.StatusCode)
@@ -412,7 +428,9 @@ func (c *client) GetServiceAccount(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return serviceAccount, &brignext.ErrServiceAccountNotFound{id}
+		return serviceAccount, &brignext.ErrServiceAccountNotFound{
+			ID: id,
+		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return serviceAccount, errors.Errorf("received %d from API server", resp.StatusCode)
@@ -447,7 +465,9 @@ func (c *client) LockServiceAccount(_ context.Context, id string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrServiceAccountNotFound{id}
+		return &brignext.ErrServiceAccountNotFound{
+			ID: id,
+		}
 	}
 	if resp.StatusCode != http.StatusCreated {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
@@ -473,7 +493,9 @@ func (c *client) UnlockServiceAccount(_ context.Context, id string) (string, err
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return "", &brignext.ErrServiceAccountNotFound{id}
+		return "", &brignext.ErrServiceAccountNotFound{
+			ID: id,
+		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return "", errors.Errorf("received %d from API server", resp.StatusCode)
@@ -512,7 +534,9 @@ func (c *client) CreateProject(_ context.Context, project brignext.Project) erro
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusConflict {
-		return &brignext.ErrProjectIDConflict{project.ID}
+		return &brignext.ErrProjectIDConflict{
+			ID: project.ID,
+		}
 	}
 	if resp.StatusCode != http.StatusCreated {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
@@ -568,7 +592,9 @@ func (c *client) GetProject(_ context.Context, id string) (brignext.Project, err
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return project, &brignext.ErrProjectNotFound{id}
+		return project, &brignext.ErrProjectNotFound{
+			ID: id,
+		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return project, errors.Errorf("received %d from API server", resp.StatusCode)
@@ -608,7 +634,9 @@ func (c *client) UpdateProject(_ context.Context, project brignext.Project) erro
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrProjectNotFound{project.ID}
+		return &brignext.ErrProjectNotFound{
+			ID: project.ID,
+		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
@@ -634,7 +662,9 @@ func (c *client) DeleteProject(_ context.Context, id string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrProjectNotFound{id}
+		return &brignext.ErrProjectNotFound{
+			ID: id,
+		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return errors.Errorf("received %d from API server", resp.StatusCode)
@@ -643,7 +673,130 @@ func (c *client) DeleteProject(_ context.Context, id string) error {
 	return nil
 }
 
-func (c *client) CreateEvent(_ context.Context, event brignext.Event) (string, error) {
+func (c *client) GetSecrets(
+	ctx context.Context,
+	projectID string,
+) (map[string]string, error) {
+	req, err := c.buildRequest(
+		http.MethodGet,
+		fmt.Sprintf("v2/projects/%s/secrets", projectID),
+		nil,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating HTTP request")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, &brignext.ErrProjectNotFound{
+			ID: projectID,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "error reading response body")
+	}
+
+	secrets := map[string]string{}
+	if err := json.Unmarshal(respBodyBytes, &secrets); err != nil {
+		return nil, errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	return secrets, nil
+}
+
+func (c *client) SetSecrets(
+	ctx context.Context,
+	projectID string,
+	secrets map[string]string,
+) error {
+	secretsBytes, err := json.Marshal(secrets)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling secrets")
+	}
+
+	req, err := c.buildRequest(
+		http.MethodPost,
+		fmt.Sprintf("v2/projects/%s/secrets", projectID),
+		secretsBytes,
+	)
+	if err != nil {
+		return errors.Wrap(err, "error creating HTTP request")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return &brignext.ErrProjectNotFound{
+			ID: projectID,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func (c *client) UnsetSecrets(
+	ctx context.Context,
+	projectID string,
+	keys []string,
+) error {
+	keysStruct := struct {
+		Keys []string `json:"keys"`
+	}{
+		Keys: keys,
+	}
+	keysBytes, err := json.Marshal(keysStruct)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling keys")
+	}
+
+	req, err := c.buildRequest(
+		http.MethodDelete,
+		fmt.Sprintf("v2/projects/%s/secrets", projectID),
+		keysBytes,
+	)
+	if err != nil {
+		return errors.Wrap(err, "error creating HTTP request")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return &brignext.ErrProjectNotFound{
+			ID: projectID,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func (c *client) CreateEvent(
+	_ context.Context,
+	event brignext.Event,
+) (string, error) {
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
 		return "", errors.Wrap(err, "error marshaling event")
@@ -661,7 +814,9 @@ func (c *client) CreateEvent(_ context.Context, event brignext.Event) (string, e
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return "", &brignext.ErrProjectNotFound{event.ProjectID}
+		return "", &brignext.ErrProjectNotFound{
+			ID: event.ProjectID,
+		}
 	}
 	if resp.StatusCode != http.StatusCreated {
 		return "", errors.Errorf("received %d from API server", resp.StatusCode)
@@ -729,7 +884,9 @@ func (c *client) GetEventsByProject(_ context.Context, projectID string) ([]brig
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &brignext.ErrProjectNotFound{projectID}
+		return nil, &brignext.ErrProjectNotFound{
+			ID: projectID,
+		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
@@ -766,7 +923,9 @@ func (c *client) GetEvent(ctx context.Context, id string) (brignext.Event, error
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return event, &brignext.ErrEventNotFound{id}
+		return event, &brignext.ErrEventNotFound{
+			ID: id,
+		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return event, errors.Errorf("received %d from API server", resp.StatusCode)
@@ -810,7 +969,9 @@ func (c *client) CancelEvent(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return false, &brignext.ErrEventNotFound{id}
+		return false, &brignext.ErrEventNotFound{
+			ID: id,
+		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return false, errors.Errorf("received %d from API server", resp.StatusCode)
@@ -857,7 +1018,9 @@ func (c *client) CancelEventsByProject(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return 0, &brignext.ErrProjectNotFound{projectID}
+		return 0, &brignext.ErrProjectNotFound{
+			ID: projectID,
+		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return 0, errors.Errorf("received %d from API server", resp.StatusCode)
@@ -908,7 +1071,9 @@ func (c *client) DeleteEvent(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return false, &brignext.ErrEventNotFound{id}
+		return false, &brignext.ErrEventNotFound{
+			ID: id,
+		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return false, errors.Errorf("received %d from API server", resp.StatusCode)
@@ -959,7 +1124,9 @@ func (c *client) DeleteEventsByProject(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return 0, &brignext.ErrProjectNotFound{projectID}
+		return 0, &brignext.ErrProjectNotFound{
+			ID: projectID,
+		}
 	}
 	if resp.StatusCode != http.StatusOK {
 		return 0, errors.Errorf("received %d from API server", resp.StatusCode)

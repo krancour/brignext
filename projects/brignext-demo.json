@@ -5,10 +5,6 @@
     "foo": "bar",
     "bat": "baz"
   },
-  "secrets": {
-    "FOO": "bar",
-    "BAT": "baz"
-  },
   "workerConfigs": {
     "myCLIWorker": {
       "events": [

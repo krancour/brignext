@@ -116,6 +116,24 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.projectDelete),
 	).Methods(http.MethodDelete)
 
+	// Set secrets
+	s.router.HandleFunc(
+		"/v2/projects/{projectID}/secrets",
+		tokenAuthFilter.Decorate(s.secretsList),
+	).Methods(http.MethodGet)
+
+	// Set secrets
+	s.router.HandleFunc(
+		"/v2/projects/{projectID}/secrets",
+		tokenAuthFilter.Decorate(s.secretsSet),
+	).Methods(http.MethodPost)
+
+	// Unset secrets
+	s.router.HandleFunc(
+		"/v2/projects/{projectID}/secrets",
+		tokenAuthFilter.Decorate(s.secretsUnset),
+	).Methods(http.MethodDelete)
+
 	// Cancel project's events
 	s.router.HandleFunc(
 		"/v2/projects/{projectID}/events/cancel",

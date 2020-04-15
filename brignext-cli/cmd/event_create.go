@@ -13,7 +13,7 @@ func eventCreate(c *cli.Context) error {
 	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"event create requires one argument-- a project ID (case insensitive) " +
+			"event create requires one argument-- a project ID " +
 				"for for which an event should be created",
 		)
 	}

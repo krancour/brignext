@@ -21,6 +21,7 @@ rules:
   - get
   - list
   - watch
+  - update
   - delete
   - deletecollection
 - apiGroups:

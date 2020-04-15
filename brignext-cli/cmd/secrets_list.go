@@ -11,14 +11,14 @@ import (
 	"github.com/urfave/cli"
 )
 
-func userGet(c *cli.Context) error {
+func secretsList(c *cli.Context) error {
 	// Args
 	if len(c.Args()) != 1 {
 		return errors.New(
-			"user get requires one argument-- a user ID",
+			"secrets list requires one argument-- a project ID",
 		)
 	}
-	id := c.Args()[0]
+	projectID := c.Args()[0]
 
 	// Command-specific flags
 	output := c.String(flagOutput)
@@ -32,7 +32,7 @@ func userGet(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	user, err := client.GetUser(context.TODO(), id)
+	secrets, err := client.GetSecrets(context.TODO(), projectID)
 	if err != nil {
 		return err
 	}
@@ -40,21 +40,18 @@ func userGet(c *cli.Context) error {
 	switch strings.ToLower(output) {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "NAME", "FIRST SEEN", "LOCKED?")
-		table.AddRow(
-			user.ID,
-			user.Name,
-			user.FirstSeen,
-			user.Locked,
-		)
+		table.AddRow("KEY", "VALUE")
+		for key, value := range secrets {
+			table.AddRow(key, value)
+		}
 		fmt.Println(table)
 
 	case "json":
-		prettyJSON, err := json.MarshalIndent(user, "", "  ")
+		prettyJSON, err := json.MarshalIndent(secrets, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,
-				"error formatting output from get user operation",
+				"error formatting output from get secrets operation",
 			)
 		}
 		fmt.Println(string(prettyJSON))
