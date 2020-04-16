@@ -6,6 +6,8 @@ github.com/cpuguy83/go-md2man/v2/md2man
 github.com/davecgh/go-spew/spew
 # github.com/fatih/color v1.9.0
 github.com/fatih/color
+# github.com/ghodss/yaml v1.0.0
+github.com/ghodss/yaml
 # github.com/go-redis/redis v6.15.7+incompatible
 github.com/go-redis/redis
 github.com/go-redis/redis/internal

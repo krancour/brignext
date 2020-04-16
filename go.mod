@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/coreos/go-oidc v2.2.1+incompatible
 	github.com/fatih/color v1.9.0 // indirect
+	github.com/ghodss/yaml v1.0.0
 	github.com/go-redis/redis v6.15.7+incompatible
 	github.com/gorilla/mux v1.7.4
 	github.com/gosuri/uitable v0.0.4
