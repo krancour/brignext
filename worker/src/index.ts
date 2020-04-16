@@ -4,7 +4,7 @@ import * as path from "path"
 
 import { Logger } from "./brigadier/logger"
 import { Event } from "./brigadier/events"
-import { Worker } from "./workers"
+import { Worker } from "./brigadier/workers"
 import * as brigadier from "./brigadier"
 
 const logger = new Logger([])

@@ -195,34 +195,6 @@ func (c *controller) createWorkerPod(
 		imagePullPolicy = "Always" // TODO: Change this
 	}
 
-	secretsClient := c.kubeClient.CoreV1().Secrets(event.Kubernetes.Namespace)
-	eventSecrets, err := secretsClient.Get(event.ID, metav1.GetOptions{})
-	if err != nil {
-		return errors.Wrapf(
-			err,
-			"error finding event secrets for event %q worker %q",
-			event.ID,
-			workerName,
-		)
-	}
-
-	envVars := make([]corev1.EnvVar, len(eventSecrets.Data))
-	var i = 0
-	for key := range eventSecrets.Data {
-		envVars[i] = corev1.EnvVar{
-			Name: key,
-			ValueFrom: &corev1.EnvVarSource{
-				SecretKeyRef: &corev1.SecretKeySelector{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: event.ID,
-					},
-					Key: key,
-				},
-			},
-		}
-		i++
-	}
-
 	volumes := []corev1.Volume{
 		corev1.Volume{
 			Name: "event",
@@ -237,10 +209,8 @@ func (c *controller) createWorkerPod(
 		corev1.Volume{
 			Name: "worker",
 			VolumeSource: corev1.VolumeSource{
-				ConfigMap: &corev1.ConfigMapVolumeSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: qualifiedWorkerKey(event.ID, workerName),
-					},
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: qualifiedWorkerKey(event.ID, workerName),
 				},
 			},
 		},
@@ -355,7 +325,6 @@ func (c *controller) createWorkerPod(
 					// TODO: This probably isn't a good enough way, to split up command
 					// tokens, but it's what Brigade 1.x does. Good enough for PoC.
 					Command:      strings.Split(worker.Container.Command, ""),
-					Env:          envVars, // These are the secrets
 					VolumeMounts: volumeMounts,
 				},
 			},

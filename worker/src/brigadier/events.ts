@@ -1,3 +1,5 @@
+import { Worker } from "./workers"
+
 import { EventEmitter } from "events"
 
 export interface Event {
@@ -22,8 +24,8 @@ export class EventRegistry extends EventEmitter {
     return super.on(eventName, eventHandler)
   }
 
-  public fire(event: Event) {
-    this.emit(`${event.source}:${event.type}`, event)
+  public fire(event: Event, worker: Worker) {
+    this.emit(`${event.source}:${event.type}`, event, worker)
   }
 
 }

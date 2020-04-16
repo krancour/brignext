@@ -381,8 +381,7 @@ func (s *scheduler) CreateEvent(event brignext.Event) error {
 		)
 	}
 
-	// Create an event secret that is a point-in-time snapshot of the project's
-	// secret
+	// Get the project's secrets
 	projectSecret, err := s.kubeClient.CoreV1().Secrets(
 		event.Kubernetes.Namespace,
 	).Get(event.ProjectID, meta_v1.GetOptions{})
@@ -394,29 +393,14 @@ func (s *scheduler) CreateEvent(event brignext.Event) error {
 			event.Kubernetes.Namespace,
 		)
 	}
-	if _, err := s.kubeClient.CoreV1().Secrets(
-		event.Kubernetes.Namespace,
-	).Create(
-		&v1.Secret{
-			ObjectMeta: meta_v1.ObjectMeta{
-				Name: event.ID,
-				Labels: map[string]string{
-					projectLabel: event.ProjectID,
-					eventLabel:   event.ID,
-				},
-			},
-			Data: projectSecret.Data,
-		},
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error creating event %q secret in namespace %q",
-			event.ProjectID,
-			event.Kubernetes.Namespace,
-		)
+	secrets := map[string]string{}
+	for key, value := range projectSecret.Data {
+		secrets[key] = string(value)
 	}
 
-	// For each of the event's workers, create a config map with worker details
+	// For each of the event's workers, create a secret with worker details. This
+	// is a secret because it contains a point-in-time snapshot of the project's
+	// secrets.
 	for workerName, worker := range event.Workers {
 		workerJSON, err := json.MarshalIndent(
 			struct {
@@ -424,11 +408,13 @@ func (s *scheduler) CreateEvent(event brignext.Event) error {
 				Git        brignext.WorkerGitConfig `json:"git"`
 				JobsConfig brignext.JobsConfig      `json:"jobsConfig"`
 				LogLevel   brignext.LogLevel        `json:"logLevel"`
+				Secrets    map[string]string        `json:"secrets"`
 			}{
 				Name:       workerName,
 				Git:        worker.Git,
 				JobsConfig: worker.JobsConfig,
 				LogLevel:   worker.LogLevel,
+				Secrets:    secrets,
 			},
 			"",
 			"  ",
@@ -441,10 +427,10 @@ func (s *scheduler) CreateEvent(event brignext.Event) error {
 				event.ID,
 			)
 		}
-		if _, err := s.kubeClient.CoreV1().ConfigMaps(
+		if _, err := s.kubeClient.CoreV1().Secrets(
 			event.Kubernetes.Namespace,
 		).Create(
-			&v1.ConfigMap{
+			&v1.Secret{
 				ObjectMeta: meta_v1.ObjectMeta{
 					Name: fmt.Sprintf("%s-%s", event.ID, strings.ToLower(workerName)),
 					Labels: map[string]string{
@@ -453,14 +439,14 @@ func (s *scheduler) CreateEvent(event brignext.Event) error {
 						workerLabel:  workerName,
 					},
 				},
-				Data: map[string]string{
-					"worker.json": string(workerJSON),
+				Data: map[string][]byte{
+					"worker.json": workerJSON,
 				},
 			},
 		); err != nil {
 			return errors.Wrapf(
 				err,
-				"error creating config map for worker %q of event %q",
+				"error creating secret for worker %q of event %q",
 				workerName,
 				event.ID,
 			)
