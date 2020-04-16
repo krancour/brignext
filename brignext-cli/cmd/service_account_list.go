@@ -9,6 +9,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/duration"
 
+	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 
 	"github.com/pkg/errors"
@@ -60,6 +61,16 @@ func serviceAccountList(c *cli.Context) error {
 			)
 		}
 		fmt.Println(table)
+
+	case "yaml":
+		yamlBytes, err := yaml.Marshal(serviceAccounts)
+		if err != nil {
+			return errors.Wrap(
+				err,
+				"error formatting output from get service accounts operation",
+			)
+		}
+		fmt.Println(string(yamlBytes))
 
 	case "json":
 		prettyJSON, err := json.MarshalIndent(serviceAccounts, "", "  ")

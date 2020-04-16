@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -84,6 +85,16 @@ func workerGet(c *cli.Context) error {
 			}
 			fmt.Println(table)
 		}
+
+	case "yaml":
+		yamlBytes, err := yaml.Marshal(worker)
+		if err != nil {
+			return errors.Wrap(
+				err,
+				"error formatting output from get worker operation",
+			)
+		}
+		fmt.Println(string(yamlBytes))
 
 	case "json":
 		prettyJSON, err := json.MarshalIndent(worker, "", "  ")

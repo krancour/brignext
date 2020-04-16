@@ -365,6 +365,7 @@ func (s *scheduler) CreateEvent(
 			ShortTitle string                         `json:"shortTitle"`
 			LongTitle  string                         `json:"longTitle"`
 			Kubernetes brignext.EventKubernetesConfig `json:"kubernetes"`
+			Payload    string                         `json:"payload"`
 		}{
 			ID:         event.ID,
 			ProjectID:  event.ProjectID,
@@ -373,6 +374,7 @@ func (s *scheduler) CreateEvent(
 			ShortTitle: event.ShortTitle,
 			LongTitle:  event.LongTitle,
 			Kubernetes: *event.Kubernetes,
+			Payload:    event.Payload,
 		},
 		"",
 		"  ",

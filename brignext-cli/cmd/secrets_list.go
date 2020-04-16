@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -45,6 +46,16 @@ func secretsList(c *cli.Context) error {
 			table.AddRow(key, value)
 		}
 		fmt.Println(table)
+
+	case "yaml":
+		yamlBytes, err := yaml.Marshal(secrets)
+		if err != nil {
+			return errors.Wrap(
+				err,
+				"error formatting output from get secrets operation",
+			)
+		}
+		fmt.Println(string(yamlBytes))
 
 	case "json":
 		prettyJSON, err := json.MarshalIndent(secrets, "", "  ")

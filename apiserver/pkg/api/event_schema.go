@@ -82,7 +82,11 @@ var eventSchemaBytes = []byte(`
 			"description": "A detailed description of the event",
 			"maxLength": 100
 		},
-		"git": { "$ref": "#/definitions/gitConfig" }
+		"git": { "$ref": "#/definitions/gitConfig" },
+		"payload": {
+			"type": "string",
+			"description": "Event payload"
+		}
 	}
 }
 `)

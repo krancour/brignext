@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/krancour/brignext/pkg/file"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 )
@@ -21,14 +22,7 @@ func getConfig() (*config, error) {
 		return nil, errors.Wrapf(err, "error finding brignext home")
 	}
 	brignextConfigFile := path.Join(brignextHome, "config")
-	if _, err := os.Stat(brignextConfigFile); err != nil {
-		if !os.IsNotExist(err) {
-			return nil, errors.Wrapf(
-				err,
-				"error checking for existence of brignext config file at %s",
-				brignextConfigFile,
-			)
-		}
+	if !file.Exists(brignextConfigFile) {
 		return nil, errors.Errorf(
 			"no brignext configuration was found at %s; please use "+
 				"`brignext login` to continue\n",

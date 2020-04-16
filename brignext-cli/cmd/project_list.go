@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -57,6 +58,16 @@ func projectList(c *cli.Context) error {
 			)
 		}
 		fmt.Println(table)
+
+	case "yaml":
+		yamlBytes, err := yaml.Marshal(projects)
+		if err != nil {
+			return errors.Wrap(
+				err,
+				"error formatting output from get projects operation",
+			)
+		}
+		fmt.Println(string(yamlBytes))
 
 	case "json":
 		prettyJSON, err := json.MarshalIndent(projects, "", "  ")

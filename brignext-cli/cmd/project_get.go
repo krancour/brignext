@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/util/duration"
-
+	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
+	"k8s.io/apimachinery/pkg/util/duration"
 )
 
 func projectGet(c *cli.Context) error {
@@ -54,6 +54,16 @@ func projectGet(c *cli.Context) error {
 			age,
 		)
 		fmt.Println(table)
+
+	case "yaml":
+		yamlBytes, err := yaml.Marshal(project)
+		if err != nil {
+			return errors.Wrap(
+				err,
+				"error formatting output from get project operation",
+			)
+		}
+		fmt.Println(string(yamlBytes))
 
 	case "json":
 		prettyJSON, err := json.MarshalIndent(project, "", "  ")

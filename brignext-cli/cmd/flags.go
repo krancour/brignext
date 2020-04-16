@@ -16,6 +16,10 @@ const (
 	flagsOutput      = "output, o"
 	flagPassword     = "password"
 	flagsPassword    = "password, p"
+	flagPayload      = "payload"
+	flagsPayload     = "payload, p"
+	flagPayloadFile  = "payload-file"
+	flagsPayloadFile = "payload-file"
 	flagPending      = "pending"
 	flagsPending     = "pending"
 	flagProcessing   = "processing"
@@ -34,8 +38,9 @@ const (
 
 var (
 	cliFlagOutput = cli.StringFlag{
-		Name:  flagsOutput,
-		Usage: "Return output in another format. Supported formats: table, json",
+		Name: flagsOutput,
+		Usage: "Return output in another format. Supported formats: table, " +
+			"yaml, json",
 		Value: "table",
 	}
 )

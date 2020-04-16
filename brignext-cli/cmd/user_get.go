@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -48,6 +49,16 @@ func userGet(c *cli.Context) error {
 			user.Locked,
 		)
 		fmt.Println(table)
+
+	case "yaml":
+		yamlBytes, err := yaml.Marshal(user)
+		if err != nil {
+			return errors.Wrap(
+				err,
+				"error formatting output from get user operation",
+			)
+		}
+		fmt.Println(string(yamlBytes))
 
 	case "json":
 		prettyJSON, err := json.MarshalIndent(user, "", "  ")

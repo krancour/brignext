@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/krancour/brignext"
+	"github.com/krancour/brignext/pkg/file"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -20,13 +22,36 @@ func eventCreate(c *cli.Context) error {
 	projectID := c.Args()[0]
 
 	// Command-specific flags
+	payload := c.String(flagPayload)
+	payloadFile := c.String(flagPayloadFile)
 	eventType := c.String(flagType)
 	source := c.String(flagSource)
+
+	if payload != "" && payloadFile != "" {
+		return errors.New(
+			"only one of --payload or --payload-file may be specified",
+		)
+	}
+	if payloadFile != "" {
+		if !file.Exists(payloadFile) {
+			return errors.Errorf("no event payload was found at %s", payloadFile)
+		}
+		payloadBytes, err := ioutil.ReadFile(payloadFile)
+		if err != nil {
+			return errors.Wrapf(
+				err,
+				"error reading event payload from %s",
+				payloadFile,
+			)
+		}
+		payload = string(payloadBytes)
+	}
 
 	event := brignext.Event{
 		ProjectID: projectID,
 		Source:    source,
 		Type:      eventType,
+		Payload:   payload,
 	}
 
 	client, err := getClient(c)

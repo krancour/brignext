@@ -9,6 +9,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/duration"
 
+	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -55,6 +56,16 @@ func serviceAccountGet(c *cli.Context) error {
 			serviceAccount.Locked != nil && *serviceAccount.Locked,
 		)
 		fmt.Println(table)
+
+	case "yaml":
+		yamlBytes, err := yaml.Marshal(serviceAccount)
+		if err != nil {
+			return errors.Wrap(
+				err,
+				"error formatting output from get service account operation",
+			)
+		}
+		fmt.Println(string(yamlBytes))
 
 	case "json":
 		prettyJSON, err := json.MarshalIndent(serviceAccount, "", "  ")

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -52,6 +53,16 @@ func userList(c *cli.Context) error {
 			)
 		}
 		fmt.Println(table)
+
+	case "yaml":
+		yamlBytes, err := yaml.Marshal(users)
+		if err != nil {
+			return errors.Wrap(
+				err,
+				"error formatting output from get users operation",
+			)
+		}
+		fmt.Println(string(yamlBytes))
 
 	case "json":
 		prettyJSON, err := json.MarshalIndent(users, "", "  ")

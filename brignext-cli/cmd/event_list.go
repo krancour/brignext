@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/krancour/brignext"
 	"github.com/pkg/errors"
@@ -69,6 +70,16 @@ func eventList(c *cli.Context) error {
 			)
 		}
 		fmt.Println(table)
+
+	case "yaml":
+		yamlBytes, err := yaml.Marshal(events)
+		if err != nil {
+			return errors.Wrap(
+				err,
+				"error formatting output from get events operation",
+			)
+		}
+		fmt.Println(string(yamlBytes))
 
 	case "json":
 		prettyJSON, err := json.MarshalIndent(events, "", "  ")

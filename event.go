@@ -45,8 +45,7 @@ type Event struct {
 	Workers    map[string]Worker      `json:"workers,omitempty" bson:"workers"`
 	Created    *time.Time             `json:"created,omitempty" bson:"created"`
 	Status     *EventStatus           `json:"status,omitempty" bson:"status"`
-	// TODO: This should be encrypted! Maybe?
-	// Payload  []byte    `json:"payload,omitempty" bson:"payload"`
+	Payload    string                 `json:"payload,omitempty" bson:"payload"`
 	// Script   []byte    `json:"script,omitempty" bson:"script"`
 	// Config   []byte    `json:"config,omitempty" bson:"config,"`
 }

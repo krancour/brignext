@@ -10,6 +10,7 @@ export interface Event {
   shortTitle?: string
   longTitle?: string
   kubernetes: EventKubernetesConfig
+  payload?: string
 }
 
 export interface EventKubernetesConfig {
