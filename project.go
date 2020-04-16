@@ -27,7 +27,6 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 				Container:     workerConfig.Container,
 				WorkspaceSize: workerConfig.WorkspaceSize,
 				Git:           workerConfig.Git,
-				Kubernetes:    workerConfig.Kubernetes,
 				JobsConfig:    workerConfig.JobsConfig,
 				LogLevel:      workerConfig.LogLevel,
 				Jobs:          map[string]Job{},
@@ -60,14 +59,6 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 				worker.Git.Commit == "" &&
 				worker.Git.Ref == "" {
 				worker.Git.Ref = "master"
-			}
-
-			if worker.Kubernetes.WorkspaceStorageClass == "" {
-				worker.Kubernetes.WorkspaceStorageClass = "default"
-			}
-
-			if worker.LogLevel == "" {
-				worker.LogLevel = LogLevelInfo
 			}
 
 			workers[workerName] = worker

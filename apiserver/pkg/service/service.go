@@ -395,7 +395,22 @@ func (s *service) CreateProject(
 	ctx context.Context,
 	project brignext.Project,
 ) error {
-	project, err := s.scheduler.CreateProject(project)
+	for workerName, workerConfig := range project.WorkerConfigs {
+		if workerConfig.LogLevel == "" {
+			workerConfig.LogLevel = brignext.LogLevelInfo
+		}
+		project.WorkerConfigs[workerName] = workerConfig
+	}
+	now := time.Now()
+	project.Created = &now
+	// We send this to the scheduler first because we expect the scheduler will
+	// will add some scheduler-specific details that we will want to persist.
+	// This is in contrast to most of our functions wherein we start a transation
+	// in the store and make modifications to the store first with expectations
+	// that the transaction will roll the change back if subsequent changes made
+	// via the scheduler fail.
+	var err error
+	project, err = s.scheduler.CreateProject(project)
 	if err != nil {
 		return errors.Wrapf(
 			err,
@@ -403,9 +418,10 @@ func (s *service) CreateProject(
 			project.ID,
 		)
 	}
-	now := time.Now()
-	project.Created = &now
 	if err := s.store.CreateProject(ctx, project); err != nil {
+		// We need to roll this back manually because the scheduler doesn't
+		// automatically roll anything back upon failure.
+		s.scheduler.DeleteProject(project) // nolint: errcheck
 		return errors.Wrapf(err, "error storing new project %q", project.ID)
 	}
 	return nil
@@ -438,7 +454,32 @@ func (s *service) UpdateProject(
 	ctx context.Context,
 	project brignext.Project,
 ) error {
+	// Get the original project in case we need to do a manual rollback
+	oldProject, err := s.store.GetProject(ctx, project.ID)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			project.ID,
+		)
+	}
+	// We send this to the scheduler first because we expect the scheduler will
+	// will add some scheduler-specific details that we will want to persist.
+	// This is in contrast to most of our functions wherein we start a transation
+	// in the store and make modifications to the store first with expectations
+	// that the transaction will roll the change back if subsequent changes made
+	// via the scheduler fail.
+	if project, err = s.scheduler.UpdateProject(project); err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating project %q in scheduler",
+			project.ID,
+		)
+	}
 	if err := s.store.UpdateProject(ctx, project); err != nil {
+		// We need to roll this back manually because the scheduler doesn't
+		// automatically roll anything back upon failure.
+		s.scheduler.UpdateProject(oldProject) // nolint: errcheck
 		return errors.Wrapf(
 			err,
 			"error updating project %q in store",
@@ -453,21 +494,10 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving project %q from store", id)
 	}
-
 	return s.store.DoTx(ctx, func(ctx context.Context) error {
-
 		if err := s.store.DeleteProject(ctx, id); err != nil {
 			return errors.Wrapf(err, "error removing project %q from store", id)
 		}
-
-		if err := s.store.DeleteEventsByProject(ctx, id); err != nil {
-			return errors.Wrapf(
-				err,
-				"error removing events for project %q from store",
-				id,
-			)
-		}
-
 		if err := s.scheduler.DeleteProject(project); err != nil {
 			return errors.Wrapf(
 				err,
@@ -475,7 +505,6 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 				id,
 			)
 		}
-
 		return nil
 	})
 }
@@ -516,6 +545,7 @@ func (s *service) SetSecrets(
 			projectID,
 		)
 	}
+	// Secrets aren't stored in the database. We only pass them to the scheduler.
 	if err := s.scheduler.SetSecrets(project, secrets); err != nil {
 		return errors.Wrapf(
 			err,
@@ -539,6 +569,8 @@ func (s *service) UnsetSecrets(
 			projectID,
 		)
 	}
+	// Secrets aren't stored in the database. We only have to remove them from the
+	// scheduler.
 	if err := s.scheduler.UnsetSecrets(project, keys); err != nil {
 		return errors.Wrapf(
 			err,
@@ -564,9 +596,6 @@ func (s *service) CreateEvent(
 	}
 
 	event.ID = uuid.NewV4().String()
-	event.Kubernetes = &brignext.EventKubernetesConfig{
-		Namespace: project.Kubernetes.Namespace,
-	}
 	// "Split" the event into many workers.
 	event.Workers = project.GetWorkers(event)
 	now := time.Now()
@@ -578,18 +607,26 @@ func (s *service) CreateEvent(
 		event.Status.Phase = brignext.EventPhasePending
 	}
 
-	if err := s.store.DoTx(ctx, func(ctx context.Context) error {
-		if err := s.store.CreateEvent(ctx, event); err != nil {
-			return errors.Wrapf(err, "error storing new event %q", event.ID)
-		}
-		if err := s.scheduler.CreateEvent(event); err != nil {
-			return errors.Wrapf(err, "error creating event %q in scheduler", event.ID)
-		}
-		return nil
-	}); err != nil {
-		return "", err
+	// We send this to the scheduler first because we expect the scheduler will
+	// will add some scheduler-specific details that we will want to persist.
+	// This is in contrast to most of our functions wherein we start a transation
+	// in the store and make modifications to the store first with expectations
+	// that the transaction will roll the change back if subsequent changes made
+	// via the scheduler fail.
+	event, err = s.scheduler.CreateEvent(project, event)
+	if err != nil {
+		return "", errors.Wrapf(
+			err,
+			"error creating event %q in scheduler",
+			event.ID,
+		)
 	}
-
+	if err := s.store.CreateEvent(ctx, event); err != nil {
+		// We need to roll this back manually because the scheduler doesn't
+		// automatically roll anything back upon failure.
+		s.scheduler.DeleteEvent(event) // nolint: errcheck
+		return "", errors.Wrapf(err, "error storing new event %q", event.ID)
+	}
 	return event.ID, nil
 }
 
@@ -693,7 +730,7 @@ func (s *service) CancelEventsByProject(
 			if err != nil {
 				return errors.Wrapf(
 					err,
-					"error updating event %q in store",
+					"error canceling event %q in store",
 					event.ID,
 				)
 			}
@@ -726,10 +763,8 @@ func (s *service) DeleteEvent(
 	if err != nil {
 		return false, errors.Wrapf(err, "error retrieving event %q from store", id)
 	}
-
 	var ok bool
 	err = s.store.DoTx(ctx, func(ctx context.Context) error {
-
 		if ok, err = s.store.DeleteEvent(
 			ctx,
 			id,
@@ -738,7 +773,6 @@ func (s *service) DeleteEvent(
 		); err != nil {
 			return errors.Wrapf(err, "error removing event %q from store", id)
 		}
-
 		if ok {
 			if err := s.scheduler.DeleteEvent(event); err != nil {
 				return errors.Wrapf(
@@ -748,10 +782,8 @@ func (s *service) DeleteEvent(
 				)
 			}
 		}
-
 		return nil
 	})
-
 	return ok, err
 }
 

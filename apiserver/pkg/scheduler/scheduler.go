@@ -29,13 +29,17 @@ const (
 
 type Scheduler interface {
 	CreateProject(project brignext.Project) (brignext.Project, error)
+	UpdateProject(project brignext.Project) (brignext.Project, error)
 	DeleteProject(project brignext.Project) error
 
 	GetSecrets(project brignext.Project) (map[string]string, error)
 	SetSecrets(project brignext.Project, secrets map[string]string) error
 	UnsetSecrets(project brignext.Project, keys []string) error
 
-	CreateEvent(event brignext.Event) error
+	CreateEvent(
+		project brignext.Project,
+		event brignext.Event,
+	) (brignext.Event, error)
 	DeleteEvent(event brignext.Event) error
 
 	DeleteWorker(event brignext.Event, workerName string) error
@@ -236,6 +240,13 @@ func (s *scheduler) CreateProject(
 	return project, nil
 }
 
+func (s *scheduler) UpdateProject(
+	project brignext.Project,
+) (brignext.Project, error) {
+	// This is a no-op
+	return project, nil
+}
+
 func (s *scheduler) DeleteProject(project brignext.Project) error {
 	if err := s.kubeClient.CoreV1().Namespaces().Delete(
 		project.Kubernetes.Namespace,
@@ -331,7 +342,19 @@ func (s *scheduler) UnsetSecrets(project brignext.Project, keys []string) error 
 	return nil
 }
 
-func (s *scheduler) CreateEvent(event brignext.Event) error {
+func (s *scheduler) CreateEvent(
+	project brignext.Project,
+	event brignext.Event,
+) (brignext.Event, error) {
+	// Fill in scheduler-specific details
+	event.Kubernetes = &brignext.EventKubernetesConfig{
+		Namespace: project.Kubernetes.Namespace,
+	}
+	for workerName, worker := range event.Workers {
+		worker.Kubernetes = project.WorkerConfigs[workerName].Kubernetes
+		event.Workers[workerName] = worker
+	}
+
 	// Create a config map with event details
 	eventJSON, err := json.MarshalIndent(
 		struct {
@@ -355,7 +378,7 @@ func (s *scheduler) CreateEvent(event brignext.Event) error {
 		"  ",
 	)
 	if err != nil {
-		return errors.Wrapf(err, "error marshaling event %q", event.ID)
+		return event, errors.Wrapf(err, "error marshaling event %q", event.ID)
 	}
 	if _, err := s.kubeClient.CoreV1().ConfigMaps(
 		event.Kubernetes.Namespace,
@@ -373,7 +396,7 @@ func (s *scheduler) CreateEvent(event brignext.Event) error {
 			},
 		},
 	); err != nil {
-		return errors.Wrapf(
+		return event, errors.Wrapf(
 			err,
 			"error creating event %q config map in namespace %q",
 			event.ID,
@@ -386,7 +409,7 @@ func (s *scheduler) CreateEvent(event brignext.Event) error {
 		event.Kubernetes.Namespace,
 	).Get(event.ProjectID, meta_v1.GetOptions{})
 	if err != nil {
-		return errors.Wrapf(
+		return event, errors.Wrapf(
 			err,
 			"error finding existing project %q secret in namespace %q",
 			event.ProjectID,
@@ -420,7 +443,7 @@ func (s *scheduler) CreateEvent(event brignext.Event) error {
 			"  ",
 		)
 		if err != nil {
-			return errors.Wrapf(
+			return event, errors.Wrapf(
 				err,
 				"error marshaling worker %q of event %q to create a config map",
 				workerName,
@@ -444,7 +467,7 @@ func (s *scheduler) CreateEvent(event brignext.Event) error {
 				},
 			},
 		); err != nil {
-			return errors.Wrapf(
+			return event, errors.Wrapf(
 				err,
 				"error creating secret for worker %q of event %q",
 				workerName,
@@ -464,7 +487,7 @@ func (s *scheduler) CreateEvent(event brignext.Event) error {
 			Worker: workerName,
 		})
 		if err != nil {
-			return errors.Wrapf(
+			return event, errors.Wrapf(
 				err,
 				"error encoding execution task for event %q worker %q",
 				event.ID,
@@ -478,7 +501,7 @@ func (s *scheduler) CreateEvent(event brignext.Event) error {
 		if err := producer.Publish(
 			messaging.NewDelayedMessage(messageBody, 5*time.Second),
 		); err != nil {
-			return errors.Wrapf(
+			return event, errors.Wrapf(
 				err,
 				"error submitting execution task for event %q worker %q",
 				event.ID,
@@ -487,7 +510,7 @@ func (s *scheduler) CreateEvent(event brignext.Event) error {
 		}
 	}
 
-	return nil
+	return event, nil
 }
 
 func (s *scheduler) DeleteEvent(event brignext.Event) error {

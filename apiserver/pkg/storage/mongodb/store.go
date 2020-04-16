@@ -567,6 +567,12 @@ func (s *store) DeleteProject(ctx context.Context, id string) error {
 	if res.DeletedCount == 0 {
 		return &brignext.ErrProjectNotFound{id}
 	}
+	if _, err := s.eventsCollection.DeleteMany(
+		ctx,
+		bson.M{"projectID": id},
+	); err != nil {
+		return errors.Wrapf(err, "error deleting events for project %q", id)
+	}
 	return nil
 }
 
@@ -747,23 +753,6 @@ func (s *store) DeleteEvent(
 		return false, errors.Wrapf(err, "error deleting event %q", id)
 	}
 	return res.DeletedCount == 1, nil
-}
-
-func (s *store) DeleteEventsByProject(
-	ctx context.Context,
-	projectID string,
-) error {
-	if _, err := s.eventsCollection.DeleteMany(
-		ctx,
-		bson.M{"projectID": projectID},
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error deleting events for project %q",
-			projectID,
-		)
-	}
-	return nil
 }
 
 func (s *store) GetWorker(

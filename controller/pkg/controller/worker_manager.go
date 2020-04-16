@@ -115,11 +115,6 @@ func (c *controller) createWorkspacePVC(
 ) error {
 	worker := event.Workers[workerName]
 
-	// TODO: Does the empty string default to the cluster's default storage
-	// class? We should probably have a configurable default at the controller
-	// level as well.
-	storageClassName := worker.Kubernetes.WorkspaceStorageClass
-
 	storageQuantityStr := worker.WorkspaceSize
 	if storageQuantityStr == "" {
 		storageQuantityStr = "1G"
@@ -147,7 +142,7 @@ func (c *controller) createWorkspacePVC(
 			},
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			StorageClassName: &storageClassName,
+			StorageClassName: &c.controllerConfig.WorkspaceStorageClass,
 			AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{

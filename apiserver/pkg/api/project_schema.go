@@ -129,13 +129,6 @@ var projectSchemaBytes = []byte(`
 			"type": "object",
 			"description": "Worker configuration pertaining specifically to Kubernetes",
 			"properties": {
-				"workspaceStorageClass": {
-					"oneOf": [
-						{ "$ref": "#/definitions/empty" },
-						{ "$ref": "#/definitions/identifier" }
-					],
-					"description": "The Kubernetes storage class that a worker may use when provisioning a volume to be shared across multiple jobs"
-				},
 				"imagePullSecrets": {
 					"type": [ "array", "null" ],
 					"description": "Kubernetes secrets that can be used as image pull secrets for the worker's images",
