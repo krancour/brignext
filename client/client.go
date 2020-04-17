@@ -92,6 +92,12 @@ type Client interface {
 		cancelRunning bool,
 	) (bool, error)
 
+	GetJob(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		jobName string,
+	) (brignext.Job, error)
 	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
@@ -1315,6 +1321,56 @@ func (c *client) CancelWorker(
 	}
 
 	return respStruct.Canceled, nil
+}
+
+func (c *client) GetJob(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+) (brignext.Job, error) {
+	job := brignext.Job{}
+	req, err := c.buildRequest(
+		http.MethodGet,
+		fmt.Sprintf(
+			"v2/events/%s/workers/%s/jobs/%s",
+			eventID,
+			workerName,
+			jobName,
+		),
+		nil,
+	)
+	if err != nil {
+		return job, errors.Wrap(err, "error creating HTTP request")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return job, errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return job, &brignext.ErrJobNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+			JobName:    jobName,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return job, errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return job, errors.Wrap(err, "error reading response body")
+	}
+
+	if err := json.Unmarshal(respBodyBytes, &job); err != nil {
+		return job, errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	return job, nil
 }
 
 func (c *client) UpdateJobStatus(

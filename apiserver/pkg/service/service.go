@@ -100,6 +100,12 @@ type Service interface {
 		cancelRunning bool,
 	) (bool, error)
 
+	GetJob(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		jobName string,
+	) (brignext.Job, error)
 	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
@@ -1016,6 +1022,25 @@ func (s *service) CancelWorker(
 	})
 
 	return true, nil
+}
+
+func (s *service) GetJob(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+) (brignext.Job, error) {
+	job, err := s.store.GetJob(ctx, eventID, workerName, jobName)
+	if err != nil {
+		return job, errors.Wrapf(
+			err,
+			"error retrieving event %q worker %q job %q from store",
+			eventID,
+			workerName,
+			jobName,
+		)
+	}
+	return job, nil
 }
 
 func (s *service) UpdateJobStatus(

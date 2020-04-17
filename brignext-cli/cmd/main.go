@@ -116,6 +116,21 @@ func main() {
 			},
 		},
 		{
+			Name:  "job",
+			Usage: "Manage jobs",
+			Subcommands: []cli.Command{
+				{
+					Name:      "get",
+					Usage:     "Get a job",
+					ArgsUsage: "EVENT_ID WORKER_NAME JOB_NAME",
+					Flags: []cli.Flag{
+						cliFlagOutput,
+					},
+					Action: jobGet,
+				},
+			},
+		},
+		{
 			Name:      "login",
 			Usage:     "Log in to BrigNext",
 			ArgsUsage: "API_SERVER_ADDRESS",

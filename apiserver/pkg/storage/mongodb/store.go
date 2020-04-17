@@ -811,6 +811,34 @@ func (s *store) UpdateWorkerStatus(
 	return nil
 }
 
+func (s *store) GetJob(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+) (brignext.Job, error) {
+	job := brignext.Job{}
+	worker, err := s.GetWorker(ctx, eventID, workerName)
+	if err != nil {
+		return job, errors.Wrapf(
+			err,
+			"error finding event %q worker %q",
+			eventID,
+			workerName,
+		)
+	}
+	var ok bool
+	job, ok = worker.Jobs[jobName]
+	if !ok {
+		return job, &brignext.ErrJobNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+			JobName:    jobName,
+		}
+	}
+	return job, nil
+}
+
 func (s *store) UpdateJobStatus(
 	ctx context.Context,
 	eventID string,
