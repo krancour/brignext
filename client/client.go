@@ -91,6 +91,26 @@ type Client interface {
 		workerName string,
 		cancelRunning bool,
 	) (bool, error)
+	GetWorkerLogs(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+	) ([]brignext.LogEntry, error)
+	StreamWorkerLogs(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+	) (<-chan brignext.LogEntry, error)
+	GetWorkerInitLogs(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+	) ([]brignext.LogEntry, error)
+	StreamWorkerInitLogs(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+	) (<-chan brignext.LogEntry, error)
 
 	GetJob(
 		ctx context.Context,
@@ -105,6 +125,30 @@ type Client interface {
 		jobName string,
 		status brignext.JobStatus,
 	) error
+	GetJobLogs(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		jobName string,
+	) ([]brignext.LogEntry, error)
+	StreamJobLogs(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		jobName string,
+	) (<-chan brignext.LogEntry, error)
+	GetJobInitLogs(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		jobName string,
+	) ([]brignext.LogEntry, error)
+	StreamJobInitLogs(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		jobName string,
+	) (<-chan brignext.LogEntry, error)
 }
 
 type client struct {
