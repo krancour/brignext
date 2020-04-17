@@ -66,6 +66,30 @@ func NewServer(
 
 	s.router.StrictSlash(true)
 
+	// List users
+	s.router.HandleFunc(
+		"/v2/users",
+		tokenAuthFilter.Decorate(s.userList),
+	).Methods(http.MethodGet)
+
+	// Get user
+	s.router.HandleFunc(
+		"/v2/users/{id}",
+		tokenAuthFilter.Decorate(s.userGet),
+	).Methods(http.MethodGet)
+
+	// Lock user
+	s.router.HandleFunc(
+		"/v2/users/{id}/lock",
+		tokenAuthFilter.Decorate(s.userLock),
+	).Methods(http.MethodPost)
+
+	// Unlock user
+	s.router.HandleFunc(
+		"/v2/users/{id}/lock",
+		tokenAuthFilter.Decorate(s.userUnlock),
+	).Methods(http.MethodDelete)
+
 	// Create session
 	s.router.HandleFunc(
 		"/v2/sessions",
@@ -84,6 +108,36 @@ func NewServer(
 	s.router.HandleFunc(
 		"/v2/session",
 		tokenAuthFilter.Decorate(s.sessionDelete),
+	).Methods(http.MethodDelete)
+
+	// Create service account
+	s.router.HandleFunc(
+		"/v2/service-accounts",
+		tokenAuthFilter.Decorate(s.serviceAccountCreate),
+	).Methods(http.MethodPost)
+
+	// List service accounts
+	s.router.HandleFunc(
+		"/v2/service-accounts",
+		tokenAuthFilter.Decorate(s.serviceAccountList),
+	).Methods(http.MethodGet)
+
+	// Get service account
+	s.router.HandleFunc(
+		"/v2/service-accounts/{id}",
+		tokenAuthFilter.Decorate(s.serviceAccountGet),
+	).Methods(http.MethodGet)
+
+	// Lock service account
+	s.router.HandleFunc(
+		"/v2/service-accounts/{id}/lock",
+		tokenAuthFilter.Decorate(s.serviceAccountLock),
+	).Methods(http.MethodPost)
+
+	// Unlock service account
+	s.router.HandleFunc(
+		"/v2/service-accounts/{id}/lock",
+		tokenAuthFilter.Decorate(s.serviceAccountUnlock),
 	).Methods(http.MethodDelete)
 
 	// Create project
@@ -116,7 +170,7 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.projectDelete),
 	).Methods(http.MethodDelete)
 
-	// Set secrets
+	// List secrets
 	s.router.HandleFunc(
 		"/v2/projects/{projectID}/secrets",
 		tokenAuthFilter.Decorate(s.secretsList),
@@ -132,18 +186,6 @@ func NewServer(
 	s.router.HandleFunc(
 		"/v2/projects/{projectID}/secrets",
 		tokenAuthFilter.Decorate(s.secretsUnset),
-	).Methods(http.MethodDelete)
-
-	// Cancel project's events
-	s.router.HandleFunc(
-		"/v2/projects/{projectID}/events/cancel",
-		tokenAuthFilter.Decorate(s.eventsCancel),
-	).Methods(http.MethodPut)
-
-	// Delete project's events
-	s.router.HandleFunc(
-		"/v2/projects/{projectID}/events",
-		tokenAuthFilter.Decorate(s.eventsDelete),
 	).Methods(http.MethodDelete)
 
 	// Create event
@@ -164,6 +206,30 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.eventGet),
 	).Methods(http.MethodGet)
 
+	// Cancel event
+	s.router.HandleFunc(
+		"/v2/events/{id}/cancel",
+		tokenAuthFilter.Decorate(s.eventsCancel),
+	).Methods(http.MethodPut)
+
+	// Cancel events by project
+	s.router.HandleFunc(
+		"/v2/projects/{projectID}/events/cancel",
+		tokenAuthFilter.Decorate(s.eventsCancel),
+	).Methods(http.MethodPut)
+
+	// Delete event
+	s.router.HandleFunc(
+		"/v2/events/{id}",
+		tokenAuthFilter.Decorate(s.eventsDelete),
+	).Methods(http.MethodDelete)
+
+	// Delete events by project
+	s.router.HandleFunc(
+		"/v2/projects/{projectID}/events",
+		tokenAuthFilter.Decorate(s.eventsDelete),
+	).Methods(http.MethodDelete)
+
 	// Get worker
 	s.router.HandleFunc(
 		"/v2/events/{eventID}/workers/{workerName}",
@@ -182,6 +248,12 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.workerCancel),
 	).Methods(http.MethodPut)
 
+	// Get/stream worker logs
+	s.router.HandleFunc(
+		"/v2/events/{eventID}/workers/{workerName}/logs",
+		tokenAuthFilter.Decorate(s.workerLogs),
+	).Methods(http.MethodGet)
+
 	// Get job
 	s.router.HandleFunc(
 		"/v2/events/{eventID}/workers/{workerName}/jobs/{jobName}",
@@ -194,78 +266,11 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.jobUpdateStatus),
 	).Methods(http.MethodPut)
 
-	// TODO: Logs should actually be a property of a worker; not an event
-	// Stream logs
+	// Get/stream job logs
 	s.router.HandleFunc(
-		"/v2/events/{id}/logs",
-		tokenAuthFilter.Decorate(s.eventLogs),
+		"/v2/events/{eventID}/workers/{workerName}/jobs/{jobName}/logs",
+		tokenAuthFilter.Decorate(s.jobLogs),
 	).Methods(http.MethodGet)
-
-	// Cancel event
-	s.router.HandleFunc(
-		"/v2/events/{id}/cancel",
-		tokenAuthFilter.Decorate(s.eventsCancel),
-	).Methods(http.MethodPut)
-
-	// Delete event
-	s.router.HandleFunc(
-		"/v2/events/{id}",
-		tokenAuthFilter.Decorate(s.eventsDelete),
-	).Methods(http.MethodDelete)
-
-	// List users
-	s.router.HandleFunc(
-		"/v2/users",
-		tokenAuthFilter.Decorate(s.userList),
-	).Methods(http.MethodGet)
-
-	// Get user
-	s.router.HandleFunc(
-		"/v2/users/{id}",
-		tokenAuthFilter.Decorate(s.userGet),
-	).Methods(http.MethodGet)
-
-	// Unlock user
-	s.router.HandleFunc(
-		"/v2/users/{id}/lock",
-		tokenAuthFilter.Decorate(s.userUnlock),
-	).Methods(http.MethodDelete)
-
-	// Lock user
-	s.router.HandleFunc(
-		"/v2/users/{id}/lock",
-		tokenAuthFilter.Decorate(s.userLock),
-	).Methods(http.MethodPost)
-
-	// Create service account
-	s.router.HandleFunc(
-		"/v2/service-accounts",
-		tokenAuthFilter.Decorate(s.serviceAccountCreate),
-	).Methods(http.MethodPost)
-
-	// List service accounts
-	s.router.HandleFunc(
-		"/v2/service-accounts",
-		tokenAuthFilter.Decorate(s.serviceAccountList),
-	).Methods(http.MethodGet)
-
-	// Get service account
-	s.router.HandleFunc(
-		"/v2/service-accounts/{id}",
-		tokenAuthFilter.Decorate(s.serviceAccountGet),
-	).Methods(http.MethodGet)
-
-	// Lock service account
-	s.router.HandleFunc(
-		"/v2/service-accounts/{id}/lock",
-		tokenAuthFilter.Decorate(s.serviceAccountLock),
-	).Methods(http.MethodPost)
-
-	// Unlock service account
-	s.router.HandleFunc(
-		"/v2/service-accounts/{id}/lock",
-		tokenAuthFilter.Decorate(s.serviceAccountUnlock),
-	).Methods(http.MethodDelete)
 
 	// Health check
 	s.router.HandleFunc(
