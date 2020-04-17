@@ -2,8 +2,8 @@ package mongodb
 
 import (
 	"context"
-	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/krancour/brignext"
@@ -18,66 +18,156 @@ import (
 var mongodbTimeout = 5 * time.Second
 
 type logStore struct {
-	database *mongo.Database
+	logsCollection *mongo.Collection
 }
 
 func NewLogStore(database *mongo.Database) storage.LogStore {
 	return &logStore{
-		database: database,
+		logsCollection: database.Collection("logs"),
 	}
 }
 
-func (l *logStore) GetWorkerLogs(eventID string) ([]brignext.LogEntry, error) {
-	collectionName := fmt.Sprintf("event.%s.brigade-runner", eventID)
-	return l.getLogs(collectionName)
-}
-
-func (l *logStore) GetWorkerInitLogs(
+func (l *logStore) GetWorkerLogs(
+	ctx context.Context,
 	eventID string,
+	workerName string,
 ) ([]brignext.LogEntry, error) {
-	collectionName := fmt.Sprintf("event.%s.vcs-sidecar", eventID)
-	return l.getLogs(collectionName)
-}
-
-func (l *logStore) GetJobLogs(
-	jobID string,
-	containerName string,
-) ([]brignext.LogEntry, error) {
-	collectionName := fmt.Sprintf("job.%s.%s", jobID, containerName)
-	return l.getLogs(collectionName)
+	return l.getLogs(
+		ctx,
+		bson.M{
+			"component": "worker",
+			"event":     eventID,
+			"worker":    workerName,
+			"container": strings.ToLower(workerName),
+		},
+	)
 }
 
 func (l *logStore) StreamWorkerLogs(
 	ctx context.Context,
 	eventID string,
+	workerName string,
 ) (<-chan brignext.LogEntry, error) {
-	collectionName := fmt.Sprintf("event.%s.brigade-runner", eventID)
-	return l.streamLogs(ctx, collectionName)
+	return l.streamLogs(
+		ctx,
+		bson.M{
+			"component": "worker",
+			"event":     eventID,
+			"worker":    workerName,
+			"container": strings.ToLower(workerName),
+		},
+	)
+}
+
+func (l *logStore) GetWorkerInitLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+) ([]brignext.LogEntry, error) {
+	return l.getLogs(
+		ctx,
+		bson.M{
+			"component": "worker",
+			"event":     eventID,
+			"worker":    workerName,
+			"container": "vcs",
+		},
+	)
 }
 
 func (l *logStore) StreamWorkerInitLogs(
 	ctx context.Context,
 	eventID string,
+	workerName string,
 ) (<-chan brignext.LogEntry, error) {
-	collectionName := fmt.Sprintf("event.%s.vcs-sidecar", eventID)
-	return l.streamLogs(ctx, collectionName)
+	return l.streamLogs(
+		ctx,
+		bson.M{
+			"component": "worker",
+			"event":     eventID,
+			"worker":    workerName,
+			"container": "vcs",
+		},
+	)
+}
+
+func (l *logStore) GetJobLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+) ([]brignext.LogEntry, error) {
+	return l.getLogs(
+		ctx,
+		bson.M{
+			"component": "job",
+			"event":     eventID,
+			"worker":    workerName,
+			"job":       jobName,
+			"container": strings.ToLower(jobName),
+		},
+	)
 }
 
 func (l *logStore) StreamJobLogs(
 	ctx context.Context,
-	jobID string,
-	containerName string,
+	eventID string,
+	workerName string,
+	jobName string,
 ) (<-chan brignext.LogEntry, error) {
-	collectionName := fmt.Sprintf("job.%s.%s", jobID, containerName)
-	return l.streamLogs(ctx, collectionName)
+	return l.streamLogs(
+		ctx,
+		bson.M{
+			"component": "job",
+			"event":     eventID,
+			"worker":    workerName,
+			"job":       jobName,
+			"container": strings.ToLower(jobName),
+		},
+	)
 }
 
-func (l *logStore) getLogs(collectionName string) ([]brignext.LogEntry, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
-	defer cancel()
+func (l *logStore) GetJobInitLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+) ([]brignext.LogEntry, error) {
+	return l.getLogs(
+		ctx,
+		bson.M{
+			"component": "job",
+			"event":     eventID,
+			"worker":    workerName,
+			"job":       jobName,
+			"container": "vcs",
+		},
+	)
+}
 
-	collection := l.database.Collection(collectionName)
-	cursor, err := collection.Find(ctx, bson.M{})
+func (l *logStore) StreamJobInitLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+) (<-chan brignext.LogEntry, error) {
+	return l.streamLogs(
+		ctx,
+		bson.M{
+			"component": "job",
+			"event":     eventID,
+			"worker":    workerName,
+			"job":       jobName,
+			"container": "vcs",
+		},
+	)
+}
+
+func (l *logStore) getLogs(
+	ctx context.Context,
+	criteria bson.M,
+) ([]brignext.LogEntry, error) {
+	cursor, err := l.logsCollection.Find(ctx, criteria)
 	if err != nil {
 		return nil, errors.Wrap(err, "error retrieving log entries")
 	}
@@ -95,9 +185,8 @@ func (l *logStore) getLogs(collectionName string) ([]brignext.LogEntry, error) {
 
 func (l *logStore) streamLogs(
 	ctx context.Context,
-	collectionName string,
+	criteria bson.M,
 ) (<-chan brignext.LogEntry, error) {
-	collection := l.database.Collection(collectionName)
 	logEntryCh := make(chan brignext.LogEntry)
 	go func() {
 		defer close(logEntryCh)
@@ -110,18 +199,14 @@ func (l *logStore) streamLogs(
 		// need to retry this until we get a "live" cursor or the context is
 		// canceled.
 		for {
-			cursor, err = collection.Find(
+			cursor, err = l.logsCollection.Find(
 				ctx,
-				&bson.D{},
+				criteria,
 				&options.FindOptions{CursorType: &cursorType},
 			)
 			if err != nil {
 				log.Println(
-					errors.Wrapf(
-						err,
-						"error getting cursor for collection %q",
-						collectionName,
-					),
+					errors.Wrap(err, "error getting cursor for logs collection"),
 				)
 				return
 			}
@@ -151,11 +236,7 @@ func (l *logStore) streamLogs(
 			err = cursor.Decode(&result)
 			if err != nil {
 				log.Println(
-					errors.Wrapf(
-						err,
-						"error decoding log entry from collection %q",
-						collectionName,
-					),
+					errors.Wrapf(err, "error decoding log entry from collection"),
 				)
 				return
 			}

@@ -99,6 +99,26 @@ type Service interface {
 		workerName string,
 		cancelRunning bool,
 	) (bool, error)
+	GetWorkerLogs(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+	) ([]brignext.LogEntry, error)
+	StreamWorkerLogs(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+	) (<-chan brignext.LogEntry, error)
+	GetWorkerInitLogs(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+	) ([]brignext.LogEntry, error)
+	StreamWorkerInitLogs(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+	) (<-chan brignext.LogEntry, error)
 
 	GetJob(
 		ctx context.Context,
@@ -113,6 +133,30 @@ type Service interface {
 		jobName string,
 		status brignext.JobStatus,
 	) error
+	GetJobLogs(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		jobName string,
+	) ([]brignext.LogEntry, error)
+	StreamJobLogs(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		jobName string,
+	) (<-chan brignext.LogEntry, error)
+	GetJobInitLogs(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		jobName string,
+	) ([]brignext.LogEntry, error)
+	StreamJobInitLogs(
+		ctx context.Context,
+		eventID string,
+		workerName string,
+		jobName string,
+	) (<-chan brignext.LogEntry, error)
 }
 
 type service struct {
@@ -1024,6 +1068,38 @@ func (s *service) CancelWorker(
 	return true, nil
 }
 
+func (s *service) GetWorkerLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+) ([]brignext.LogEntry, error) {
+	return s.logStore.GetWorkerLogs(ctx, eventID, workerName)
+}
+
+func (s *service) StreamWorkerLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+) (<-chan brignext.LogEntry, error) {
+	return s.logStore.StreamWorkerLogs(ctx, eventID, workerName)
+}
+
+func (s *service) GetWorkerInitLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+) ([]brignext.LogEntry, error) {
+	return s.logStore.GetWorkerInitLogs(ctx, eventID, workerName)
+}
+
+func (s *service) StreamWorkerInitLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+) (<-chan brignext.LogEntry, error) {
+	return s.logStore.StreamWorkerInitLogs(ctx, eventID, workerName)
+}
+
 func (s *service) GetJob(
 	ctx context.Context,
 	eventID string,
@@ -1066,4 +1142,40 @@ func (s *service) UpdateJobStatus(
 		)
 	}
 	return nil
+}
+
+func (s *service) GetJobLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+) ([]brignext.LogEntry, error) {
+	return s.logStore.GetJobLogs(ctx, eventID, workerName, jobName)
+}
+
+func (s *service) StreamJobLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+) (<-chan brignext.LogEntry, error) {
+	return s.logStore.StreamJobLogs(ctx, eventID, workerName, jobName)
+}
+
+func (s *service) GetJobInitLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+) ([]brignext.LogEntry, error) {
+	return s.logStore.GetJobInitLogs(ctx, eventID, workerName, jobName)
+}
+
+func (s *service) StreamJobInitLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+) (<-chan brignext.LogEntry, error) {
+	return s.logStore.StreamJobInitLogs(ctx, eventID, workerName, jobName)
 }
