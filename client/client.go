@@ -100,7 +100,7 @@ type Client interface {
 		ctx context.Context,
 		eventID string,
 		workerName string,
-	) (<-chan brignext.LogEntry, error)
+	) (<-chan brignext.LogEntry, <-chan error, error)
 	GetWorkerInitLogs(
 		ctx context.Context,
 		eventID string,
@@ -110,7 +110,7 @@ type Client interface {
 		ctx context.Context,
 		eventID string,
 		workerName string,
-	) (<-chan brignext.LogEntry, error)
+	) (<-chan brignext.LogEntry, <-chan error, error)
 
 	GetJob(
 		ctx context.Context,
@@ -136,7 +136,7 @@ type Client interface {
 		eventID string,
 		workerName string,
 		jobName string,
-	) (<-chan brignext.LogEntry, error)
+	) (<-chan brignext.LogEntry, <-chan error, error)
 	GetJobInitLogs(
 		ctx context.Context,
 		eventID string,
@@ -148,7 +148,7 @@ type Client interface {
 		eventID string,
 		workerName string,
 		jobName string,
-	) (<-chan brignext.LogEntry, error)
+	) (<-chan brignext.LogEntry, <-chan error, error)
 }
 
 type client struct {
@@ -1367,6 +1367,182 @@ func (c *client) CancelWorker(
 	return respStruct.Canceled, nil
 }
 
+func (c *client) GetWorkerLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+) ([]brignext.LogEntry, error) {
+	req, err := c.buildRequest(
+		http.MethodGet,
+		fmt.Sprintf("v2/events/%s/workers/%s/logs", eventID, workerName),
+		nil,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating HTTP request")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, &brignext.ErrWorkerNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "error reading response body")
+	}
+
+	logEntries := []brignext.LogEntry{}
+	if err := json.Unmarshal(respBodyBytes, &logEntries); err != nil {
+		return nil, errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	return logEntries, nil
+}
+
+func (c *client) StreamWorkerLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+) (<-chan brignext.LogEntry, <-chan error, error) {
+	req, err := c.buildRequest(
+		http.MethodGet,
+		fmt.Sprintf("v2/events/%s/workers/%s/logs", eventID, workerName),
+		nil,
+	)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "error creating HTTP request")
+	}
+	q := req.URL.Query()
+	q.Set("stream", "true")
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "error invoking API")
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil, &brignext.ErrWorkerNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, nil, errors.Errorf(
+			"received %d from API server",
+			resp.StatusCode,
+		)
+	}
+
+	logCh := make(chan brignext.LogEntry)
+	errCh := make(chan error)
+
+	go c.receiveLogStream(ctx, resp.Body, logCh, errCh)
+
+	return logCh, errCh, nil
+}
+
+func (c *client) GetWorkerInitLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+) ([]brignext.LogEntry, error) {
+	req, err := c.buildRequest(
+		http.MethodGet,
+		fmt.Sprintf("v2/events/%s/workers/%s/logs", eventID, workerName),
+		nil,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating HTTP request")
+	}
+	q := req.URL.Query()
+	q.Set("init", "true")
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, &brignext.ErrWorkerNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "error reading response body")
+	}
+
+	logEntries := []brignext.LogEntry{}
+	if err := json.Unmarshal(respBodyBytes, &logEntries); err != nil {
+		return nil, errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	return logEntries, nil
+}
+
+func (c *client) StreamWorkerInitLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+) (<-chan brignext.LogEntry, <-chan error, error) {
+	req, err := c.buildRequest(
+		http.MethodGet,
+		fmt.Sprintf("v2/events/%s/workers/%s/logs", eventID, workerName),
+		nil,
+	)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "error creating HTTP request")
+	}
+	q := req.URL.Query()
+	q.Set("init", "true")
+	q.Set("stream", "true")
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "error invoking API")
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil, &brignext.ErrWorkerNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, nil, errors.Errorf(
+			"received %d from API server",
+			resp.StatusCode,
+		)
+	}
+
+	logCh := make(chan brignext.LogEntry)
+	errCh := make(chan error)
+
+	go c.receiveLogStream(ctx, resp.Body, logCh, errCh)
+
+	return logCh, errCh, nil
+}
+
 func (c *client) GetJob(
 	ctx context.Context,
 	eventID string,
@@ -1466,4 +1642,233 @@ func (c *client) UpdateJobStatus(
 	}
 
 	return nil
+}
+
+func (c *client) GetJobLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+) ([]brignext.LogEntry, error) {
+	req, err := c.buildRequest(
+		http.MethodGet,
+		fmt.Sprintf(
+			"v2/events/%s/workers/%s/jobs/%s/logs",
+			eventID,
+			workerName,
+			jobName,
+		),
+		nil,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating HTTP request")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, &brignext.ErrJobNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+			JobName:    jobName,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "error reading response body")
+	}
+
+	logEntries := []brignext.LogEntry{}
+	if err := json.Unmarshal(respBodyBytes, &logEntries); err != nil {
+		return nil, errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	return logEntries, nil
+}
+
+func (c *client) StreamJobLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+) (<-chan brignext.LogEntry, <-chan error, error) {
+	req, err := c.buildRequest(
+		http.MethodGet,
+		fmt.Sprintf(
+			"v2/events/%s/workers/%s/jobs/%s/logs",
+			eventID,
+			workerName,
+			jobName,
+		),
+		nil,
+	)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "error creating HTTP request")
+	}
+	q := req.URL.Query()
+	q.Set("stream", "true")
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "error invoking API")
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil, &brignext.ErrJobNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+			JobName:    jobName,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, nil, errors.Errorf(
+			"received %d from API server",
+			resp.StatusCode,
+		)
+	}
+
+	logCh := make(chan brignext.LogEntry)
+	errCh := make(chan error)
+
+	go c.receiveLogStream(ctx, resp.Body, logCh, errCh)
+
+	return logCh, errCh, nil
+}
+
+func (c *client) GetJobInitLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+) ([]brignext.LogEntry, error) {
+	req, err := c.buildRequest(
+		http.MethodGet,
+		fmt.Sprintf(
+			"v2/events/%s/workers/%s/jobs/%s/logs",
+			eventID,
+			workerName,
+			jobName,
+		),
+		nil,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "error creating HTTP request")
+	}
+	q := req.URL.Query()
+	q.Set("init", "true")
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, &brignext.ErrJobNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+			JobName:    jobName,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "error reading response body")
+	}
+
+	logEntries := []brignext.LogEntry{}
+	if err := json.Unmarshal(respBodyBytes, &logEntries); err != nil {
+		return nil, errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	return logEntries, nil
+}
+
+func (c *client) StreamJobInitLogs(
+	ctx context.Context,
+	eventID string,
+	workerName string,
+	jobName string,
+) (<-chan brignext.LogEntry, <-chan error, error) {
+	req, err := c.buildRequest(
+		http.MethodGet,
+		fmt.Sprintf(
+			"v2/events/%s/workers/%s/jobs/%s/logs",
+			eventID,
+			workerName,
+			jobName,
+		),
+		nil,
+	)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "error creating HTTP request")
+	}
+	q := req.URL.Query()
+	q.Set("stream", "true")
+	q.Set("init", "true")
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "error invoking API")
+	}
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil, &brignext.ErrJobNotFound{
+			EventID:    eventID,
+			WorkerName: workerName,
+			JobName:    jobName,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, nil, errors.Errorf(
+			"received %d from API server",
+			resp.StatusCode,
+		)
+	}
+
+	logCh := make(chan brignext.LogEntry)
+	errCh := make(chan error)
+
+	go c.receiveLogStream(ctx, resp.Body, logCh, errCh)
+
+	return logCh, errCh, nil
+}
+
+func (c *client) receiveLogStream(
+	ctx context.Context,
+	reader io.ReadCloser,
+	logEntryCh chan<- brignext.LogEntry,
+	errCh chan<- error,
+) {
+	defer reader.Close()
+	decoder := json.NewDecoder(reader)
+	for {
+		logEntry := brignext.LogEntry{}
+		if err := decoder.Decode(&logEntry); err != nil {
+			select {
+			case errCh <- err:
+			case <-ctx.Done():
+			}
+			return
+		}
+		select {
+		case logEntryCh <- logEntry:
+		case <-ctx.Done():
+			return
+		}
+	}
 }
