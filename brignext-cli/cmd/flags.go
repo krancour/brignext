@@ -9,6 +9,8 @@ const (
 	flagsDescription = "description, d"
 	flagEvent        = "event"
 	flagsEvent       = "event, e"
+	flagFollow       = "follow"
+	flagsFollow      = "follow, f"
 	flagInit         = "init"
 	flagInsecure     = "insecure"
 	flagsInsecure    = "insecure, k"

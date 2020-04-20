@@ -10,7 +10,6 @@ import (
 	"github.com/krancour/brignext/apiserver/pkg/storage"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -232,18 +231,13 @@ func (l *logStore) streamLogs(
 					return
 				}
 			}
-			result := bson.M{}
-			err = cursor.Decode(&result)
+			logEntry := brignext.LogEntry{}
+			err = cursor.Decode(&logEntry)
 			if err != nil {
 				log.Println(
 					errors.Wrapf(err, "error decoding log entry from collection"),
 				)
 				return
-			}
-
-			logEntry := brignext.LogEntry{
-				Time:    result["time"].(primitive.DateTime).Time(),
-				Message: result["log"].(string),
 			}
 
 			select {

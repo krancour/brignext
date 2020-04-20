@@ -5,6 +5,6 @@ import (
 )
 
 type LogEntry struct {
-	Time    time.Time
-	Message string
+	Time    time.Time `json:"time" bson:"time"`
+	Message string    `json:"message" bson:"log"`
 }

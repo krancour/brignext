@@ -128,6 +128,18 @@ func main() {
 					},
 					Action: jobGet,
 				},
+				{
+					Name:      "logs",
+					Usage:     "Get job logs",
+					ArgsUsage: "EVENT_ID WORKER_NAME JOB_NAME",
+					Flags: []cli.Flag{
+						cli.BoolFlag{
+							Name:  flagsFollow,
+							Usage: "If set, will stream job logs until interrupted",
+						},
+					},
+					Action: jobLogs,
+				},
 			},
 		},
 		{
@@ -336,6 +348,18 @@ func main() {
 						cliFlagOutput,
 					},
 					Action: workerGet,
+				},
+				{
+					Name:      "logs",
+					Usage:     "Get worker logs",
+					ArgsUsage: "EVENT_ID WORKER_NAME",
+					Flags: []cli.Flag{
+						cli.BoolFlag{
+							Name:  flagsFollow,
+							Usage: "If set, will stream worker logs until interrupted",
+						},
+					},
+					Action: workerLogs,
 				},
 			},
 		},
