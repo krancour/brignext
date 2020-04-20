@@ -13,9 +13,9 @@ func workerCancel(c *cli.Context) error {
 	cancelRunning := c.Bool(flagRunning)
 
 	// Args
-	if len(c.Args()) != 1 {
+	if len(c.Args()) != 2 {
 		return errors.New(
-			"worker cancel requires two arguments-- thr event ID and job name",
+			"worker cancel requires two arguments-- thr event ID and worker name",
 		)
 	}
 	eventID := c.Args()[0]

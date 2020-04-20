@@ -42,6 +42,7 @@ func eventCancel(c *cli.Context) error {
 			return err
 		} else if canceled {
 			fmt.Printf("Event %q canceled.\n", eventID)
+			return nil
 		} else {
 			return errors.Errorf(
 				"event %q was not canceled because specified conditions were not "+

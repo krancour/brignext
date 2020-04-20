@@ -44,6 +44,7 @@ func eventDelete(c *cli.Context) error {
 			return err
 		} else if deleted {
 			fmt.Printf("Event %q deleted.\n", eventID)
+			return nil
 		} else {
 			return errors.Errorf(
 				"event %q was not deleted because specified conditions were not "+
