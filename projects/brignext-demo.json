@@ -14,7 +14,10 @@
         }
       ],
       "container": {
-        "imagePullPolicy": "Always"
+        "imagePullPolicy": "Always",
+        "environment": {
+          "FOO": "bar"
+        }
       },
       "workspaceSize": "10Gi",
       "git": {

@@ -296,6 +296,17 @@ func (c *controller) createWorkerPod(
 		)
 	}
 
+	env := []corev1.EnvVar{}
+	for key, val := range worker.Container.Environment {
+		env = append(
+			env,
+			corev1.EnvVar{
+				Name:  key,
+				Value: val,
+			},
+		)
+	}
+
 	workerPod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      qualifiedWorkerKey(event.ID, workerName),
@@ -320,6 +331,7 @@ func (c *controller) createWorkerPod(
 					// TODO: This probably isn't a good enough way, to split up command
 					// tokens, but it's what Brigade 1.x does. Good enough for PoC.
 					Command:      strings.Split(worker.Container.Command, ""),
+					Env:          env,
 					VolumeMounts: volumeMounts,
 				},
 			},

@@ -908,6 +908,7 @@ func (s *service) GetWorker(
 	return worker, nil
 }
 
+// TODO: This logic isn't correct!!! It must be fixed!!!
 func (s *service) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,

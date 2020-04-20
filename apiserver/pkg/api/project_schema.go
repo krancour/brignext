@@ -75,6 +75,11 @@ var projectSchemaBytes = []byte(`
 				"command": {
 					"type": "string",
 					"description": "The command to execute within the container"
+				},
+				"environment": {
+					"type": "object",
+					"description": "A map of environment variables and their values",
+					"additionalProperties": { "type": "string" }
 				}
 			}
 		},
