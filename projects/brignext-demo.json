@@ -23,9 +23,6 @@
       "git": {
         "cloneURL": "https://github.com/krancour/empty-testbed.git"
       },
-      "kubernetes": {
-        "workspaceStorageClass": "nfs"
-      },
       "jobsConfig": {
         "allowPrivileged": true,
         "allowDockerSocketMount": true
