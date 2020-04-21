@@ -214,12 +214,12 @@ func main() {
 		},
 		{
 			Name:  "secrets",
-			Usage: "Manage project secrets",
+			Usage: "Manage worker secrets",
 			Subcommands: []cli.Command{
 				{
 					Name:      "list",
-					Usage:     "List a project's secrets",
-					ArgsUsage: "PROJECT_ID",
+					Usage:     "List a worker's secrets",
+					ArgsUsage: "PROJECT_ID WORKER_NAME",
 					Flags: []cli.Flag{
 						cliFlagOutput,
 					},
@@ -228,14 +228,14 @@ func main() {
 				{
 					Name:  "set",
 					Usage: "Define or redefine the value of a secret",
-					ArgsUsage: "PROJECT_ID KEY_0=VALUE_0 " +
+					ArgsUsage: "PROJECT_ID WORKER_NAME KEY_0=VALUE_0 " +
 						"[KEY_1=VALUE_1 .. KEY_N=VALUE_N]",
 					Action: secretsSet,
 				},
 				{
 					Name:      "unset",
 					Usage:     "Clear the value of a secret",
-					ArgsUsage: "PROJECT_ID KEY_0 [KEY_1 .. KEY_N]",
+					ArgsUsage: "PROJECT_ID WORKER_NAME KEY_0 [KEY_1 .. KEY_N]",
 					Action:    secretsUnset,
 				},
 			},

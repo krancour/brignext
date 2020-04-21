@@ -32,9 +32,20 @@ type Scheduler interface {
 	UpdateProject(project brignext.Project) (brignext.Project, error)
 	DeleteProject(project brignext.Project) error
 
-	GetSecrets(project brignext.Project) (map[string]string, error)
-	SetSecrets(project brignext.Project, secrets map[string]string) error
-	UnsetSecrets(project brignext.Project, keys []string) error
+	GetSecrets(
+		project brignext.Project,
+		workerName string,
+	) (map[string]string, error)
+	SetSecrets(
+		project brignext.Project,
+		workerName string,
+		secrets map[string]string,
+	) error
+	UnsetSecrets(
+		project brignext.Project,
+		workerName string,
+		keys []string,
+	) error
 
 	CreateEvent(
 		project brignext.Project,
@@ -217,24 +228,29 @@ func (s *scheduler) CreateProject(
 		)
 	}
 
-	// Create project secret
-	if _, err := s.kubeClient.CoreV1().Secrets(
-		project.Kubernetes.Namespace,
-	).Create(
-		&v1.Secret{
-			ObjectMeta: meta_v1.ObjectMeta{
-				Name: project.ID,
-				Labels: map[string]string{
-					projectLabel: project.ID,
-				},
-			},
-		}); err != nil {
-		return project, errors.Wrapf(
-			err,
-			"error creating project secret %q in namespace %q",
-			project.ID,
+	// Create a secret for each worker
+	for workerName := range project.WorkerConfigs {
+		if _, err := s.kubeClient.CoreV1().Secrets(
 			project.Kubernetes.Namespace,
-		)
+		).Create(
+			&v1.Secret{
+				ObjectMeta: meta_v1.ObjectMeta{
+					Name: s.workerConfigSecretName(workerName),
+					Labels: map[string]string{
+						componentLabel: "worker-config-secrets",
+						projectLabel:   project.ID,
+						workerLabel:    workerName,
+					},
+				},
+				Type: core_v1.SecretType("worker-config-secrets"),
+			}); err != nil {
+			return project, errors.Wrapf(
+				err,
+				"error creating secret %q in namespace %q",
+				s.workerConfigSecretName(workerName),
+				project.Kubernetes.Namespace,
+			)
+		}
 	}
 
 	return project, nil
@@ -261,15 +277,21 @@ func (s *scheduler) DeleteProject(project brignext.Project) error {
 	return nil
 }
 
-func (s *scheduler) GetSecrets(project brignext.Project) (map[string]string, error) {
+func (s *scheduler) GetSecrets(
+	project brignext.Project,
+	workerName string,
+) (map[string]string, error) {
 	secret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
-	).Get(project.ID, meta_v1.GetOptions{})
+	).Get(
+		s.workerConfigSecretName(workerName),
+		meta_v1.GetOptions{},
+	)
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
-			"error retrieving project secret %q in namespace %q",
-			project.ID,
+			"error retrieving secret %q in namespace %q",
+			s.workerConfigSecretName(workerName),
 			project.Kubernetes.Namespace,
 		)
 	}
@@ -282,16 +304,20 @@ func (s *scheduler) GetSecrets(project brignext.Project) (map[string]string, err
 
 func (s *scheduler) SetSecrets(
 	project brignext.Project,
+	workerName string,
 	secrets map[string]string,
 ) error {
 	secret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
-	).Get(project.ID, meta_v1.GetOptions{})
+	).Get(
+		s.workerConfigSecretName(workerName),
+		meta_v1.GetOptions{},
+	)
 	if err != nil {
 		return errors.Wrapf(
 			err,
-			"error retrieving project secret %q in namespace %q",
-			project.ID,
+			"error retrieving secret %q in namespace %q",
+			s.workerConfigSecretName(workerName),
 			project.Kubernetes.Namespace,
 		)
 	}
@@ -314,15 +340,22 @@ func (s *scheduler) SetSecrets(
 	return nil
 }
 
-func (s *scheduler) UnsetSecrets(project brignext.Project, keys []string) error {
+func (s *scheduler) UnsetSecrets(
+	project brignext.Project,
+	workerName string,
+	keys []string,
+) error {
 	secret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
-	).Get(project.ID, meta_v1.GetOptions{})
+	).Get(
+		s.workerConfigSecretName(workerName),
+		meta_v1.GetOptions{},
+	)
 	if err != nil {
 		return errors.Wrapf(
 			err,
-			"error retrieving project secret %q in namespace %q",
-			project.ID,
+			"error retrieving secret %q in namespace %q",
+			s.workerConfigSecretName(workerName),
 			project.Kubernetes.Namespace,
 		)
 	}
@@ -406,27 +439,28 @@ func (s *scheduler) CreateEvent(
 		)
 	}
 
-	// Get the project's secrets
-	projectSecret, err := s.kubeClient.CoreV1().Secrets(
-		event.Kubernetes.Namespace,
-	).Get(event.ProjectID, meta_v1.GetOptions{})
-	if err != nil {
-		return event, errors.Wrapf(
-			err,
-			"error finding existing project %q secret in namespace %q",
-			event.ProjectID,
-			event.Kubernetes.Namespace,
-		)
-	}
-	secrets := map[string]string{}
-	for key, value := range projectSecret.Data {
-		secrets[key] = string(value)
-	}
-
-	// For each of the event's workers, create a secret with worker details. This
-	// is a secret because it contains a point-in-time snapshot of the project's
-	// secrets.
+	// For each of the event's workers, create a secret with worker details.
 	for workerName, worker := range event.Workers {
+		// Get the worker config's secrets
+		workerConfigSecret, err := s.kubeClient.CoreV1().Secrets(
+			event.Kubernetes.Namespace,
+		).Get(
+			s.workerConfigSecretName(workerName),
+			meta_v1.GetOptions{},
+		)
+		if err != nil {
+			return event, errors.Wrapf(
+				err,
+				"error finding secret %q in namespace %q",
+				s.workerConfigSecretName(workerName),
+				event.Kubernetes.Namespace,
+			)
+		}
+		secrets := map[string]string{}
+		for key, value := range workerConfigSecret.Data {
+			secrets[key] = string(value)
+		}
+
 		workerJSON, err := json.MarshalIndent(
 			struct {
 				Name       string                   `json:"name"`
@@ -464,6 +498,7 @@ func (s *scheduler) CreateEvent(
 						workerLabel:  workerName,
 					},
 				},
+				Type: core_v1.SecretType("worker-secrets"),
 				Data: map[string][]byte{
 					"worker.json": workerJSON,
 				},
@@ -636,4 +671,8 @@ func (s *scheduler) deleteSecretsByLabels(
 			LabelSelector: labels.SelectorFromSet(labelsMap).String(),
 		},
 	)
+}
+
+func (s *scheduler) workerConfigSecretName(workerName string) string {
+	return strings.ToLower(workerName)
 }

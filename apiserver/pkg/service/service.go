@@ -47,13 +47,23 @@ type Service interface {
 	UpdateProject(context.Context, brignext.Project) error
 	DeleteProject(context.Context, string) error
 
-	GetSecrets(ctx context.Context, projectID string) (map[string]string, error)
+	GetSecrets(
+		ctx context.Context,
+		projectID string,
+		workerName string,
+	) (map[string]string, error)
 	SetSecrets(
 		ctx context.Context,
 		projectID string,
+		workerName string,
 		secrets map[string]string,
 	) error
-	UnsetSecrets(ctx context.Context, projectID string, keys []string) error
+	UnsetSecrets(
+		ctx context.Context,
+		projectID string,
+		workerName string,
+		keys []string,
+	) error
 
 	CreateEvent(context.Context, brignext.Event) (string, error)
 	GetEvents(context.Context) ([]brignext.Event, error)
@@ -562,6 +572,7 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 func (s *service) GetSecrets(
 	ctx context.Context,
 	projectID string,
+	workerName string,
 ) (map[string]string, error) {
 	project, err := s.store.GetProject(ctx, projectID)
 	if err != nil {
@@ -571,12 +582,19 @@ func (s *service) GetSecrets(
 			projectID,
 		)
 	}
-	secrets, err := s.scheduler.GetSecrets(project)
+	if _, ok := project.WorkerConfigs[workerName]; !ok {
+		return nil, &brignext.ErrWorkerNotFound{
+			ProjectID:  projectID,
+			WorkerName: workerName,
+		}
+	}
+	secrets, err := s.scheduler.GetSecrets(project, workerName)
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
-			"error getting secrets for project %q from scheduler",
+			"error getting secrets for project %q worker %q from scheduler",
 			projectID,
+			workerName,
 		)
 	}
 	return secrets, nil
@@ -585,6 +603,7 @@ func (s *service) GetSecrets(
 func (s *service) SetSecrets(
 	ctx context.Context,
 	projectID string,
+	workerName string,
 	secrets map[string]string,
 ) error {
 	project, err := s.store.GetProject(ctx, projectID)
@@ -595,12 +614,19 @@ func (s *service) SetSecrets(
 			projectID,
 		)
 	}
+	if _, ok := project.WorkerConfigs[workerName]; !ok {
+		return &brignext.ErrWorkerNotFound{
+			ProjectID:  projectID,
+			WorkerName: workerName,
+		}
+	}
 	// Secrets aren't stored in the database. We only pass them to the scheduler.
-	if err := s.scheduler.SetSecrets(project, secrets); err != nil {
+	if err := s.scheduler.SetSecrets(project, workerName, secrets); err != nil {
 		return errors.Wrapf(
 			err,
-			"error setting secrets for project %q in scheduler",
+			"error setting secrets for project %q worker %q in scheduler",
 			projectID,
+			workerName,
 		)
 	}
 	return nil
@@ -609,6 +635,7 @@ func (s *service) SetSecrets(
 func (s *service) UnsetSecrets(
 	ctx context.Context,
 	projectID string,
+	workerName string,
 	keys []string,
 ) error {
 	project, err := s.store.GetProject(ctx, projectID)
@@ -619,13 +646,20 @@ func (s *service) UnsetSecrets(
 			projectID,
 		)
 	}
+	if _, ok := project.WorkerConfigs[workerName]; !ok {
+		return &brignext.ErrWorkerNotFound{
+			ProjectID:  projectID,
+			WorkerName: workerName,
+		}
+	}
 	// Secrets aren't stored in the database. We only have to remove them from the
 	// scheduler.
-	if err := s.scheduler.UnsetSecrets(project, keys); err != nil {
+	if err := s.scheduler.UnsetSecrets(project, workerName, keys); err != nil {
 		return errors.Wrapf(
 			err,
-			"error unsetting secrets for project %q in scheduler",
+			"error unsetting secrets for project %q worker %q in scheduler",
 			projectID,
+			workerName,
 		)
 	}
 	return nil

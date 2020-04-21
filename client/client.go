@@ -39,13 +39,23 @@ type Client interface {
 	UpdateProject(context.Context, brignext.Project) error
 	DeleteProject(context.Context, string) error
 
-	GetSecrets(ctx context.Context, projectID string) (map[string]string, error)
+	GetSecrets(
+		ctx context.Context,
+		projectID string,
+		workerName string,
+	) (map[string]string, error)
 	SetSecrets(
 		ctx context.Context,
 		projectID string,
+		workerName string,
 		secrets map[string]string,
 	) error
-	UnsetSecrets(ctx context.Context, projectID string, keys []string) error
+	UnsetSecrets(
+		ctx context.Context,
+		projectID string,
+		workerName string,
+		keys []string,
+	) error
 
 	CreateEvent(context.Context, brignext.Event) (string, error)
 	GetEvents(context.Context) ([]brignext.Event, error)
@@ -731,10 +741,11 @@ func (c *client) DeleteProject(_ context.Context, id string) error {
 func (c *client) GetSecrets(
 	ctx context.Context,
 	projectID string,
+	workerName string,
 ) (map[string]string, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/projects/%s/secrets", projectID),
+		fmt.Sprintf("v2/projects/%s/workers/%s/secrets", projectID, workerName),
 		nil,
 	)
 	if err != nil {
@@ -748,8 +759,9 @@ func (c *client) GetSecrets(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &brignext.ErrProjectNotFound{
-			ID: projectID,
+		return nil, &brignext.ErrWorkerNotFound{
+			ProjectID:  projectID,
+			WorkerName: workerName,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -772,6 +784,7 @@ func (c *client) GetSecrets(
 func (c *client) SetSecrets(
 	ctx context.Context,
 	projectID string,
+	workerName string,
 	secrets map[string]string,
 ) error {
 	secretsBytes, err := json.Marshal(secrets)
@@ -781,7 +794,7 @@ func (c *client) SetSecrets(
 
 	req, err := c.buildRequest(
 		http.MethodPost,
-		fmt.Sprintf("v2/projects/%s/secrets", projectID),
+		fmt.Sprintf("v2/projects/%s/workers/%s/secrets", projectID, workerName),
 		secretsBytes,
 	)
 	if err != nil {
@@ -809,6 +822,7 @@ func (c *client) SetSecrets(
 func (c *client) UnsetSecrets(
 	ctx context.Context,
 	projectID string,
+	workerName string,
 	keys []string,
 ) error {
 	keysStruct := struct {
@@ -823,7 +837,7 @@ func (c *client) UnsetSecrets(
 
 	req, err := c.buildRequest(
 		http.MethodDelete,
-		fmt.Sprintf("v2/projects/%s/secrets", projectID),
+		fmt.Sprintf("v2/projects/%s/workers/%s/secrets", projectID, workerName),
 		keysBytes,
 	)
 	if err != nil {

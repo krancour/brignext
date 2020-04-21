@@ -73,6 +73,7 @@ func (e *ErrEventNotFound) Error() string {
 }
 
 type ErrWorkerNotFound struct {
+	ProjectID  string
 	EventID    string
 	WorkerName string
 }

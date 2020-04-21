@@ -15,6 +15,7 @@ func (s *server) secretsSet(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
 	projectID := mux.Vars(r)["projectID"]
+	workerName := mux.Vars(r)["workerName"]
 
 	bodyBytes, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -34,7 +35,12 @@ func (s *server) secretsSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.service.SetSecrets(r.Context(), projectID, secrets); err != nil {
+	if err := s.service.SetSecrets(
+		r.Context(),
+		projectID,
+		workerName,
+		secrets,
+	); err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 			return
