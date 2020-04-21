@@ -70,11 +70,11 @@ func workerGet(c *cli.Context) error {
 				var started, ended string
 				if job.Status.Started != nil {
 					started =
-						duration.ShortHumanDuration(time.Since(*worker.Status.Started))
+						duration.ShortHumanDuration(time.Since(*job.Status.Started))
 				}
 				if job.Status.Ended != nil {
 					ended =
-						duration.ShortHumanDuration(time.Since(*worker.Status.Ended))
+						duration.ShortHumanDuration(time.Since(*job.Status.Ended))
 				}
 				table.AddRow(
 					jobName,
