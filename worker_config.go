@@ -19,6 +19,7 @@ type WorkerConfig struct {
 	JobsConfig           JobsConfig             `json:"jobsConfig" bson:"jobsConfig"`
 	LogLevel             LogLevel               `json:"logLevel" bson:"logLevel"`
 	ConfigFilesDirectory string                 `json:"configFilesDirectory" bson:"configFilesDirectory"`
+	// TODO: Add support for embedding files right here in the worker config
 }
 
 type TriggeringEvents struct {
