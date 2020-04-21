@@ -172,11 +172,29 @@ export class Job extends jobs.Job {
         { name: "BRIGADE_REMOTE_URL", value: currentWorker.git.cloneURL },
         { name: "BRIGADE_COMMIT_ID", value: currentWorker.git.commit },
         { name: "BRIGADE_COMMIT_REF", value: currentWorker.git.ref },
-        { name: "BRIGADE_WORKSPACE", value: "/var/vcs" },
+        {
+          name: "BRIGADE_REPO_KEY",
+          valueFrom: {
+            secretKeyRef: {
+              name: currentEvent.id + "-" + currentWorker.name.toLowerCase(),
+              key: "gitSSHKey",
+            }
+          }
+        },
+        {
+          name: "BRIGADE_REPO_SSH_CERT",
+          valueFrom: {
+            secretKeyRef: {
+              name: currentEvent.id + "-" + currentWorker.name.toLowerCase(),
+              key: "gitSSHCert",
+            }
+          }
+        },
         {
           name: "BRIGADE_SUBMODULES",
           value: currentWorker.git.initSubmodules.toString()
-        }
+        },
+        { name: "BRIGADE_WORKSPACE", value: "/var/vcs" }
       ]
 
       let vcsVolumeMount = new kubernetes.V1VolumeMount()

@@ -265,11 +265,6 @@ func (c *controller) createWorkerPod(
 				VolumeMounts: []corev1.VolumeMount{
 					vcsVolumeMount,
 				},
-				// TODO: The existing brigadecore/git-sidecar:latest image that we're
-				// using from Brigade 1.x needs args passed as env vars. We'll do that
-				// for now, but eventually, we probably want to make a replacement for
-				// this image that takes these inputs from a mounted configmap-- same
-				// as the worker itself will.
 				Env: []corev1.EnvVar{
 					corev1.EnvVar{
 						Name:  "BRIGADE_REMOTE_URL",
@@ -284,12 +279,34 @@ func (c *controller) createWorkerPod(
 						Value: worker.Git.Ref,
 					},
 					corev1.EnvVar{
-						Name:  "BRIGADE_WORKSPACE",
-						Value: "/var/vcs",
+						Name: "BRIGADE_REPO_KEY",
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: qualifiedWorkerKey(event.ID, workerName),
+								},
+								Key: "gitSSHKey",
+							},
+						},
+					},
+					corev1.EnvVar{
+						Name: "BRIGADE_REPO_SSH_CERT",
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: qualifiedWorkerKey(event.ID, workerName),
+								},
+								Key: "gitSSHCert",
+							},
+						},
 					},
 					corev1.EnvVar{
 						Name:  "BRIGADE_SUBMODULES",
 						Value: strconv.FormatBool(worker.Git.InitSubmodules),
+					},
+					corev1.EnvVar{
+						Name:  "BRIGADE_WORKSPACE",
+						Value: "/var/vcs",
 					},
 				},
 			},
@@ -328,11 +345,9 @@ func (c *controller) createWorkerPod(
 					Name:            strings.ToLower(workerName),
 					Image:           image,
 					ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),
-					// TODO: This probably isn't a good enough way, to split up command
-					// tokens, but it's what Brigade 1.x does. Good enough for PoC.
-					Command:      strings.Split(worker.Container.Command, ""),
-					Env:          env,
-					VolumeMounts: volumeMounts,
+					Command:         strings.Split(worker.Container.Command, ""),
+					Env:             env,
+					VolumeMounts:    volumeMounts,
 				},
 			},
 			Volumes: volumes,

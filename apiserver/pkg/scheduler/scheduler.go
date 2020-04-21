@@ -501,6 +501,8 @@ func (s *scheduler) CreateEvent(
 				Type: core_v1.SecretType("worker-secrets"),
 				Data: map[string][]byte{
 					"worker.json": workerJSON,
+					"gitSSHKey":   workerConfigSecret.Data["gitSSHKey"],
+					"gitSSHCert":  workerConfigSecret.Data["gitSSHCert"],
 				},
 			},
 		); err != nil {
