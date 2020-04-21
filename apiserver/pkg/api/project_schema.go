@@ -167,6 +167,10 @@ var projectSchemaBytes = []byte(`
 					"type": "string",
 					"description": "Log level to be observed by the worker",
 					"enum": [ "", "DEBUG", "INFO", "WARN", "ERROR" ]
+				},
+				"configFilesDirectory": {
+					"type": "string",
+					"description": "A directory relative to the workspace where all configuration files needed by the worker can be located"
 				}
 			}
 		}

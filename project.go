@@ -24,12 +24,13 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 	for workerName, workerConfig := range p.WorkerConfigs {
 		if workerConfig.Matches(event.Source, event.Type) {
 			worker := Worker{
-				Container:     workerConfig.Container,
-				WorkspaceSize: workerConfig.WorkspaceSize,
-				Git:           workerConfig.Git,
-				JobsConfig:    workerConfig.JobsConfig,
-				LogLevel:      workerConfig.LogLevel,
-				Jobs:          map[string]Job{},
+				Container:            workerConfig.Container,
+				WorkspaceSize:        workerConfig.WorkspaceSize,
+				Git:                  workerConfig.Git,
+				JobsConfig:           workerConfig.JobsConfig,
+				LogLevel:             workerConfig.LogLevel,
+				ConfigFilesDirectory: workerConfig.ConfigFilesDirectory,
+				Jobs:                 map[string]Job{},
 				Status: WorkerStatus{
 					Phase: WorkerPhasePending,
 				},
@@ -59,6 +60,10 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 				worker.Git.Commit == "" &&
 				worker.Git.Ref == "" {
 				worker.Git.Ref = "master"
+			}
+
+			if worker.ConfigFilesDirectory == "" {
+				worker.ConfigFilesDirectory = ".brigade"
 			}
 
 			workers[workerName] = worker

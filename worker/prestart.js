@@ -2,47 +2,14 @@ const process = require("process")
 const fs = require("fs")
 const { execFileSync } = require("child_process")
 
-const configFile = "/brigade.json";
-const mountedConfigFile = "/etc/brigade/config";
-const vcsConfigFile = "/vcs/brigade.json";
-const defaultProjectConfigFile = "/etc/brigade-project/defaultConfig";
-const configMapConfigFile = "/etc/brigade-default-config/brigade.json";
-
-// Config file locations in order of precedence.
-const configFiles = [
-  // manual override for debugging
-  process.env.BRIGADE_CONFIG,
-
-  // data mounted from event secret (e.g. brig run)
-  mountedConfigFile,
-
-  // checked out in repo
-  vcsConfigFile,
-
-  // data mounted from project.DefaultConfig
-  defaultProjectConfigFile,
-
-  // mounted configmap named in brigade.sh/project.DefaultConfigName
-  configMapConfigFile
-];
-
-function createConfig() {
-  for (let src of configFiles) {
-    if (fs.existsSync(src) && fs.readFileSync(src, "utf8") != "") {
-      // Node's require will complain/fail if the file does not have a .json/.js extension
-      // Here we create the appropriately named file using the contents from src
-      fs.writeFileSync(configFile, fs.readFileSync(src, "utf8"));
-      return;
-    }
-  }
-}
+const worker = require("/var/worker/worker.json");
+const configFile = "/var/vcs/" + worker.configFilesDirectory + "/brigade.json";
 
 if (require.main === module)  {
   addDeps()
 }
 
 function addDeps() {
-  createConfig();
   if (!fs.existsSync(configFile)) {
     console.log("prestart: no dependencies file found")
     return
@@ -81,16 +48,4 @@ function addYarn(packages) {
   }
 
   execFileSync("yarn", ["add", ...packages])
-}
-
-module.exports = {
-  configFile,
-  mountedConfigFile,
-  vcsConfigFile,
-  defaultProjectConfigFile,
-  configMapConfigFile,
-  createConfig,
-  addDeps,
-  buildPackageList,
-  addYarn,
 }

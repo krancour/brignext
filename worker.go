@@ -30,14 +30,15 @@ const (
 
 // nolint: lll
 type Worker struct {
-	Container     ContainerConfig        `json:"container" bson:"container"`
-	WorkspaceSize string                 `json:"workspaceSize" bson:"workspaceSize"`
-	Git           WorkerGitConfig        `json:"git" bson:"git"`
-	Kubernetes    WorkerKubernetesConfig `json:"kubernetes" bson:"kubernetes"`
-	JobsConfig    JobsConfig             `json:"jobsConfig" bson:"jobsConfig"`
-	LogLevel      LogLevel               `json:"logLevel" bson:"logLevel"`
-	Jobs          map[string]Job         `json:"jobs" bson:"jobs"`
-	Status        WorkerStatus           `json:"status" bson:"status"`
+	Container            ContainerConfig        `json:"container" bson:"container"`
+	WorkspaceSize        string                 `json:"workspaceSize" bson:"workspaceSize"`
+	Git                  WorkerGitConfig        `json:"git" bson:"git"`
+	Kubernetes           WorkerKubernetesConfig `json:"kubernetes" bson:"kubernetes"`
+	JobsConfig           JobsConfig             `json:"jobsConfig" bson:"jobsConfig"`
+	LogLevel             LogLevel               `json:"logLevel" bson:"logLevel"`
+	ConfigFilesDirectory string                 `json:"configFilesDirectory" bson:"configFilesDirectory"`
+	Jobs                 map[string]Job         `json:"jobs" bson:"jobs"`
+	Status               WorkerStatus           `json:"status" bson:"status"`
 }
 
 type WorkerStatus struct {

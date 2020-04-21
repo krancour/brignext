@@ -11,18 +11,12 @@ const logger = new Logger([])
 const version = require("../package.json").version
 logger.log(`brigade-worker version: ${version}`)
 
-const scriptLocations = [
-  "/var/vcs/brigade.js"
-]
+const event: Event = require("/var/event/event.json")
+const worker: Worker = require("/var/worker/worker.json")
 
-let script: string = ""
-for (let scriptLocation of scriptLocations) {
-  if (fs.existsSync(scriptLocation) && fs.readFileSync(scriptLocation, "utf8") != "") {
-    script = scriptLocation
-  }
-}
+const script = "/var/vcs/" + worker.configFilesDirectory + "/brigade.js";
 
-if (script) {
+if (fs.existsSync(script) && fs.readFileSync(script, "utf8") != "") {
   // Install aliases for common ways of referring to Brigade/Brigadier.
   moduleAlias.addAliases({
     "brigade": __dirname + "/brigadier",
@@ -60,9 +54,6 @@ if (script) {
   moduleAlias()
   require(script)
 }
-
-const event: Event = require("/var/event/event.json")
-const worker: Worker = require("/var/worker/worker.json")
 
 let exitCode: number = 0
 
