@@ -210,6 +210,19 @@ func (c *controller) createWorkerPod(
 			},
 		},
 		corev1.Volume{
+			Name: "worker-default-files",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: fmt.Sprintf(
+							"%s-default-files",
+							qualifiedWorkerKey(event.ID, workerName),
+						),
+					},
+				},
+			},
+		},
+		corev1.Volume{
 			Name: "workspace",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
@@ -228,6 +241,11 @@ func (c *controller) createWorkerPod(
 		corev1.VolumeMount{
 			Name:      "worker",
 			MountPath: "/var/worker",
+			ReadOnly:  true,
+		},
+		corev1.VolumeMount{
+			Name:      "worker-default-files",
+			MountPath: "/var/worker-default-files",
 			ReadOnly:  true,
 		},
 		corev1.VolumeMount{
@@ -283,7 +301,10 @@ func (c *controller) createWorkerPod(
 						ValueFrom: &corev1.EnvVarSource{
 							SecretKeyRef: &corev1.SecretKeySelector{
 								LocalObjectReference: corev1.LocalObjectReference{
-									Name: qualifiedWorkerKey(event.ID, workerName),
+									Name: fmt.Sprintf(
+										"%s-git-secrets",
+										qualifiedWorkerKey(event.ID, workerName),
+									),
 								},
 								Key: "gitSSHKey",
 							},
@@ -294,7 +315,10 @@ func (c *controller) createWorkerPod(
 						ValueFrom: &corev1.EnvVarSource{
 							SecretKeyRef: &corev1.SecretKeySelector{
 								LocalObjectReference: corev1.LocalObjectReference{
-									Name: qualifiedWorkerKey(event.ID, workerName),
+									Name: fmt.Sprintf(
+										"%s-git-secrets",
+										qualifiedWorkerKey(event.ID, workerName),
+									),
 								},
 								Key: "gitSSHCert",
 							},

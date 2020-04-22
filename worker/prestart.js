@@ -3,14 +3,25 @@ const fs = require("fs")
 const { execFileSync } = require("child_process")
 
 const worker = require("/var/worker/worker.json");
-const configFile = "/var/vcs/" + worker.configFilesDirectory + "/brigade.json";
+
+const configFileLocations = [
+  "/var/vcs/" + worker.configFilesDirectory + "/brigade.json",
+  "/var/worker-default-files/brigade.json"
+];
+
+let configFile = "";
+for (let configFileLocation of configFileLocations) {
+  if (fs.existsSync(configFileLocation)) {
+    configFile = configFileLocation;
+  }
+}
 
 if (require.main === module)  {
   addDeps()
 }
 
 function addDeps() {
-  if (!fs.existsSync(configFile)) {
+  if (!configFile) {
     console.log("prestart: no dependencies file found")
     return
   }

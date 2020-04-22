@@ -25,16 +25,12 @@ workerConfigs:
         const { events, Job, Group} = require("brigadier");
 
         events.on("brignext-cli:exec", (e, w) => {
-          console.log("----------");
-          console.log("payload: " + e.payload);
-          console.log("----------");
-
-          let fooJob = new Job("foo", "debian:latest", ["echo $FOO", "sleep 180"]);
+          let fooJob = new Job("foo", "debian:latest", ["echo $FOO"]);
           fooJob.env = {
             "FOO": w.secrets.foo
           };
           
-          let barJob = new Job("bar", "debian:latest", ["echo $BAR", "sleep 10000"]);
+          let barJob = new Job("bar", "debian:latest", ["echo $BAR"]);
           barJob.env = {
             "BAR": w.secrets.bar
           };
