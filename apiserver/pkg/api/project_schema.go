@@ -171,6 +171,11 @@ var projectSchemaBytes = []byte(`
 				"configFilesDirectory": {
 					"type": "string",
 					"description": "A directory relative to the workspace where all configuration files needed by the worker can be located"
+				},
+				"defaultConfigFiles": {
+					"type": "object",
+					"description": "A map of config file / script contents indexed by filename-- useful for projects that don't utilize any VCS",
+					"additionalProperties": { "type": "string" }
 				}
 			}
 		}

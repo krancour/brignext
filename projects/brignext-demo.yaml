@@ -14,8 +14,41 @@ workerConfigs:
       environment:
         FOO: bar
     workspaceSize: 10Gi
-    git:
-      cloneURL: https://github.com/krancour/empty-testbed.git
+    defaultConfigFiles:
+      brigade.json: |-
+        {
+          "dependencies": {
+            "unique-names-generator": "4.0.0"
+          }
+        }
+      brigade.js: |-
+        const { events, Job, Group} = require("brigadier");
+
+        events.on("brignext-cli:exec", (e, w) => {
+          console.log("----------");
+          console.log("payload: " + e.payload);
+          console.log("----------");
+
+          let fooJob = new Job("foo", "debian:latest", ["echo $FOO", "sleep 180"]);
+          fooJob.env = {
+            "FOO": w.secrets.foo
+          };
+          
+          let barJob = new Job("bar", "debian:latest", ["echo $BAR", "sleep 10000"]);
+          barJob.env = {
+            "BAR": w.secrets.bar
+          };
+
+          fooJob.run()
+          .then(result => {
+            return barJob.run();
+          })
+          .then(result => {
+            console.log("done");
+          }).catch(e => {
+            console.error(e);
+          });
+        });
     jobsConfig:
       allowPrivileged: true
       allowDockerSocketMount: true
