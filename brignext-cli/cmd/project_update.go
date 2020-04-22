@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"strings"
 
+	"github.com/ghodss/yaml"
 	"github.com/krancour/brignext"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -28,7 +30,13 @@ func projectUpdate(c *cli.Context) error {
 	}
 
 	project := brignext.Project{}
-	if err := json.Unmarshal(projectBytes, &project); err != nil {
+	if strings.HasSuffix(filename, ".yaml") ||
+		strings.HasSuffix(filename, ".yml") {
+		err = yaml.Unmarshal(projectBytes, &project)
+	} else {
+		err = json.Unmarshal(projectBytes, &project)
+	}
+	if err != nil {
 		return errors.Wrapf(err, "error unmarshaling project file %s", filename)
 	}
 
