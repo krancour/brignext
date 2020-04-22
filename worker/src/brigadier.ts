@@ -64,8 +64,22 @@ export class Job extends jobs.Job {
           throw new Error(err.response.body.message) 
         }
       }
+      let jobSecret = this.newJobSecret()
+      if (jobSecret) {
+        try {
+          await this.client.createNamespacedSecret(
+            currentEvent.kubernetes.namespace,
+            jobSecret,
+          )
+        }
+        catch(err) {
+          // This specifically handles errors from creating the secret,
+          // unpacks it, and rethrows.
+          throw new Error(err.response.body.message)
+        }
+      }
       this.logger.log("Creating pod " + this.podName)
-      let jobPod = this.newJobPod(jobScriptConfigMap)
+      let jobPod = this.newJobPod(jobScriptConfigMap, jobSecret)
       try {
         await this.client.createNamespacedPod(
           currentEvent.kubernetes.namespace,
@@ -92,9 +106,9 @@ export class Job extends jobs.Job {
     if (!script) {
       return null
     }
-    let configMap = new kubernetes.V1ConfigMap();
-    configMap.metadata = new kubernetes.V1ObjectMeta();
-    configMap.metadata.name = this.podName;
+    let configMap = new kubernetes.V1ConfigMap()
+    configMap.metadata = new kubernetes.V1ObjectMeta()
+    configMap.metadata.name = this.podName + "-script"
     configMap.metadata.labels = {
       "brignext.io/component": "job-script",
       "brignext.io/project": currentEvent.projectID,
@@ -141,8 +155,31 @@ export class Job extends jobs.Job {
     return newCmd
   }
 
+  private newJobSecret(): kubernetes.V1Secret {
+    if (!this.env || Object.keys(this.env).length == 0) {
+      return null
+    }
+    let secret = new kubernetes.V1Secret()
+    secret.metadata = new kubernetes.V1ObjectMeta()
+    secret.metadata.name = this.podName + "-secrets"
+    secret.metadata.labels = {
+      "brignext.io/component": "job-secrets",
+      "brignext.io/project": currentEvent.projectID,
+      "brignext.io/event": currentEvent.id,
+      "brignext.io/worker": currentWorker.name,
+      "brignext.io/job": this.name
+    }
+    secret.type = "brignext.io/job-secrets"
+    secret.stringData = {}
+    for (let key in this.env) {
+      secret.stringData[key] = this.env[key]
+    }
+    return secret
+  }
+
   private newJobPod(
-    jobScriptConfigMap: kubernetes.V1ConfigMap
+    jobScriptConfigMap: kubernetes.V1ConfigMap,
+    jobSecret: kubernetes.V1Secret
   ): kubernetes.V1Pod {
     let pod = new kubernetes.V1Pod()
     pod.metadata = new kubernetes.V1ObjectMeta()
@@ -219,7 +256,7 @@ export class Job extends jobs.Job {
     container.name = this.name
     container.image = this.image
     container.imagePullPolicy = this.imageForcePull ? "Always" : "IfNotPresent"
-    if (jobScriptConfigMap.data["main.sh"]) {
+    if (jobScriptConfigMap && jobScriptConfigMap.data["main.sh"]) {
       let jobShell = this.shell
       if (jobShell == "") {
         jobShell = "/bin/sh"
@@ -234,22 +271,29 @@ export class Job extends jobs.Job {
       pod.spec.volumes.push({
         name: "scripts",
         configMap: {
-          name: this.podName,
+          name: jobScriptConfigMap.metadata.name
         }
       })
     }
     if (this.args.length > 0) {
       container.args = this.args
     }
-    container.env = []
-    // Add any job-specific environment variables
-    for (let key in this.env) {
-      container.env.push(
-        {
-          name: key,
-          value: this.env[key]
-        }
-      )
+    if (jobSecret) {
+      container.env = []
+      // Add environment variables
+      for (let key in jobSecret.stringData) {
+        container.env.push(
+          {
+            name: key,
+            valueFrom: {
+              secretKeyRef: {
+                name: jobSecret.metadata.name,
+                key: key
+              }
+            }
+          }
+        )
+      }
     }
 
     // If the job requests access to the host's Docker daemon AND it's
