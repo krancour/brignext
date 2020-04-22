@@ -30,6 +30,7 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 				JobsConfig:           workerConfig.JobsConfig,
 				LogLevel:             workerConfig.LogLevel,
 				ConfigFilesDirectory: workerConfig.ConfigFilesDirectory,
+				DefaultConfigFiles:   workerConfig.DefaultConfigFiles,
 				Jobs:                 map[string]Job{},
 				Status: WorkerStatus{
 					Phase: WorkerPhasePending,

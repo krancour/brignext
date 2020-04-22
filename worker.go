@@ -37,6 +37,7 @@ type Worker struct {
 	JobsConfig           JobsConfig             `json:"jobsConfig" bson:"jobsConfig"`
 	LogLevel             LogLevel               `json:"logLevel" bson:"logLevel"`
 	ConfigFilesDirectory string                 `json:"configFilesDirectory" bson:"configFilesDirectory"`
+	DefaultConfigFiles   map[string]string      `json:"defaultConfigFiles" bson:"defaultConfigFiles"`
 	Jobs                 map[string]Job         `json:"jobs" bson:"jobs"`
 	Status               WorkerStatus           `json:"status" bson:"status"`
 }
