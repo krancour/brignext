@@ -250,9 +250,8 @@ func (s *service) CreateRootSession(ctx context.Context) (string, error) {
 		Root:          true,
 		HashedToken:   crypto.ShortSHA("", token),
 		Authenticated: true,
-		// TODO: This is too long. It's just to help me out while I hack.
-		Expires: now.Add(24 * time.Hour),
-		Created: now,
+		Expires:       now.Add(time.Hour),
+		Created:       now,
 	}
 	if err := s.store.CreateSession(ctx, session); err != nil {
 		return "", errors.Wrapf(
