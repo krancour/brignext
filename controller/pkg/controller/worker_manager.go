@@ -340,7 +340,7 @@ func (c *controller) createWorkerPod(
 			InitContainers:     initContainers,
 			Containers: []corev1.Container{
 				corev1.Container{
-					Name:            strings.ToLower(workerName),
+					Name:            workerName,
 					Image:           image,
 					ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),
 					Command:         strings.Split(worker.Container.Command, ""),
@@ -366,5 +366,5 @@ func (c *controller) createWorkerPod(
 }
 
 func qualifiedWorkerKey(eventID, workerName string) string {
-	return fmt.Sprintf("%s-%s", eventID, strings.ToLower(workerName))
+	return fmt.Sprintf("%s-%s", eventID, workerName)
 }

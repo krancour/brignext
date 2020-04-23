@@ -37,7 +37,7 @@ func (l *logStore) GetWorkerLogs(
 			"component": "worker",
 			"event":     eventID,
 			"worker":    workerName,
-			"container": strings.ToLower(workerName),
+			"container": workerName,
 		},
 	)
 }
@@ -53,7 +53,7 @@ func (l *logStore) StreamWorkerLogs(
 			"component": "worker",
 			"event":     eventID,
 			"worker":    workerName,
-			"container": strings.ToLower(workerName),
+			"container": workerName,
 		},
 	)
 }

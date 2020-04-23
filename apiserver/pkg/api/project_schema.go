@@ -15,7 +15,7 @@ var projectSchemaBytes = []byte(`
 
 		"identifier": {
 			"type": "string",
-			"pattern": "^\\w[\\w-]*$",
+			"pattern": "^[a-z][a-z\\d-]*[a-z\\d]$",
 			"minLength": 3,
 			"maxLength": 50
 		},
@@ -202,7 +202,7 @@ var projectSchemaBytes = []byte(`
 			"type": [ "object", "null" ],
 			"additionalProperties": true,
 			"patternProperties": {
-				"^\\w[\\w-]*$": { "$ref": "#/definitions/identifier" }
+				"^[a-z][a-z\\d-]*[a-z\\d]$": { "$ref": "#/definitions/identifier" }
 			}
 		},
 		"workerConfigs": {
@@ -210,7 +210,7 @@ var projectSchemaBytes = []byte(`
 			"description": "A map of worker configurations indexed by unique names",
 			"additionalProperties": false,
 			"patternProperties": {
-				"^\\w[\\w-]*$": { "$ref": "#/definitions/workerConfig" }
+				"^[a-z][a-z\\d-]*[a-z\\d]$": { "$ref": "#/definitions/workerConfig" }
 			}
 		}
 	}

@@ -502,7 +502,7 @@ func (s *scheduler) CreateEvent(
 		).Create(
 			&v1.Secret{
 				ObjectMeta: meta_v1.ObjectMeta{
-					Name: fmt.Sprintf("%s-%s", event.ID, strings.ToLower(workerName)),
+					Name: fmt.Sprintf("%s-%s", event.ID, workerName),
 					Labels: map[string]string{
 						componentLabel: "worker",
 						projectLabel:   event.ProjectID,
@@ -517,7 +517,7 @@ func (s *scheduler) CreateEvent(
 			return event, errors.Wrapf(
 				err,
 				"error creating secret %q in namespace %q",
-				fmt.Sprintf("%s-%s", event.ID, strings.ToLower(workerName)),
+				fmt.Sprintf("%s-%s", event.ID, workerName),
 				event.Kubernetes.Namespace,
 			)
 		}
@@ -684,5 +684,5 @@ func (s *scheduler) deleteSecretsByLabels(
 }
 
 func (s *scheduler) workerConfigSecretName(workerName string) string {
-	return strings.ToLower(workerName)
+	return workerName
 }

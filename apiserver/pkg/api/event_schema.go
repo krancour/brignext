@@ -15,7 +15,7 @@ var eventSchemaBytes = []byte(`
 
 		"identifier": {
 			"type": "string",
-			"pattern": "^\\w[\\w-]*$",
+			"pattern": "^[a-z][a-z\\d-]*[a-z\\d]$",
 			"minLength": 3,
 			"maxLength": 50
 		},
