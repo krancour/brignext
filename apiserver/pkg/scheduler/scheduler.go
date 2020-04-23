@@ -51,6 +51,7 @@ type Scheduler interface {
 		project brignext.Project,
 		event brignext.Event,
 	) (brignext.Event, error)
+	GetEvent(event brignext.Event) (brignext.Event, error)
 	DeleteEvent(event brignext.Event) error
 
 	DeleteWorker(event brignext.Event, workerName string) error
@@ -557,6 +558,36 @@ func (s *scheduler) CreateEvent(
 		}
 	}
 
+	return event, nil
+}
+
+func (s *scheduler) GetEvent(event brignext.Event) (brignext.Event, error) {
+	eventSecret, err := s.kubeClient.CoreV1().Secrets(
+		event.Kubernetes.Namespace,
+	).Get(event.ID, meta_v1.GetOptions{})
+	if err != nil {
+		return event, errors.Wrapf(
+			err,
+			"error finding secret %q in namespace %q",
+			event.ID,
+			event.Kubernetes.Namespace,
+		)
+	}
+	eventStruct := struct {
+		Payload string `json:"payload"`
+	}{}
+	if err := json.Unmarshal(
+		eventSecret.Data["event.json"],
+		&eventStruct,
+	); err != nil {
+		return event, errors.Wrapf(
+			err,
+			"error unmarshaling event from secret %q in namespace %q",
+			event.ID,
+			event.Kubernetes.Namespace,
+		)
+	}
+	event.Payload = eventStruct.Payload
 	return event, nil
 }
 

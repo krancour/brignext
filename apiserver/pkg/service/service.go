@@ -751,6 +751,13 @@ func (s *service) GetEvent(
 			id,
 		)
 	}
+	if event, err = s.scheduler.GetEvent(event); err != nil {
+		return event, errors.Wrapf(
+			err,
+			"error retrieving event %q from scheduler",
+			id,
+		)
+	}
 	return event, nil
 }
 
