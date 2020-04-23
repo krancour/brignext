@@ -6,7 +6,7 @@ const worker = require("/var/worker/worker.json");
 
 const configFileLocations = [
   "/var/vcs/" + worker.configFilesDirectory + "/brigade.json",
-  "/var/worker-default-files/brigade.json"
+  "/var/worker/brigade.json"
 ];
 
 let configFile = "";

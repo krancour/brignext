@@ -237,12 +237,12 @@ func (s *scheduler) CreateProject(
 				ObjectMeta: meta_v1.ObjectMeta{
 					Name: s.workerConfigSecretName(workerName),
 					Labels: map[string]string{
-						componentLabel: "worker-config-secrets",
+						componentLabel: "worker-config",
 						projectLabel:   project.ID,
 						workerLabel:    workerName,
 					},
 				},
-				Type: core_v1.SecretType("brignext.io/worker-config-secrets"),
+				Type: core_v1.SecretType("brignext.io/worker-config"),
 			}); err != nil {
 			return project, errors.Wrapf(
 				err,
@@ -415,10 +415,10 @@ func (s *scheduler) CreateEvent(
 	if err != nil {
 		return event, errors.Wrapf(err, "error marshaling event %q", event.ID)
 	}
-	if _, err := s.kubeClient.CoreV1().ConfigMaps(
+	if _, err := s.kubeClient.CoreV1().Secrets(
 		event.Kubernetes.Namespace,
 	).Create(
-		&v1.ConfigMap{
+		&v1.Secret{
 			ObjectMeta: meta_v1.ObjectMeta{
 				Name: event.ID,
 				Labels: map[string]string{
@@ -427,7 +427,8 @@ func (s *scheduler) CreateEvent(
 					eventLabel:     event.ID,
 				},
 			},
-			Data: map[string]string{
+			Type: core_v1.SecretType("brignext.io/event"),
+			StringData: map[string]string{
 				"event.json": string(eventJSON),
 			},
 		},
@@ -440,41 +441,8 @@ func (s *scheduler) CreateEvent(
 		)
 	}
 
-	// For each of the event's workers, create a config map with default config
-	// files / scripts and a secret with worker details.
+	// For each of the event's workers, create a secret with worker details.
 	for workerName, worker := range event.Workers {
-		if _, err := s.kubeClient.CoreV1().ConfigMaps(
-			event.Kubernetes.Namespace,
-		).Create(
-			&v1.ConfigMap{
-				ObjectMeta: meta_v1.ObjectMeta{
-					Name: fmt.Sprintf(
-						"%s-%s-default-files",
-						event.ID,
-						strings.ToLower(workerName),
-					),
-					Labels: map[string]string{
-						componentLabel: "worker-default-files",
-						projectLabel:   event.ProjectID,
-						eventLabel:     event.ID,
-						workerLabel:    workerName,
-					},
-				},
-				Data: worker.DefaultConfigFiles,
-			},
-		); err != nil {
-			return event, errors.Wrapf(
-				err,
-				"error creating config map %q in namespace %q",
-				fmt.Sprintf(
-					"%s-%s-default-files",
-					event.ID,
-					strings.ToLower(workerName),
-				),
-				event.Kubernetes.Namespace,
-			)
-		}
-
 		// Get the worker config's secrets
 		workerConfigSecret, err := s.kubeClient.CoreV1().Secrets(
 			event.Kubernetes.Namespace,
@@ -522,6 +490,13 @@ func (s *scheduler) CreateEvent(
 				event.ID,
 			)
 		}
+		data := map[string][]byte{}
+		for filename, contents := range worker.DefaultConfigFiles {
+			data[filename] = []byte(contents)
+		}
+		data["worker.json"] = workerJSON
+		data["gitSSHKey"] = workerConfigSecret.Data["gitSSHKey"]
+		data["gitSSHCert"] = workerConfigSecret.Data["gitSSHCert"]
 		if _, err := s.kubeClient.CoreV1().Secrets(
 			event.Kubernetes.Namespace,
 		).Create(
@@ -536,47 +511,13 @@ func (s *scheduler) CreateEvent(
 					},
 				},
 				Type: core_v1.SecretType("brignext.io/worker"),
-				Data: map[string][]byte{
-					"worker.json": workerJSON,
-				},
+				Data: data,
 			},
 		); err != nil {
 			return event, errors.Wrapf(
 				err,
 				"error creating secret %q in namespace %q",
 				fmt.Sprintf("%s-%s", event.ID, strings.ToLower(workerName)),
-				event.Kubernetes.Namespace,
-			)
-		}
-
-		if _, err := s.kubeClient.CoreV1().Secrets(
-			event.Kubernetes.Namespace,
-		).Create(
-			&v1.Secret{
-				ObjectMeta: meta_v1.ObjectMeta{
-					Name: fmt.Sprintf(
-						"%s-%s-git-secrets",
-						event.ID,
-						strings.ToLower(workerName),
-					),
-					Labels: map[string]string{
-						componentLabel: "worker-git-secrets",
-						projectLabel:   event.ProjectID,
-						eventLabel:     event.ID,
-						workerLabel:    workerName,
-					},
-				},
-				Type: core_v1.SecretType("brignext.io/worker-git-secrets"),
-				Data: map[string][]byte{
-					"gitSSHKey":  workerConfigSecret.Data["gitSSHKey"],
-					"gitSSHCert": workerConfigSecret.Data["gitSSHCert"],
-				},
-			},
-		); err != nil {
-			return event, errors.Wrapf(
-				err,
-				"error creating secret %q in namespace %q",
-				fmt.Sprintf("%s-%s-git-secrets", event.ID, strings.ToLower(workerName)),
 				event.Kubernetes.Namespace,
 			)
 		}
@@ -743,5 +684,5 @@ func (s *scheduler) deleteSecretsByLabels(
 }
 
 func (s *scheduler) workerConfigSecretName(workerName string) string {
-	return fmt.Sprintf("%s-config-secrets", strings.ToLower(workerName))
+	return strings.ToLower(workerName)
 }

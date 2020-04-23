@@ -16,7 +16,7 @@ const worker: Worker = require("/var/worker/worker.json")
 
 const scriptLocations = [
   "/var/vcs/" + worker.configFilesDirectory + "/brigade.js",
-  "/var/worker-default-files/brigade.js"
+  "/var/worker/brigade.js"
 ]
 
 let script = ""

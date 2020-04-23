@@ -45,9 +45,7 @@ type Event struct {
 	Workers    map[string]Worker      `json:"workers,omitempty" bson:"workers"`
 	Created    *time.Time             `json:"created,omitempty" bson:"created"`
 	Status     *EventStatus           `json:"status,omitempty" bson:"status"`
-	Payload    string                 `json:"payload,omitempty" bson:"payload"`
-	// Script   []byte    `json:"script,omitempty" bson:"script"`
-	// Config   []byte    `json:"config,omitempty" bson:"config,"`
+	Payload    string                 `json:"payload,omitempty" bson:"-"`
 }
 
 type EventStatus struct {

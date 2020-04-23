@@ -50,20 +50,6 @@ export class Job extends jobs.Job {
 
   async run(): Promise<jobs.Result> {
     try {
-      let jobScriptConfigMap = this.newJobScriptConfigMap()
-      if (jobScriptConfigMap) {
-        try {
-          await this.client.createNamespacedConfigMap(
-            currentEvent.kubernetes.namespace,
-            jobScriptConfigMap
-          )
-        }
-        catch(err) {
-          // This specifically handles errors from creating the configmap,
-          // unpacks it, and rethrows.
-          throw new Error(err.response.body.message) 
-        }
-      }
       let jobSecret = this.newJobSecret()
       if (jobSecret) {
         try {
@@ -79,7 +65,7 @@ export class Job extends jobs.Job {
         }
       }
       this.logger.log("Creating pod " + this.podName)
-      let jobPod = this.newJobPod(jobScriptConfigMap, jobSecret)
+      let jobPod = this.newJobPod(jobSecret)
       try {
         await this.client.createNamespacedPod(
           currentEvent.kubernetes.namespace,
@@ -99,27 +85,6 @@ export class Job extends jobs.Job {
       // Wrap the original error to give clear context.
       throw new Error(`job ${this.name}: ${err}`)
     }
-  }
-
-  private newJobScriptConfigMap(): kubernetes.V1ConfigMap {
-    let script = this.generateScript()
-    if (!script) {
-      return null
-    }
-    let configMap = new kubernetes.V1ConfigMap()
-    configMap.metadata = new kubernetes.V1ObjectMeta()
-    configMap.metadata.name = this.podName + "-script"
-    configMap.metadata.labels = {
-      "brignext.io/component": "job-script",
-      "brignext.io/project": currentEvent.projectID,
-      "brignext.io/event": currentEvent.id,
-      "brignext.io/worker": currentWorker.name,
-      "brignext.io/job": this.name
-    }
-    configMap.data = {
-      "main.sh": script
-    }
-    return configMap
   }
 
   private generateScript(): string | null {
@@ -156,21 +121,22 @@ export class Job extends jobs.Job {
   }
 
   private newJobSecret(): kubernetes.V1Secret {
-    if (!this.env || Object.keys(this.env).length == 0) {
-      return null
-    }
+    let script = this.generateScript()
     let secret = new kubernetes.V1Secret()
     secret.metadata = new kubernetes.V1ObjectMeta()
-    secret.metadata.name = this.podName + "-secrets"
+    secret.metadata.name = this.podName
     secret.metadata.labels = {
-      "brignext.io/component": "job-secrets",
+      "brignext.io/component": "job",
       "brignext.io/project": currentEvent.projectID,
       "brignext.io/event": currentEvent.id,
       "brignext.io/worker": currentWorker.name,
       "brignext.io/job": this.name
     }
-    secret.type = "brignext.io/job-secrets"
+    secret.type = "brignext.io/job"
     secret.stringData = {}
+    if (script) {
+      secret.stringData["main.sh"] = script
+    }
     for (let key in this.env) {
       secret.stringData[key] = this.env[key]
     }
@@ -178,7 +144,6 @@ export class Job extends jobs.Job {
   }
 
   private newJobPod(
-    jobScriptConfigMap: kubernetes.V1ConfigMap,
     jobSecret: kubernetes.V1Secret
   ): kubernetes.V1Pod {
     let pod = new kubernetes.V1Pod()
@@ -256,22 +221,22 @@ export class Job extends jobs.Job {
     container.name = this.name
     container.image = this.image
     container.imagePullPolicy = this.imageForcePull ? "Always" : "IfNotPresent"
-    if (jobScriptConfigMap && jobScriptConfigMap.data["main.sh"]) {
+    if (jobSecret.stringData["main.sh"]) {
       let jobShell = this.shell
       if (jobShell == "") {
         jobShell = "/bin/sh"
       }
-      container.command = [jobShell, "/var/scripts/main.sh"]
+      container.command = [jobShell, "/var/job/main.sh"]
 
       container.volumeMounts.push({
-        name: "scripts",
-        mountPath: "/var/scripts"
+        name: "job",
+        mountPath: "/var/job"
       })
 
       pod.spec.volumes.push({
-        name: "scripts",
-        configMap: {
-          name: jobScriptConfigMap.metadata.name
+        name: "job",
+        secret: {
+          secretName: jobSecret.metadata.name
         }
       })
     }
