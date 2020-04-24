@@ -229,14 +229,14 @@ func (s *scheduler) CreateProject(
 		)
 	}
 
-	// Create a secret for each worker
+	// Create a secret for each worker config
 	for workerName := range project.WorkerConfigs {
 		if _, err := s.kubeClient.CoreV1().Secrets(
 			project.Kubernetes.Namespace,
 		).Create(
 			&v1.Secret{
 				ObjectMeta: meta_v1.ObjectMeta{
-					Name: s.workerConfigSecretName(workerName),
+					Name: fmt.Sprintf("worker-config-%s", workerName),
 					Labels: map[string]string{
 						componentLabel: "worker-config",
 						projectLabel:   project.ID,
@@ -248,7 +248,7 @@ func (s *scheduler) CreateProject(
 			return project, errors.Wrapf(
 				err,
 				"error creating secret %q in namespace %q",
-				s.workerConfigSecretName(workerName),
+				fmt.Sprintf("worker-config-%s", workerName),
 				project.Kubernetes.Namespace,
 			)
 		}
@@ -285,14 +285,14 @@ func (s *scheduler) GetSecrets(
 	secret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
 	).Get(
-		s.workerConfigSecretName(workerName),
+		fmt.Sprintf("worker-config-%s", workerName),
 		meta_v1.GetOptions{},
 	)
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
 			"error retrieving secret %q in namespace %q",
-			s.workerConfigSecretName(workerName),
+			fmt.Sprintf("worker-config-%s", workerName),
 			project.Kubernetes.Namespace,
 		)
 	}
@@ -311,14 +311,14 @@ func (s *scheduler) SetSecrets(
 	secret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
 	).Get(
-		s.workerConfigSecretName(workerName),
+		fmt.Sprintf("worker-config-%s", workerName),
 		meta_v1.GetOptions{},
 	)
 	if err != nil {
 		return errors.Wrapf(
 			err,
 			"error retrieving secret %q in namespace %q",
-			s.workerConfigSecretName(workerName),
+			fmt.Sprintf("worker-config-%s", workerName),
 			project.Kubernetes.Namespace,
 		)
 	}
@@ -349,14 +349,14 @@ func (s *scheduler) UnsetSecrets(
 	secret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
 	).Get(
-		s.workerConfigSecretName(workerName),
+		fmt.Sprintf("worker-config-%s", workerName),
 		meta_v1.GetOptions{},
 	)
 	if err != nil {
 		return errors.Wrapf(
 			err,
 			"error retrieving secret %q in namespace %q",
-			s.workerConfigSecretName(workerName),
+			fmt.Sprintf("worker-config-%s", workerName),
 			project.Kubernetes.Namespace,
 		)
 	}
@@ -389,7 +389,7 @@ func (s *scheduler) CreateEvent(
 		event.Workers[workerName] = worker
 	}
 
-	// Create a config map with event details
+	// Create a secret with event details
 	eventJSON, err := json.MarshalIndent(
 		struct {
 			ID         string                         `json:"id"`
@@ -421,7 +421,7 @@ func (s *scheduler) CreateEvent(
 	).Create(
 		&v1.Secret{
 			ObjectMeta: meta_v1.ObjectMeta{
-				Name: event.ID,
+				Name: fmt.Sprintf("event-%s", event.ID),
 				Labels: map[string]string{
 					componentLabel: "event",
 					projectLabel:   event.ProjectID,
@@ -448,14 +448,14 @@ func (s *scheduler) CreateEvent(
 		workerConfigSecret, err := s.kubeClient.CoreV1().Secrets(
 			event.Kubernetes.Namespace,
 		).Get(
-			s.workerConfigSecretName(workerName),
+			fmt.Sprintf("worker-config-%s", workerName),
 			meta_v1.GetOptions{},
 		)
 		if err != nil {
 			return event, errors.Wrapf(
 				err,
 				"error finding secret %q in namespace %q",
-				s.workerConfigSecretName(workerName),
+				fmt.Sprintf("worker-config-%s", workerName),
 				event.Kubernetes.Namespace,
 			)
 		}
@@ -503,7 +503,7 @@ func (s *scheduler) CreateEvent(
 		).Create(
 			&v1.Secret{
 				ObjectMeta: meta_v1.ObjectMeta{
-					Name: fmt.Sprintf("%s-%s", event.ID, workerName),
+					Name: fmt.Sprintf("worker-%s-%s", event.ID, workerName),
 					Labels: map[string]string{
 						componentLabel: "worker",
 						projectLabel:   event.ProjectID,
@@ -564,7 +564,7 @@ func (s *scheduler) CreateEvent(
 func (s *scheduler) GetEvent(event brignext.Event) (brignext.Event, error) {
 	eventSecret, err := s.kubeClient.CoreV1().Secrets(
 		event.Kubernetes.Namespace,
-	).Get(event.ID, meta_v1.GetOptions{})
+	).Get(fmt.Sprintf("event-%s", event.ID), meta_v1.GetOptions{})
 	if err != nil {
 		return event, errors.Wrapf(
 			err,
@@ -712,8 +712,4 @@ func (s *scheduler) deleteSecretsByLabels(
 			LabelSelector: labels.SelectorFromSet(labelsMap).String(),
 		},
 	)
-}
-
-func (s *scheduler) workerConfigSecretName(workerName string) string {
-	return workerName
 }

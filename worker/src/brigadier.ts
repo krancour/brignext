@@ -30,7 +30,6 @@ export class Job extends jobs.Job {
   client: kubernetes.CoreV1Api
   logger: Logger
 
-  // TODO: Try to understand what these are for
   cancel: boolean = false
   reconnect: boolean = false
 
@@ -43,7 +42,7 @@ export class Job extends jobs.Job {
     imageForcePull: boolean = false
   ) {
     super(name, image, tasks, imageForcePull)
-    this.podName = `${currentEvent.id}-${currentWorker.name.toLowerCase()}-${name.toLowerCase()}`
+    this.podName = `job-${currentEvent.id}-${currentWorker.name.toLowerCase()}-${name.toLowerCase()}`
     this.client = k8s.defaultClient
     this.logger = new Logger(`job ${name}`)
   }

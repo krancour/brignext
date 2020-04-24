@@ -132,7 +132,7 @@ func (c *controller) createWorkspacePVC(
 
 	workspacePVC := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      qualifiedWorkerKey(event.ID, workerName),
+			Name:      fmt.Sprintf("workspace-%s-%s", event.ID, workerName),
 			Namespace: event.Kubernetes.Namespace,
 			Labels: map[string]string{
 				"brignext.io/component": "workspace",
@@ -195,7 +195,7 @@ func (c *controller) createWorkerPod(
 			Name: "event",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: event.ID,
+					SecretName: fmt.Sprintf("event-%s", event.ID),
 				},
 			},
 		},
@@ -203,7 +203,7 @@ func (c *controller) createWorkerPod(
 			Name: "worker",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: qualifiedWorkerKey(event.ID, workerName),
+					SecretName: fmt.Sprintf("worker-%s-%s", event.ID, workerName),
 				},
 			},
 		},
@@ -211,7 +211,7 @@ func (c *controller) createWorkerPod(
 			Name: "workspace",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: qualifiedWorkerKey(event.ID, workerName),
+					ClaimName: fmt.Sprintf("workspace-%s-%s", event.ID, workerName),
 				},
 			},
 		},
@@ -281,7 +281,7 @@ func (c *controller) createWorkerPod(
 						ValueFrom: &corev1.EnvVarSource{
 							SecretKeyRef: &corev1.SecretKeySelector{
 								LocalObjectReference: corev1.LocalObjectReference{
-									Name: qualifiedWorkerKey(event.ID, workerName),
+									Name: fmt.Sprintf("worker-%s-%s", event.ID, workerName),
 								},
 								Key: "gitSSHKey",
 							},
@@ -292,7 +292,7 @@ func (c *controller) createWorkerPod(
 						ValueFrom: &corev1.EnvVarSource{
 							SecretKeyRef: &corev1.SecretKeySelector{
 								LocalObjectReference: corev1.LocalObjectReference{
-									Name: qualifiedWorkerKey(event.ID, workerName),
+									Name: fmt.Sprintf("worker-%s-%s", event.ID, workerName),
 								},
 								Key: "gitSSHCert",
 							},
@@ -324,7 +324,7 @@ func (c *controller) createWorkerPod(
 
 	workerPod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      qualifiedWorkerKey(event.ID, workerName),
+			Name:      fmt.Sprintf("worker-%s-%s", event.ID, workerName),
 			Namespace: event.Kubernetes.Namespace,
 			Labels: map[string]string{
 				"brignext.io/component": "worker",
@@ -363,8 +363,4 @@ func (c *controller) createWorkerPod(
 	}
 
 	return nil
-}
-
-func qualifiedWorkerKey(eventID, workerName string) string {
-	return fmt.Sprintf("%s-%s", eventID, workerName)
 }

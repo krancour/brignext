@@ -15,12 +15,6 @@ workerConfigs:
         FOO: bar
     workspaceSize: 10Gi
     defaultConfigFiles:
-      brigade.json: |-
-        {
-          "dependencies": {
-            "unique-names-generator": "4.0.0"
-          }
-        }
       brigade.js: |-
         const { events, Job, Group} = require("brigadier");
 
