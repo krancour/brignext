@@ -19,7 +19,12 @@ func (c *consumer) defaultRunHeart(ctx context.Context) {
 			"send heartbeat",
 			*c.options.RedisOperationMaxAttempts,
 			*c.options.RedisOperationMaxBackoff,
-			c.heartbeat,
+			func() (bool, error) {
+				if err := c.heartbeat(); err != nil {
+					return true, err // Retry
+				}
+				return false, nil // No retry
+			},
 		); err != nil {
 			select {
 			case c.errCh <- err:

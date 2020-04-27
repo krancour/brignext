@@ -55,6 +55,9 @@ type Store interface {
 	UpdateProject(context.Context, brignext.Project) error
 	DeleteProject(context.Context, string) error
 
+	LockEvent(context.Context, string) (bool, error)
+	UnlockEvent(context.Context, string) error
+
 	CreateEvent(context.Context, brignext.Event) error
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)

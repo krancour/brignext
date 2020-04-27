@@ -21,8 +21,12 @@ func (c *consumer) defaultRunCleaner(ctx context.Context) {
 			"clean up after dead consumers",
 			*c.options.RedisOperationMaxAttempts,
 			*c.options.RedisOperationMaxBackoff,
-			func() error {
-				return c.clean(time.Now().Add(-c.deadConsumerThreshold))
+			func() (bool, error) {
+				if err :=
+					c.clean(time.Now().Add(-c.deadConsumerThreshold)); err != nil {
+					return true, err // Retry
+				}
+				return false, nil // No retry
 			},
 		); err != nil {
 			select {

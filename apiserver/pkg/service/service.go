@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
+
+	"github.com/krancour/brignext/pkg/retries"
 
 	"github.com/krancour/brignext"
 	"github.com/krancour/brignext/apiserver/pkg/crypto"
@@ -969,6 +972,24 @@ func (s *service) UpdateWorkerStatus(
 		)
 	}
 
+	retries.ManageRetries(
+		ctx,
+		fmt.Sprintf("obtaining lock on event %q", eventID),
+		5,
+		10*time.Second,
+		func() (bool, error) {
+			locked, err := s.store.LockEvent(ctx, eventID)
+			if err != nil {
+				// s.store.LockEvent(...) reports success or failure in obtaining a lock
+				// using a boolean. Any error wasn't merely inability to obtain a lock.
+				// It was something else unexpected and we should not retry.
+				return false, err
+			}
+			// Retry is indicated if a lock was NOT obtained.
+			return !locked, nil
+		},
+	)
+
 	event, err := s.store.GetEvent(ctx, eventID)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
@@ -1044,6 +1065,10 @@ func (s *service) UpdateWorkerStatus(
 		eventStatus,
 	); err != nil {
 		return errors.Wrapf(err, "error updating event %q status in store", eventID)
+	}
+
+	if err := s.store.UnlockEvent(ctx, eventID); err != nil {
+		return errors.Wrapf(err, "error releasing lock on event %q", eventID)
 	}
 
 	return nil

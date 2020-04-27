@@ -8,18 +8,21 @@ import (
 	"github.com/krancour/brignext"
 	"github.com/krancour/brignext/apiserver/pkg/storage"
 	"github.com/pkg/errors"
+	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type store struct {
+	id                        string
 	database                  *mongo.Database
 	usersCollection           *mongo.Collection
 	sessionsCollection        *mongo.Collection
 	serviceAccountsCollection *mongo.Collection
 	projectsCollection        *mongo.Collection
 	eventsCollection          *mongo.Collection
+	eventLocksCollection      *mongo.Collection
 }
 
 func NewStore(database *mongo.Database) (storage.Store, error) {
@@ -105,13 +108,34 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 		return nil, errors.Wrap(err, "error adding indexes to events collection")
 	}
 
+	var lockSeconds int32 = 30
+	eventLocksCollection := database.Collection("event-locks")
+	if _, err := eventLocksCollection.Indexes().CreateOne(
+		ctx,
+		mongo.IndexModel{
+			Keys: bson.M{
+				"timestamp": 1,
+			},
+			Options: &options.IndexOptions{
+				ExpireAfterSeconds: &lockSeconds,
+			},
+		},
+	); err != nil {
+		return nil, errors.Wrap(
+			err,
+			"error adding indexes to event locks collection",
+		)
+	}
+
 	return &store{
+		id:                        uuid.NewV4().String(),
 		database:                  database,
 		usersCollection:           database.Collection("users"),
 		sessionsCollection:        sessionsCollection,
 		serviceAccountsCollection: serviceAccountsCollection,
 		projectsCollection:        projectsCollection,
 		eventsCollection:          eventsCollection,
+		eventLocksCollection:      eventLocksCollection,
 	}, nil
 }
 
@@ -572,6 +596,43 @@ func (s *store) DeleteProject(ctx context.Context, id string) error {
 		bson.M{"projectID": id},
 	); err != nil {
 		return errors.Wrapf(err, "error deleting events for project %q", id)
+	}
+	return nil
+}
+
+func (s *store) LockEvent(ctx context.Context, eventID string) (bool, error) {
+	if _, err := s.eventLocksCollection.InsertOne(
+		ctx,
+		bson.M{
+			"_id":       eventID,
+			"clientID":  s.id,
+			"timestamp": time.Now(),
+		},
+	); err != nil {
+		if writeException, ok := err.(mongo.WriteException); ok {
+			if len(writeException.WriteErrors) == 1 &&
+				writeException.WriteErrors[0].Code == 11000 {
+				return false, nil
+			}
+		}
+		return false, errors.Wrapf(
+			err,
+			"error obtaining lock on event %q",
+			eventID,
+		)
+	}
+	return true, nil
+}
+
+func (s *store) UnlockEvent(ctx context.Context, eventID string) error {
+	if _, err := s.eventLocksCollection.DeleteOne(
+		ctx,
+		bson.M{
+			"_id":      eventID,
+			"clientID": s.id,
+		},
+	); err != nil {
+		return errors.Wrapf(err, "error releasing lock on event %q", eventID)
 	}
 	return nil
 }

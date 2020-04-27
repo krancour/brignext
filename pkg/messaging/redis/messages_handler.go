@@ -67,8 +67,11 @@ func (c *consumer) defaultHandleMessages(ctx context.Context) {
 				fmt.Sprintf("delete message %q", message.ID()),
 				*c.options.RedisOperationMaxAttempts,
 				*c.options.RedisOperationMaxBackoff,
-				func() error {
-					return c.deleteMessage(message.ID())
+				func() (bool, error) {
+					if err := c.deleteMessage(message.ID()); err != nil {
+						return true, err // Retry
+					}
+					return false, nil // No retry
 				},
 			); err != nil {
 				select {

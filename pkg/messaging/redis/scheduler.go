@@ -19,7 +19,12 @@ func (c *consumer) defaultRunScheduler(ctx context.Context) {
 			"schedule messages",
 			*c.options.RedisOperationMaxAttempts,
 			*c.options.RedisOperationMaxBackoff,
-			c.schedule,
+			func() (bool, error) {
+				if err := c.schedule(); err != nil {
+					return true, err // Retry
+				}
+				return false, nil // No retry
+			},
 		); err != nil {
 			select {
 			case c.errCh <- err:

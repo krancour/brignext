@@ -17,13 +17,13 @@ func ManageRetries(
 	process string,
 	maxAttempts uint8,
 	maxBackoff time.Duration,
-	fn func() error,
+	fn func() (bool, error),
 ) error {
 	var failedAttempts uint8
 	for {
-		err := fn()
-		if err == nil {
-			return nil
+		retry, err := fn()
+		if !retry {
+			return err
 		}
 		failedAttempts++
 		if failedAttempts == maxAttempts {

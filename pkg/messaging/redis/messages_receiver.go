@@ -36,10 +36,13 @@ outer:
 				"deque a pending message",
 				*c.options.RedisOperationMaxAttempts,
 				*c.options.RedisOperationMaxBackoff,
-				func() error {
+				func() (bool, error) {
 					var err error
 					messageID, err = c.dequeueMessage()
-					return err
+					if err != nil {
+						return true, err // Retry
+					}
+					return false, nil // No retry
 				},
 			); err != nil {
 				select {
@@ -66,10 +69,13 @@ outer:
 				fmt.Sprintf("retrieve message %q", messageID),
 				*c.options.RedisOperationMaxAttempts,
 				*c.options.RedisOperationMaxBackoff,
-				func() error {
+				func() (bool, error) {
 					var err error
 					messageJSON, err = c.getMessageJSON(messageID)
-					return err
+					if err != nil {
+						return true, err // Retry
+					}
+					return false, nil // No retry
 				},
 			); err != nil {
 				select {
