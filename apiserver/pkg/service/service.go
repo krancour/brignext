@@ -780,6 +780,7 @@ func (s *service) CancelEvent(
 		); err != nil {
 			return errors.Wrapf(err, "error updating event %q in store", id)
 		}
+		// TODO: Left off here -----------------------------------------------------
 		if ok {
 			if err := s.scheduler.DeleteEvent(event); err != nil {
 				return errors.Wrapf(

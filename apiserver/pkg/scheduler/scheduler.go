@@ -606,17 +606,6 @@ func (s *scheduler) DeleteEvent(event brignext.Event) error {
 			event.Kubernetes.Namespace,
 		)
 	}
-	if err := s.deleteConfigMapsByLabels(
-		event.Kubernetes.Namespace,
-		labels,
-	); err != nil {
-		errors.Wrapf(
-			err,
-			"error deleting event %q config maps in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
-		)
-	}
 	if err := s.deleteSecretsByLabels(
 		event.Kubernetes.Namespace,
 		labels,
@@ -624,6 +613,17 @@ func (s *scheduler) DeleteEvent(event brignext.Event) error {
 		errors.Wrapf(
 			err,
 			"error deleting event %q secrets in namespace %q",
+			event.ID,
+			event.Kubernetes.Namespace,
+		)
+	}
+	if err := s.deletePersistentVolumeClaimsByLabels(
+		event.Kubernetes.Namespace,
+		labels,
+	); err != nil {
+		errors.Wrapf(
+			err,
+			"error deleting event %q persistent volume claims in namespace %q",
 			event.ID,
 			event.Kubernetes.Namespace,
 		)
@@ -707,6 +707,20 @@ func (s *scheduler) deleteSecretsByLabels(
 	labelsMap map[string]string,
 ) error {
 	return s.kubeClient.CoreV1().Secrets(namespace).DeleteCollection(
+		&meta_v1.DeleteOptions{},
+		meta_v1.ListOptions{
+			LabelSelector: labels.SelectorFromSet(labelsMap).String(),
+		},
+	)
+}
+
+func (s *scheduler) deletePersistentVolumeClaimsByLabels(
+	namespace string,
+	labelsMap map[string]string,
+) error {
+	return s.kubeClient.CoreV1().PersistentVolumeClaims(
+		namespace,
+	).DeleteCollection(
 		&meta_v1.DeleteOptions{},
 		meta_v1.ListOptions{
 			LabelSelector: labels.SelectorFromSet(labelsMap).String(),
