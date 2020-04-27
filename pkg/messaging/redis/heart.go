@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
+	"github.com/krancour/brignext/pkg/retries"
 )
 
 // defaultRunHeart emits "heartbeats" at regular intervals as proof of life.
@@ -13,11 +14,17 @@ func (c *consumer) defaultRunHeart(ctx context.Context) {
 	ticker := time.NewTicker(*c.options.HeartbeatInterval)
 	defer ticker.Stop()
 	for {
-		if ok := c.manageRetries(
+		if err := retries.ManageRetries(
 			ctx,
 			"send heartbeat",
+			*c.options.RedisOperationMaxAttempts,
+			*c.options.RedisOperationMaxBackoff,
 			c.heartbeat,
-		); !ok {
+		); err != nil {
+			select {
+			case c.errCh <- err:
+			case <-ctx.Done():
+			}
 			return
 		}
 		select {

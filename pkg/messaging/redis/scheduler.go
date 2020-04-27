@@ -3,6 +3,8 @@ package redis
 import (
 	"context"
 	"time"
+
+	"github.com/krancour/brignext/pkg/retries"
 )
 
 // defaultRunScheduler checks at regular intervals for messages in the global
@@ -12,11 +14,17 @@ func (c *consumer) defaultRunScheduler(ctx context.Context) {
 	ticker := time.NewTicker(*c.options.SchedulerInterval)
 	defer ticker.Stop()
 	for {
-		if ok := c.manageRetries(
+		if err := retries.ManageRetries(
 			ctx,
 			"schedule messages",
+			*c.options.RedisOperationMaxAttempts,
+			*c.options.RedisOperationMaxBackoff,
 			c.schedule,
-		); !ok {
+		); err != nil {
+			select {
+			case c.errCh <- err:
+			case <-ctx.Done():
+			}
 			return
 		}
 		select {

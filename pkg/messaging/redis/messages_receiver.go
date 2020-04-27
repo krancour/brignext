@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-redis/redis"
 	"github.com/krancour/brignext/pkg/messaging"
+	"github.com/krancour/brignext/pkg/retries"
 )
 
 // defaultReceivePendingMessages receives message IDs from the global pending
@@ -30,15 +31,21 @@ outer:
 		}
 		for {
 			var messageID string
-			if ok := c.manageRetries(
+			if err := retries.ManageRetries(
 				ctx,
 				"deque a pending message",
+				*c.options.RedisOperationMaxAttempts,
+				*c.options.RedisOperationMaxBackoff,
 				func() error {
 					var err error
 					messageID, err = c.dequeueMessage()
 					return err
 				},
-			); !ok {
+			); err != nil {
+				select {
+				case c.errCh <- err:
+				case <-ctx.Done():
+				}
 				return
 			}
 
@@ -54,15 +61,21 @@ outer:
 			}
 
 			var messageJSON []byte
-			if ok := c.manageRetries(
+			if err := retries.ManageRetries(
 				ctx,
 				fmt.Sprintf("retrieve message %q", messageID),
+				*c.options.RedisOperationMaxAttempts,
+				*c.options.RedisOperationMaxBackoff,
 				func() error {
 					var err error
 					messageJSON, err = c.getMessageJSON(messageID)
 					return err
 				},
-			); !ok {
+			); err != nil {
+				select {
+				case c.errCh <- err:
+				case <-ctx.Done():
+				}
 				return
 			}
 

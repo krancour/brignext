@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/krancour/brignext/pkg/retries"
 	"github.com/pkg/errors"
 )
 
@@ -61,13 +62,19 @@ func (c *consumer) defaultHandleMessages(ctx context.Context) {
 			}
 			// Error or no error, if we got to here, we know we're really done with
 			// this message for good.
-			if ok := c.manageRetries(
+			if err := retries.ManageRetries(
 				ctx,
 				fmt.Sprintf("delete message %q", message.ID()),
+				*c.options.RedisOperationMaxAttempts,
+				*c.options.RedisOperationMaxBackoff,
 				func() error {
 					return c.deleteMessage(message.ID())
 				},
-			); !ok {
+			); err != nil {
+				select {
+				case c.errCh <- err:
+				case <-ctx.Done():
+				}
 				return
 			}
 		case <-ctx.Done():

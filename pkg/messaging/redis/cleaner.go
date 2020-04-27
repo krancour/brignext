@@ -3,6 +3,8 @@ package redis
 import (
 	"context"
 	"time"
+
+	"github.com/krancour/brignext/pkg/retries"
 )
 
 // defaultRunCleaner continuously monitors the heartbeats of all known consumers
@@ -14,13 +16,19 @@ func (c *consumer) defaultRunCleaner(ctx context.Context) {
 	ticker := time.NewTicker(*c.options.CleanerInterval)
 	defer ticker.Stop()
 	for {
-		if ok := c.manageRetries(
+		if err := retries.ManageRetries(
 			ctx,
 			"clean up after dead consumers",
+			*c.options.RedisOperationMaxAttempts,
+			*c.options.RedisOperationMaxBackoff,
 			func() error {
 				return c.clean(time.Now().Add(-c.deadConsumerThreshold))
 			},
-		); !ok {
+		); err != nil {
+			select {
+			case c.errCh <- err:
+			case <-ctx.Done():
+			}
 			return
 		}
 		select {
