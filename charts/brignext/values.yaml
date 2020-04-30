@@ -62,7 +62,7 @@ apiserver:
     ## over a secure connection. It is advised that this be disabled ONLY if
     ## utilizing a service mesh to enforce secure connections to the apiserver
     ## for you.
-    enabled: true
+    enabled: false
     ## Whether to generate a self-signed certificate. If true, a new certificate
     ## will be generated for every revision of the corresponding Helm release.
     ## Since the certificate is self-signed, it will not be trusted by clients
@@ -376,7 +376,7 @@ mongodb:
     ## Number of replicas per each node type
     ##
     replicas:
-      secondary: 1
+      secondary: 0
       arbiter: 1
 
     ## Pod Disruption Budget
