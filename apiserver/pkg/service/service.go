@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/krancour/brignext/pkg/retries"
-
 	"github.com/krancour/brignext"
 	"github.com/krancour/brignext/apiserver/pkg/crypto"
 	"github.com/krancour/brignext/apiserver/pkg/scheduler"
 	"github.com/krancour/brignext/apiserver/pkg/storage"
+	"github.com/krancour/brignext/pkg/retries"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
@@ -472,7 +471,7 @@ func (s *service) CreateProject(
 	// that the transaction will roll the change back if subsequent changes made
 	// via the scheduler fail.
 	var err error
-	project, err = s.scheduler.CreateProject(project)
+	project, err = s.scheduler.CreateProject(ctx, project)
 	if err != nil {
 		return errors.Wrapf(
 			err,
@@ -483,7 +482,7 @@ func (s *service) CreateProject(
 	if err := s.store.CreateProject(ctx, project); err != nil {
 		// We need to roll this back manually because the scheduler doesn't
 		// automatically roll anything back upon failure.
-		s.scheduler.DeleteProject(project) // nolint: errcheck
+		s.scheduler.DeleteProject(ctx, project) // nolint: errcheck
 		return errors.Wrapf(err, "error storing new project %q", project.ID)
 	}
 	return nil
@@ -531,7 +530,7 @@ func (s *service) UpdateProject(
 	// in the store and make modifications to the store first with expectations
 	// that the transaction will roll the change back if subsequent changes made
 	// via the scheduler fail.
-	if project, err = s.scheduler.UpdateProject(project); err != nil {
+	if project, err = s.scheduler.UpdateProject(ctx, project); err != nil {
 		return errors.Wrapf(
 			err,
 			"error updating project %q in scheduler",
@@ -541,7 +540,7 @@ func (s *service) UpdateProject(
 	if err := s.store.UpdateProject(ctx, project); err != nil {
 		// We need to roll this back manually because the scheduler doesn't
 		// automatically roll anything back upon failure.
-		s.scheduler.UpdateProject(oldProject) // nolint: errcheck
+		s.scheduler.UpdateProject(ctx, oldProject) // nolint: errcheck
 		return errors.Wrapf(
 			err,
 			"error updating project %q in store",
@@ -560,7 +559,7 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 		if err := s.store.DeleteProject(ctx, id); err != nil {
 			return errors.Wrapf(err, "error removing project %q from store", id)
 		}
-		if err := s.scheduler.DeleteProject(project); err != nil {
+		if err := s.scheduler.DeleteProject(ctx, project); err != nil {
 			return errors.Wrapf(
 				err,
 				"error deleting project %q from scheduler",
@@ -590,7 +589,7 @@ func (s *service) GetSecrets(
 			WorkerName: workerName,
 		}
 	}
-	secrets, err := s.scheduler.GetSecrets(project, workerName)
+	secrets, err := s.scheduler.GetSecrets(ctx, project, workerName)
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
@@ -623,7 +622,12 @@ func (s *service) SetSecrets(
 		}
 	}
 	// Secrets aren't stored in the database. We only pass them to the scheduler.
-	if err := s.scheduler.SetSecrets(project, workerName, secrets); err != nil {
+	if err := s.scheduler.SetSecrets(
+		ctx,
+		project,
+		workerName,
+		secrets,
+	); err != nil {
 		return errors.Wrapf(
 			err,
 			"error setting secrets for project %q worker %q in scheduler",
@@ -656,7 +660,12 @@ func (s *service) UnsetSecrets(
 	}
 	// Secrets aren't stored in the database. We only have to remove them from the
 	// scheduler.
-	if err := s.scheduler.UnsetSecrets(project, workerName, keys); err != nil {
+	if err := s.scheduler.UnsetSecrets(
+		ctx,
+		project,
+		workerName,
+		keys,
+	); err != nil {
 		return errors.Wrapf(
 			err,
 			"error unsetting secrets for project %q worker %q in scheduler",
@@ -699,7 +708,11 @@ func (s *service) CreateEvent(
 	// in the store and make modifications to the store first with expectations
 	// that the transaction will roll the change back if subsequent changes made
 	// via the scheduler fail.
-	event, err = s.scheduler.CreateEvent(project, event)
+	event, err = s.scheduler.CreateEvent(
+		ctx,
+		project,
+		event,
+	)
 	if err != nil {
 		return "", errors.Wrapf(
 			err,
@@ -710,7 +723,7 @@ func (s *service) CreateEvent(
 	if err := s.store.CreateEvent(ctx, event); err != nil {
 		// We need to roll this back manually because the scheduler doesn't
 		// automatically roll anything back upon failure.
-		s.scheduler.DeleteEvent(event) // nolint: errcheck
+		s.scheduler.DeleteEvent(ctx, event) // nolint: errcheck
 		return "", errors.Wrapf(err, "error storing new event %q", event.ID)
 	}
 	return event.ID, nil
@@ -754,7 +767,7 @@ func (s *service) GetEvent(
 			id,
 		)
 	}
-	if event, err = s.scheduler.GetEvent(event); err != nil {
+	if event, err = s.scheduler.GetEvent(ctx, event); err != nil {
 		return event, errors.Wrapf(
 			err,
 			"error retrieving event %q from scheduler",
@@ -784,7 +797,7 @@ func (s *service) CancelEvent(
 			return errors.Wrapf(err, "error updating event %q in store", id)
 		}
 		if ok {
-			if err := s.scheduler.DeleteEvent(event); err != nil {
+			if err := s.scheduler.DeleteEvent(ctx, event); err != nil {
 				return errors.Wrapf(
 					err,
 					"error deleting event %q from scheduler",
@@ -829,7 +842,7 @@ func (s *service) CancelEventsByProject(
 			}
 			if ok {
 				canceledCount++
-				if err := s.scheduler.DeleteEvent(event); err != nil {
+				if err := s.scheduler.DeleteEvent(ctx, event); err != nil {
 					return errors.Wrapf(
 						err,
 						"error deleting event %q from scheduler",
@@ -867,7 +880,7 @@ func (s *service) DeleteEvent(
 			return errors.Wrapf(err, "error removing event %q from store", id)
 		}
 		if ok {
-			if err := s.scheduler.DeleteEvent(event); err != nil {
+			if err := s.scheduler.DeleteEvent(ctx, event); err != nil {
 				return errors.Wrapf(
 					err,
 					"error deleting event %q from scheduler",
@@ -917,7 +930,7 @@ func (s *service) DeleteEventsByProject(
 			}
 			if ok {
 				deletedCount++
-				if err := s.scheduler.DeleteEvent(event); err != nil {
+				if err := s.scheduler.DeleteEvent(ctx, event); err != nil {
 					return errors.Wrapf(
 						err,
 						"error deleting event %q from scheduler",
@@ -1120,7 +1133,7 @@ func (s *service) CancelWorker(
 				workerName,
 			)
 		}
-		if err := s.scheduler.DeleteWorker(event, workerName); err != nil {
+		if err := s.scheduler.DeleteWorker(ctx, event, workerName); err != nil {
 			return errors.Wrapf(
 				err,
 				"error deleting event %q worker %q from scheduler",

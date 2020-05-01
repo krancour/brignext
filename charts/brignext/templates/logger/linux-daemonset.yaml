@@ -1,35 +1,35 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: {{ include "brignext.fluentd.linux.fullname" . }}
+  name: {{ include "brignext.logger.linux.fullname" . }}
   labels:
     {{- include "brignext.labels" . | nindent 4 }}
-    {{- include "brignext.fluentd.linux.labels" . | nindent 4 }}
+    {{- include "brignext.logger.linux.labels" . | nindent 4 }}
 spec:
   selector:
     matchLabels:
       {{- include "brignext.selectorLabels" . | nindent 6 }}
-      {{- include "brignext.fluentd.linux.labels" . | nindent 6 }}
+      {{- include "brignext.logger.linux.labels" . | nindent 6 }}
   template:
     metadata:
       labels:
         {{- include "brignext.selectorLabels" . | nindent 8 }}
-        {{- include "brignext.fluentd.linux.labels" . | nindent 8 }}
+        {{- include "brignext.logger.linux.labels" . | nindent 8 }}
       annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/fluentd/secret.yaml") . | sha256sum }}
+        checksum/config: {{ include (print $.Template.BasePath "/logger/secret.yaml") . | sha256sum }}
     spec:
-      serviceAccount: {{ include "brignext.fluentd.fullname" . }}
+      serviceAccount: {{ include "brignext.logger.fullname" . }}
       containers:
-      - name: fluentd
-        image: {{ .Values.fluentd.linux.image.repository }}:{{ .Values.fluentd.linux.image.tag }}
-        imagePullPolicy: {{ .Values.fluentd.linux.image.pullPolicy }}
+      - name: logger
+        image: {{ .Values.logger.linux.image.repository }}:{{ .Values.logger.linux.image.tag }}
+        imagePullPolicy: {{ .Values.logger.linux.image.pullPolicy }}
         volumeMounts:
         - name: var-log
           mountPath: /var/log
         - name: docker-containers
           mountPath: /var/lib/docker/containers
           readOnly: true
-        - name: fluentd-config
+        - name: logger-config
           mountPath: /fluentd/etc
       volumes:
       - name: var-log
@@ -38,14 +38,14 @@ spec:
       - name: docker-containers
         hostPath:
           path: /var/lib/docker/containers
-      - name: fluentd-config
+      - name: logger-config
         secret:
-          secretName: {{ include "brignext.fluentd.fullname" . }}
-      {{- with .Values.fluentd.linux.nodeSelector }}
+          secretName: {{ include "brignext.logger.fullname" . }}
+      {{- with .Values.logger.linux.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.fluentd.linux.tolerations }}
+      {{- with .Values.logger.linux.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

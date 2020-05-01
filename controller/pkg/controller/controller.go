@@ -34,7 +34,7 @@ type controller struct {
 	jobPodsSelector    labels.Selector
 
 	// All of the following behaviors can be overridden for testing purposes
-	syncExistingWorkerPods            func() error
+	syncExistingWorkerPods            func(context.Context) error
 	manageCapacity                    func(context.Context)
 	continuouslySyncWorkerPods        func(context.Context)
 	manageProjectWorkerQueueConsumers func(context.Context)
@@ -99,7 +99,7 @@ func (c *controller) Run(ctx context.Context) error {
 	// Synchronously start tracking existing workers pods. This happens
 	// syncronously so that the controller is guaranteed a complete picture of
 	// what capacity is available before we start taking on new work.
-	if err := c.syncExistingWorkerPods(); err != nil {
+	if err := c.syncExistingWorkerPods(ctx); err != nil {
 		return errors.Wrap(err, "error syncing existing worker pods")
 	}
 

@@ -20,8 +20,8 @@ If release name contains chart name it will be used as a full name.
 {{- end -}}
 {{- end -}}
 
-{{- define "brignext.fluentd.fullname" -}}
-{{ include "brignext.fullname" . | printf "%s-fluentd" }}
+{{- define "brignext.logger.fullname" -}}
+{{ include "brignext.fullname" . | printf "%s-logger" }}
 {{- end -}}
 
 {{- define "brignext.apiserver.fullname" -}}
@@ -32,12 +32,12 @@ If release name contains chart name it will be used as a full name.
 {{ include "brignext.fullname" . | printf "%s-controller" }}
 {{- end -}}
 
-{{- define "brignext.fluentd.linux.fullname" -}}
-{{ include "brignext.fluentd.fullname" . | printf "%s-linux" }}
+{{- define "brignext.logger.linux.fullname" -}}
+{{ include "brignext.logger.fullname" . | printf "%s-linux" }}
 {{- end -}}
 
-{{- define "brignext.fluentd.windows.fullname" -}}
-{{ include "brignext.fluentd.fullname" . | printf "%s-windows" }}
+{{- define "brignext.logger.windows.fullname" -}}
+{{ include "brignext.logger.fullname" . | printf "%s-windows" }}
 {{- end -}}
 
 {{/*
@@ -75,17 +75,17 @@ app.kubernetes.io/component: apiserver
 app.kubernetes.io/component: controller
 {{- end -}}
 
-{{- define "brignext.fluentd.labels" -}}
-app.kubernetes.io/component: fluentd
+{{- define "brignext.logger.labels" -}}
+app.kubernetes.io/component: logger
 {{- end -}}
 
-{{- define "brignext.fluentd.linux.labels" -}}
-{{ include "brignext.fluentd.labels" . }}
+{{- define "brignext.logger.linux.labels" -}}
+{{ include "brignext.logger.labels" . }}
 app.kubernetes.io/os: linux
 {{- end -}}
 
-{{- define "brignext.fluentd.windows.labels" -}}
-{{ include "brignext.fluentd.labels" . }}
+{{- define "brignext.logger.windows.labels" -}}
+{{ include "brignext.logger.labels" . }}
 app.kubernetes.io/os: windows
 {{- end -}}
 

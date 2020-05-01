@@ -18,11 +18,11 @@ func (c *controller) defaultContinuouslySyncJobPods(ctx context.Context) {
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				options.LabelSelector = c.jobPodsSelector.String()
-				return c.podsClient.List(options)
+				return c.podsClient.List(ctx, options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				options.LabelSelector = c.jobPodsSelector.String()
-				return c.podsClient.Watch(options)
+				return c.podsClient.Watch(ctx, options)
 			},
 		},
 		&corev1.Pod{},

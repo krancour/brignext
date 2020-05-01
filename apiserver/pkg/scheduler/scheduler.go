@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -12,10 +13,9 @@ import (
 	"github.com/krancour/brignext/pkg/messaging"
 	redisMessaging "github.com/krancour/brignext/pkg/messaging/redis"
 	"github.com/pkg/errors"
-	"k8s.io/api/core/v1"
-	core_v1 "k8s.io/api/core/v1"
-	rbac_v1 "k8s.io/api/rbac/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 )
@@ -28,33 +28,50 @@ const (
 )
 
 type Scheduler interface {
-	CreateProject(project brignext.Project) (brignext.Project, error)
-	UpdateProject(project brignext.Project) (brignext.Project, error)
-	DeleteProject(project brignext.Project) error
+	CreateProject(
+		ctx context.Context,
+		project brignext.Project,
+	) (brignext.Project, error)
+	UpdateProject(
+		ctx context.Context,
+		project brignext.Project,
+	) (brignext.Project, error)
+	DeleteProject(
+		ctx context.Context,
+		project brignext.Project,
+	) error
 
 	GetSecrets(
+		ctx context.Context,
 		project brignext.Project,
 		workerName string,
 	) (map[string]string, error)
 	SetSecrets(
+		ctx context.Context,
 		project brignext.Project,
 		workerName string,
 		secrets map[string]string,
 	) error
 	UnsetSecrets(
+		ctx context.Context,
 		project brignext.Project,
 		workerName string,
 		keys []string,
 	) error
 
 	CreateEvent(
+		ctx context.Context,
 		project brignext.Project,
 		event brignext.Event,
 	) (brignext.Event, error)
-	GetEvent(event brignext.Event) (brignext.Event, error)
-	DeleteEvent(event brignext.Event) error
+	GetEvent(ctx context.Context, event brignext.Event) (brignext.Event, error)
+	DeleteEvent(ctx context.Context, event brignext.Event) error
 
-	DeleteWorker(event brignext.Event, workerName string) error
+	DeleteWorker(
+		ctx context.Context,
+		event brignext.Event,
+		workerName string,
+	) error
 }
 
 type scheduler struct {
@@ -73,6 +90,7 @@ func NewScheduler(
 }
 
 func (s *scheduler) CreateProject(
+	ctx context.Context,
 	project brignext.Project,
 ) (brignext.Project, error) {
 	// Create a unique namespace name for the project
@@ -84,11 +102,13 @@ func (s *scheduler) CreateProject(
 
 	// Create a the project's namespace
 	if _, err := s.kubeClient.CoreV1().Namespaces().Create(
-		&core_v1.Namespace{
-			ObjectMeta: meta_v1.ObjectMeta{
+		ctx,
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: project.Kubernetes.Namespace,
 			},
 		},
+		metav1.CreateOptions{},
 	); err != nil {
 		return project, errors.Wrapf(
 			err,
@@ -100,18 +120,20 @@ func (s *scheduler) CreateProject(
 
 	// Create an RBAC role for use by all of the project's workers
 	if _, err := s.kubeClient.RbacV1().Roles(project.Kubernetes.Namespace).Create(
-		&rbac_v1.Role{
-			ObjectMeta: meta_v1.ObjectMeta{
+		ctx,
+		&rbacv1.Role{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "workers",
 			},
-			Rules: []rbac_v1.PolicyRule{
-				rbac_v1.PolicyRule{
+			Rules: []rbacv1.PolicyRule{
+				rbacv1.PolicyRule{
 					APIGroups: []string{""},
 					Resources: []string{"configmaps", "secrets", "pods", "pods/log"},
 					Verbs:     []string{"create", "get", "list", "watch"},
 				},
 			},
 		},
+		metav1.CreateOptions{},
 	); err != nil {
 		return project, errors.Wrapf(
 			err,
@@ -124,11 +146,13 @@ func (s *scheduler) CreateProject(
 	if _, err := s.kubeClient.CoreV1().ServiceAccounts(
 		project.Kubernetes.Namespace,
 	).Create(
-		&core_v1.ServiceAccount{
-			ObjectMeta: meta_v1.ObjectMeta{
+		ctx,
+		&corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "workers",
 			},
 		},
+		metav1.CreateOptions{},
 	); err != nil {
 		return project, errors.Wrapf(
 			err,
@@ -142,22 +166,24 @@ func (s *scheduler) CreateProject(
 	if _, err := s.kubeClient.RbacV1().RoleBindings(
 		project.Kubernetes.Namespace,
 	).Create(
-		&rbac_v1.RoleBinding{
-			ObjectMeta: meta_v1.ObjectMeta{
+		ctx,
+		&rbacv1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "workers",
 			},
-			Subjects: []rbac_v1.Subject{
-				rbac_v1.Subject{
+			Subjects: []rbacv1.Subject{
+				rbacv1.Subject{
 					Kind:      "ServiceAccount",
 					Name:      "workers",
 					Namespace: project.Kubernetes.Namespace,
 				},
 			},
-			RoleRef: rbac_v1.RoleRef{
+			RoleRef: rbacv1.RoleRef{
 				Kind: "Role",
 				Name: "workers",
 			},
 		},
+		metav1.CreateOptions{},
 	); err != nil {
 		return project, errors.Wrapf(
 			err,
@@ -168,13 +194,15 @@ func (s *scheduler) CreateProject(
 
 	// Create an RBAC role for use by all of the project's jobs
 	if _, err := s.kubeClient.RbacV1().Roles(project.Kubernetes.Namespace).Create(
-		&rbac_v1.Role{
-			ObjectMeta: meta_v1.ObjectMeta{
+		ctx,
+		&rbacv1.Role{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "jobs",
 			},
 			// TODO: Add the correct rules here
-			Rules: []rbac_v1.PolicyRule{},
+			Rules: []rbacv1.PolicyRule{},
 		},
+		metav1.CreateOptions{},
 	); err != nil {
 		return project, errors.Wrapf(
 			err,
@@ -187,11 +215,13 @@ func (s *scheduler) CreateProject(
 	if _, err := s.kubeClient.CoreV1().ServiceAccounts(
 		project.Kubernetes.Namespace,
 	).Create(
-		&core_v1.ServiceAccount{
-			ObjectMeta: meta_v1.ObjectMeta{
+		ctx,
+		&corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "jobs",
 			},
 		},
+		metav1.CreateOptions{},
 	); err != nil {
 		return project, errors.Wrapf(
 			err,
@@ -205,22 +235,24 @@ func (s *scheduler) CreateProject(
 	if _, err := s.kubeClient.RbacV1().RoleBindings(
 		project.Kubernetes.Namespace,
 	).Create(
-		&rbac_v1.RoleBinding{
-			ObjectMeta: meta_v1.ObjectMeta{
+		ctx,
+		&rbacv1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "jobs",
 			},
-			Subjects: []rbac_v1.Subject{
-				rbac_v1.Subject{
+			Subjects: []rbacv1.Subject{
+				rbacv1.Subject{
 					Kind:      "ServiceAccount",
 					Name:      "jobs",
 					Namespace: project.Kubernetes.Namespace,
 				},
 			},
-			RoleRef: rbac_v1.RoleRef{
+			RoleRef: rbacv1.RoleRef{
 				Kind: "Role",
 				Name: "jobs",
 			},
 		},
+		metav1.CreateOptions{},
 	); err != nil {
 		return project, errors.Wrapf(
 			err,
@@ -234,8 +266,9 @@ func (s *scheduler) CreateProject(
 		if _, err := s.kubeClient.CoreV1().Secrets(
 			project.Kubernetes.Namespace,
 		).Create(
-			&v1.Secret{
-				ObjectMeta: meta_v1.ObjectMeta{
+			ctx,
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: fmt.Sprintf("worker-config-%s", workerName),
 					Labels: map[string]string{
 						componentLabel: "worker-config",
@@ -243,8 +276,10 @@ func (s *scheduler) CreateProject(
 						workerLabel:    workerName,
 					},
 				},
-				Type: core_v1.SecretType("brignext.io/worker-config"),
-			}); err != nil {
+				Type: corev1.SecretType("brignext.io/worker-config"),
+			},
+			metav1.CreateOptions{},
+		); err != nil {
 			return project, errors.Wrapf(
 				err,
 				"error creating secret %q in namespace %q",
@@ -258,16 +293,21 @@ func (s *scheduler) CreateProject(
 }
 
 func (s *scheduler) UpdateProject(
+	ctx context.Context,
 	project brignext.Project,
 ) (brignext.Project, error) {
 	// This is a no-op
 	return project, nil
 }
 
-func (s *scheduler) DeleteProject(project brignext.Project) error {
+func (s *scheduler) DeleteProject(
+	ctx context.Context,
+	project brignext.Project,
+) error {
 	if err := s.kubeClient.CoreV1().Namespaces().Delete(
+		ctx,
 		project.Kubernetes.Namespace,
-		&meta_v1.DeleteOptions{},
+		metav1.DeleteOptions{},
 	); err != nil {
 		return errors.Wrapf(
 			err,
@@ -279,14 +319,16 @@ func (s *scheduler) DeleteProject(project brignext.Project) error {
 }
 
 func (s *scheduler) GetSecrets(
+	ctx context.Context,
 	project brignext.Project,
 	workerName string,
 ) (map[string]string, error) {
 	secret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
 	).Get(
+		ctx,
 		fmt.Sprintf("worker-config-%s", workerName),
-		meta_v1.GetOptions{},
+		metav1.GetOptions{},
 	)
 	if err != nil {
 		return nil, errors.Wrapf(
@@ -304,6 +346,7 @@ func (s *scheduler) GetSecrets(
 }
 
 func (s *scheduler) SetSecrets(
+	ctx context.Context,
 	project brignext.Project,
 	workerName string,
 	secrets map[string]string,
@@ -311,8 +354,9 @@ func (s *scheduler) SetSecrets(
 	secret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
 	).Get(
+		ctx,
 		fmt.Sprintf("worker-config-%s", workerName),
-		meta_v1.GetOptions{},
+		metav1.GetOptions{},
 	)
 	if err != nil {
 		return errors.Wrapf(
@@ -330,7 +374,7 @@ func (s *scheduler) SetSecrets(
 	}
 	if _, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
-	).Update(secret); err != nil {
+	).Update(ctx, secret, metav1.UpdateOptions{}); err != nil {
 		return errors.Wrapf(
 			err,
 			"error updating project secret %q in namespace %q",
@@ -342,6 +386,7 @@ func (s *scheduler) SetSecrets(
 }
 
 func (s *scheduler) UnsetSecrets(
+	ctx context.Context,
 	project brignext.Project,
 	workerName string,
 	keys []string,
@@ -349,8 +394,9 @@ func (s *scheduler) UnsetSecrets(
 	secret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
 	).Get(
+		ctx,
 		fmt.Sprintf("worker-config-%s", workerName),
-		meta_v1.GetOptions{},
+		metav1.GetOptions{},
 	)
 	if err != nil {
 		return errors.Wrapf(
@@ -365,7 +411,7 @@ func (s *scheduler) UnsetSecrets(
 	}
 	if _, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
-	).Update(secret); err != nil {
+	).Update(ctx, secret, metav1.UpdateOptions{}); err != nil {
 		return errors.Wrapf(
 			err,
 			"error updating project secret %q in namespace %q",
@@ -377,6 +423,7 @@ func (s *scheduler) UnsetSecrets(
 }
 
 func (s *scheduler) CreateEvent(
+	ctx context.Context,
 	project brignext.Project,
 	event brignext.Event,
 ) (brignext.Event, error) {
@@ -419,8 +466,9 @@ func (s *scheduler) CreateEvent(
 	if _, err := s.kubeClient.CoreV1().Secrets(
 		event.Kubernetes.Namespace,
 	).Create(
-		&v1.Secret{
-			ObjectMeta: meta_v1.ObjectMeta{
+		ctx,
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: fmt.Sprintf("event-%s", event.ID),
 				Labels: map[string]string{
 					componentLabel: "event",
@@ -428,11 +476,12 @@ func (s *scheduler) CreateEvent(
 					eventLabel:     event.ID,
 				},
 			},
-			Type: core_v1.SecretType("brignext.io/event"),
+			Type: corev1.SecretType("brignext.io/event"),
 			StringData: map[string]string{
 				"event.json": string(eventJSON),
 			},
 		},
+		metav1.CreateOptions{},
 	); err != nil {
 		return event, errors.Wrapf(
 			err,
@@ -448,8 +497,9 @@ func (s *scheduler) CreateEvent(
 		workerConfigSecret, err := s.kubeClient.CoreV1().Secrets(
 			event.Kubernetes.Namespace,
 		).Get(
+			ctx,
 			fmt.Sprintf("worker-config-%s", workerName),
-			meta_v1.GetOptions{},
+			metav1.GetOptions{},
 		)
 		if err != nil {
 			return event, errors.Wrapf(
@@ -501,8 +551,9 @@ func (s *scheduler) CreateEvent(
 		if _, err := s.kubeClient.CoreV1().Secrets(
 			event.Kubernetes.Namespace,
 		).Create(
-			&v1.Secret{
-				ObjectMeta: meta_v1.ObjectMeta{
+			ctx,
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
 					Name: fmt.Sprintf("worker-%s-%s", event.ID, workerName),
 					Labels: map[string]string{
 						componentLabel: "worker",
@@ -511,9 +562,10 @@ func (s *scheduler) CreateEvent(
 						workerLabel:    workerName,
 					},
 				},
-				Type: core_v1.SecretType("brignext.io/worker"),
+				Type: corev1.SecretType("brignext.io/worker"),
 				Data: data,
 			},
+			metav1.CreateOptions{},
 		); err != nil {
 			return event, errors.Wrapf(
 				err,
@@ -561,10 +613,17 @@ func (s *scheduler) CreateEvent(
 	return event, nil
 }
 
-func (s *scheduler) GetEvent(event brignext.Event) (brignext.Event, error) {
+func (s *scheduler) GetEvent(
+	ctx context.Context,
+	event brignext.Event,
+) (brignext.Event, error) {
 	eventSecret, err := s.kubeClient.CoreV1().Secrets(
 		event.Kubernetes.Namespace,
-	).Get(fmt.Sprintf("event-%s", event.ID), meta_v1.GetOptions{})
+	).Get(
+		ctx,
+		fmt.Sprintf("event-%s", event.ID),
+		metav1.GetOptions{},
+	)
 	if err != nil {
 		return event, errors.Wrapf(
 			err,
@@ -591,11 +650,15 @@ func (s *scheduler) GetEvent(event brignext.Event) (brignext.Event, error) {
 	return event, nil
 }
 
-func (s *scheduler) DeleteEvent(event brignext.Event) error {
+func (s *scheduler) DeleteEvent(
+	ctx context.Context,
+	event brignext.Event,
+) error {
 	labels := map[string]string{
 		eventLabel: event.ID,
 	}
 	if err := s.deletePodsByLabels(
+		ctx,
 		event.Kubernetes.Namespace,
 		labels,
 	); err != nil {
@@ -607,6 +670,7 @@ func (s *scheduler) DeleteEvent(event brignext.Event) error {
 		)
 	}
 	if err := s.deleteConfigMapsByLabels(
+		ctx,
 		event.Kubernetes.Namespace,
 		labels,
 	); err != nil {
@@ -618,6 +682,7 @@ func (s *scheduler) DeleteEvent(event brignext.Event) error {
 		)
 	}
 	if err := s.deleteSecretsByLabels(
+		ctx,
 		event.Kubernetes.Namespace,
 		labels,
 	); err != nil {
@@ -632,6 +697,7 @@ func (s *scheduler) DeleteEvent(event brignext.Event) error {
 }
 
 func (s *scheduler) DeleteWorker(
+	ctx context.Context,
 	event brignext.Event,
 	workerName string,
 ) error {
@@ -640,6 +706,7 @@ func (s *scheduler) DeleteWorker(
 		workerLabel: workerName,
 	}
 	if err := s.deletePodsByLabels(
+		ctx,
 		event.Kubernetes.Namespace,
 		labels,
 	); err != nil {
@@ -652,6 +719,7 @@ func (s *scheduler) DeleteWorker(
 		)
 	}
 	if err := s.deleteConfigMapsByLabels(
+		ctx,
 		event.Kubernetes.Namespace,
 		labels,
 	); err != nil {
@@ -664,6 +732,7 @@ func (s *scheduler) DeleteWorker(
 		)
 	}
 	if err := s.deleteSecretsByLabels(
+		ctx,
 		event.Kubernetes.Namespace,
 		labels,
 	); err != nil {
@@ -679,36 +748,42 @@ func (s *scheduler) DeleteWorker(
 }
 
 func (s *scheduler) deletePodsByLabels(
+	ctx context.Context,
 	namespace string,
 	labelsMap map[string]string,
 ) error {
 	return s.kubeClient.CoreV1().Pods(namespace).DeleteCollection(
-		&meta_v1.DeleteOptions{},
-		meta_v1.ListOptions{
+		ctx,
+		metav1.DeleteOptions{},
+		metav1.ListOptions{
 			LabelSelector: labels.SelectorFromSet(labelsMap).String(),
 		},
 	)
 }
 
 func (s *scheduler) deleteConfigMapsByLabels(
+	ctx context.Context,
 	namespace string,
 	labelsMap map[string]string,
 ) error {
 	return s.kubeClient.CoreV1().ConfigMaps(namespace).DeleteCollection(
-		&meta_v1.DeleteOptions{},
-		meta_v1.ListOptions{
+		ctx,
+		metav1.DeleteOptions{},
+		metav1.ListOptions{
 			LabelSelector: labels.SelectorFromSet(labelsMap).String(),
 		},
 	)
 }
 
 func (s *scheduler) deleteSecretsByLabels(
+	ctx context.Context,
 	namespace string,
 	labelsMap map[string]string,
 ) error {
 	return s.kubeClient.CoreV1().Secrets(namespace).DeleteCollection(
-		&meta_v1.DeleteOptions{},
-		meta_v1.ListOptions{
+		ctx,
+		metav1.DeleteOptions{},
+		metav1.ListOptions{
 			LabelSelector: labels.SelectorFromSet(labelsMap).String(),
 		},
 	)

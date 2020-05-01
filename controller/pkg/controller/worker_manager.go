@@ -59,7 +59,7 @@ func (c *controller) handleProjectWorkerMessage(
 		select {
 		case <-c.availabilityCh:
 			if err :=
-				c.createWorkspacePVC(event, workerContext.WorkerName); err != nil {
+				c.createWorkspacePVC(ctx, event, workerContext.WorkerName); err != nil {
 				return errors.Wrapf(
 					err,
 					"error creating workspace for event %q worker %q",
@@ -67,7 +67,11 @@ func (c *controller) handleProjectWorkerMessage(
 					workerContext.WorkerName,
 				)
 			}
-			if err := c.createWorkerPod(event, workerContext.WorkerName); err != nil {
+			if err := c.createWorkerPod(
+				ctx,
+				event,
+				workerContext.WorkerName,
+			); err != nil {
 				return errors.Wrapf(
 					err,
 					"error starting pod for event %q worker %q",
@@ -110,6 +114,7 @@ func (c *controller) handleProjectWorkerMessage(
 }
 
 func (c *controller) createWorkspacePVC(
+	ctx context.Context,
 	event brignext.Event,
 	workerName string,
 ) error {
@@ -153,7 +158,11 @@ func (c *controller) createWorkspacePVC(
 	}
 
 	pvcClient := c.kubeClient.CoreV1().PersistentVolumeClaims(event.Kubernetes.Namespace)
-	if _, err := pvcClient.Create(&workspacePVC); err != nil {
+	if _, err := pvcClient.Create(
+		ctx,
+		&workspacePVC,
+		metav1.CreateOptions{},
+	); err != nil {
 		return errors.Wrapf(
 			err,
 			"error creating workspace PVC for event %q worker %q",
@@ -166,6 +175,7 @@ func (c *controller) createWorkspacePVC(
 }
 
 func (c *controller) createWorkerPod(
+	ctx context.Context,
 	event brignext.Event,
 	workerName string,
 ) error {
@@ -183,6 +193,8 @@ func (c *controller) createWorkerPod(
 
 	image := worker.Container.Image
 	if image == "" {
+		// TODO: HIGH PRIORITY!!! Change this default to one that is configured
+		// in the chart.
 		image = "krancour/brignext-worker:latest" // TODO: Change this
 	}
 	imagePullPolicy := worker.Container.ImagePullPolicy
@@ -353,7 +365,11 @@ func (c *controller) createWorkerPod(
 	}
 
 	podClient := c.kubeClient.CoreV1().Pods(event.Kubernetes.Namespace)
-	if _, err := podClient.Create(&workerPod); err != nil {
+	if _, err := podClient.Create(
+		ctx,
+		&workerPod,
+		metav1.CreateOptions{},
+	); err != nil {
 		return errors.Wrapf(
 			err,
 			"error creating worker pod for event %q worker %q",

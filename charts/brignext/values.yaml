@@ -152,13 +152,13 @@ controller:
 
   tolerations: []
 
-fluentd:
+logger:
 
   linux:
 
     image:
-      repository: krancour/fluentd
-      tag: v1.8.1-debian-1.0
+      repository: krancour/brignext-logger-linux
+      tag: latest
       pullPolicy: Always
 
     resources: {}
@@ -181,8 +181,8 @@ fluentd:
   windows:
 
     image:
-      repository: krancour/fluentd
-      tag: v1.8.1-winserv-2019-1.0
+      repository: krancour/brignext-logger-windows
+      tag: latest
       pullPolicy: Always
 
     resources: {}

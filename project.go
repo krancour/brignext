@@ -37,6 +37,8 @@ func (p *Project) GetWorkers(event Event) map[string]Worker {
 				},
 			}
 			if worker.Container.Image == "" {
+				// TODO: HIGH PRIORITY!!! Change this default to one that is configured
+				// in the chart.
 				worker.Container.Image = "krancour/brignext-worker:latest"
 			}
 			if worker.Container.ImagePullPolicy == "" {
