@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/krancour/brignext"
+	"github.com/krancour/brignext/v2"
 )
 
 type Store interface {

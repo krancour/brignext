@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/krancour/brignext/client"
+	"github.com/krancour/brignext/v2/client"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )

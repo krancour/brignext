@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	"github.com/krancour/brignext/pkg/messaging"
-	"github.com/krancour/brignext/pkg/retries"
+	"github.com/krancour/brignext/v2/pkg/messaging"
+	"github.com/krancour/brignext/v2/pkg/retries"
 )
 
 // defaultReceivePendingMessages receives message IDs from the global pending

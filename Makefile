@@ -14,7 +14,6 @@ GIT_VERSION = $(shell git describe --always --abbrev=7 --dirty --match=NeVeRmAtC
 # Go build details                                                             #
 ################################################################################
 
-BASE_PACKAGE_NAME := github.com/krancour/brignext
 CLIENT_PLATFORM ?= $(shell go env GOOS)
 CLIENT_ARCH ?= $(shell go env GOARCH)
 
@@ -33,16 +32,17 @@ ifneq ($(SKIP_DOCKER),true)
 		-it \
 		--rm \
 		-e SKIP_DOCKER=true \
-		-v $(PROJECT_ROOT):/go/src/$(BASE_PACKAGE_NAME) \
-		-w /go/src/$(BASE_PACKAGE_NAME) $(GO_DEV_IMAGE)
+		-v $(PROJECT_ROOT):/src \
+		-w /src \
+		$(GO_DEV_IMAGE)
 
 	JS_DOCKER_CMD := docker run \
 		-it \
 		--rm \
 		-e SKIP_DOCKER=true \
-		-e KUBECONFIG="/code/$(BASE_PACKAGE_NAME)/brigade-worker/test/fake_kubeconfig.yaml" \
-		-v $(PROJECT_ROOT):/code/$(BASE_PACKAGE_NAME) \
-		-w /code/$(BASE_PACKAGE_NAME) $(JS_DEV_IMAGE)
+		-v $(PROJECT_ROOT):/src \
+		-w /src \
+		$(JS_DEV_IMAGE)
 endif
 
 # Allow for users to supply a different helm cli name,

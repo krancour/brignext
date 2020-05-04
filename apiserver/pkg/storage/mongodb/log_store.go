@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/krancour/brignext"
-	"github.com/krancour/brignext/apiserver/pkg/storage"
+	"github.com/krancour/brignext/v2"
+	"github.com/krancour/brignext/v2/apiserver/pkg/storage"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

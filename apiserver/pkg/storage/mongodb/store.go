@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/krancour/brignext"
-	"github.com/krancour/brignext/apiserver/pkg/storage"
+	"github.com/krancour/brignext/v2"
+	"github.com/krancour/brignext/v2/apiserver/pkg/storage"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 	"go.mongodb.org/mongo-driver/bson"

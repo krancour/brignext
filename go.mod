@@ -1,4 +1,4 @@
-module github.com/krancour/brignext
+module github.com/krancour/brignext/v2
 
 go 1.14
 

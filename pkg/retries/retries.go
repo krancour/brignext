@@ -6,7 +6,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/krancour/brignext/pkg/rand"
+	"github.com/krancour/brignext/v2/pkg/rand"
 	"github.com/pkg/errors"
 )
 

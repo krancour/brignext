@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/krancour/brignext"
-	"github.com/krancour/brignext/pkg/file"
+	"github.com/krancour/brignext/v2"
+	"github.com/krancour/brignext/v2/pkg/file"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )

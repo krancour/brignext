@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	"github.com/krancour/brignext/pkg/retries"
+	"github.com/krancour/brignext/v2/pkg/retries"
 )
 
 // defaultRunHeart emits "heartbeats" at regular intervals as proof of life.

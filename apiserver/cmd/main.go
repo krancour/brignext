@@ -3,15 +3,15 @@ package main
 import (
 	"log"
 
-	"github.com/krancour/brignext/apiserver/pkg/api"
-	mongodbUtils "github.com/krancour/brignext/apiserver/pkg/mongodb"
-	"github.com/krancour/brignext/apiserver/pkg/oidc"
-	"github.com/krancour/brignext/apiserver/pkg/scheduler"
-	"github.com/krancour/brignext/apiserver/pkg/service"
-	"github.com/krancour/brignext/apiserver/pkg/storage/mongodb"
-	"github.com/krancour/brignext/pkg/kubernetes"
-	"github.com/krancour/brignext/pkg/redis"
-	"github.com/krancour/brignext/pkg/version"
+	"github.com/krancour/brignext/v2/apiserver/pkg/api"
+	mongodbUtils "github.com/krancour/brignext/v2/apiserver/pkg/mongodb"
+	"github.com/krancour/brignext/v2/apiserver/pkg/oidc"
+	"github.com/krancour/brignext/v2/apiserver/pkg/scheduler"
+	"github.com/krancour/brignext/v2/apiserver/pkg/service"
+	"github.com/krancour/brignext/v2/apiserver/pkg/storage/mongodb"
+	"github.com/krancour/brignext/v2/pkg/kubernetes"
+	"github.com/krancour/brignext/v2/pkg/redis"
+	"github.com/krancour/brignext/v2/pkg/version"
 )
 
 func main() {

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/krancour/brignext"
-	"github.com/krancour/brignext/apiserver/pkg/crypto"
-	"github.com/krancour/brignext/apiserver/pkg/scheduler"
-	"github.com/krancour/brignext/apiserver/pkg/storage"
-	"github.com/krancour/brignext/pkg/retries"
+	"github.com/krancour/brignext/v2"
+	"github.com/krancour/brignext/v2/apiserver/pkg/crypto"
+	"github.com/krancour/brignext/v2/apiserver/pkg/scheduler"
+	"github.com/krancour/brignext/v2/apiserver/pkg/storage"
+	"github.com/krancour/brignext/v2/pkg/retries"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )

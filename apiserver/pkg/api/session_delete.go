@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/krancour/brignext/apiserver/pkg/api/auth"
+	"github.com/krancour/brignext/v2/apiserver/pkg/api/auth"
 	"github.com/pkg/errors"
 )
 

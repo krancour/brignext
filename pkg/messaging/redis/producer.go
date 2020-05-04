@@ -2,7 +2,7 @@ package redis
 
 import (
 	"github.com/go-redis/redis"
-	"github.com/krancour/brignext/pkg/messaging"
+	"github.com/krancour/brignext/v2/pkg/messaging"
 	"github.com/pkg/errors"
 )
 

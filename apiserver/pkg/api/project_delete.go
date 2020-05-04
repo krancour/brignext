@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/krancour/brignext"
+	"github.com/krancour/brignext/v2"
 
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"

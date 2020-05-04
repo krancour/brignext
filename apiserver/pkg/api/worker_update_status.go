@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext"
+	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )

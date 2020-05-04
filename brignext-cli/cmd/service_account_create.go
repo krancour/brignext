@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/krancour/brignext"
+	"github.com/krancour/brignext/v2"
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"

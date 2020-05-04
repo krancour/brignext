@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/krancour/brignext/apiserver/pkg/crypto"
+	"github.com/krancour/brignext/v2/apiserver/pkg/crypto"
 	"github.com/pkg/errors"
 )
 

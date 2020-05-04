@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/krancour/brignext"
+	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
 )
 

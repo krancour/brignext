@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/krancour/brignext"
+	"github.com/krancour/brignext/v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

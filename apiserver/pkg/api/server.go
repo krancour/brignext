@@ -7,9 +7,9 @@ import (
 
 	"github.com/coreos/go-oidc"
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/apiserver/pkg/api/auth"
-	"github.com/krancour/brignext/apiserver/pkg/service"
-	"github.com/krancour/brignext/pkg/file"
+	"github.com/krancour/brignext/v2/apiserver/pkg/api/auth"
+	"github.com/krancour/brignext/v2/apiserver/pkg/service"
+	"github.com/krancour/brignext/v2/pkg/file"
 	"github.com/xeipuuv/gojsonschema"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"

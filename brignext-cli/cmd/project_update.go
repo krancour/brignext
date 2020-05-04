@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/ghodss/yaml"
-	"github.com/krancour/brignext"
+	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )

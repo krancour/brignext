@@ -3,12 +3,12 @@ package main
 import (
 	"log"
 
-	"github.com/krancour/brignext/client"
-	"github.com/krancour/brignext/controller/pkg/controller"
-	"github.com/krancour/brignext/pkg/kubernetes"
-	"github.com/krancour/brignext/pkg/redis"
-	"github.com/krancour/brignext/pkg/signals"
-	"github.com/krancour/brignext/pkg/version"
+	"github.com/krancour/brignext/v2/client"
+	"github.com/krancour/brignext/v2/controller/pkg/controller"
+	"github.com/krancour/brignext/v2/pkg/kubernetes"
+	"github.com/krancour/brignext/v2/pkg/redis"
+	"github.com/krancour/brignext/v2/pkg/signals"
+	"github.com/krancour/brignext/v2/pkg/version"
 )
 
 func main() {

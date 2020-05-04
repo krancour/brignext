@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/krancour/brignext"
+	"github.com/krancour/brignext/v2"
 	"github.com/stretchr/testify/require"
 )
 

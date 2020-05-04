@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	redisMessaging "github.com/krancour/brignext/pkg/messaging/redis"
+	redisMessaging "github.com/krancour/brignext/v2/pkg/messaging/redis"
 )
 
 func (c *controller) defaultManageProjectWorkerQueueConsumers(ctx context.Context) {

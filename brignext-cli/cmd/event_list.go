@@ -9,7 +9,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
-	"github.com/krancour/brignext"
+	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 	"k8s.io/apimachinery/pkg/util/duration"

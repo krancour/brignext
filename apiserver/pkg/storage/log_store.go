@@ -3,7 +3,7 @@ package storage
 import (
 	"context"
 
-	"github.com/krancour/brignext"
+	"github.com/krancour/brignext/v2"
 )
 
 type LogStore interface {

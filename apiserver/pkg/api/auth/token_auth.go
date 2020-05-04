@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/krancour/brignext"
-	"github.com/krancour/brignext/apiserver/pkg/crypto"
+	"github.com/krancour/brignext/v2"
+	"github.com/krancour/brignext/v2/apiserver/pkg/crypto"
 )
 
 type FindSessionFn func(
