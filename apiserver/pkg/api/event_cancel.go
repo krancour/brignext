@@ -20,7 +20,8 @@ func (s *server) eventsCancel(w http.ResponseWriter, r *http.Request) {
 	cancelProcessingStr := r.URL.Query().Get("cancelProcessing")
 	var cancelProcessing bool
 	if cancelProcessingStr != "" {
-		cancelProcessing, _ = strconv.ParseBool(cancelProcessingStr) // nolint: errcheck
+		cancelProcessing, _ =
+			strconv.ParseBool(cancelProcessingStr) // nolint: errcheck
 	}
 
 	if eventID != "" {

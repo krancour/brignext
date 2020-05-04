@@ -35,7 +35,8 @@ func eventDelete(c *cli.Context) error {
 	}
 
 	if eventID != "" {
-		if deleted, err := client.DeleteEvent(
+		var deleted bool
+		if deleted, err = client.DeleteEvent(
 			context.TODO(),
 			eventID,
 			deletePending,
@@ -45,26 +46,24 @@ func eventDelete(c *cli.Context) error {
 		} else if deleted {
 			fmt.Printf("Event %q deleted.\n", eventID)
 			return nil
-		} else {
-			return errors.Errorf(
-				"event %q was not deleted because specified conditions were not "+
-					"satisfied",
-				eventID,
-			)
 		}
-		return nil
+		return errors.Errorf(
+			"event %q was not deleted because specified conditions were not "+
+				"satisfied",
+			eventID,
+		)
 	}
 
-	if deleted, err := client.DeleteEventsByProject(
+	deleted, err := client.DeleteEventsByProject(
 		context.TODO(),
 		projectID,
 		deletePending,
 		deleteProcessing,
-	); err != nil {
+	)
+	if err != nil {
 		return err
-	} else {
-		fmt.Printf("Deleted %d events for project %q.\n", deleted, projectID)
 	}
+	fmt.Printf("Deleted %d events for project %q.\n", deleted, projectID)
 
 	return nil
 }

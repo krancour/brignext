@@ -23,7 +23,8 @@ func (s *server) eventCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if validationResult, err := gojsonschema.Validate(
+	var validationResult *gojsonschema.Result
+	if validationResult, err = gojsonschema.Validate(
 		s.eventSchemaLoader,
 		gojsonschema.NewBytesLoader(bodyBytes),
 	); err != nil {
@@ -36,7 +37,7 @@ func (s *server) eventCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	event := brignext.Event{}
-	if err := json.Unmarshal(bodyBytes, &event); err != nil {
+	if err = json.Unmarshal(bodyBytes, &event); err != nil {
 		log.Println(
 			errors.Wrap(err, "error unmarshaling body of create event request"),
 		)

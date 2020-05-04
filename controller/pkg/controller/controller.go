@@ -97,7 +97,7 @@ func (c *controller) Run(ctx context.Context) error {
 	defer cancel()
 
 	// Synchronously start tracking existing workers pods. This happens
-	// syncronously so that the controller is guaranteed a complete picture of
+	// synchronously so that the controller is guaranteed a complete picture of
 	// what capacity is available before we start taking on new work.
 	if err := c.syncExistingWorkerPods(ctx); err != nil {
 		return errors.Wrap(err, "error syncing existing worker pods")

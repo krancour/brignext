@@ -197,7 +197,9 @@ func (s *store) GetUser(ctx context.Context, id string) (brignext.User, error) {
 	user := brignext.User{}
 	res := s.usersCollection.FindOne(ctx, bson.M{"_id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return user, &brignext.ErrUserNotFound{id}
+		return user, &brignext.ErrUserNotFound{
+			ID: id,
+		}
 	}
 	if res.Err() != nil {
 		return user, errors.Wrapf(res.Err(), "error finding user %q", id)
@@ -220,7 +222,9 @@ func (s *store) LockUser(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error updating user %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrUserNotFound{id}
+		return &brignext.ErrUserNotFound{
+			ID: id,
+		}
 	}
 	return nil
 }
@@ -237,7 +241,9 @@ func (s *store) UnlockUser(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error updating user %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrUserNotFound{id}
+		return &brignext.ErrUserNotFound{
+			ID: id,
+		}
 	}
 	return nil
 }
@@ -320,7 +326,9 @@ func (s *store) AuthenticateSession(
 		return errors.Wrapf(err, "error updating session %q", sessionID)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrSessionNotFound{sessionID}
+		return &brignext.ErrSessionNotFound{
+			ID: sessionID,
+		}
 	}
 	return nil
 }
@@ -331,7 +339,9 @@ func (s *store) DeleteSession(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error deleting session %q", id)
 	}
 	if res.DeletedCount == 0 {
-		return &brignext.ErrSessionNotFound{id}
+		return &brignext.ErrSessionNotFound{
+			ID: id,
+		}
 	}
 	return nil
 }
@@ -372,7 +382,9 @@ func (s *store) CreateServiceAccount(
 	return nil
 }
 
-func (s *store) GetServiceAccounts(ctx context.Context) ([]brignext.ServiceAccount, error) {
+func (s *store) GetServiceAccounts(
+	ctx context.Context,
+) ([]brignext.ServiceAccount, error) {
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"_id": 1})
 	cur, err := s.serviceAccountsCollection.Find(ctx, bson.M{}, findOptions)
@@ -393,7 +405,9 @@ func (s *store) GetServiceAccount(
 	serviceAccount := brignext.ServiceAccount{}
 	res := s.serviceAccountsCollection.FindOne(ctx, bson.M{"_id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return serviceAccount, &brignext.ErrServiceAccountNotFound{id}
+		return serviceAccount, &brignext.ErrServiceAccountNotFound{
+			ID: id,
+		}
 	}
 	if res.Err() != nil {
 		return serviceAccount, errors.Wrapf(
@@ -452,7 +466,9 @@ func (s *store) LockServiceAccount(
 		return errors.Wrapf(err, "error updating service account %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrServiceAccountNotFound{id}
+		return &brignext.ErrServiceAccountNotFound{
+			ID: id,
+		}
 	}
 	return nil
 }
@@ -474,12 +490,17 @@ func (s *store) UnlockServiceAccount(
 		return errors.Wrapf(err, "error updating service account %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrServiceAccountNotFound{id}
+		return &brignext.ErrServiceAccountNotFound{
+			ID: id,
+		}
 	}
 	return nil
 }
 
-func (s *store) CreateProject(ctx context.Context, project brignext.Project) error {
+func (s *store) CreateProject(
+	ctx context.Context,
+	project brignext.Project,
+) error {
 	if _, err := s.projectsCollection.InsertOne(ctx, project); err != nil {
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
@@ -547,7 +568,9 @@ func (s *store) GetProject(
 	project := brignext.Project{}
 	res := s.projectsCollection.FindOne(ctx, bson.M{"_id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return project, &brignext.ErrProjectNotFound{id}
+		return project, &brignext.ErrProjectNotFound{
+			ID: id,
+		}
 	}
 	if res.Err() != nil {
 		return project, errors.Wrapf(res.Err(), "error finding project %q", id)
@@ -578,7 +601,9 @@ func (s *store) UpdateProject(
 		return errors.Wrapf(err, "error replacing project %q", project.ID)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrProjectNotFound{project.ID}
+		return &brignext.ErrProjectNotFound{
+			ID: project.ID,
+		}
 	}
 	return nil
 }
@@ -589,7 +614,9 @@ func (s *store) DeleteProject(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error deleting project %q", id)
 	}
 	if res.DeletedCount == 0 {
-		return &brignext.ErrProjectNotFound{id}
+		return &brignext.ErrProjectNotFound{
+			ID: id,
+		}
 	}
 	if _, err := s.eventsCollection.DeleteMany(
 		ctx,
@@ -691,7 +718,9 @@ func (s *store) GetEvent(
 	event := brignext.Event{}
 	res := s.eventsCollection.FindOne(ctx, bson.M{"_id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return event, &brignext.ErrEventNotFound{id}
+		return event, &brignext.ErrEventNotFound{
+			ID: id,
+		}
 	}
 	if res.Err() != nil {
 		return event, errors.Wrapf(res.Err(), "error finding event %q", id)
@@ -720,7 +749,9 @@ func (s *store) UpdateEventStatus(
 		return errors.Wrapf(err, "error updating event %q status", id)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrEventNotFound{id}
+		return &brignext.ErrEventNotFound{
+			ID: id,
+		}
 	}
 	return nil
 }

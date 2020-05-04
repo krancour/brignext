@@ -64,6 +64,7 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 					"error retrieving event %q worker %q job %q logs",
 					eventID,
 					workerName,
+					jobName,
 				),
 			)
 			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)

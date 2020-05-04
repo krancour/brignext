@@ -94,7 +94,7 @@ verify-vendored-go-code:
 
 .PHONY: lint-go
 lint-go:
-	$(GO_DOCKER_CMD) golangci-lint run --config ./golangci.yml
+	$(GO_DOCKER_CMD) golangci-lint run --config ./golangci.yaml
 
 .PHONY: test-unit-go
 test-unit-go:

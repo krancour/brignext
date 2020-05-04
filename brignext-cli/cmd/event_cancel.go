@@ -34,7 +34,8 @@ func eventCancel(c *cli.Context) error {
 	}
 
 	if eventID != "" {
-		if canceled, err := client.CancelEvent(
+		var canceled bool
+		if canceled, err = client.CancelEvent(
 			context.TODO(),
 			eventID,
 			cancelProcessing,
@@ -43,24 +44,23 @@ func eventCancel(c *cli.Context) error {
 		} else if canceled {
 			fmt.Printf("Event %q canceled.\n", eventID)
 			return nil
-		} else {
-			return errors.Errorf(
-				"event %q was not canceled because specified conditions were not "+
-					"satisfied",
-				eventID,
-			)
 		}
+		return errors.Errorf(
+			"event %q was not canceled because specified conditions were not "+
+				"satisfied",
+			eventID,
+		)
 	}
 
-	if canceled, err := client.CancelEventsByProject(
+	canceled, err := client.CancelEventsByProject(
 		context.TODO(),
 		projectID,
 		cancelProcessing,
-	); err != nil {
+	)
+	if err != nil {
 		return err
-	} else {
-		fmt.Printf("Canceled %d events for project %q.\n", canceled, projectID)
 	}
+	fmt.Printf("Canceled %d events for project %q.\n", canceled, projectID)
 
 	return nil
 }

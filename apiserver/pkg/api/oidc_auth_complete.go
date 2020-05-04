@@ -71,7 +71,7 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 		Name  string `json:"name"`
 		Email string `json:"email"`
 	}{}
-	if err := idToken.Claims(&claims); err != nil {
+	if err = idToken.Claims(&claims); err != nil {
 		log.Println(
 			errors.Wrap(err, "error decoding OpenID Connect identity token claims"),
 		)
@@ -86,11 +86,15 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 				ID:   claims.Email,
 				Name: claims.Name,
 			}
-			if err := s.service.CreateUser(r.Context(), user); err != nil {
+			if err = s.service.CreateUser(r.Context(), user); err != nil {
 				log.Println(
 					errors.Wrapf(err, "error creating new user %q", user.ID),
 				)
-				s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
+				s.writeResponse(
+					w,
+					http.StatusInternalServerError,
+					responseOIDCAuthError,
+				)
 				return
 			}
 		} else {

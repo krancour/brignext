@@ -466,7 +466,7 @@ func (s *service) CreateProject(
 	project.Created = &now
 	// We send this to the scheduler first because we expect the scheduler will
 	// will add some scheduler-specific details that we will want to persist.
-	// This is in contrast to most of our functions wherein we start a transation
+	// This is in contrast to most of our functions wherein we start a transaction
 	// in the store and make modifications to the store first with expectations
 	// that the transaction will roll the change back if subsequent changes made
 	// via the scheduler fail.
@@ -526,7 +526,7 @@ func (s *service) UpdateProject(
 	}
 	// We send this to the scheduler first because we expect the scheduler will
 	// will add some scheduler-specific details that we will want to persist.
-	// This is in contrast to most of our functions wherein we start a transation
+	// This is in contrast to most of our functions wherein we start a transaction
 	// in the store and make modifications to the store first with expectations
 	// that the transaction will roll the change back if subsequent changes made
 	// via the scheduler fail.
@@ -704,7 +704,7 @@ func (s *service) CreateEvent(
 
 	// We send this to the scheduler first because we expect the scheduler will
 	// will add some scheduler-specific details that we will want to persist.
-	// This is in contrast to most of our functions wherein we start a transation
+	// This is in contrast to most of our functions wherein we start a transaction
 	// in the store and make modifications to the store first with expectations
 	// that the transaction will roll the change back if subsequent changes made
 	// via the scheduler fail.
@@ -797,7 +797,7 @@ func (s *service) CancelEvent(
 			return errors.Wrapf(err, "error updating event %q in store", id)
 		}
 		if ok {
-			if err := s.scheduler.DeleteEvent(ctx, event); err != nil {
+			if err = s.scheduler.DeleteEvent(ctx, event); err != nil {
 				return errors.Wrapf(
 					err,
 					"error deleting event %q from scheduler",
@@ -880,7 +880,7 @@ func (s *service) DeleteEvent(
 			return errors.Wrapf(err, "error removing event %q from store", id)
 		}
 		if ok {
-			if err := s.scheduler.DeleteEvent(ctx, event); err != nil {
+			if err = s.scheduler.DeleteEvent(ctx, event); err != nil {
 				return errors.Wrapf(
 					err,
 					"error deleting event %q from scheduler",
@@ -985,7 +985,7 @@ func (s *service) UpdateWorkerStatus(
 		)
 	}
 
-	retries.ManageRetries(
+	if err := retries.ManageRetries(
 		ctx,
 		fmt.Sprintf("obtaining lock on event %q", eventID),
 		5,
@@ -1001,7 +1001,9 @@ func (s *service) UpdateWorkerStatus(
 			// Retry is indicated if a lock was NOT obtained.
 			return !locked, nil
 		},
-	)
+	); err != nil {
+		return err
+	}
 
 	event, err := s.store.GetEvent(ctx, eventID)
 	if err != nil {

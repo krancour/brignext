@@ -126,7 +126,7 @@ func (s *scheduler) CreateProject(
 				Name: "workers",
 			},
 			Rules: []rbacv1.PolicyRule{
-				rbacv1.PolicyRule{
+				{
 					APIGroups: []string{""},
 					Resources: []string{"configmaps", "secrets", "pods", "pods/log"},
 					Verbs:     []string{"create", "get", "list", "watch"},
@@ -172,7 +172,7 @@ func (s *scheduler) CreateProject(
 				Name: "workers",
 			},
 			Subjects: []rbacv1.Subject{
-				rbacv1.Subject{
+				{
 					Kind:      "ServiceAccount",
 					Name:      "workers",
 					Namespace: project.Kubernetes.Namespace,
@@ -241,7 +241,7 @@ func (s *scheduler) CreateProject(
 				Name: "jobs",
 			},
 			Subjects: []rbacv1.Subject{
-				rbacv1.Subject{
+				{
 					Kind:      "ServiceAccount",
 					Name:      "jobs",
 					Namespace: project.Kubernetes.Namespace,
@@ -662,7 +662,7 @@ func (s *scheduler) DeleteEvent(
 		event.Kubernetes.Namespace,
 		labels,
 	); err != nil {
-		errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error deleting event %q config maps in namespace %q",
 			event.ID,
@@ -674,7 +674,7 @@ func (s *scheduler) DeleteEvent(
 		event.Kubernetes.Namespace,
 		labels,
 	); err != nil {
-		errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error deleting event %q config maps in namespace %q",
 			event.ID,
@@ -686,7 +686,7 @@ func (s *scheduler) DeleteEvent(
 		event.Kubernetes.Namespace,
 		labels,
 	); err != nil {
-		errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error deleting event %q secrets in namespace %q",
 			event.ID,
@@ -710,7 +710,7 @@ func (s *scheduler) DeleteWorker(
 		event.Kubernetes.Namespace,
 		labels,
 	); err != nil {
-		errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error deleting event %q worker %q config maps in namespace %q",
 			event.ID,
@@ -723,7 +723,7 @@ func (s *scheduler) DeleteWorker(
 		event.Kubernetes.Namespace,
 		labels,
 	); err != nil {
-		errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error deleting event %q worker %q config maps in namespace %q",
 			event.ID,
@@ -736,7 +736,7 @@ func (s *scheduler) DeleteWorker(
 		event.Kubernetes.Namespace,
 		labels,
 	); err != nil {
-		errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error deleting event %q worker %q secrets in namespace %q",
 			event.ID,

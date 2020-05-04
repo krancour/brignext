@@ -12,6 +12,7 @@ import (
 
 const envconfigPrefix = "OIDC"
 
+// nolint: lll
 type config struct {
 	Enabled bool `envconfig:"ENABLED"`
 	// ProviderURL examples:

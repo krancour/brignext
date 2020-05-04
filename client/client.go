@@ -304,7 +304,10 @@ func (c *client) UnlockUser(_ context.Context, id string) error {
 	return nil
 }
 
-func (c *client) CreateRootSession(_ context.Context, password string) (string, error) {
+func (c *client) CreateRootSession(
+	_ context.Context,
+	password string,
+) (string, error) {
 	req, err := http.NewRequest(
 		http.MethodPost,
 		fmt.Sprintf("%s/v2/sessions", c.apiAddress),
@@ -398,7 +401,10 @@ func (c *client) DeleteSession(context.Context) error {
 	return nil
 }
 
-func (c *client) CreateServiceAccount(_ context.Context, serviceAccount brignext.ServiceAccount) (string, error) {
+func (c *client) CreateServiceAccount(
+	_ context.Context,
+	serviceAccount brignext.ServiceAccount,
+) (string, error) {
 	serviceAccountBytes, err := json.Marshal(serviceAccount)
 	if err != nil {
 		return "", errors.Wrap(err, "error marshaling service account")
@@ -443,7 +449,9 @@ func (c *client) CreateServiceAccount(_ context.Context, serviceAccount brignext
 	return respStruct.Token, nil
 }
 
-func (c *client) GetServiceAccounts(context.Context) ([]brignext.ServiceAccount, error) {
+func (c *client) GetServiceAccounts(
+	context.Context,
+) ([]brignext.ServiceAccount, error) {
 	req, err := c.buildRequest(http.MethodGet, "v2/service-accounts", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating HTTP request")
@@ -498,7 +506,10 @@ func (c *client) GetServiceAccount(
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return serviceAccount, errors.Errorf("received %d from API server", resp.StatusCode)
+		return serviceAccount, errors.Errorf(
+			"received %d from API server",
+			resp.StatusCode,
+		)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
@@ -541,7 +552,10 @@ func (c *client) LockServiceAccount(_ context.Context, id string) error {
 	return nil
 }
 
-func (c *client) UnlockServiceAccount(_ context.Context, id string) (string, error) {
+func (c *client) UnlockServiceAccount(
+	_ context.Context,
+	id string,
+) (string, error) {
 	req, err := c.buildRequest(
 		http.MethodDelete,
 		fmt.Sprintf("v2/service-accounts/%s/lock", id),
@@ -581,7 +595,10 @@ func (c *client) UnlockServiceAccount(_ context.Context, id string) (string, err
 	return respStruct.Token, nil
 }
 
-func (c *client) CreateProject(_ context.Context, project brignext.Project) error {
+func (c *client) CreateProject(
+	_ context.Context,
+	project brignext.Project,
+) error {
 	projectBytes, err := json.Marshal(project)
 	if err != nil {
 		return errors.Wrap(err, "error marshaling project")
@@ -639,7 +656,10 @@ func (c *client) GetProjects(context.Context) ([]brignext.Project, error) {
 	return projects, nil
 }
 
-func (c *client) GetProject(_ context.Context, id string) (brignext.Project, error) {
+func (c *client) GetProject(
+	_ context.Context,
+	id string,
+) (brignext.Project, error) {
 	project := brignext.Project{}
 	req, err := c.buildRequest(
 		http.MethodGet,
@@ -662,7 +682,10 @@ func (c *client) GetProject(_ context.Context, id string) (brignext.Project, err
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return project, errors.Errorf("received %d from API server", resp.StatusCode)
+		return project, errors.Errorf(
+			"received %d from API server",
+			resp.StatusCode,
+		)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
@@ -677,7 +700,10 @@ func (c *client) GetProject(_ context.Context, id string) (brignext.Project, err
 	return project, nil
 }
 
-func (c *client) UpdateProject(_ context.Context, project brignext.Project) error {
+func (c *client) UpdateProject(
+	_ context.Context,
+	project brignext.Project,
+) error {
 	projectBytes, err := json.Marshal(project)
 	if err != nil {
 		return errors.Wrap(err, "error marshaling project")
@@ -935,7 +961,10 @@ func (c *client) GetEvents(context.Context) ([]brignext.Event, error) {
 	return events, nil
 }
 
-func (c *client) GetEventsByProject(_ context.Context, projectID string) ([]brignext.Event, error) {
+func (c *client) GetEventsByProject(
+	_ context.Context,
+	projectID string,
+) ([]brignext.Event, error) {
 	req, err := c.buildRequest(http.MethodGet, "v2/events", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating HTTP request")
@@ -974,7 +1003,10 @@ func (c *client) GetEventsByProject(_ context.Context, projectID string) ([]brig
 	return events, nil
 }
 
-func (c *client) GetEvent(ctx context.Context, id string) (brignext.Event, error) {
+func (c *client) GetEvent(
+	ctx context.Context,
+	id string,
+) (brignext.Event, error) {
 	event := brignext.Event{}
 	req, err := c.buildRequest(
 		http.MethodGet,

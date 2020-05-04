@@ -26,7 +26,8 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 	deleteProcessingStr := r.URL.Query().Get("deleteProcessing")
 	var deleteProcessing bool
 	if deleteProcessingStr != "" {
-		deleteProcessing, _ = strconv.ParseBool(deleteProcessingStr) // nolint: errcheck
+		deleteProcessing, _ =
+			strconv.ParseBool(deleteProcessingStr) // nolint: errcheck
 	}
 
 	if eventID != "" {

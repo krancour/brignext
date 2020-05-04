@@ -56,7 +56,7 @@ func saveConfig(config *config) error {
 	if err != nil {
 		return errors.Wrapf(err, "error finding brignext home")
 	}
-	if _, err := os.Stat(brignextHome); err != nil {
+	if _, err = os.Stat(brignextHome); err != nil {
 		if !os.IsNotExist(err) {
 			return errors.Wrapf(
 				err,
@@ -65,7 +65,7 @@ func saveConfig(config *config) error {
 			)
 		}
 		// The directory doesn't exist-- create it
-		if err := os.MkdirAll(brignextHome, 0755); err != nil {
+		if err = os.MkdirAll(brignextHome, 0755); err != nil {
 			return errors.Wrapf(
 				err,
 				"error creating brignext home at %s",

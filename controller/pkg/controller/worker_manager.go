@@ -21,8 +21,8 @@ func (c *controller) handleProjectWorkerMessage(
 	ctx context.Context,
 	msg messaging.Message,
 ) error {
-	workerContext := workerContext{}
-	if err := json.Unmarshal(msg.Body(), &workerContext); err != nil {
+	workerCtx := workerContext{}
+	if err := json.Unmarshal(msg.Body(), &workerCtx); err != nil {
 		return errors.Wrap(
 			err,
 			"error unmarshaling message body into worker context",
@@ -31,17 +31,17 @@ func (c *controller) handleProjectWorkerMessage(
 
 	// Use the API to find the worker and check if anything even needs to be
 	// done
-	event, err := c.apiClient.GetEvent(ctx, workerContext.EventID)
+	event, err := c.apiClient.GetEvent(ctx, workerCtx.EventID)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving event %q", workerContext.EventID)
+		return errors.Wrapf(err, "error retrieving event %q", workerCtx.EventID)
 	}
-	worker, ok := event.Workers[workerContext.WorkerName]
+	worker, ok := event.Workers[workerCtx.WorkerName]
 	if !ok {
 		// If the event doesn't have a worker by the indicated name, we're done
 		log.Printf(
-			"WARNING: cannot handle unkown worker %q for event %q",
-			workerContext.WorkerName,
-			workerContext.EventID,
+			"WARNING: cannot handle unknown worker %q for event %q",
+			workerCtx.WorkerName,
+			workerCtx.EventID,
 		)
 		return nil
 	}
@@ -59,24 +59,24 @@ func (c *controller) handleProjectWorkerMessage(
 		select {
 		case <-c.availabilityCh:
 			if err :=
-				c.createWorkspacePVC(ctx, event, workerContext.WorkerName); err != nil {
+				c.createWorkspacePVC(ctx, event, workerCtx.WorkerName); err != nil {
 				return errors.Wrapf(
 					err,
 					"error creating workspace for event %q worker %q",
-					workerContext.EventID,
-					workerContext.WorkerName,
+					workerCtx.EventID,
+					workerCtx.WorkerName,
 				)
 			}
 			if err := c.createWorkerPod(
 				ctx,
 				event,
-				workerContext.WorkerName,
+				workerCtx.WorkerName,
 			); err != nil {
 				return errors.Wrapf(
 					err,
 					"error starting pod for event %q worker %q",
-					workerContext.EventID,
-					workerContext.WorkerName,
+					workerCtx.EventID,
+					workerCtx.WorkerName,
 				)
 			}
 		case <-ctx.Done():
@@ -93,15 +93,15 @@ func (c *controller) handleProjectWorkerMessage(
 	for {
 		select {
 		case <-ticker.C:
-			event, err := c.apiClient.GetEvent(ctx, workerContext.EventID)
+			event, err := c.apiClient.GetEvent(ctx, workerCtx.EventID)
 			if err != nil {
 				return errors.Wrapf(
 					err,
 					"error retrieving event %q while polling for completion",
-					workerContext.EventID,
+					workerCtx.EventID,
 				)
 			}
-			worker := event.Workers[workerContext.WorkerName]
+			worker := event.Workers[workerCtx.WorkerName]
 			// If worker phase isn't RUNNING, we're done
 			if worker.Status.Phase != brignext.WorkerPhaseRunning {
 				return nil
@@ -148,7 +148,9 @@ func (c *controller) createWorkspacePVC(
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			StorageClassName: &c.controllerConfig.WorkspaceStorageClass,
-			AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
+			AccessModes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteMany,
+			},
 			Resources: corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
 					"storage": storageQuantity,
@@ -157,7 +159,8 @@ func (c *controller) createWorkspacePVC(
 		},
 	}
 
-	pvcClient := c.kubeClient.CoreV1().PersistentVolumeClaims(event.Kubernetes.Namespace)
+	pvcClient :=
+		c.kubeClient.CoreV1().PersistentVolumeClaims(event.Kubernetes.Namespace)
 	if _, err := pvcClient.Create(
 		ctx,
 		&workspacePVC,
@@ -201,7 +204,7 @@ func (c *controller) createWorkerPod(
 	}
 
 	volumes := []corev1.Volume{
-		corev1.Volume{
+		{
 			Name: "event",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
@@ -209,7 +212,7 @@ func (c *controller) createWorkerPod(
 				},
 			},
 		},
-		corev1.Volume{
+		{
 			Name: "worker",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
@@ -217,7 +220,7 @@ func (c *controller) createWorkerPod(
 				},
 			},
 		},
-		corev1.Volume{
+		{
 			Name: "workspace",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
@@ -228,17 +231,17 @@ func (c *controller) createWorkerPod(
 	}
 
 	volumeMounts := []corev1.VolumeMount{
-		corev1.VolumeMount{
+		{
 			Name:      "event",
 			MountPath: "/var/event",
 			ReadOnly:  true,
 		},
-		corev1.VolumeMount{
+		{
 			Name:      "worker",
 			MountPath: "/var/worker",
 			ReadOnly:  true,
 		},
-		corev1.VolumeMount{
+		{
 			Name:      "workspace",
 			MountPath: "/var/workspace",
 			ReadOnly:  true,
@@ -274,19 +277,19 @@ func (c *controller) createWorkerPod(
 					vcsVolumeMount,
 				},
 				Env: []corev1.EnvVar{
-					corev1.EnvVar{
+					{
 						Name:  "BRIGADE_REMOTE_URL",
 						Value: worker.Git.CloneURL,
 					},
-					corev1.EnvVar{
+					{
 						Name:  "BRIGADE_COMMIT_ID",
 						Value: worker.Git.Commit,
 					},
-					corev1.EnvVar{
+					{
 						Name:  "BRIGADE_COMMIT_REF",
 						Value: worker.Git.Ref,
 					},
-					corev1.EnvVar{
+					{
 						Name: "BRIGADE_REPO_KEY",
 						ValueFrom: &corev1.EnvVarSource{
 							SecretKeyRef: &corev1.SecretKeySelector{
@@ -297,7 +300,7 @@ func (c *controller) createWorkerPod(
 							},
 						},
 					},
-					corev1.EnvVar{
+					{
 						Name: "BRIGADE_REPO_SSH_CERT",
 						ValueFrom: &corev1.EnvVarSource{
 							SecretKeyRef: &corev1.SecretKeySelector{
@@ -308,11 +311,11 @@ func (c *controller) createWorkerPod(
 							},
 						},
 					},
-					corev1.EnvVar{
+					{
 						Name:  "BRIGADE_SUBMODULES",
 						Value: strconv.FormatBool(worker.Git.InitSubmodules),
 					},
-					corev1.EnvVar{
+					{
 						Name:  "BRIGADE_WORKSPACE",
 						Value: "/var/vcs",
 					},
@@ -349,7 +352,7 @@ func (c *controller) createWorkerPod(
 			RestartPolicy:      corev1.RestartPolicyNever,
 			InitContainers:     initContainers,
 			Containers: []corev1.Container{
-				corev1.Container{
+				{
 					Name:            workerName,
 					Image:           image,
 					ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),

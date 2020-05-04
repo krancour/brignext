@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -31,7 +32,8 @@ func jobLogs(c *cli.Context) error {
 	}
 
 	if !follow {
-		logEntries, err := client.GetJobLogs(ctx, eventID, workerName, jobName)
+		var logEntries []brignext.LogEntry
+		logEntries, err = client.GetJobLogs(ctx, eventID, workerName, jobName)
 		if err != nil {
 			return err
 		}

@@ -8,7 +8,9 @@ import (
 	redisMessaging "github.com/krancour/brignext/v2/pkg/messaging/redis"
 )
 
-func (c *controller) defaultManageProjectWorkerQueueConsumers(ctx context.Context) {
+func (c *controller) defaultManageProjectWorkerQueueConsumers(
+	ctx context.Context,
+) {
 	// Maintain a map of functions for canceling the contexts of queue consumers
 	// for each known project.
 	consumerContextCancelFns := map[string]func(){}

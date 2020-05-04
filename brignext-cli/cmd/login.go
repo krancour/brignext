@@ -50,10 +50,12 @@ func login(c *cli.Context) error {
 			}
 		}
 
-		if token, err = client.CreateRootSession(context.TODO(), password); err != nil {
+		if token, err =
+			client.CreateRootSession(context.TODO(), password); err != nil {
 			return err
 		}
-	} else if authURL, token, err = client.CreateUserSession(context.TODO()); err != nil {
+	} else if authURL, token, err =
+		client.CreateUserSession(context.TODO()); err != nil {
 		return err
 	}
 

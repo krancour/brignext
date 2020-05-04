@@ -23,7 +23,8 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if validationResult, err := gojsonschema.Validate(
+	var validationResult *gojsonschema.Result
+	if validationResult, err = gojsonschema.Validate(
 		s.serviceAccountSchemaLoader,
 		gojsonschema.NewBytesLoader(bodyBytes),
 	); err != nil {
@@ -38,7 +39,7 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	serviceAccount := brignext.ServiceAccount{}
-	if err := json.Unmarshal(bodyBytes, &serviceAccount); err != nil {
+	if err = json.Unmarshal(bodyBytes, &serviceAccount); err != nil {
 		log.Println(
 			errors.Wrap(
 				err,

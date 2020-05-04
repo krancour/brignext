@@ -52,8 +52,8 @@ func NewServer(
 		serviceAccountSchemaLoader: gojsonschema.NewBytesLoader(serviceAccountSchemaBytes), // nolint: lll
 		projectSchemaLoader:        gojsonschema.NewBytesLoader(projectSchemaBytes),
 		eventSchemaLoader:          gojsonschema.NewBytesLoader(eventSchemaBytes),
-		workerStatusSchemaLoader:   gojsonschema.NewBytesLoader(workerStatusSchemaBytes),
-		jobStatusSchemaLoader:      gojsonschema.NewBytesLoader(jobStatusSchemaBytes),
+		workerStatusSchemaLoader:   gojsonschema.NewBytesLoader(workerStatusSchemaBytes), // nolint: lll
+		jobStatusSchemaLoader:      gojsonschema.NewBytesLoader(jobStatusSchemaBytes),    // nolint: lll
 	}
 
 	// Most requests are authenticated with a bearer token

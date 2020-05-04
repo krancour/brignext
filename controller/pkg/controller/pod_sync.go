@@ -20,7 +20,7 @@ func (c *controller) syncDeletedPod(obj interface{}) {
 // deletePod deletes a pod after a 60 second delay. The delay is to ensure any
 // log aggregators have a chance to get all logs from a completed pod before it
 // is torpedoed.
-func (c *controller) deletePod(pod corev1.Pod) {
+func (c *controller) deletePod(_ corev1.Pod) {
 	<-time.After(60 * time.Second)
 	// Can't use the podsClient that is stored as a controller attribute. We
 	// need to grab a namespaced one.

@@ -157,7 +157,7 @@ func main() {
 				cli.StringFlag{
 					Name: flagsPassword,
 					Usage: "Specify the password for root user login " +
-						"non-interactively (only applicaple when --root is used)",
+						"non-interactively (only applicable when --root is used)",
 				},
 				cli.BoolFlag{
 					Name:  flagsRoot,
