@@ -11,7 +11,7 @@ COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go build \
   -o bin/github-gateway \
-  -ldflags "-w -X github.com/krancour/brignext/pkg/version.version=$VERSION -X github.com/krancour/brignext/pkg/version.commit=$COMMIT" \
+  -ldflags "-w -X github.com/krancour/brignext/v2/pkg/version.version=$VERSION -X github.com/krancour/brignext/v2/pkg/version.commit=$COMMIT" \
   ./gateways/github/cmd
 
 FROM scratch

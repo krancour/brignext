@@ -162,9 +162,9 @@ build-logger-windows:
 		.
 	docker tag $(DOCKER_IMAGE_PREFIX)brignext-logger-windows:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-logger-windows:$(MUTABLE_DOCKER_TAG)
 
-.PHONTY: build-brig
-build-brig:
-	$(GO_DOCKER_CMD) bash -c "COMMIT=\"$(VERSION)\" COMMIT=\"$(GIT_VERSION)\" scripts/build-brig.sh"
+.PHONTY: build-cli
+build-cli:
+	$(GO_DOCKER_CMD) bash -c "VERSION=\"$(VERSION)\" COMMIT=\"$(GIT_VERSION)\" scripts/build-cli.sh"
 
 .PHONY: push-images
 push-images: push-apiserver push-controller push-worker push-logger-linux
@@ -198,12 +198,23 @@ push-logger-windows: build-logger-windows
 # Let's hack!!!                                                                #
 ################################################################################
 
-.PHONY: hack-initial-install
-hack-initial-install: push-images
-	kubectl create namespace nfs
-	helm install nfs stable/nfs-server-provisioner -n nfs
-	kubectl create namespace brignext
-	helm install brignext charts/brignext -n brignext \
+.PHONY: hack-nfs
+hack-nfs:
+	kubectl get namespace nfs || kubectl create namespace nfs
+	helm upgrade nfs stable/nfs-server-provisioner \
+		--install \
+		--namespace nfs
+
+.PHONY: hack-namespace
+hack-namespace:
+	kubectl get namespace brignext || kubectl create namespace brignext
+
+.PHONY: hack
+hack: push-images build-cli hack-namespace
+	kubectl get namespace brignext || kubectl create namespace brignext
+	helm upgrade brignext charts/brignext \
+		--install \
+		--namespace brignext \
 		--set apiserver.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-apiserver \
 		--set apiserver.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set apiserver.image.pullPolicy=Always \
@@ -217,36 +228,41 @@ hack-initial-install: push-images
 		--set logger.linux.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set logger.linux.image.pullPolicy=Always
 
-.PHONY: hack
-hack: hack-apiserver hack-controller hack-worker hack-logger-linux
-
 .PHONY: hack-apiserver
-hack-apiserver: push-apiserver
-	helm upgrade brignext charts/brignext -n brignext \
+hack-apiserver: push-apiserver hack-namespace
+	helm upgrade brignext charts/brignext \
+		--install \
+		--namespace brignext \
 		--reuse-values \
 		--set apiserver.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-apiserver \
 		--set apiserver.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set apiserver.image.pullPolicy=Always
 
 .PHONY: hack-controller
-hack-controller: push-controller
-	helm upgrade brignext charts/brignext -n brignext \
+hack-controller: push-controller hack-namespace
+	helm upgrade brignext charts/brignext \
+		--install \
+		--namespace brignext \
 		--reuse-values \
 		--set controller.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-controller \
 		--set controller.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set controller.image.pullPolicy=Always
 
 .PHONY: hack-worker
-hack-worker: push-worker
-	helm upgrade brignext charts/brignext -n brignext \
+hack-worker: push-worker hack-namespace
+	helm upgrade brignext charts/brignext \
+		--install \
+		--namespace brignext \
 		--reuse-values \
 		--set worker.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-logger-linux \
 		--set worker.linux.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set worker.linux.image.pullPolicy=Always
 
 .PHONY: hack-logger-linux
-hack-logger-linux: push-logger-linux
-	helm upgrade brignext charts/brignext -n brignext \
+hack-logger-linux: push-logger-linux hack-namespace
+	helm upgrade brignext charts/brignext \
+		--install \
+		--namespace brignext \
 		--reuse-values \
 		--set logger.linux.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-logger-linux \
 		--set logger.linux.image.tag=$(IMMUTABLE_DOCKER_TAG) \
