@@ -25,7 +25,7 @@ spec:
       serviceAccount: {{ include "brignext.apiserver.fullname" . }}
       containers:
       - name: apiserver
-        image: {{ .Values.apiserver.image.repository }}:{{ .Values.apiserver.image.tag }}
+        image: {{ .Values.apiserver.image.repository }}:{{ default .Chart.AppVersion .Values.apiserver.image.tag }}
         imagePullPolicy: {{ .Values.apiserver.image.pullPolicy }}
         args:
         - --logtostderr=true

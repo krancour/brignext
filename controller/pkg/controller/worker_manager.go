@@ -193,13 +193,11 @@ func (c *controller) createWorkerPod(
 
 	image := worker.Container.Image
 	if image == "" {
-		// TODO: HIGH PRIORITY!!! Change this default to one that is configured
-		// in the chart.
-		image = "krancour/brignext-worker:latest" // TODO: Change this
+		image = c.controllerConfig.DefaultWorkerImage
 	}
 	imagePullPolicy := worker.Container.ImagePullPolicy
 	if imagePullPolicy == "" {
-		imagePullPolicy = "Always" // TODO: Change this
+		imagePullPolicy = c.controllerConfig.DefaultWorkerImagePullPolicy
 	}
 
 	volumes := []corev1.Volume{

@@ -10,7 +10,6 @@ workerConfigs:
       types:
       - exec
     container:
-      imagePullPolicy: Always
       environment:
         FOO: bar
     workspaceSize: 10Gi

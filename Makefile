@@ -210,12 +210,15 @@ hack-initial-install: push-images
 		--set controller.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-controller \
 		--set controller.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set controller.image.pullPolicy=Always \
+		--set worker.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-worker \
+		--set worker.image.tag=$(IMMUTABLE_DOCKER_TAG) \
+		--set worker.image.pullPolicy=Always \
 		--set logger.linux.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-logger-linux \
 		--set logger.linux.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set logger.linux.image.pullPolicy=Always
 
 .PHONY: hack
-hack: hack-apiserver hack-controller hack-worker
+hack: hack-apiserver hack-controller hack-worker hack-logger-linux
 
 .PHONY: hack-apiserver
 hack-apiserver: push-apiserver
@@ -233,6 +236,14 @@ hack-controller: push-controller
 		--set controller.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set controller.image.pullPolicy=Always
 
+.PHONY: hack-worker
+hack-worker: push-worker
+	helm upgrade brignext charts/brignext -n brignext \
+		--reuse-values \
+		--set worker.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-logger-linux \
+		--set worker.linux.image.tag=$(IMMUTABLE_DOCKER_TAG) \
+		--set worker.linux.image.pullPolicy=Always
+
 .PHONY: hack-logger-linux
 hack-logger-linux: push-logger-linux
 	helm upgrade brignext charts/brignext -n brignext \
@@ -240,6 +251,3 @@ hack-logger-linux: push-logger-linux
 		--set logger.linux.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-logger-linux \
 		--set logger.linux.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set logger.linux.image.pullPolicy=Always
-
-.PHONY: hack-worker
-hack-worker: push-worker

@@ -21,7 +21,7 @@ spec:
       serviceAccount: {{ include "brignext.logger.fullname" . }}
       containers:
       - name: logger
-        image: {{ .Values.logger.windows.image.repository }}:{{ .Values.logger.windows.image.tag }}
+        image: {{ .Values.logger.windows.image.repository }}:{{ default .Chart.AppVersion .Values.logger.windows.image.tag }}
         imagePullPolicy: {{ .Values.logger.windows.image.pullPolicy }}
         volumeMounts:
         - name: var-log

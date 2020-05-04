@@ -20,7 +20,7 @@ spec:
       serviceAccount: {{ include "brignext.controller.fullname" . }}
       containers:
       - name: controller
-        image: {{ .Values.controller.image.repository }}:{{ .Values.controller.image.tag }}
+        image: {{ .Values.controller.image.repository }}:{{ default .Chart.AppVersion .Values.controller.image.tag }}
         imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
         args:
         - --logtostderr=true
@@ -38,6 +38,10 @@ spec:
               key: api-token
         - name: IGNORE_API_CERT_WARNINGS
           value: {{ quote (and .Values.apiserver.tls.enabled .Values.controller.tls.ignoreCertWarnings) }}
+        - name: DEFAULT_WORKER_IMAGE
+          value: {{ .Values.worker.image.repository }}:{{ default .Chart.AppVersion .Values.worker.image.tag }}
+        - name: DEFAULT_WORKER_IMAGE_PULL_POLICY
+          value: {{ .Values.worker.image.pullPolicy }}
         - name: WORKSPACE_STORAGE_CLASS
           value: {{ .Values.controller.workspaceStorageClass }}
         - name: REDIS_HOST

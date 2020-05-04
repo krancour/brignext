@@ -17,8 +17,10 @@ apiserver:
 
   image:
     repository: krancour/brignext-apiserver
-    tag: latest
-    pullPolicy: Always
+    ## tag should only be specified if you want to override Chart.appVersion
+    ## The default tag is the value of .Chart.AppVersion
+    # tag:
+    pullPolicy: IfNotPresent
 
   rootUser:
     enabled: true
@@ -128,8 +130,10 @@ controller:
 
   image:
     repository: krancour/brignext-controller
-    tag: latest
-    pullPolicy: Always
+    ## tag should only be specified if you want to override Chart.appVersion
+    ## The default tag is the value of .Chart.AppVersion
+    # tag:
+    pullPolicy: IfNotPresent
 
   tls:
     ignoreCertWarnings: true
@@ -152,14 +156,25 @@ controller:
 
   tolerations: []
 
+worker:
+
+  image:
+    repository: krancour/brignext-worker
+    ## tag should only be specified if you want to override Chart.appVersion
+    ## The default tag is the value of .Chart.AppVersion
+    # tag:
+    pullPolicy: IfNotPresent
+
 logger:
 
   linux:
 
     image:
       repository: krancour/brignext-logger-linux
-      tag: latest
-      pullPolicy: Always
+      ## tag should only be specified if you want to override Chart.appVersion
+      ## The default tag is the value of .Chart.AppVersion
+      # tag:
+      pullPolicy: IfNotPresent
 
     resources: {}
       # We usually recommend not to specify default resources and to leave this as a conscious
@@ -182,8 +197,10 @@ logger:
 
     image:
       repository: krancour/brignext-logger-windows
-      tag: latest
-      pullPolicy: Always
+      ## tag should only be specified if you want to override Chart.appVersion
+      ## The default tag is the value of .Chart.AppVersion
+      # tag:
+      pullPolicy: IfNotPresent
 
     resources: {}
       # We usually recommend not to specify default resources and to leave this as a conscious

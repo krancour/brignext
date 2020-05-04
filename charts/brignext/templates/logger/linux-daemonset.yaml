@@ -21,7 +21,7 @@ spec:
       serviceAccount: {{ include "brignext.logger.fullname" . }}
       containers:
       - name: logger
-        image: {{ .Values.logger.linux.image.repository }}:{{ .Values.logger.linux.image.tag }}
+        image: {{ .Values.logger.linux.image.repository }}:{{ default .Chart.AppVersion .Values.logger.linux.image.tag }}
         imagePullPolicy: {{ .Values.logger.linux.image.pullPolicy }}
         volumeMounts:
         - name: var-log
