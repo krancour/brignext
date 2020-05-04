@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -13,12 +12,12 @@ import (
 	"github.com/gosuri/uitable"
 
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func serviceAccountList(c *cli.Context) error {
 	// Args
-	if len(c.Args()) != 0 {
+	if c.Args().Len() != 0 {
 		return errors.New("service-account list requires no arguments")
 	}
 
@@ -34,7 +33,7 @@ func serviceAccountList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	serviceAccounts, err := client.GetServiceAccounts(context.TODO())
+	serviceAccounts, err := client.GetServiceAccounts(c.Context)
 	if err != nil {
 		return err
 	}

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -9,12 +8,12 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func userList(c *cli.Context) error {
 	// Args
-	if len(c.Args()) != 0 {
+	if c.Args().Len() != 0 {
 		return errors.New("user list requires no arguments")
 	}
 
@@ -30,7 +29,7 @@ func userList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	users, err := client.GetUsers(context.TODO())
+	users, err := client.GetUsers(c.Context)
 	if err != nil {
 		return err
 	}

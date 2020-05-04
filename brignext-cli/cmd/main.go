@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/urfave/cli"
+	"github.com/krancour/brignext/v2/pkg/signals"
+	"github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -12,29 +13,29 @@ func main() {
 	app.Name = "brignext"
 	app.Usage = "Is this what Brigade 2.0 looks like?"
 	app.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  flagsInsecure,
-			Usage: "Allow insecure API server connections when using TLS",
+		&cli.BoolFlag{
+			Name:    flagInsecure,
+			Aliases: []string{"k"},
+			Usage:   "Allow insecure API server connections when using TLS",
 		},
 	}
-	app.Commands = []cli.Command{
+	app.Commands = []*cli.Command{
 		{
 			Name:  "event",
 			Usage: "Manage events",
-			Subcommands: []cli.Command{
+			Subcommands: []*cli.Command{
 				{
 					Name:        "cancel",
 					Usage:       "Cancel event(s) without deleting them",
 					Description: "By default, only cancels events in a PENDING state.",
 					ArgsUsage:   "[EVENT_ID]",
 					Flags: []cli.Flag{
-						cli.BoolFlag{
-							Name: flagsProcessing,
-							Usage: "If set, will also abort events in a PROCESSING state " +
-								"(default: false)",
+						&cli.BoolFlag{
+							Name:  flagProcessing,
+							Usage: "If set, will also abort events in a PROCESSING state",
 						},
-						cli.StringFlag{
-							Name: flagsProject,
+						&cli.StringFlag{
+							Name: flagProject,
 							Usage: "Cancel all events for the specified project " +
 								"(ignores EVENT_ID argument)",
 						},
@@ -46,23 +47,26 @@ func main() {
 					Usage:     "Create a new event",
 					ArgsUsage: "PROJECT_ID",
 					Flags: []cli.Flag{
-						cli.StringFlag{
-							Name:  flagsPayload,
-							Usage: "The event payload",
+						&cli.StringFlag{
+							Name:    flagPayload,
+							Aliases: []string{"p"},
+							Usage:   "The event payload",
 						},
-						cli.StringFlag{
-							Name:  flagsPayloadFile,
+						&cli.StringFlag{
+							Name:  flagPayloadFile,
 							Usage: "The location of a file containing the event payload",
 						},
-						cli.StringFlag{
-							Name:  flagsSource,
-							Usage: "The event source",
-							Value: "brignext-cli",
+						&cli.StringFlag{
+							Name:    flagSource,
+							Aliases: []string{"s"},
+							Usage:   "The event source",
+							Value:   "brignext-cli",
 						},
-						cli.StringFlag{
-							Name:  flagsType,
-							Usage: "The event type",
-							Value: "exec",
+						&cli.StringFlag{
+							Name:    flagType,
+							Aliases: []string{"t"},
+							Usage:   "The event type",
+							Value:   "exec",
 						},
 					},
 					Action: eventCreate,
@@ -74,18 +78,17 @@ func main() {
 						"(neither PENDING nor PROCESSING).",
 					ArgsUsage: "[EVENT_ID]",
 					Flags: []cli.Flag{
-						cli.BoolFlag{
-							Name: flagsPending,
-							Usage: "If set, will also delete events in a PENDING state " +
-								"(default: false)",
+						&cli.BoolFlag{
+							Name:  flagPending,
+							Usage: "If set, will also delete events in a PENDING state",
 						},
-						cli.BoolFlag{
-							Name: flagsProcessing,
+						&cli.BoolFlag{
+							Name: flagProcessing,
 							Usage: "If set, will also abort and delete events in a " +
-								"PROCESSING state (default: false)",
+								"PROCESSING state",
 						},
-						cli.StringFlag{
-							Name: flagsProject,
+						&cli.StringFlag{
+							Name: flagProject,
 							Usage: "Delete all events for the specified project " +
 								"(ignores EVENT_ID argument)",
 						},
@@ -106,8 +109,8 @@ func main() {
 					Usage: "List events",
 					Flags: []cli.Flag{
 						cliFlagOutput,
-						cli.StringFlag{
-							Name:  flagsProject,
+						&cli.StringFlag{
+							Name:  flagProject,
 							Usage: "Return events only for the specified project",
 						},
 					},
@@ -118,7 +121,7 @@ func main() {
 		{
 			Name:  "job",
 			Usage: "Manage jobs",
-			Subcommands: []cli.Command{
+			Subcommands: []*cli.Command{
 				{
 					Name:      "get",
 					Usage:     "Get a job",
@@ -133,9 +136,10 @@ func main() {
 					Usage:     "Get job logs",
 					ArgsUsage: "EVENT_ID WORKER_NAME JOB_NAME",
 					Flags: []cli.Flag{
-						cli.BoolFlag{
-							Name:  flagsFollow,
-							Usage: "If set, will stream job logs until interrupted",
+						&cli.BoolFlag{
+							Name:    flagFollow,
+							Aliases: []string{"f"},
+							Usage:   "If set, will stream job logs until interrupted",
 						},
 					},
 					Action: jobLogs,
@@ -149,19 +153,22 @@ func main() {
 			Description: "By default, initiates authentication using OpenID " +
 				"Connect. This may not be supported by all BrigNext API servers.",
 			Flags: []cli.Flag{
-				cli.BoolFlag{
-					Name: flagsBrowse,
+				&cli.BoolFlag{
+					Name:    flagBrowse,
+					Aliases: []string{"b"},
 					Usage: "Use the system's default web browser to complete " +
 						"authentication (not applicable when --root is used)",
 				},
-				cli.StringFlag{
-					Name: flagsPassword,
+				&cli.StringFlag{
+					Name:    flagPassword,
+					Aliases: []string{"p"},
 					Usage: "Specify the password for root user login " +
 						"non-interactively (only applicable when --root is used)",
 				},
-				cli.BoolFlag{
-					Name:  flagsRoot,
-					Usage: "Log in as the root user (does not use OpenID Connect)",
+				&cli.BoolFlag{
+					Name:    flagRoot,
+					Aliases: []string{"r"},
+					Usage:   "Log in as the root user (does not use OpenID Connect)",
 				},
 			},
 			Action: login,
@@ -174,7 +181,7 @@ func main() {
 		{
 			Name:  "project",
 			Usage: "Manage projects",
-			Subcommands: []cli.Command{
+			Subcommands: []*cli.Command{
 				{
 					Name:      "create",
 					Usage:     "Create a new project",
@@ -215,7 +222,7 @@ func main() {
 		{
 			Name:  "secrets",
 			Usage: "Manage worker secrets",
-			Subcommands: []cli.Command{
+			Subcommands: []*cli.Command{
 				{
 					Name:      "list",
 					Usage:     "List a worker's secrets",
@@ -243,15 +250,16 @@ func main() {
 		{
 			Name:  "service-account",
 			Usage: "Manage service accounts",
-			Subcommands: []cli.Command{
+			Subcommands: []*cli.Command{
 				{
 					Name:      "create",
 					Usage:     "Create a new service account",
 					ArgsUsage: "[SERVICE_ACCOUNT_ID]",
 					Flags: []cli.Flag{
-						cli.StringFlag{
-							Name:  flagsDescription,
-							Usage: "A description of the service account",
+						&cli.StringFlag{
+							Name:    flagDescription,
+							Aliases: []string{"d"},
+							Usage:   "A description of the service account",
 						},
 					},
 					Action: serviceAccountCreate,
@@ -290,7 +298,7 @@ func main() {
 		{
 			Name:  "user",
 			Usage: "Manage users",
-			Subcommands: []cli.Command{
+			Subcommands: []*cli.Command{
 				{
 					Name:      "get",
 					Usage:     "Get a user",
@@ -325,17 +333,17 @@ func main() {
 		{
 			Name:  "worker",
 			Usage: "Manage workers",
-			Subcommands: []cli.Command{
+			Subcommands: []*cli.Command{
 				{
 					Name:        "cancel",
 					Usage:       "Cancel a worker",
 					Description: "By default, only cancels workers in a PENDING state.",
 					ArgsUsage:   "WORKER_ID",
 					Flags: []cli.Flag{
-						cli.BoolFlag{
-							Name: flagsRunning,
-							Usage: "If set, will abort a worker in a RUNNING state " +
-								"(default: false)",
+						&cli.BoolFlag{
+							Name:    flagRunning,
+							Aliases: []string{"r"},
+							Usage:   "If set, will abort a worker in a RUNNING state",
 						},
 					},
 					Action: workerCancel,
@@ -354,9 +362,10 @@ func main() {
 					Usage:     "Get worker logs",
 					ArgsUsage: "EVENT_ID WORKER_NAME",
 					Flags: []cli.Flag{
-						cli.BoolFlag{
-							Name:  flagsFollow,
-							Usage: "If set, will stream worker logs until interrupted",
+						&cli.BoolFlag{
+							Name:    flagFollow,
+							Aliases: []string{"f"},
+							Usage:   "If set, will stream worker logs until interrupted",
 						},
 					},
 					Action: workerLogs,
@@ -365,7 +374,7 @@ func main() {
 		},
 	}
 	fmt.Println()
-	if err := app.Run(os.Args); err != nil {
+	if err := app.RunContext(signals.Context(), os.Args); err != nil {
 		fmt.Printf("\n%s\n\n", err)
 		os.Exit(1)
 	}

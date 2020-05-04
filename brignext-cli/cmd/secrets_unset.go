@@ -1,24 +1,23 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func secretsUnset(c *cli.Context) error {
 	// Args
-	if len(c.Args()) < 2 {
+	if c.Args().Len() < 2 {
 		return errors.New(
 			"secrets unset requires at least two arguments-- a project ID, " +
 				"a worker name, and a secret key",
 		)
 	}
-	projectID := c.Args()[0]
-	workerName := c.Args()[1]
-	keys := c.Args()[2:]
+	projectID := c.Args().Get(0)
+	workerName := c.Args().Get(1)
+	keys := c.Args().Slice()[2:]
 
 	client, err := getClient(c)
 	if err != nil {
@@ -26,7 +25,7 @@ func secretsUnset(c *cli.Context) error {
 	}
 
 	if err := client.UnsetSecrets(
-		context.TODO(),
+		c.Context,
 		projectID,
 		workerName,
 		keys,

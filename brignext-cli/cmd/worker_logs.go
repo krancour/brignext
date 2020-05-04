@@ -1,25 +1,22 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func workerLogs(c *cli.Context) error {
-	ctx := context.TODO()
-
 	// Args
-	if len(c.Args()) != 2 {
+	if c.Args().Len() != 2 {
 		return errors.New(
 			"worker logs requires two arguments-- an event ID and a worker name",
 		)
 	}
-	eventID := c.Args()[0]
-	workerName := c.Args()[1]
+	eventID := c.Args().Get(0)
+	workerName := c.Args().Get(1)
 
 	// Command-specific flags
 	follow := c.Bool(flagFollow)
@@ -31,7 +28,7 @@ func workerLogs(c *cli.Context) error {
 
 	if !follow {
 		var logEntries []brignext.LogEntry
-		logEntries, err = client.GetWorkerLogs(ctx, eventID, workerName)
+		logEntries, err = client.GetWorkerLogs(c.Context, eventID, workerName)
 		if err != nil {
 			return err
 		}
@@ -41,7 +38,11 @@ func workerLogs(c *cli.Context) error {
 		return nil
 	}
 
-	logEntryCh, errCh, err := client.StreamWorkerLogs(ctx, eventID, workerName)
+	logEntryCh, errCh, err := client.StreamWorkerLogs(
+		c.Context,
+		eventID,
+		workerName,
+	)
 	if err != nil {
 		return err
 	}
@@ -51,7 +52,7 @@ func workerLogs(c *cli.Context) error {
 			fmt.Print(logEntry.Message)
 		case err := <-errCh:
 			return err
-		case <-ctx.Done():
+		case <-c.Context.Done():
 			return nil
 		}
 	}

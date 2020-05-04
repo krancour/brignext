@@ -1,11 +1,10 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func eventCancel(c *cli.Context) error {
@@ -16,13 +15,13 @@ func eventCancel(c *cli.Context) error {
 	// Args
 	var eventID string
 	if projectID == "" {
-		if len(c.Args()) != 1 {
+		if c.Args().Len() != 1 {
 			return errors.New(
 				"event cancel requires one argument-- an event ID",
 			)
 		}
-		eventID = c.Args()[0]
-	} else if len(c.Args()) != 0 {
+		eventID = c.Args().Get(0)
+	} else if c.Args().Len() != 0 {
 		return errors.New(
 			"event cancel requires no arguments when the --project flag is used",
 		)
@@ -36,7 +35,7 @@ func eventCancel(c *cli.Context) error {
 	if eventID != "" {
 		var canceled bool
 		if canceled, err = client.CancelEvent(
-			context.TODO(),
+			c.Context,
 			eventID,
 			cancelProcessing,
 		); err != nil {
@@ -53,7 +52,7 @@ func eventCancel(c *cli.Context) error {
 	}
 
 	canceled, err := client.CancelEventsByProject(
-		context.TODO(),
+		c.Context,
 		projectID,
 		cancelProcessing,
 	)

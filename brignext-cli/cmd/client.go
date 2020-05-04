@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func getClient(c *cli.Context) (brignext.Client, error) {
@@ -14,6 +14,6 @@ func getClient(c *cli.Context) (brignext.Client, error) {
 	return brignext.NewClient(
 		config.APIAddress,
 		config.APIToken,
-		c.GlobalBool(flagInsecure),
+		c.Bool(flagInsecure),
 	), nil
 }

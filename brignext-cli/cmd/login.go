@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,17 +10,17 @@ import (
 
 	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func login(c *cli.Context) error {
 	// Args
-	if len(c.Args()) != 1 {
+	if c.Args().Len() != 1 {
 		return errors.New(
 			"login requires one argument-- the address of the API server",
 		)
 	}
-	address := c.Args()[0]
+	address := c.Args().Get(0)
 
 	// Command-specific flags
 	browseToAuthURL := c.Bool(flagBrowse)
@@ -31,7 +30,7 @@ func login(c *cli.Context) error {
 	client := brignext.NewClient(
 		address,
 		"",
-		c.GlobalBool(flagInsecure),
+		c.Bool(flagInsecure),
 	)
 
 	var token, authURL string
@@ -51,11 +50,11 @@ func login(c *cli.Context) error {
 		}
 
 		if token, err =
-			client.CreateRootSession(context.TODO(), password); err != nil {
+			client.CreateRootSession(c.Context, password); err != nil {
 			return err
 		}
 	} else if authURL, token, err =
-		client.CreateUserSession(context.TODO()); err != nil {
+		client.CreateUserSession(c.Context); err != nil {
 		return err
 	}
 

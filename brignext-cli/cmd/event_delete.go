@@ -1,11 +1,10 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func eventDelete(c *cli.Context) error {
@@ -17,13 +16,13 @@ func eventDelete(c *cli.Context) error {
 	// Args
 	var eventID string
 	if projectID == "" {
-		if len(c.Args()) != 1 {
+		if c.Args().Len() != 1 {
 			return errors.New(
 				"event delete requires one argument-- an event ID",
 			)
 		}
-		eventID = c.Args()[0]
-	} else if len(c.Args()) != 0 {
+		eventID = c.Args().Get(0)
+	} else if c.Args().Len() != 0 {
 		return errors.New(
 			"event delete requires no arguments when the --project flag is used",
 		)
@@ -37,7 +36,7 @@ func eventDelete(c *cli.Context) error {
 	if eventID != "" {
 		var deleted bool
 		if deleted, err = client.DeleteEvent(
-			context.TODO(),
+			c.Context,
 			eventID,
 			deletePending,
 			deleteProcessing,
@@ -55,7 +54,7 @@ func eventDelete(c *cli.Context) error {
 	}
 
 	deleted, err := client.DeleteEventsByProject(
-		context.TODO(),
+		c.Context,
 		projectID,
 		deletePending,
 		deleteProcessing,

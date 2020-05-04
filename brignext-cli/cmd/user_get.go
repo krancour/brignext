@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -9,17 +8,17 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func userGet(c *cli.Context) error {
 	// Args
-	if len(c.Args()) != 1 {
+	if c.Args().Len() != 1 {
 		return errors.New(
 			"user get requires one argument-- a user ID",
 		)
 	}
-	id := c.Args()[0]
+	id := c.Args().Get(0)
 
 	// Command-specific flags
 	output := c.String(flagOutput)
@@ -33,7 +32,7 @@ func userGet(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	user, err := client.GetUser(context.TODO(), id)
+	user, err := client.GetUser(c.Context, id)
 	if err != nil {
 		return err
 	}

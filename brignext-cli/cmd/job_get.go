@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -10,21 +9,21 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"k8s.io/apimachinery/pkg/util/duration"
 )
 
 func jobGet(c *cli.Context) error {
 	// Args
-	if len(c.Args()) != 3 {
+	if c.Args().Len() != 3 {
 		return errors.New(
 			"job get requires three arguments-- an event ID, a worker name, " +
 				"and a job name",
 		)
 	}
-	eventID := c.Args()[0]
-	workerName := c.Args()[1]
-	jobName := c.Args()[2]
+	eventID := c.Args().Get(0)
+	workerName := c.Args().Get(1)
+	jobName := c.Args().Get(2)
 
 	// Command-specific flags
 	output := c.String(flagOutput)
@@ -38,7 +37,7 @@ func jobGet(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	job, err := client.GetJob(context.TODO(), eventID, workerName, jobName)
+	job, err := client.GetJob(c.Context, eventID, workerName, jobName)
 	if err != nil {
 		return err
 	}

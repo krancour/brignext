@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -10,13 +9,13 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"k8s.io/apimachinery/pkg/util/duration"
 )
 
 func projectList(c *cli.Context) error {
 	// Args
-	if len(c.Args()) != 0 {
+	if c.Args().Len() != 0 {
 		return errors.New("project list requires no arguments")
 	}
 
@@ -32,7 +31,7 @@ func projectList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	projects, err := client.GetProjects(context.TODO())
+	projects, err := client.GetProjects(c.Context)
 	if err != nil {
 		return err
 	}

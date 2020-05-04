@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -10,15 +9,15 @@ import (
 	"github.com/krancour/brignext/v2"
 
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func serviceAccountCreate(c *cli.Context) error {
 	// Args
 	var id string
-	if len(c.Args()) == 1 {
-		id = c.Args()[0]
-	} else if len(c.Args()) != 0 {
+	if c.Args().Len() == 1 {
+		id = c.Args().Get(0)
+	} else if c.Args().Len() != 0 {
 		return errors.New(
 			"service-account create requires, at most, one argument-- the new " +
 				"service account ID",
@@ -63,7 +62,7 @@ func serviceAccountCreate(c *cli.Context) error {
 	}
 
 	token, err := client.CreateServiceAccount(
-		context.TODO(),
+		c.Context,
 		brignext.ServiceAccount{
 			ID:          id,
 			Description: description,

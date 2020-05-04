@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -12,17 +11,17 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func serviceAccountGet(c *cli.Context) error {
 	// Args
-	if len(c.Args()) != 1 {
+	if c.Args().Len() != 1 {
 		return errors.New(
 			"service-account get requires one argument-- a service account ID ",
 		)
 	}
-	id := c.Args()[0]
+	id := c.Args().Get(0)
 
 	// Command-specific flags
 	output := c.String(flagOutput)
@@ -36,7 +35,7 @@ func serviceAccountGet(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	serviceAccount, err := client.GetServiceAccount(context.TODO(), id)
+	serviceAccount, err := client.GetServiceAccount(c.Context, id)
 	if err != nil {
 		return err
 	}

@@ -1,25 +1,24 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 
 	"github.com/krancour/brignext/v2"
 	"github.com/krancour/brignext/v2/pkg/file"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func eventCreate(c *cli.Context) error {
 	// Args
-	if len(c.Args()) != 1 {
+	if c.Args().Len() != 1 {
 		return errors.New(
 			"event create requires one argument-- a project ID " +
 				"for for which an event should be created",
 		)
 	}
-	projectID := c.Args()[0]
+	projectID := c.Args().Get(0)
 
 	// Command-specific flags
 	payload := c.String(flagPayload)
@@ -59,7 +58,7 @@ func eventCreate(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	eventID, err := client.CreateEvent(context.TODO(), event)
+	eventID, err := client.CreateEvent(c.Context, event)
 	if err != nil {
 		return err
 	}

@@ -1,16 +1,15 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func logout(c *cli.Context) error {
 	// Args
-	if len(c.Args()) != 0 {
+	if c.Args().Len() != 0 {
 		return errors.New("logout requires no arguments")
 	}
 
@@ -22,7 +21,7 @@ func logout(c *cli.Context) error {
 	// We're ignoring any error here because even if the session wasn't found
 	// and deleted server-side, we still want to move on to destroying the local
 	// token.
-	client.DeleteSession(context.TODO()) // nolint: errcheck
+	client.DeleteSession(c.Context) // nolint: errcheck
 
 	if err := deleteConfig(); err != nil {
 		return errors.Wrap(err, "error deleting configuration")

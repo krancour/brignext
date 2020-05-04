@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -11,13 +10,13 @@ import (
 	"github.com/gosuri/uitable"
 	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"k8s.io/apimachinery/pkg/util/duration"
 )
 
 func eventList(c *cli.Context) error {
 	// Args
-	if len(c.Args()) != 0 {
+	if c.Args().Len() != 0 {
 		return errors.New(
 			"event list requires no arguments",
 		)
@@ -38,9 +37,9 @@ func eventList(c *cli.Context) error {
 
 	var events []brignext.Event
 	if projectID == "" {
-		events, err = client.GetEvents(context.TODO())
+		events, err = client.GetEvents(c.Context)
 	} else {
-		events, err = client.GetEventsByProject(context.TODO(), projectID)
+		events, err = client.GetEventsByProject(c.Context, projectID)
 	}
 	if err != nil {
 		return err

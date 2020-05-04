@@ -1,27 +1,24 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func jobLogs(c *cli.Context) error {
-	ctx := context.TODO()
-
 	// Args
-	if len(c.Args()) != 3 {
+	if c.Args().Len() != 3 {
 		return errors.New(
 			"job logs requires three arguments-- an event ID, a worker name, " +
 				"and a job name",
 		)
 	}
-	eventID := c.Args()[0]
-	workerName := c.Args()[1]
-	jobName := c.Args()[2]
+	eventID := c.Args().Get(0)
+	workerName := c.Args().Get(1)
+	jobName := c.Args().Get(2)
 
 	// Command-specific flags
 	follow := c.Bool(flagFollow)
@@ -33,7 +30,7 @@ func jobLogs(c *cli.Context) error {
 
 	if !follow {
 		var logEntries []brignext.LogEntry
-		logEntries, err = client.GetJobLogs(ctx, eventID, workerName, jobName)
+		logEntries, err = client.GetJobLogs(c.Context, eventID, workerName, jobName)
 		if err != nil {
 			return err
 		}
@@ -44,7 +41,7 @@ func jobLogs(c *cli.Context) error {
 	}
 
 	logEntryCh, errCh, err := client.StreamJobLogs(
-		ctx,
+		c.Context,
 		eventID,
 		workerName,
 		jobName,
@@ -58,7 +55,7 @@ func jobLogs(c *cli.Context) error {
 			fmt.Print(logEntry.Message)
 		case err := <-errCh:
 			return err
-		case <-ctx.Done():
+		case <-c.Context.Done():
 			return nil
 		}
 	}

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -10,18 +9,18 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"k8s.io/apimachinery/pkg/util/duration"
 )
 
 func eventGet(c *cli.Context) error {
 	// Args
-	if len(c.Args()) != 1 {
+	if c.Args().Len() != 1 {
 		return errors.New(
 			"event get requires one argument-- an event ID",
 		)
 	}
-	id := c.Args()[0]
+	id := c.Args().Get(0)
 
 	// Command-specific flags
 	output := c.String(flagOutput)
@@ -35,7 +34,7 @@ func eventGet(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	event, err := client.GetEvent(context.TODO(), id)
+	event, err := client.GetEvent(c.Context, id)
 	if err != nil {
 		return err
 	}

@@ -1,11 +1,10 @@
 package main
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func workerCancel(c *cli.Context) error {
@@ -13,13 +12,13 @@ func workerCancel(c *cli.Context) error {
 	cancelRunning := c.Bool(flagRunning)
 
 	// Args
-	if len(c.Args()) != 2 {
+	if c.Args().Len() != 2 {
 		return errors.New(
 			"worker cancel requires two arguments-- thr event ID and worker name",
 		)
 	}
-	eventID := c.Args()[0]
-	workerName := c.Args()[1]
+	eventID := c.Args().Get(0)
+	workerName := c.Args().Get(1)
 
 	client, err := getClient(c)
 	if err != nil {
@@ -27,7 +26,7 @@ func workerCancel(c *cli.Context) error {
 	}
 
 	if canceled, err := client.CancelWorker(
-		context.TODO(),
+		c.Context,
 		eventID,
 		workerName,
 		cancelRunning,

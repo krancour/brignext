@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,18 +9,18 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func projectUpdate(c *cli.Context) error {
 	// Args
-	if len(c.Args()) != 1 {
+	if c.Args().Len() != 1 {
 		return errors.New(
 			"project update requires one argument-- a path to a file containing a " +
 				"project definition",
 		)
 	}
-	filename := c.Args()[0]
+	filename := c.Args().Get(0)
 
 	// Read and parse the file
 	projectBytes, err := ioutil.ReadFile(filename)
@@ -45,7 +44,7 @@ func projectUpdate(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err := client.UpdateProject(context.TODO(), project); err != nil {
+	if err := client.UpdateProject(c.Context, project); err != nil {
 		return err
 	}
 

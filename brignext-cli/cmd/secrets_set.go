@@ -1,26 +1,25 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 )
 
 func secretsSet(c *cli.Context) error {
 	// Args
-	if len(c.Args()) < 3 {
+	if c.Args().Len() < 3 {
 		return errors.New(
 			"secrets set requires at least three arguments-- a project ID, " +
 				"a worker name, and a secret key/value pair delimited by an " +
 				"= character",
 		)
 	}
-	projectID := c.Args()[0]
-	workerName := c.Args()[1]
-	kvPairs := c.Args()[2:]
+	projectID := c.Args().Get(0)
+	workerName := c.Args().Get(1)
+	kvPairs := c.Args().Slice()[2:]
 
 	secrets := map[string]string{}
 	for _, kvPair := range kvPairs {
@@ -37,7 +36,7 @@ func secretsSet(c *cli.Context) error {
 	}
 
 	if err := client.SetSecrets(
-		context.TODO(),
+		c.Context,
 		projectID,
 		workerName,
 		secrets,
