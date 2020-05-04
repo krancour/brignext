@@ -5,7 +5,6 @@ ENV CGO_ENABLED=0
 WORKDIR /src
 COPY gateways/github/ gateways/github/
 COPY pkg/ pkg/
-COPY client/ client/
 COPY *.go ./
 COPY vendor/ vendor/
 COPY go.mod go.mod

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	"github.com/krancour/brignext/v2/client"
+	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -19,7 +19,7 @@ type Controller interface {
 
 type controller struct {
 	controllerConfig Config
-	apiClient        client.Client
+	apiClient        brignext.Client
 	redisClient      *redis.Client
 	kubeClient       *kubernetes.Clientset
 
@@ -47,7 +47,7 @@ type controller struct {
 
 func NewController(
 	controllerConfig Config,
-	apiClient client.Client,
+	apiClient brignext.Client,
 	redisClient *redis.Client,
 	kubeClient *kubernetes.Clientset,
 ) Controller {

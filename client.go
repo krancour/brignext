@@ -1,4 +1,4 @@
-package client
+package brignext
 
 import (
 	"bytes"
@@ -10,13 +10,12 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
 )
 
 type Client interface {
-	GetUsers(context.Context) ([]brignext.User, error)
-	GetUser(context.Context, string) (brignext.User, error)
+	GetUsers(context.Context) ([]User, error)
+	GetUser(context.Context, string) (User, error)
 	LockUser(context.Context, string) error
 	UnlockUser(context.Context, string) error
 
@@ -24,19 +23,19 @@ type Client interface {
 	CreateUserSession(context.Context) (string, string, error)
 	DeleteSession(context.Context) error
 
-	CreateServiceAccount(context.Context, brignext.ServiceAccount) (string, error)
-	GetServiceAccounts(context.Context) ([]brignext.ServiceAccount, error)
+	CreateServiceAccount(context.Context, ServiceAccount) (string, error)
+	GetServiceAccounts(context.Context) ([]ServiceAccount, error)
 	GetServiceAccount(
 		context.Context,
 		string,
-	) (brignext.ServiceAccount, error)
+	) (ServiceAccount, error)
 	LockServiceAccount(context.Context, string) error
 	UnlockServiceAccount(context.Context, string) (string, error)
 
-	CreateProject(context.Context, brignext.Project) error
-	GetProjects(context.Context) ([]brignext.Project, error)
-	GetProject(context.Context, string) (brignext.Project, error)
-	UpdateProject(context.Context, brignext.Project) error
+	CreateProject(context.Context, Project) error
+	GetProjects(context.Context) ([]Project, error)
+	GetProject(context.Context, string) (Project, error)
+	UpdateProject(context.Context, Project) error
 	DeleteProject(context.Context, string) error
 
 	GetSecrets(
@@ -57,10 +56,10 @@ type Client interface {
 		keys []string,
 	) error
 
-	CreateEvent(context.Context, brignext.Event) (string, error)
-	GetEvents(context.Context) ([]brignext.Event, error)
-	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
-	GetEvent(context.Context, string) (brignext.Event, error)
+	CreateEvent(context.Context, Event) (string, error)
+	GetEvents(context.Context) ([]Event, error)
+	GetEventsByProject(context.Context, string) ([]Event, error)
+	GetEvent(context.Context, string) (Event, error)
 	CancelEvent(
 		ctx context.Context,
 		id string,
@@ -88,12 +87,12 @@ type Client interface {
 		ctx context.Context,
 		eventID string,
 		workerName string,
-	) (brignext.Worker, error)
+	) (Worker, error)
 	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
 		workerName string,
-		status brignext.WorkerStatus,
+		status WorkerStatus,
 	) error
 	CancelWorker(
 		ctx context.Context,
@@ -105,60 +104,60 @@ type Client interface {
 		ctx context.Context,
 		eventID string,
 		workerName string,
-	) ([]brignext.LogEntry, error)
+	) ([]LogEntry, error)
 	StreamWorkerLogs(
 		ctx context.Context,
 		eventID string,
 		workerName string,
-	) (<-chan brignext.LogEntry, <-chan error, error)
+	) (<-chan LogEntry, <-chan error, error)
 	GetWorkerInitLogs(
 		ctx context.Context,
 		eventID string,
 		workerName string,
-	) ([]brignext.LogEntry, error)
+	) ([]LogEntry, error)
 	StreamWorkerInitLogs(
 		ctx context.Context,
 		eventID string,
 		workerName string,
-	) (<-chan brignext.LogEntry, <-chan error, error)
+	) (<-chan LogEntry, <-chan error, error)
 
 	GetJob(
 		ctx context.Context,
 		eventID string,
 		workerName string,
 		jobName string,
-	) (brignext.Job, error)
+	) (Job, error)
 	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
 		workerName string,
 		jobName string,
-		status brignext.JobStatus,
+		status JobStatus,
 	) error
 	GetJobLogs(
 		ctx context.Context,
 		eventID string,
 		workerName string,
 		jobName string,
-	) ([]brignext.LogEntry, error)
+	) ([]LogEntry, error)
 	StreamJobLogs(
 		ctx context.Context,
 		eventID string,
 		workerName string,
 		jobName string,
-	) (<-chan brignext.LogEntry, <-chan error, error)
+	) (<-chan LogEntry, <-chan error, error)
 	GetJobInitLogs(
 		ctx context.Context,
 		eventID string,
 		workerName string,
 		jobName string,
-	) ([]brignext.LogEntry, error)
+	) ([]LogEntry, error)
 	StreamJobInitLogs(
 		ctx context.Context,
 		eventID string,
 		workerName string,
 		jobName string,
-	) (<-chan brignext.LogEntry, <-chan error, error)
+	) (<-chan LogEntry, <-chan error, error)
 }
 
 type client struct {
@@ -181,7 +180,7 @@ func NewClient(apiAddress, apiToken string, allowInsecure bool) Client {
 	}
 }
 
-func (c *client) GetUsers(context.Context) ([]brignext.User, error) {
+func (c *client) GetUsers(context.Context) ([]User, error) {
 	req, err := c.buildRequest(http.MethodGet, "v2/users", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating HTTP request")
@@ -202,7 +201,7 @@ func (c *client) GetUsers(context.Context) ([]brignext.User, error) {
 		return nil, errors.Wrap(err, "error reading response body")
 	}
 
-	users := []brignext.User{}
+	users := []User{}
 	if err := json.Unmarshal(respBodyBytes, &users); err != nil {
 		return nil, errors.Wrap(err, "error unmarshaling response body")
 	}
@@ -210,8 +209,8 @@ func (c *client) GetUsers(context.Context) ([]brignext.User, error) {
 	return users, nil
 }
 
-func (c *client) GetUser(_ context.Context, id string) (brignext.User, error) {
-	user := brignext.User{}
+func (c *client) GetUser(_ context.Context, id string) (User, error) {
+	user := User{}
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf("v2/users/%s", id),
@@ -228,7 +227,7 @@ func (c *client) GetUser(_ context.Context, id string) (brignext.User, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return user, &brignext.ErrUserNotFound{
+		return user, &ErrUserNotFound{
 			ID: id,
 		}
 	}
@@ -265,7 +264,7 @@ func (c *client) LockUser(_ context.Context, id string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrUserNotFound{
+		return &ErrUserNotFound{
 			ID: id,
 		}
 	}
@@ -293,7 +292,7 @@ func (c *client) UnlockUser(_ context.Context, id string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrUserNotFound{
+		return &ErrUserNotFound{
 			ID: id,
 		}
 	}
@@ -403,7 +402,7 @@ func (c *client) DeleteSession(context.Context) error {
 
 func (c *client) CreateServiceAccount(
 	_ context.Context,
-	serviceAccount brignext.ServiceAccount,
+	serviceAccount ServiceAccount,
 ) (string, error) {
 	serviceAccountBytes, err := json.Marshal(serviceAccount)
 	if err != nil {
@@ -426,7 +425,7 @@ func (c *client) CreateServiceAccount(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusConflict {
-		return "", &brignext.ErrServiceAccountIDConflict{
+		return "", &ErrServiceAccountIDConflict{
 			ID: serviceAccount.ID,
 		}
 	}
@@ -451,7 +450,7 @@ func (c *client) CreateServiceAccount(
 
 func (c *client) GetServiceAccounts(
 	context.Context,
-) ([]brignext.ServiceAccount, error) {
+) ([]ServiceAccount, error) {
 	req, err := c.buildRequest(http.MethodGet, "v2/service-accounts", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating HTTP request")
@@ -472,7 +471,7 @@ func (c *client) GetServiceAccounts(
 		return nil, errors.Wrap(err, "error reading response body")
 	}
 
-	serviceAccounts := []brignext.ServiceAccount{}
+	serviceAccounts := []ServiceAccount{}
 	if err := json.Unmarshal(respBodyBytes, &serviceAccounts); err != nil {
 		return nil, errors.Wrap(err, "error unmarshaling response body")
 	}
@@ -483,8 +482,8 @@ func (c *client) GetServiceAccounts(
 func (c *client) GetServiceAccount(
 	_ context.Context,
 	id string,
-) (brignext.ServiceAccount, error) {
-	serviceAccount := brignext.ServiceAccount{}
+) (ServiceAccount, error) {
+	serviceAccount := ServiceAccount{}
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf("v2/service-accounts/%s", id),
@@ -501,7 +500,7 @@ func (c *client) GetServiceAccount(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return serviceAccount, &brignext.ErrServiceAccountNotFound{
+		return serviceAccount, &ErrServiceAccountNotFound{
 			ID: id,
 		}
 	}
@@ -541,7 +540,7 @@ func (c *client) LockServiceAccount(_ context.Context, id string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrServiceAccountNotFound{
+		return &ErrServiceAccountNotFound{
 			ID: id,
 		}
 	}
@@ -572,7 +571,7 @@ func (c *client) UnlockServiceAccount(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return "", &brignext.ErrServiceAccountNotFound{
+		return "", &ErrServiceAccountNotFound{
 			ID: id,
 		}
 	}
@@ -597,7 +596,7 @@ func (c *client) UnlockServiceAccount(
 
 func (c *client) CreateProject(
 	_ context.Context,
-	project brignext.Project,
+	project Project,
 ) error {
 	projectBytes, err := json.Marshal(project)
 	if err != nil {
@@ -616,7 +615,7 @@ func (c *client) CreateProject(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusConflict {
-		return &brignext.ErrProjectIDConflict{
+		return &ErrProjectIDConflict{
 			ID: project.ID,
 		}
 	}
@@ -627,7 +626,7 @@ func (c *client) CreateProject(
 	return nil
 }
 
-func (c *client) GetProjects(context.Context) ([]brignext.Project, error) {
+func (c *client) GetProjects(context.Context) ([]Project, error) {
 	req, err := c.buildRequest(http.MethodGet, "v2/projects", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating HTTP request")
@@ -648,7 +647,7 @@ func (c *client) GetProjects(context.Context) ([]brignext.Project, error) {
 		return nil, errors.Wrap(err, "error reading response body")
 	}
 
-	projects := []brignext.Project{}
+	projects := []Project{}
 	if err := json.Unmarshal(respBodyBytes, &projects); err != nil {
 		return nil, errors.Wrap(err, "error unmarshaling response body")
 	}
@@ -656,11 +655,8 @@ func (c *client) GetProjects(context.Context) ([]brignext.Project, error) {
 	return projects, nil
 }
 
-func (c *client) GetProject(
-	_ context.Context,
-	id string,
-) (brignext.Project, error) {
-	project := brignext.Project{}
+func (c *client) GetProject(_ context.Context, id string) (Project, error) {
+	project := Project{}
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf("v2/projects/%s", id),
@@ -677,7 +673,7 @@ func (c *client) GetProject(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return project, &brignext.ErrProjectNotFound{
+		return project, &ErrProjectNotFound{
 			ID: id,
 		}
 	}
@@ -702,7 +698,7 @@ func (c *client) GetProject(
 
 func (c *client) UpdateProject(
 	_ context.Context,
-	project brignext.Project,
+	project Project,
 ) error {
 	projectBytes, err := json.Marshal(project)
 	if err != nil {
@@ -725,7 +721,7 @@ func (c *client) UpdateProject(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrProjectNotFound{
+		return &ErrProjectNotFound{
 			ID: project.ID,
 		}
 	}
@@ -753,7 +749,7 @@ func (c *client) DeleteProject(_ context.Context, id string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrProjectNotFound{
+		return &ErrProjectNotFound{
 			ID: id,
 		}
 	}
@@ -785,7 +781,7 @@ func (c *client) GetSecrets(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &brignext.ErrWorkerNotFound{
+		return nil, &ErrWorkerNotFound{
 			ProjectID:  projectID,
 			WorkerName: workerName,
 		}
@@ -834,7 +830,7 @@ func (c *client) SetSecrets(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrProjectNotFound{
+		return &ErrProjectNotFound{
 			ID: projectID,
 		}
 	}
@@ -877,7 +873,7 @@ func (c *client) UnsetSecrets(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrProjectNotFound{
+		return &ErrProjectNotFound{
 			ID: projectID,
 		}
 	}
@@ -888,10 +884,7 @@ func (c *client) UnsetSecrets(
 	return nil
 }
 
-func (c *client) CreateEvent(
-	_ context.Context,
-	event brignext.Event,
-) (string, error) {
+func (c *client) CreateEvent(_ context.Context, event Event) (string, error) {
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
 		return "", errors.Wrap(err, "error marshaling event")
@@ -909,7 +902,7 @@ func (c *client) CreateEvent(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return "", &brignext.ErrProjectNotFound{
+		return "", &ErrProjectNotFound{
 			ID: event.ProjectID,
 		}
 	}
@@ -932,7 +925,7 @@ func (c *client) CreateEvent(
 	return respStruct.ID, nil
 }
 
-func (c *client) GetEvents(context.Context) ([]brignext.Event, error) {
+func (c *client) GetEvents(context.Context) ([]Event, error) {
 	req, err := c.buildRequest(http.MethodGet, "v2/events", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating HTTP request")
@@ -953,7 +946,7 @@ func (c *client) GetEvents(context.Context) ([]brignext.Event, error) {
 		return nil, errors.Wrap(err, "error reading response body")
 	}
 
-	events := []brignext.Event{}
+	events := []Event{}
 	if err := json.Unmarshal(respBodyBytes, &events); err != nil {
 		return nil, errors.Wrap(err, "error unmarshaling response body")
 	}
@@ -964,7 +957,7 @@ func (c *client) GetEvents(context.Context) ([]brignext.Event, error) {
 func (c *client) GetEventsByProject(
 	_ context.Context,
 	projectID string,
-) ([]brignext.Event, error) {
+) ([]Event, error) {
 	req, err := c.buildRequest(http.MethodGet, "v2/events", nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating HTTP request")
@@ -982,7 +975,7 @@ func (c *client) GetEventsByProject(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &brignext.ErrProjectNotFound{
+		return nil, &ErrProjectNotFound{
 			ID: projectID,
 		}
 	}
@@ -995,7 +988,7 @@ func (c *client) GetEventsByProject(
 		return nil, errors.Wrap(err, "error reading response body")
 	}
 
-	events := []brignext.Event{}
+	events := []Event{}
 	if err := json.Unmarshal(respBodyBytes, &events); err != nil {
 		return nil, errors.Wrap(err, "error unmarshaling response body")
 	}
@@ -1003,11 +996,8 @@ func (c *client) GetEventsByProject(
 	return events, nil
 }
 
-func (c *client) GetEvent(
-	ctx context.Context,
-	id string,
-) (brignext.Event, error) {
-	event := brignext.Event{}
+func (c *client) GetEvent(ctx context.Context, id string) (Event, error) {
+	event := Event{}
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf("v2/events/%s", id),
@@ -1024,7 +1014,7 @@ func (c *client) GetEvent(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return event, &brignext.ErrEventNotFound{
+		return event, &ErrEventNotFound{
 			ID: id,
 		}
 	}
@@ -1070,7 +1060,7 @@ func (c *client) CancelEvent(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return false, &brignext.ErrEventNotFound{
+		return false, &ErrEventNotFound{
 			ID: id,
 		}
 	}
@@ -1119,7 +1109,7 @@ func (c *client) CancelEventsByProject(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return 0, &brignext.ErrProjectNotFound{
+		return 0, &ErrProjectNotFound{
 			ID: projectID,
 		}
 	}
@@ -1172,7 +1162,7 @@ func (c *client) DeleteEvent(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return false, &brignext.ErrEventNotFound{
+		return false, &ErrEventNotFound{
 			ID: id,
 		}
 	}
@@ -1225,7 +1215,7 @@ func (c *client) DeleteEventsByProject(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return 0, &brignext.ErrProjectNotFound{
+		return 0, &ErrProjectNotFound{
 			ID: projectID,
 		}
 	}
@@ -1278,10 +1268,10 @@ func (c *client) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
 	workerName string,
-	status brignext.WorkerStatus,
+	status WorkerStatus,
 ) error {
 	statusBytes, err := json.Marshal(
-		brignext.WorkerStatus{
+		WorkerStatus{
 			Started: status.Started,
 			Ended:   status.Ended,
 			Phase:   status.Phase,
@@ -1307,7 +1297,7 @@ func (c *client) UpdateWorkerStatus(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrWorkerNotFound{
+		return &ErrWorkerNotFound{
 			EventID:    eventID,
 			WorkerName: workerName,
 		}
@@ -1323,8 +1313,8 @@ func (c *client) GetWorker(
 	ctx context.Context,
 	eventID string,
 	workerName string,
-) (brignext.Worker, error) {
-	worker := brignext.Worker{}
+) (Worker, error) {
+	worker := Worker{}
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf("v2/events/%s/workers/%s", eventID, workerName),
@@ -1341,7 +1331,7 @@ func (c *client) GetWorker(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return worker, &brignext.ErrWorkerNotFound{
+		return worker, &ErrWorkerNotFound{
 			EventID:    eventID,
 			WorkerName: workerName,
 		}
@@ -1389,7 +1379,7 @@ func (c *client) CancelWorker(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return false, &brignext.ErrWorkerNotFound{
+		return false, &ErrWorkerNotFound{
 			EventID:    eventID,
 			WorkerName: workerName,
 		}
@@ -1417,7 +1407,7 @@ func (c *client) GetWorkerLogs(
 	ctx context.Context,
 	eventID string,
 	workerName string,
-) ([]brignext.LogEntry, error) {
+) ([]LogEntry, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf("v2/events/%s/workers/%s/logs", eventID, workerName),
@@ -1434,7 +1424,7 @@ func (c *client) GetWorkerLogs(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &brignext.ErrWorkerNotFound{
+		return nil, &ErrWorkerNotFound{
 			EventID:    eventID,
 			WorkerName: workerName,
 		}
@@ -1448,7 +1438,7 @@ func (c *client) GetWorkerLogs(
 		return nil, errors.Wrap(err, "error reading response body")
 	}
 
-	logEntries := []brignext.LogEntry{}
+	logEntries := []LogEntry{}
 	if err := json.Unmarshal(respBodyBytes, &logEntries); err != nil {
 		return nil, errors.Wrap(err, "error unmarshaling response body")
 	}
@@ -1460,7 +1450,7 @@ func (c *client) StreamWorkerLogs(
 	ctx context.Context,
 	eventID string,
 	workerName string,
-) (<-chan brignext.LogEntry, <-chan error, error) {
+) (<-chan LogEntry, <-chan error, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf("v2/events/%s/workers/%s/logs", eventID, workerName),
@@ -1479,7 +1469,7 @@ func (c *client) StreamWorkerLogs(
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, nil, &brignext.ErrWorkerNotFound{
+		return nil, nil, &ErrWorkerNotFound{
 			EventID:    eventID,
 			WorkerName: workerName,
 		}
@@ -1491,7 +1481,7 @@ func (c *client) StreamWorkerLogs(
 		)
 	}
 
-	logCh := make(chan brignext.LogEntry)
+	logCh := make(chan LogEntry)
 	errCh := make(chan error)
 
 	go c.receiveLogStream(ctx, resp.Body, logCh, errCh)
@@ -1503,7 +1493,7 @@ func (c *client) GetWorkerInitLogs(
 	ctx context.Context,
 	eventID string,
 	workerName string,
-) ([]brignext.LogEntry, error) {
+) ([]LogEntry, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf("v2/events/%s/workers/%s/logs", eventID, workerName),
@@ -1523,7 +1513,7 @@ func (c *client) GetWorkerInitLogs(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &brignext.ErrWorkerNotFound{
+		return nil, &ErrWorkerNotFound{
 			EventID:    eventID,
 			WorkerName: workerName,
 		}
@@ -1537,7 +1527,7 @@ func (c *client) GetWorkerInitLogs(
 		return nil, errors.Wrap(err, "error reading response body")
 	}
 
-	logEntries := []brignext.LogEntry{}
+	logEntries := []LogEntry{}
 	if err := json.Unmarshal(respBodyBytes, &logEntries); err != nil {
 		return nil, errors.Wrap(err, "error unmarshaling response body")
 	}
@@ -1549,7 +1539,7 @@ func (c *client) StreamWorkerInitLogs(
 	ctx context.Context,
 	eventID string,
 	workerName string,
-) (<-chan brignext.LogEntry, <-chan error, error) {
+) (<-chan LogEntry, <-chan error, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf("v2/events/%s/workers/%s/logs", eventID, workerName),
@@ -1569,7 +1559,7 @@ func (c *client) StreamWorkerInitLogs(
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, nil, &brignext.ErrWorkerNotFound{
+		return nil, nil, &ErrWorkerNotFound{
 			EventID:    eventID,
 			WorkerName: workerName,
 		}
@@ -1581,7 +1571,7 @@ func (c *client) StreamWorkerInitLogs(
 		)
 	}
 
-	logCh := make(chan brignext.LogEntry)
+	logCh := make(chan LogEntry)
 	errCh := make(chan error)
 
 	go c.receiveLogStream(ctx, resp.Body, logCh, errCh)
@@ -1594,8 +1584,8 @@ func (c *client) GetJob(
 	eventID string,
 	workerName string,
 	jobName string,
-) (brignext.Job, error) {
-	job := brignext.Job{}
+) (Job, error) {
+	job := Job{}
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf(
@@ -1617,7 +1607,7 @@ func (c *client) GetJob(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return job, &brignext.ErrJobNotFound{
+		return job, &ErrJobNotFound{
 			EventID:    eventID,
 			WorkerName: workerName,
 			JobName:    jobName,
@@ -1644,10 +1634,10 @@ func (c *client) UpdateJobStatus(
 	eventID string,
 	workerName string,
 	jobName string,
-	status brignext.JobStatus,
+	status JobStatus,
 ) error {
 	statusBytes, err := json.Marshal(
-		brignext.JobStatus{
+		JobStatus{
 			Started: status.Started,
 			Ended:   status.Ended,
 			Phase:   status.Phase,
@@ -1678,7 +1668,7 @@ func (c *client) UpdateJobStatus(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &brignext.ErrWorkerNotFound{
+		return &ErrWorkerNotFound{
 			EventID:    eventID,
 			WorkerName: workerName,
 		}
@@ -1695,7 +1685,7 @@ func (c *client) GetJobLogs(
 	eventID string,
 	workerName string,
 	jobName string,
-) ([]brignext.LogEntry, error) {
+) ([]LogEntry, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf(
@@ -1717,7 +1707,7 @@ func (c *client) GetJobLogs(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &brignext.ErrJobNotFound{
+		return nil, &ErrJobNotFound{
 			EventID:    eventID,
 			WorkerName: workerName,
 			JobName:    jobName,
@@ -1732,7 +1722,7 @@ func (c *client) GetJobLogs(
 		return nil, errors.Wrap(err, "error reading response body")
 	}
 
-	logEntries := []brignext.LogEntry{}
+	logEntries := []LogEntry{}
 	if err := json.Unmarshal(respBodyBytes, &logEntries); err != nil {
 		return nil, errors.Wrap(err, "error unmarshaling response body")
 	}
@@ -1745,7 +1735,7 @@ func (c *client) StreamJobLogs(
 	eventID string,
 	workerName string,
 	jobName string,
-) (<-chan brignext.LogEntry, <-chan error, error) {
+) (<-chan LogEntry, <-chan error, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf(
@@ -1769,7 +1759,7 @@ func (c *client) StreamJobLogs(
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, nil, &brignext.ErrJobNotFound{
+		return nil, nil, &ErrJobNotFound{
 			EventID:    eventID,
 			WorkerName: workerName,
 			JobName:    jobName,
@@ -1782,7 +1772,7 @@ func (c *client) StreamJobLogs(
 		)
 	}
 
-	logCh := make(chan brignext.LogEntry)
+	logCh := make(chan LogEntry)
 	errCh := make(chan error)
 
 	go c.receiveLogStream(ctx, resp.Body, logCh, errCh)
@@ -1795,7 +1785,7 @@ func (c *client) GetJobInitLogs(
 	eventID string,
 	workerName string,
 	jobName string,
-) ([]brignext.LogEntry, error) {
+) ([]LogEntry, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf(
@@ -1820,7 +1810,7 @@ func (c *client) GetJobInitLogs(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &brignext.ErrJobNotFound{
+		return nil, &ErrJobNotFound{
 			EventID:    eventID,
 			WorkerName: workerName,
 			JobName:    jobName,
@@ -1835,7 +1825,7 @@ func (c *client) GetJobInitLogs(
 		return nil, errors.Wrap(err, "error reading response body")
 	}
 
-	logEntries := []brignext.LogEntry{}
+	logEntries := []LogEntry{}
 	if err := json.Unmarshal(respBodyBytes, &logEntries); err != nil {
 		return nil, errors.Wrap(err, "error unmarshaling response body")
 	}
@@ -1848,7 +1838,7 @@ func (c *client) StreamJobInitLogs(
 	eventID string,
 	workerName string,
 	jobName string,
-) (<-chan brignext.LogEntry, <-chan error, error) {
+) (<-chan LogEntry, <-chan error, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf(
@@ -1873,7 +1863,7 @@ func (c *client) StreamJobInitLogs(
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, nil, &brignext.ErrJobNotFound{
+		return nil, nil, &ErrJobNotFound{
 			EventID:    eventID,
 			WorkerName: workerName,
 			JobName:    jobName,
@@ -1886,7 +1876,7 @@ func (c *client) StreamJobInitLogs(
 		)
 	}
 
-	logCh := make(chan brignext.LogEntry)
+	logCh := make(chan LogEntry)
 	errCh := make(chan error)
 
 	go c.receiveLogStream(ctx, resp.Body, logCh, errCh)
@@ -1897,13 +1887,13 @@ func (c *client) StreamJobInitLogs(
 func (c *client) receiveLogStream(
 	ctx context.Context,
 	reader io.ReadCloser,
-	logEntryCh chan<- brignext.LogEntry,
+	logEntryCh chan<- LogEntry,
 	errCh chan<- error,
 ) {
 	defer reader.Close()
 	decoder := json.NewDecoder(reader)
 	for {
-		logEntry := brignext.LogEntry{}
+		logEntry := LogEntry{}
 		if err := decoder.Decode(&logEntry); err != nil {
 			select {
 			case errCh <- err:

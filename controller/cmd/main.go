@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/krancour/brignext/v2/client"
+	"github.com/krancour/brignext/v2"
 	"github.com/krancour/brignext/v2/controller/pkg/controller"
 	"github.com/krancour/brignext/v2/pkg/kubernetes"
 	"github.com/krancour/brignext/v2/pkg/redis"
@@ -22,7 +22,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	apiClient := client.NewClient(
+	apiClient := brignext.NewClient(
 		config.APIAddress,
 		config.APIToken,
 		config.IgnoreAPICertWarnings,

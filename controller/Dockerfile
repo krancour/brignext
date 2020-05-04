@@ -5,7 +5,6 @@ ENV CGO_ENABLED=0
 WORKDIR /src
 COPY controller/ controller/
 COPY pkg/ pkg/
-COPY client/ client/
 COPY *.go ./
 COPY vendor/ vendor/
 COPY go.mod go.mod

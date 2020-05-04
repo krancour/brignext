@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/krancour/brignext/v2/client"
+	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
 )
@@ -28,7 +28,7 @@ func login(c *cli.Context) error {
 	password := c.String(flagPassword)
 	rootLogin := c.Bool(flagRoot)
 
-	client := client.NewClient(
+	client := brignext.NewClient(
 		address,
 		"",
 		c.GlobalBool(flagInsecure),
