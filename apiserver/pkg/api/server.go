@@ -43,17 +43,18 @@ func NewServer(
 	oidcTokenVerifier *oidc.IDTokenVerifier,
 	service service.Service,
 ) Server {
+	// nolint: lll
 	s := &server{
 		apiServerConfig:            apiServerConfig,
 		oauth2Config:               oauth2Config,
 		oidcTokenVerifier:          oidcTokenVerifier,
 		service:                    service,
 		router:                     mux.NewRouter(),
-		serviceAccountSchemaLoader: gojsonschema.NewBytesLoader(serviceAccountSchemaBytes), // nolint: lll
-		projectSchemaLoader:        gojsonschema.NewBytesLoader(projectSchemaBytes),
-		eventSchemaLoader:          gojsonschema.NewBytesLoader(eventSchemaBytes),
-		workerStatusSchemaLoader:   gojsonschema.NewBytesLoader(workerStatusSchemaBytes), // nolint: lll
-		jobStatusSchemaLoader:      gojsonschema.NewBytesLoader(jobStatusSchemaBytes),    // nolint: lll
+		serviceAccountSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/service-account.json"),
+		projectSchemaLoader:        gojsonschema.NewReferenceLoader("file:///brignext/schemas/project.json"),
+		eventSchemaLoader:          gojsonschema.NewReferenceLoader("file:///brignext/schemas/event.json"),
+		workerStatusSchemaLoader:   gojsonschema.NewReferenceLoader("file:///brignext/schemas/worker-status.json"),
+		jobStatusSchemaLoader:      gojsonschema.NewReferenceLoader("file:///brignext/schemas/job-status.json"),
 	}
 
 	// Most requests are authenticated with a bearer token
