@@ -18,13 +18,10 @@ type Controller interface {
 }
 
 type controller struct {
-	controllerConfig Config
-	apiClient        brignext.Client
-	redisClient      *redis.Client
-	kubeClient       *kubernetes.Clientset
-
-	// New stuff
-	// TODO: Organize this better
+	controllerConfig   Config
+	apiClient          brignext.Client
+	redisClient        *redis.Client
+	kubeClient         *kubernetes.Clientset
 	podsClient         core_v1.PodInterface
 	workerPodsSelector labels.Selector
 	workerPodsSet      map[string]struct{}

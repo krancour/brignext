@@ -797,10 +797,10 @@ func (s *service) CancelEvent(
 			return errors.Wrapf(err, "error updating event %q in store", id)
 		}
 		if ok {
-			if err = s.scheduler.DeleteEvent(ctx, event); err != nil {
+			if err = s.scheduler.CancelEvent(ctx, event); err != nil {
 				return errors.Wrapf(
 					err,
-					"error deleting event %q from scheduler",
+					"error canceling event %q in scheduler",
 					id,
 				)
 			}
@@ -1135,7 +1135,7 @@ func (s *service) CancelWorker(
 				workerName,
 			)
 		}
-		if err := s.scheduler.DeleteWorker(ctx, event, workerName); err != nil {
+		if err := s.scheduler.CancelWorker(ctx, event, workerName); err != nil {
 			return errors.Wrapf(
 				err,
 				"error deleting event %q worker %q from scheduler",

@@ -17,6 +17,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -65,9 +66,10 @@ type Scheduler interface {
 		event brignext.Event,
 	) (brignext.Event, error)
 	GetEvent(ctx context.Context, event brignext.Event) (brignext.Event, error)
+	CancelEvent(ctx context.Context, event brignext.Event) error
 	DeleteEvent(ctx context.Context, event brignext.Event) error
 
-	DeleteWorker(
+	CancelWorker(
 		ctx context.Context,
 		event brignext.Event,
 		workerName string,
@@ -199,7 +201,6 @@ func (s *scheduler) CreateProject(
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "jobs",
 			},
-			// TODO: Add the correct rules here
 			Rules: []rbacv1.PolicyRule{},
 		},
 		metav1.CreateOptions{},
@@ -650,17 +651,54 @@ func (s *scheduler) GetEvent(
 	return event, nil
 }
 
-func (s *scheduler) DeleteEvent(
+func (s *scheduler) CancelEvent(
 	ctx context.Context,
 	event brignext.Event,
 ) error {
-	labels := map[string]string{
-		eventLabel: event.ID,
-	}
-	if err := s.deletePodsByLabels(
+	matchesEvent, _ := labels.NewRequirement(
+		eventLabel,
+		selection.Equals,
+		[]string{event.ID},
+	)
+	labelSelector := labels.NewSelector()
+	labelSelector = labelSelector.Add(*matchesEvent)
+
+	// Delete all pods related to this event
+	if err := s.deletePodsByLabelSelector(
 		ctx,
 		event.Kubernetes.Namespace,
-		labels,
+		labelSelector,
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error deleting event %q pods in namespace %q",
+			event.ID,
+			event.Kubernetes.Namespace,
+		)
+	}
+
+	// Delete all persistent volume claims related this this event
+	if err := s.deletePersistentVolumeClaimsByLabelSelector(
+		ctx,
+		event.Kubernetes.Namespace,
+		labelSelector,
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error deleting event %q persistent volume claims in namespace %q",
+			event.ID,
+			event.Kubernetes.Namespace,
+		)
+	}
+
+	// Delete all config maps related to this event. Brigade itself doesn't create
+	// any, but we're not discounting the possibility that a worker or job might
+	// create some. We are, of course, assuming that anything created by a worker
+	// or job is tagged appropriately.
+	if err := s.deleteConfigMapsByLabelSelector(
+		ctx,
+		event.Kubernetes.Namespace,
+		labelSelector,
 	); err != nil {
 		return errors.Wrapf(
 			err,
@@ -669,22 +707,20 @@ func (s *scheduler) DeleteEvent(
 			event.Kubernetes.Namespace,
 		)
 	}
-	if err := s.deleteConfigMapsByLabels(
+
+	// Delete most secrets related to the event, being careful not to delete the
+	// secret that contains the event's payload. As long as the event exists,
+	// we'll want this to stick around.
+	isntEventSecret, _ := labels.NewRequirement(
+		componentLabel,
+		selection.NotEquals,
+		[]string{"event"},
+	)
+	labelSelector = labelSelector.Add(*isntEventSecret)
+	if err := s.deleteSecretsByLabelSelector(
 		ctx,
 		event.Kubernetes.Namespace,
-		labels,
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error deleting event %q config maps in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
-		)
-	}
-	if err := s.deleteSecretsByLabels(
-		ctx,
-		event.Kubernetes.Namespace,
-		labels,
+		labelSelector,
 	); err != nil {
 		return errors.Wrapf(
 			err,
@@ -693,22 +729,107 @@ func (s *scheduler) DeleteEvent(
 			event.Kubernetes.Namespace,
 		)
 	}
+
 	return nil
 }
 
-func (s *scheduler) DeleteWorker(
+func (s *scheduler) DeleteEvent(
+	ctx context.Context,
+	event brignext.Event,
+) error {
+	matchesEvent, _ := labels.NewRequirement(
+		eventLabel,
+		selection.Equals,
+		[]string{event.ID},
+	)
+	labelSelector := labels.NewSelector()
+	labelSelector = labelSelector.Add(*matchesEvent)
+
+	// Delete all pods related to this event
+	if err := s.deletePodsByLabelSelector(
+		ctx,
+		event.Kubernetes.Namespace,
+		labelSelector,
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error deleting event %q pods in namespace %q",
+			event.ID,
+			event.Kubernetes.Namespace,
+		)
+	}
+
+	// Delete all persistent volume claims related to this event
+	if err := s.deletePersistentVolumeClaimsByLabelSelector(
+		ctx,
+		event.Kubernetes.Namespace,
+		labelSelector,
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error deleting event %q persistent volume claims in namespace %q",
+			event.ID,
+			event.Kubernetes.Namespace,
+		)
+	}
+
+	// Delete all config maps related to this event. Brigade itself doesn't create
+	// any, but we're not discounting the possibility that a worker or job might
+	// create some. We are, of course, assuming that anything created by a worker
+	// or job is tagged appropriately.
+	if err := s.deleteConfigMapsByLabelSelector(
+		ctx,
+		event.Kubernetes.Namespace,
+		labelSelector,
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error deleting event %q config maps in namespace %q",
+			event.ID,
+			event.Kubernetes.Namespace,
+		)
+	}
+
+	// Delete all secrets related to this event
+	if err := s.deleteSecretsByLabelSelector(
+		ctx,
+		event.Kubernetes.Namespace,
+		labelSelector,
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error deleting event %q secrets in namespace %q",
+			event.ID,
+			event.Kubernetes.Namespace,
+		)
+	}
+
+	return nil
+}
+
+func (s *scheduler) CancelWorker(
 	ctx context.Context,
 	event brignext.Event,
 	workerName string,
 ) error {
-	labels := map[string]string{
-		eventLabel:  event.ID,
-		workerLabel: workerName,
-	}
-	if err := s.deletePodsByLabels(
+	matchesEvent, _ := labels.NewRequirement(
+		eventLabel,
+		selection.Equals,
+		[]string{event.ID},
+	)
+	matchesWorker, _ := labels.NewRequirement(
+		workerLabel,
+		selection.Equals,
+		[]string{workerName},
+	)
+	labelSelector := labels.NewSelector()
+	labelSelector = labelSelector.Add(*matchesEvent, *matchesWorker)
+
+	// Delete all pods related to this worker
+	if err := s.deletePodsByLabelSelector(
 		ctx,
 		event.Kubernetes.Namespace,
-		labels,
+		labelSelector,
 	); err != nil {
 		return errors.Wrapf(
 			err,
@@ -718,10 +839,31 @@ func (s *scheduler) DeleteWorker(
 			event.Kubernetes.Namespace,
 		)
 	}
-	if err := s.deleteConfigMapsByLabels(
+
+	// Delete all persistent volume claims related to this worker
+	if err := s.deletePersistentVolumeClaimsByLabelSelector(
 		ctx,
 		event.Kubernetes.Namespace,
-		labels,
+		labelSelector,
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error deleting event %q worker %q persistent volume claims in "+
+				"namespace %q",
+			event.ID,
+			workerName,
+			event.Kubernetes.Namespace,
+		)
+	}
+
+	// Delete all config maps related to this worker. Brigade itself doesn't
+	// create any, but we're not discounting the possibility that a worker or job
+	// might create some. We are, of course, assuming that anything created by a
+	// worker or job is tagged appropriately.
+	if err := s.deleteConfigMapsByLabelSelector(
+		ctx,
+		event.Kubernetes.Namespace,
+		labelSelector,
 	); err != nil {
 		return errors.Wrapf(
 			err,
@@ -731,10 +873,12 @@ func (s *scheduler) DeleteWorker(
 			event.Kubernetes.Namespace,
 		)
 	}
-	if err := s.deleteSecretsByLabels(
+
+	// Delete all secrets related to this worker
+	if err := s.deleteSecretsByLabelSelector(
 		ctx,
 		event.Kubernetes.Namespace,
-		labels,
+		labelSelector,
 	); err != nil {
 		return errors.Wrapf(
 			err,
@@ -744,47 +888,64 @@ func (s *scheduler) DeleteWorker(
 			event.Kubernetes.Namespace,
 		)
 	}
+
 	return nil
 }
 
-func (s *scheduler) deletePodsByLabels(
+func (s *scheduler) deletePodsByLabelSelector(
 	ctx context.Context,
 	namespace string,
-	labelsMap map[string]string,
+	labelSelector labels.Selector,
 ) error {
 	return s.kubeClient.CoreV1().Pods(namespace).DeleteCollection(
 		ctx,
 		metav1.DeleteOptions{},
 		metav1.ListOptions{
-			LabelSelector: labels.SelectorFromSet(labelsMap).String(),
+			LabelSelector: labelSelector.String(),
 		},
 	)
 }
 
-func (s *scheduler) deleteConfigMapsByLabels(
+func (s *scheduler) deletePersistentVolumeClaimsByLabelSelector(
 	ctx context.Context,
 	namespace string,
-	labelsMap map[string]string,
+	labelSelector labels.Selector,
+) error {
+	return s.kubeClient.CoreV1().PersistentVolumeClaims(
+		namespace,
+	).DeleteCollection(
+		ctx,
+		metav1.DeleteOptions{},
+		metav1.ListOptions{
+			LabelSelector: labelSelector.String(),
+		},
+	)
+}
+
+func (s *scheduler) deleteConfigMapsByLabelSelector(
+	ctx context.Context,
+	namespace string,
+	labelSelector labels.Selector,
 ) error {
 	return s.kubeClient.CoreV1().ConfigMaps(namespace).DeleteCollection(
 		ctx,
 		metav1.DeleteOptions{},
 		metav1.ListOptions{
-			LabelSelector: labels.SelectorFromSet(labelsMap).String(),
+			LabelSelector: labelSelector.String(),
 		},
 	)
 }
 
-func (s *scheduler) deleteSecretsByLabels(
+func (s *scheduler) deleteSecretsByLabelSelector(
 	ctx context.Context,
 	namespace string,
-	labelsMap map[string]string,
+	labelSelector labels.Selector,
 ) error {
 	return s.kubeClient.CoreV1().Secrets(namespace).DeleteCollection(
 		ctx,
 		metav1.DeleteOptions{},
 		metav1.ListOptions{
-			LabelSelector: labels.SelectorFromSet(labelsMap).String(),
+			LabelSelector: labelSelector.String(),
 		},
 	)
 }

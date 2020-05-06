@@ -765,12 +765,6 @@ func (s *store) CancelEvent(
 	if err != nil {
 		return false, err
 	}
-	phasesToCancel := []brignext.EventPhase{
-		brignext.EventPhasePending,
-	}
-	if cancelProcessing {
-		phasesToCancel = append(phasesToCancel, brignext.EventPhaseProcessing)
-	}
 
 	if event.Status.Phase == brignext.EventPhasePending {
 		event.Status.Phase = brignext.EventPhaseCanceled

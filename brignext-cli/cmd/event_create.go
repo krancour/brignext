@@ -62,12 +62,7 @@ func eventCreate(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-
 	fmt.Printf("Created event %q.\n\n", eventID)
-
-	// fmt.Println("Streaming event logs...\n")
-
-	// TODO: Stream the logs
 
 	return nil
 }
