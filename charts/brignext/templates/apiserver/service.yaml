@@ -8,13 +8,16 @@ metadata:
 spec:
   type: {{ .Values.apiserver.service.type }}
   ports:
-    {{- if .Values.apiserver.tls.enabled }}
-    - port: 443
-    {{- else }}
-    - port: 80
+  {{- if .Values.apiserver.tls.enabled }}
+  - port: 443
+  {{- else }}
+  - port: 80
+  {{- end }}
+    targetPort: 8080
+    {{- if and (eq .Values.apiserver.service.type "NodePort") .Values.apiserver.service.nodePort}}
+    nodePort: {{ .Values.apiserver.service.nodePort }}
     {{- end }}
-      targetPort: 8080
-      protocol: TCP
+    protocol: TCP
   selector:
     {{- include "brignext.selectorLabels" . | nindent 8 }}
     {{- include "brignext.apiserver.labels" . | nindent 8 }}

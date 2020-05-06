@@ -113,7 +113,7 @@ test-unit-js:
 ################################################################################
 
 .PHONY: build
-build: build-images build-brig
+build: build-images build-cli
 
 .PHONY: build-images
 build-images: build-apiserver build-controller build-worker build-logger-linux
@@ -198,8 +198,12 @@ push-logger-windows: build-logger-windows
 # Let's hack!!!                                                                #
 ################################################################################
 
-.PHONY: hack-nfs
-hack-nfs:
+.PHONY: hack-new-kind-cluster
+hack-new-kind-cluster:
+	./scripts/new-kind-cluster.sh
+
+.PHONY: hack-install-nfs
+hack-install-nfs:
 	kubectl get namespace nfs || kubectl create namespace nfs
 	helm upgrade nfs stable/nfs-server-provisioner \
 		--install \
@@ -218,6 +222,8 @@ hack: push-images build-cli hack-namespace
 		--set apiserver.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-apiserver \
 		--set apiserver.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set apiserver.image.pullPolicy=Always \
+		--set apiserver.service.type=NodePort \
+		--set apiserver.service.nodePort=31600 \
 		--set controller.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-controller \
 		--set controller.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set controller.image.pullPolicy=Always \
@@ -236,7 +242,9 @@ hack-apiserver: push-apiserver hack-namespace
 		--reuse-values \
 		--set apiserver.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-apiserver \
 		--set apiserver.image.tag=$(IMMUTABLE_DOCKER_TAG) \
-		--set apiserver.image.pullPolicy=Always
+		--set apiserver.image.pullPolicy=Always \
+		--set apiserver.service.type=NodePort \
+		--set apiserver.service.nodePort=31600
 
 .PHONY: hack-controller
 hack-controller: push-controller hack-namespace

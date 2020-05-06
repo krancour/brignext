@@ -125,6 +125,7 @@ apiserver:
     ## If you're going to use an ingress controller, you can change the service
     ## type to CLusterIP.
     type: NodePort
+    # nodePort: 31600
 
 controller:
 
