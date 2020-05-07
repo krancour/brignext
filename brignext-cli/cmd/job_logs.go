@@ -35,7 +35,7 @@ func jobLogs(c *cli.Context) error {
 			return err
 		}
 		for _, logEntry := range logEntries {
-			fmt.Print(logEntry.Message)
+			fmt.Println(logEntry.Message)
 		}
 		return nil
 	}
@@ -52,7 +52,7 @@ func jobLogs(c *cli.Context) error {
 	for {
 		select {
 		case logEntry := <-logEntryCh:
-			fmt.Print(logEntry.Message)
+			fmt.Println(logEntry.Message)
 		case err := <-errCh:
 			return err
 		case <-c.Context.Done():
