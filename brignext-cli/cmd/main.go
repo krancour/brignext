@@ -335,29 +335,6 @@ func main() {
 			Usage: "Manage workers",
 			Subcommands: []*cli.Command{
 				{
-					Name:        "cancel",
-					Usage:       "Cancel a worker",
-					Description: "By default, only cancels workers in a PENDING state.",
-					ArgsUsage:   "WORKER_ID",
-					Flags: []cli.Flag{
-						&cli.BoolFlag{
-							Name:    flagRunning,
-							Aliases: []string{"r"},
-							Usage:   "If set, will abort a worker in a RUNNING state",
-						},
-					},
-					Action: workerCancel,
-				},
-				{
-					Name:      "get",
-					Usage:     "Get a worker",
-					ArgsUsage: "EVENT_ID WORKER_NAME",
-					Flags: []cli.Flag{
-						cliFlagOutput,
-					},
-					Action: workerGet,
-				},
-				{
 					Name:      "logs",
 					Usage:     "Get worker logs",
 					ArgsUsage: "EVENT_ID WORKER_NAME",

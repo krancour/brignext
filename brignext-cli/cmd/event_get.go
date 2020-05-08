@@ -57,25 +57,25 @@ func eventGet(c *cli.Context) error {
 		)
 		fmt.Println(table)
 
-		if len(event.Workers) > 0 {
-			fmt.Printf("\nEvent %q workers:\n\n", event.ID)
+		if len(event.Worker.Jobs) > 0 {
+			fmt.Printf("\nEvent %q worker jobs:\n\n", event.ID)
 			table = uitable.New()
 			table.AddRow("NAME", "STARTED", "ENDED", "PHASE")
-			for workerName, worker := range event.Workers {
+			for jobName, job := range event.Worker.Jobs {
 				var started, ended string
-				if worker.Status.Started != nil {
+				if job.Status.Started != nil {
 					started =
-						duration.ShortHumanDuration(time.Since(*worker.Status.Started))
+						duration.ShortHumanDuration(time.Since(*job.Status.Started))
 				}
-				if worker.Status.Ended != nil {
+				if job.Status.Ended != nil {
 					ended =
-						duration.ShortHumanDuration(time.Since(*worker.Status.Ended))
+						duration.ShortHumanDuration(time.Since(*job.Status.Ended))
 				}
 				table.AddRow(
-					workerName,
+					jobName,
 					started,
 					ended,
-					worker.Status.Phase,
+					job.Status.Phase,
 				)
 			}
 			fmt.Println(table)

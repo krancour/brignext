@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -35,48 +34,35 @@ func (c *controller) handleProjectWorkerMessage(
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving event %q", workerCtx.EventID)
 	}
-	worker, ok := event.Workers[workerCtx.WorkerName]
-	if !ok {
-		// If the event doesn't have a worker by the indicated name, we're done
-		log.Printf(
-			"WARNING: cannot handle unknown worker %q for event %q",
-			workerCtx.WorkerName,
-			workerCtx.EventID,
-		)
-		return nil
-	}
 	// If the worker's phase isn't PENDING or RUNNING, there's nothing for us to
 	// do. It's already in a terminal state.
-	if worker.Status.Phase != brignext.WorkerPhasePending &&
-		worker.Status.Phase != brignext.WorkerPhaseRunning {
+	if event.Worker.Status.Phase != brignext.WorkerPhasePending &&
+		event.Worker.Status.Phase != brignext.WorkerPhaseRunning {
 		return nil
 	}
 
 	// If the phase is pending, we'll wait for available capacity and then get
 	// the worker pod started
-	if worker.Status.Phase == brignext.WorkerPhasePending {
+	if event.Worker.Status.Phase == brignext.WorkerPhasePending {
 		// Wait for capacity, then start the pod
 		select {
 		case <-c.availabilityCh:
 			if err :=
-				c.createWorkspacePVC(ctx, event, workerCtx.WorkerName); err != nil {
+				c.createWorkspacePVC(ctx, event); err != nil {
 				return errors.Wrapf(
 					err,
-					"error creating workspace for event %q worker %q",
+					"error creating workspace for event %q worker",
 					workerCtx.EventID,
-					workerCtx.WorkerName,
 				)
 			}
 			if err := c.createWorkerPod(
 				ctx,
 				event,
-				workerCtx.WorkerName,
 			); err != nil {
 				return errors.Wrapf(
 					err,
-					"error starting pod for event %q worker %q",
+					"error starting pod for event %q worker",
 					workerCtx.EventID,
-					workerCtx.WorkerName,
 				)
 			}
 		case <-ctx.Done():
@@ -101,9 +87,8 @@ func (c *controller) handleProjectWorkerMessage(
 					workerCtx.EventID,
 				)
 			}
-			worker := event.Workers[workerCtx.WorkerName]
 			// If worker phase isn't RUNNING, we're done
-			if worker.Status.Phase != brignext.WorkerPhaseRunning {
+			if event.Worker.Status.Phase != brignext.WorkerPhaseRunning {
 				return nil
 			}
 		// TODO: We should also have a case for worker timeout
@@ -116,11 +101,8 @@ func (c *controller) handleProjectWorkerMessage(
 func (c *controller) createWorkspacePVC(
 	ctx context.Context,
 	event brignext.Event,
-	workerName string,
 ) error {
-	worker := event.Workers[workerName]
-
-	storageQuantityStr := worker.WorkspaceSize
+	storageQuantityStr := event.Worker.WorkspaceSize
 	if storageQuantityStr == "" {
 		storageQuantityStr = "1G"
 	}
@@ -128,22 +110,20 @@ func (c *controller) createWorkspacePVC(
 	if err != nil {
 		return errors.Wrapf(
 			err,
-			"error parsing storage quantity %q for event %q worker %q",
+			"error parsing storage quantity %q for event %q worker",
 			storageQuantityStr,
 			event.ID,
-			workerName,
 		)
 	}
 
 	workspacePVC := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("workspace-%s-%s", event.ID, workerName),
+			Name:      fmt.Sprintf("workspace-%s", event.ID),
 			Namespace: event.Kubernetes.Namespace,
 			Labels: map[string]string{
 				"brignext.io/component": "workspace",
 				"brignext.io/project":   event.ProjectID,
 				"brignext.io/event":     event.ID,
-				"brignext.io/worker":    workerName,
 			},
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
@@ -168,9 +148,8 @@ func (c *controller) createWorkspacePVC(
 	); err != nil {
 		return errors.Wrapf(
 			err,
-			"error creating workspace PVC for event %q worker %q",
+			"error creating workspace PVC for event %q worker",
 			event.ID,
-			workerName,
 		)
 	}
 
@@ -180,12 +159,9 @@ func (c *controller) createWorkspacePVC(
 func (c *controller) createWorkerPod(
 	ctx context.Context,
 	event brignext.Event,
-	workerName string,
 ) error {
-	worker := event.Workers[workerName]
-
 	imagePullSecrets := []corev1.LocalObjectReference{}
-	for _, imagePullSecret := range worker.Kubernetes.ImagePullSecrets {
+	for _, imagePullSecret := range event.Worker.Kubernetes.ImagePullSecrets {
 		imagePullSecrets = append(
 			imagePullSecrets,
 			corev1.LocalObjectReference{
@@ -194,11 +170,11 @@ func (c *controller) createWorkerPod(
 		)
 	}
 
-	image := worker.Container.Image
+	image := event.Worker.Container.Image
 	if image == "" {
 		image = c.controllerConfig.DefaultWorkerImage
 	}
-	imagePullPolicy := worker.Container.ImagePullPolicy
+	imagePullPolicy := event.Worker.Container.ImagePullPolicy
 	if imagePullPolicy == "" {
 		imagePullPolicy = c.controllerConfig.DefaultWorkerImagePullPolicy
 	}
@@ -216,7 +192,7 @@ func (c *controller) createWorkerPod(
 			Name: "worker",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: fmt.Sprintf("worker-%s-%s", event.ID, workerName),
+					SecretName: fmt.Sprintf("worker-%s", event.ID),
 				},
 			},
 		},
@@ -224,7 +200,7 @@ func (c *controller) createWorkerPod(
 			Name: "workspace",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: fmt.Sprintf("workspace-%s-%s", event.ID, workerName),
+					ClaimName: fmt.Sprintf("workspace-%s", event.ID),
 				},
 			},
 		},
@@ -249,7 +225,7 @@ func (c *controller) createWorkerPod(
 	}
 
 	initContainers := []corev1.Container{}
-	if worker.Git.CloneURL != "" {
+	if event.Worker.Git.CloneURL != "" {
 		volumes = append(
 			volumes,
 			corev1.Volume{
@@ -279,22 +255,22 @@ func (c *controller) createWorkerPod(
 				Env: []corev1.EnvVar{
 					{
 						Name:  "BRIGADE_REMOTE_URL",
-						Value: worker.Git.CloneURL,
+						Value: event.Worker.Git.CloneURL,
 					},
 					{
 						Name:  "BRIGADE_COMMIT_ID",
-						Value: worker.Git.Commit,
+						Value: event.Worker.Git.Commit,
 					},
 					{
 						Name:  "BRIGADE_COMMIT_REF",
-						Value: worker.Git.Ref,
+						Value: event.Worker.Git.Ref,
 					},
 					{
 						Name: "BRIGADE_REPO_KEY",
 						ValueFrom: &corev1.EnvVarSource{
 							SecretKeyRef: &corev1.SecretKeySelector{
 								LocalObjectReference: corev1.LocalObjectReference{
-									Name: fmt.Sprintf("worker-%s-%s", event.ID, workerName),
+									Name: fmt.Sprintf("worker-%s", event.ID),
 								},
 								Key: "gitSSHKey",
 							},
@@ -305,7 +281,7 @@ func (c *controller) createWorkerPod(
 						ValueFrom: &corev1.EnvVarSource{
 							SecretKeyRef: &corev1.SecretKeySelector{
 								LocalObjectReference: corev1.LocalObjectReference{
-									Name: fmt.Sprintf("worker-%s-%s", event.ID, workerName),
+									Name: fmt.Sprintf("worker-%s", event.ID),
 								},
 								Key: "gitSSHCert",
 							},
@@ -313,7 +289,7 @@ func (c *controller) createWorkerPod(
 					},
 					{
 						Name:  "BRIGADE_SUBMODULES",
-						Value: strconv.FormatBool(worker.Git.InitSubmodules),
+						Value: strconv.FormatBool(event.Worker.Git.InitSubmodules),
 					},
 					{
 						Name:  "BRIGADE_WORKSPACE",
@@ -325,7 +301,7 @@ func (c *controller) createWorkerPod(
 	}
 
 	env := []corev1.EnvVar{}
-	for key, val := range worker.Container.Environment {
+	for key, val := range event.Worker.Container.Environment {
 		env = append(
 			env,
 			corev1.EnvVar{
@@ -337,13 +313,12 @@ func (c *controller) createWorkerPod(
 
 	workerPod := corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("worker-%s-%s", event.ID, workerName),
+			Name:      fmt.Sprintf("worker-%s", event.ID),
 			Namespace: event.Kubernetes.Namespace,
 			Labels: map[string]string{
 				"brignext.io/component": "worker",
 				"brignext.io/project":   event.ProjectID,
 				"brignext.io/event":     event.ID,
-				"brignext.io/worker":    workerName,
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -353,10 +328,10 @@ func (c *controller) createWorkerPod(
 			InitContainers:     initContainers,
 			Containers: []corev1.Container{
 				{
-					Name:            workerName,
+					Name:            "worker",
 					Image:           image,
 					ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),
-					Command:         strings.Split(worker.Container.Command, ""),
+					Command:         strings.Split(event.Worker.Container.Command, ""),
 					Env:             env,
 					VolumeMounts:    volumeMounts,
 				},
@@ -373,9 +348,8 @@ func (c *controller) createWorkerPod(
 	); err != nil {
 		return errors.Wrapf(
 			err,
-			"error creating worker pod for event %q worker %q",
+			"error creating pod for event %q worker",
 			event.ID,
-			workerName,
 		)
 	}
 

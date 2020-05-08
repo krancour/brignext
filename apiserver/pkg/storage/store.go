@@ -79,28 +79,20 @@ type Store interface {
 		deleteProcessing bool,
 	) (bool, error)
 
-	GetWorker(
-		ctx context.Context,
-		eventID string,
-		workerName string,
-	) (brignext.Worker, error)
 	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		status brignext.WorkerStatus,
 	) error
 
 	GetJob(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
 	) (brignext.Job, error)
 	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
 		status brignext.JobStatus,
 	) error

@@ -10,13 +10,12 @@ import (
 
 func workerLogs(c *cli.Context) error {
 	// Args
-	if c.Args().Len() != 2 {
+	if c.Args().Len() != 1 {
 		return errors.New(
-			"worker logs requires two arguments-- an event ID and a worker name",
+			"worker logs requires one arguments-- an event ID",
 		)
 	}
 	eventID := c.Args().Get(0)
-	workerName := c.Args().Get(1)
 
 	// Command-specific flags
 	follow := c.Bool(flagFollow)
@@ -28,7 +27,7 @@ func workerLogs(c *cli.Context) error {
 
 	if !follow {
 		var logEntries []brignext.LogEntry
-		logEntries, err = client.GetWorkerLogs(c.Context, eventID, workerName)
+		logEntries, err = client.GetWorkerLogs(c.Context, eventID)
 		if err != nil {
 			return err
 		}
@@ -41,7 +40,6 @@ func workerLogs(c *cli.Context) error {
 	logEntryCh, errCh, err := client.StreamWorkerLogs(
 		c.Context,
 		eventID,
-		workerName,
 	)
 	if err != nil {
 		return err

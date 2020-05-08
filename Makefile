@@ -262,9 +262,9 @@ hack-worker: push-worker hack-namespace
 		--install \
 		--namespace brignext \
 		--reuse-values \
-		--set worker.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-logger-linux \
-		--set worker.linux.image.tag=$(IMMUTABLE_DOCKER_TAG) \
-		--set worker.linux.image.pullPolicy=Always
+		--set worker.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-worker \
+		--set worker.image.tag=$(IMMUTABLE_DOCKER_TAG) \
+		--set worker.image.pullPolicy=Always
 
 .PHONY: hack-logger-linux
 hack-logger-linux: push-logger-linux hack-namespace

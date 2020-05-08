@@ -29,15 +29,13 @@ func NewLogStore(database *mongo.Database) storage.LogStore {
 func (l *logStore) GetWorkerLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 ) ([]brignext.LogEntry, error) {
 	return l.getLogs(
 		ctx,
 		bson.M{
 			"component": "worker",
 			"event":     eventID,
-			"worker":    workerName,
-			"container": workerName,
+			"container": "worker",
 		},
 	)
 }
@@ -45,15 +43,13 @@ func (l *logStore) GetWorkerLogs(
 func (l *logStore) StreamWorkerLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 ) (<-chan brignext.LogEntry, error) {
 	return l.streamLogs(
 		ctx,
 		bson.M{
 			"component": "worker",
 			"event":     eventID,
-			"worker":    workerName,
-			"container": workerName,
+			"container": "worker",
 		},
 	)
 }
@@ -61,14 +57,12 @@ func (l *logStore) StreamWorkerLogs(
 func (l *logStore) GetWorkerInitLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 ) ([]brignext.LogEntry, error) {
 	return l.getLogs(
 		ctx,
 		bson.M{
 			"component": "worker",
 			"event":     eventID,
-			"worker":    workerName,
 			"container": "vcs",
 		},
 	)
@@ -77,14 +71,12 @@ func (l *logStore) GetWorkerInitLogs(
 func (l *logStore) StreamWorkerInitLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 ) (<-chan brignext.LogEntry, error) {
 	return l.streamLogs(
 		ctx,
 		bson.M{
 			"component": "worker",
 			"event":     eventID,
-			"worker":    workerName,
 			"container": "vcs",
 		},
 	)
@@ -93,7 +85,6 @@ func (l *logStore) StreamWorkerInitLogs(
 func (l *logStore) GetJobLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) ([]brignext.LogEntry, error) {
 	return l.getLogs(
@@ -101,7 +92,6 @@ func (l *logStore) GetJobLogs(
 		bson.M{
 			"component": "job",
 			"event":     eventID,
-			"worker":    workerName,
 			"job":       jobName,
 			"container": strings.ToLower(jobName),
 		},
@@ -111,7 +101,6 @@ func (l *logStore) GetJobLogs(
 func (l *logStore) StreamJobLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) (<-chan brignext.LogEntry, error) {
 	return l.streamLogs(
@@ -119,7 +108,6 @@ func (l *logStore) StreamJobLogs(
 		bson.M{
 			"component": "job",
 			"event":     eventID,
-			"worker":    workerName,
 			"job":       jobName,
 			"container": strings.ToLower(jobName),
 		},
@@ -129,7 +117,6 @@ func (l *logStore) StreamJobLogs(
 func (l *logStore) GetJobInitLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) ([]brignext.LogEntry, error) {
 	return l.getLogs(
@@ -137,7 +124,6 @@ func (l *logStore) GetJobInitLogs(
 		bson.M{
 			"component": "job",
 			"event":     eventID,
-			"worker":    workerName,
 			"job":       jobName,
 			"container": "vcs",
 		},
@@ -147,7 +133,6 @@ func (l *logStore) GetJobInitLogs(
 func (l *logStore) StreamJobInitLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) (<-chan brignext.LogEntry, error) {
 	return l.streamLogs(
@@ -155,7 +140,6 @@ func (l *logStore) StreamJobInitLogs(
 		bson.M{
 			"component": "job",
 			"event":     eventID,
-			"worker":    workerName,
 			"job":       jobName,
 			"container": "vcs",
 		},

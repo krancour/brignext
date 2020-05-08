@@ -14,7 +14,6 @@ import (
 
 func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 	eventID := mux.Vars(r)["eventID"]
-	workerName := mux.Vars(r)["workerName"]
 	jobName := mux.Vars(r)["jobName"]
 
 	streamStr := r.URL.Query().Get("stream")
@@ -36,22 +35,17 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 			logEntries, err = s.service.GetJobInitLogs(
 				r.Context(),
 				eventID,
-				workerName,
 				jobName,
 			)
 		} else {
 			logEntries, err = s.service.GetJobLogs(
 				r.Context(),
 				eventID,
-				workerName,
 				jobName,
 			)
 		}
 		if err != nil {
 			if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
-				s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
-				return
-			} else if _, ok := errors.Cause(err).(*brignext.ErrWorkerNotFound); ok {
 				s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 				return
 			} else if _, ok := errors.Cause(err).(*brignext.ErrJobNotFound); ok {
@@ -61,9 +55,8 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 			log.Println(
 				errors.Wrapf(
 					err,
-					"error retrieving event %q worker %q job %q logs",
+					"error retrieving event %q worker job %q logs",
 					eventID,
-					workerName,
 					jobName,
 				),
 			)
@@ -87,14 +80,10 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 	logEntryCh, err := s.service.StreamJobLogs(
 		r.Context(),
 		eventID,
-		workerName,
 		jobName,
 	)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
-			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
-			return
-		} else if _, ok := errors.Cause(err).(*brignext.ErrWorkerNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 			return
 		} else if _, ok := errors.Cause(err).(*brignext.ErrJobNotFound); ok {
@@ -104,9 +93,8 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 		log.Println(
 			errors.Wrapf(
 				err,
-				"error retrieving log stream for event %q worker %q job %q",
+				"error retrieving log stream for event %q worker job %q",
 				eventID,
-				workerName,
 				jobName,
 			),
 		)

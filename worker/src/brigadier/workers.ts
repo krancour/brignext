@@ -1,5 +1,4 @@
 export interface Worker {
-  name: string
   git: GitConfig
   jobsConfig: JobsConfig
   configFilesDirectory: string

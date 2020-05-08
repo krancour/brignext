@@ -139,7 +139,7 @@
 
 		"workerConfig": {
 			"type": "object",
-			"description": "Configuration for a single Brigade worker",
+			"description": "Configuration for the Brignext worker",
 			"additionalProperties": false,
 			"properties": {
 				"events": {
@@ -200,13 +200,6 @@
 				"^[a-z][a-z\\d-]*[a-z\\d]$": { "$ref": "#/definitions/identifier" }
 			}
 		},
-		"workerConfigs": {
-			"type": [ "object", "null" ],
-			"description": "A map of worker configurations indexed by unique names",
-			"additionalProperties": false,
-			"patternProperties": {
-				"^[a-z][a-z\\d-]*[a-z\\d]$": { "$ref": "#/definitions/workerConfig" }
-			}
-		}
+		"workerConfig": { "$ref": "#/definitions/workerConfig" }
 	}
 }

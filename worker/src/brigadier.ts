@@ -42,7 +42,7 @@ export class Job extends jobs.Job {
     imageForcePull: boolean = false
   ) {
     super(name, image, tasks, imageForcePull)
-    this.podName = `job-${currentEvent.id}-${currentWorker.name.toLowerCase()}-${name.toLowerCase()}`
+    this.podName = `job-${currentEvent.id}-${name.toLowerCase()}`
     this.client = k8s.defaultClient
     this.logger = new Logger(`job ${name}`)
   }
@@ -128,7 +128,6 @@ export class Job extends jobs.Job {
       "brignext.io/component": "job",
       "brignext.io/project": currentEvent.projectID,
       "brignext.io/event": currentEvent.id,
-      "brignext.io/worker": currentWorker.name,
       "brignext.io/job": this.name
     }
     secret.type = "brignext.io/job"
@@ -153,7 +152,6 @@ export class Job extends jobs.Job {
       "brignext.io/component": "job",
       "brignext.io/project": currentEvent.projectID,
       "brignext.io/event": currentEvent.id,
-      "brignext.io/worker": currentWorker.name,
       "brignext.io/job": this.name
     }
 
@@ -177,7 +175,7 @@ export class Job extends jobs.Job {
           name: "BRIGADE_REPO_KEY",
           valueFrom: {
             secretKeyRef: {
-              name: currentEvent.id + "-" + currentWorker.name.toLowerCase(),
+              name: "worker-" + currentEvent.id,
               key: "gitSSHKey",
             }
           }
@@ -186,7 +184,7 @@ export class Job extends jobs.Job {
           name: "BRIGADE_REPO_SSH_CERT",
           valueFrom: {
             secretKeyRef: {
-              name: currentEvent.id + "-" + currentWorker.name.toLowerCase(),
+              name: "worker-" + currentEvent.id,
               key: "gitSSHCert",
             }
           }

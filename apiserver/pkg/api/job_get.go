@@ -15,15 +15,11 @@ func (s *server) jobGet(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
 	eventID := mux.Vars(r)["eventID"]
-	workerName := mux.Vars(r)["workerName"]
 	jobName := mux.Vars(r)["jobName"]
 
-	job, err := s.service.GetJob(r.Context(), eventID, workerName, jobName)
+	job, err := s.service.GetJob(r.Context(), eventID, jobName)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
-			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
-			return
-		} else if _, ok := errors.Cause(err).(*brignext.ErrWorkerNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 			return
 		} else if _, ok := errors.Cause(err).(*brignext.ErrJobNotFound); ok {
@@ -33,9 +29,8 @@ func (s *server) jobGet(w http.ResponseWriter, r *http.Request) {
 		log.Println(
 			errors.Wrapf(
 				err,
-				"error retrieving event %q worker %q job %q",
+				"error retrieving event %q worker job %q",
 				eventID,
-				workerName,
 				jobName,
 			),
 		)

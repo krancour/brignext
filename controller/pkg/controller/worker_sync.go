@@ -79,7 +79,6 @@ func (c *controller) syncWorkerPod(obj interface{}) {
 
 	// Use the API to update worker phase so it corresponds to worker pod phase
 	eventID := workerPod.Labels["brignext.io/event"]
-	workerName := workerPod.Labels["brignext.io/worker"]
 
 	status := brignext.WorkerStatus{}
 	switch workerPod.Status.Phase {
@@ -128,16 +127,14 @@ func (c *controller) syncWorkerPod(obj interface{}) {
 	if err := c.apiClient.UpdateWorkerStatus(
 		ctx,
 		eventID,
-		workerName,
 		status,
 	); err != nil {
 		// TODO: Can we return this over the errCh somehow? Only problem is we
 		// don't want to block forever and we don't have access to the context
 		// here. Maybe we can make the context an attribute of the controller?
 		log.Printf(
-			"error updating status for event %q worker %q: %s",
+			"error updating status for event %q worker: %s",
 			eventID,
-			workerName,
 			err,
 		)
 	}

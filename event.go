@@ -5,10 +5,6 @@ import "time"
 type EventPhase string
 
 const (
-	// EventPhaseMoot represents the state wherein an event has been accepted by
-	// the system, but (per project configuration) triggered no constituent
-	// workers.
-	EventPhaseMoot EventPhase = "MOOT"
 	// EventPhasePending represents the state wherein an event has been accepted
 	// by the system, but all of (n > 1) workers remain in a PENDING state.
 	EventPhasePending EventPhase = "PENDING"
@@ -42,7 +38,7 @@ type Event struct {
 	LongTitle  string                 `json:"longTitle" bson:"longTitle"`
 	Git        EventGitConfig         `json:"git" bson:"git"`
 	Kubernetes *EventKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
-	Workers    map[string]Worker      `json:"workers,omitempty" bson:"workers"`
+	Worker     *Worker                `json:"worker,omitempty" bson:"worker"`
 	Created    *time.Time             `json:"created,omitempty" bson:"created"`
 	Status     *EventStatus           `json:"status,omitempty" bson:"status"`
 	Payload    string                 `json:"payload,omitempty" bson:"-"`

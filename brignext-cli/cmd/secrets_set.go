@@ -12,14 +12,13 @@ func secretsSet(c *cli.Context) error {
 	// Args
 	if c.Args().Len() < 3 {
 		return errors.New(
-			"secrets set requires at least three arguments-- a project ID, " +
-				"a worker name, and a secret key/value pair delimited by an " +
+			"secrets set requires at least two arguments-- a project ID " +
+				"and one or more secret key/value pairs delimited by an " +
 				"= character",
 		)
 	}
 	projectID := c.Args().Get(0)
-	workerName := c.Args().Get(1)
-	kvPairs := c.Args().Slice()[2:]
+	kvPairs := c.Args().Slice()[1:]
 
 	secrets := map[string]string{}
 	for _, kvPair := range kvPairs {
@@ -38,7 +37,6 @@ func secretsSet(c *cli.Context) error {
 	if err := client.SetSecrets(
 		c.Context,
 		projectID,
-		workerName,
 		secrets,
 	); err != nil {
 		return err

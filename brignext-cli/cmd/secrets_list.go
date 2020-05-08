@@ -13,13 +13,12 @@ import (
 
 func secretsList(c *cli.Context) error {
 	// Args
-	if c.Args().Len() != 2 {
+	if c.Args().Len() != 1 {
 		return errors.New(
-			"secrets list requires two arguments-- a project ID and worker name",
+			"secrets list requires one arguments-- a project ID",
 		)
 	}
 	projectID := c.Args().Get(0)
-	workerName := c.Args().Get(1)
 
 	// Command-specific flags
 	output := c.String(flagOutput)
@@ -33,7 +32,7 @@ func secretsList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	secrets, err := client.GetSecrets(c.Context, projectID, workerName)
+	secrets, err := client.GetSecrets(c.Context, projectID)
 	if err != nil {
 		return err
 	}

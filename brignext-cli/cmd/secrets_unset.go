@@ -11,13 +11,12 @@ func secretsUnset(c *cli.Context) error {
 	// Args
 	if c.Args().Len() < 2 {
 		return errors.New(
-			"secrets unset requires at least two arguments-- a project ID, " +
-				"a worker name, and a secret key",
+			"secrets unset requires at least two arguments-- a project ID " +
+				"and a secret key",
 		)
 	}
 	projectID := c.Args().Get(0)
-	workerName := c.Args().Get(1)
-	keys := c.Args().Slice()[2:]
+	keys := c.Args().Slice()[1:]
 
 	client, err := getClient(c)
 	if err != nil {
@@ -27,7 +26,6 @@ func secretsUnset(c *cli.Context) error {
 	if err := client.UnsetSecrets(
 		c.Context,
 		projectID,
-		workerName,
 		keys,
 	); err != nil {
 		return err

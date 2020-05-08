@@ -52,18 +52,15 @@ type Service interface {
 	GetSecrets(
 		ctx context.Context,
 		projectID string,
-		workerName string,
 	) (map[string]string, error)
 	SetSecrets(
 		ctx context.Context,
 		projectID string,
-		workerName string,
 		secrets map[string]string,
 	) error
 	UnsetSecrets(
 		ctx context.Context,
 		projectID string,
-		workerName string,
 		keys []string,
 	) error
 
@@ -94,79 +91,57 @@ type Service interface {
 		deleteProcessing bool,
 	) (int64, error)
 
-	GetWorker(
-		ctx context.Context,
-		eventID string,
-		workerName string,
-	) (brignext.Worker, error)
 	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		status brignext.WorkerStatus,
 	) error
-	CancelWorker(
-		ctx context.Context,
-		eventID string,
-		workerName string,
-		cancelRunning bool,
-	) (bool, error)
 	GetWorkerLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 	) ([]brignext.LogEntry, error)
 	StreamWorkerLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 	) (<-chan brignext.LogEntry, error)
 	GetWorkerInitLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 	) ([]brignext.LogEntry, error)
 	StreamWorkerInitLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 	) (<-chan brignext.LogEntry, error)
 
 	GetJob(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
 	) (brignext.Job, error)
 	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
 		status brignext.JobStatus,
 	) error
 	GetJobLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
 	) ([]brignext.LogEntry, error)
 	StreamJobLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
 	) (<-chan brignext.LogEntry, error)
 	GetJobInitLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
 	) ([]brignext.LogEntry, error)
 	StreamJobInitLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
 	) (<-chan brignext.LogEntry, error)
 }
@@ -456,12 +431,12 @@ func (s *service) CreateProject(
 	ctx context.Context,
 	project brignext.Project,
 ) error {
-	for workerName, workerConfig := range project.WorkerConfigs {
-		if workerConfig.LogLevel == "" {
-			workerConfig.LogLevel = brignext.LogLevelInfo
-		}
-		project.WorkerConfigs[workerName] = workerConfig
+	// TODO: Move where we set this to where we set the other defaults-- i.e.
+	// set it at the time an event is created-- not when the project is created.
+	if project.WorkerConfig.LogLevel == "" {
+		project.WorkerConfig.LogLevel = brignext.LogLevelInfo
 	}
+
 	now := time.Now()
 	project.Created = &now
 	// We send this to the scheduler first because we expect the scheduler will
@@ -573,7 +548,6 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 func (s *service) GetSecrets(
 	ctx context.Context,
 	projectID string,
-	workerName string,
 ) (map[string]string, error) {
 	project, err := s.store.GetProject(ctx, projectID)
 	if err != nil {
@@ -583,19 +557,12 @@ func (s *service) GetSecrets(
 			projectID,
 		)
 	}
-	if _, ok := project.WorkerConfigs[workerName]; !ok {
-		return nil, &brignext.ErrWorkerNotFound{
-			ProjectID:  projectID,
-			WorkerName: workerName,
-		}
-	}
-	secrets, err := s.scheduler.GetSecrets(ctx, project, workerName)
+	secrets, err := s.scheduler.GetSecrets(ctx, project)
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
-			"error getting secrets for project %q worker %q from scheduler",
+			"error getting worker secrets for project %q from scheduler",
 			projectID,
-			workerName,
 		)
 	}
 	return secrets, nil
@@ -604,7 +571,6 @@ func (s *service) GetSecrets(
 func (s *service) SetSecrets(
 	ctx context.Context,
 	projectID string,
-	workerName string,
 	secrets map[string]string,
 ) error {
 	project, err := s.store.GetProject(ctx, projectID)
@@ -615,24 +581,12 @@ func (s *service) SetSecrets(
 			projectID,
 		)
 	}
-	if _, ok := project.WorkerConfigs[workerName]; !ok {
-		return &brignext.ErrWorkerNotFound{
-			ProjectID:  projectID,
-			WorkerName: workerName,
-		}
-	}
 	// Secrets aren't stored in the database. We only pass them to the scheduler.
-	if err := s.scheduler.SetSecrets(
-		ctx,
-		project,
-		workerName,
-		secrets,
-	); err != nil {
+	if err := s.scheduler.SetSecrets(ctx, project, secrets); err != nil {
 		return errors.Wrapf(
 			err,
-			"error setting secrets for project %q worker %q in scheduler",
+			"error setting secrets for project %q worker in scheduler",
 			projectID,
-			workerName,
 		)
 	}
 	return nil
@@ -641,7 +595,6 @@ func (s *service) SetSecrets(
 func (s *service) UnsetSecrets(
 	ctx context.Context,
 	projectID string,
-	workerName string,
 	keys []string,
 ) error {
 	project, err := s.store.GetProject(ctx, projectID)
@@ -652,25 +605,13 @@ func (s *service) UnsetSecrets(
 			projectID,
 		)
 	}
-	if _, ok := project.WorkerConfigs[workerName]; !ok {
-		return &brignext.ErrWorkerNotFound{
-			ProjectID:  projectID,
-			WorkerName: workerName,
-		}
-	}
 	// Secrets aren't stored in the database. We only have to remove them from the
 	// scheduler.
-	if err := s.scheduler.UnsetSecrets(
-		ctx,
-		project,
-		workerName,
-		keys,
-	); err != nil {
+	if err := s.scheduler.UnsetSecrets(ctx, project, keys); err != nil {
 		return errors.Wrapf(
 			err,
-			"error unsetting secrets for project %q worker %q in scheduler",
+			"error unsetting secrets for project %q worker in scheduler",
 			projectID,
-			workerName,
 		)
 	}
 	return nil
@@ -691,15 +632,49 @@ func (s *service) CreateEvent(
 	}
 
 	event.ID = uuid.NewV4().String()
-	// "Split" the event into many workers.
-	event.Workers = project.GetWorkers(event)
+
+	event.Worker = &brignext.Worker{
+		Container:            project.WorkerConfig.Container,
+		WorkspaceSize:        project.WorkerConfig.WorkspaceSize,
+		Git:                  project.WorkerConfig.Git,
+		JobsConfig:           project.WorkerConfig.JobsConfig,
+		LogLevel:             project.WorkerConfig.LogLevel,
+		ConfigFilesDirectory: project.WorkerConfig.ConfigFilesDirectory,
+		DefaultConfigFiles:   project.WorkerConfig.DefaultConfigFiles,
+		Jobs:                 map[string]brignext.Job{},
+		Status: brignext.WorkerStatus{
+			Phase: brignext.WorkerPhasePending,
+		},
+	}
+	if event.Worker.WorkspaceSize == "" {
+		event.Worker.WorkspaceSize = "10Gi"
+	}
+
+	// VCS details from the event override project-level details
+	if event.Git.CloneURL != "" {
+		event.Worker.Git.CloneURL = event.Git.CloneURL
+	}
+	if event.Git.Commit != "" {
+		event.Worker.Git.Commit = event.Git.Commit
+	}
+	if event.Git.Ref != "" {
+		event.Worker.Git.Ref = event.Git.Ref
+	}
+
+	if event.Worker.Git.CloneURL != "" &&
+		event.Worker.Git.Commit == "" &&
+		event.Worker.Git.Ref == "" {
+		event.Worker.Git.Ref = "master"
+	}
+
+	if event.Worker.ConfigFilesDirectory == "" {
+		event.Worker.ConfigFilesDirectory = ".brigade"
+	}
+
 	now := time.Now()
 	event.Created = &now
-	event.Status = &brignext.EventStatus{}
-	if len(event.Workers) == 0 {
-		event.Status.Phase = brignext.EventPhaseMoot
-	} else {
-		event.Status.Phase = brignext.EventPhasePending
+	event.Status = &brignext.EventStatus{
+		Phase: brignext.EventPhasePending,
 	}
 
 	// We send this to the scheduler first because we expect the scheduler will
@@ -947,40 +922,20 @@ func (s *service) DeleteEventsByProject(
 	return deletedCount, nil
 }
 
-func (s *service) GetWorker(
-	ctx context.Context,
-	eventID string,
-	workerName string,
-) (brignext.Worker, error) {
-	worker, err := s.store.GetWorker(ctx, eventID, workerName)
-	if err != nil {
-		return worker, errors.Wrapf(
-			err,
-			"error retrieving event %q worker %q from store",
-			eventID,
-			workerName,
-		)
-	}
-	return worker, nil
-}
-
 // TODO: This logic isn't correct!!! It must be fixed!!!
 func (s *service) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	status brignext.WorkerStatus,
 ) error {
 	if err := s.store.UpdateWorkerStatus(
 		ctx,
 		eventID,
-		workerName,
 		status,
 	); err != nil {
 		return errors.Wrapf(
 			err,
-			"error updating status on worker %q of event %q in store",
-			workerName,
+			"error updating status of event %q worker in store",
 			eventID,
 		)
 	}
@@ -1018,7 +973,10 @@ func (s *service) UpdateWorkerStatus(
 		return nil
 	}
 
-	// Determine how collective worker phases change event phase...
+	// Determine the worker phase changes event phase...
+
+	// TODO: This can stand to go through a big simplification now that
+	// events can only have one worker.
 
 	var anyStarted bool // Will be true if any worker has (at least) started
 	var anyFailed bool  // Will be true if any worker has failed
@@ -1028,29 +986,27 @@ func (s *service) UpdateWorkerStatus(
 	eventStatus := brignext.EventStatus{}
 	var latestWorkerEnd *time.Time
 
-	for _, worker := range event.Workers {
-		if eventStatus.Started == nil ||
-			(worker.Status.Started != nil &&
-				worker.Status.Started.Before(*eventStatus.Started)) {
-			eventStatus.Started = worker.Status.Started
-		}
-		if latestWorkerEnd == nil ||
-			(worker.Status.Ended != nil &&
-				worker.Status.Ended.After(*latestWorkerEnd)) {
-			latestWorkerEnd = worker.Status.Ended
-		}
-		switch worker.Status.Phase {
-		case brignext.WorkerPhasePending:
-			allFinished = false
-		case brignext.WorkerPhaseRunning:
-			anyStarted = true
-			allFinished = false
-		case brignext.WorkerPhaseSucceeded:
-			anyStarted = true
-		case brignext.WorkerPhaseFailed:
-			anyStarted = true
-			anyFailed = true
-		}
+	if eventStatus.Started == nil ||
+		(event.Worker.Status.Started != nil &&
+			event.Worker.Status.Started.Before(*eventStatus.Started)) {
+		eventStatus.Started = event.Worker.Status.Started
+	}
+	if latestWorkerEnd == nil ||
+		(event.Worker.Status.Ended != nil &&
+			event.Worker.Status.Ended.After(*latestWorkerEnd)) {
+		latestWorkerEnd = event.Worker.Status.Ended
+	}
+	switch event.Worker.Status.Phase {
+	case brignext.WorkerPhasePending:
+		allFinished = false
+	case brignext.WorkerPhaseRunning:
+		anyStarted = true
+		allFinished = false
+	case brignext.WorkerPhaseSucceeded:
+		anyStarted = true
+	case brignext.WorkerPhaseFailed:
+		anyStarted = true
+		anyFailed = true
 	}
 
 	// Note there are no transitions to aborted or canceled phases here. Those are
@@ -1089,111 +1045,45 @@ func (s *service) UpdateWorkerStatus(
 	return nil
 }
 
-func (s *service) CancelWorker(
-	ctx context.Context,
-	eventID string,
-	workerName string,
-	cancelRunning bool,
-) (bool, error) {
-	event, err := s.store.GetEvent(ctx, eventID)
-	if err != nil {
-		return false, errors.Wrapf(
-			err,
-			"error retrieving event %q from store",
-			eventID,
-		)
-	}
-
-	worker, ok := event.Workers[workerName]
-	if !ok {
-		return false, &brignext.ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-		}
-	}
-
-	if worker.Status.Phase == brignext.WorkerPhasePending {
-		worker.Status.Phase = brignext.WorkerPhaseCanceled
-	} else if cancelRunning &&
-		worker.Status.Phase == brignext.WorkerPhaseRunning {
-		worker.Status.Phase = brignext.WorkerPhaseAborted
-	} else {
-		return false, nil
-	}
-
-	err = s.store.DoTx(ctx, func(ctx context.Context) error {
-		if err = s.store.UpdateWorkerStatus(
-			ctx,
-			eventID,
-			workerName,
-			worker.Status,
-		); err != nil {
-			return errors.Wrapf(
-				err,
-				"error updating event %q worker %q status in store",
-				eventID,
-				workerName,
-			)
-		}
-		if err := s.scheduler.CancelWorker(ctx, event, workerName); err != nil {
-			return errors.Wrapf(
-				err,
-				"error deleting event %q worker %q from scheduler",
-				eventID,
-				workerName,
-			)
-		}
-		return nil
-	})
-
-	return true, nil
-}
-
 func (s *service) GetWorkerLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 ) ([]brignext.LogEntry, error) {
-	return s.logStore.GetWorkerLogs(ctx, eventID, workerName)
+	return s.logStore.GetWorkerLogs(ctx, eventID)
 }
 
 func (s *service) StreamWorkerLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 ) (<-chan brignext.LogEntry, error) {
-	return s.logStore.StreamWorkerLogs(ctx, eventID, workerName)
+	return s.logStore.StreamWorkerLogs(ctx, eventID)
 }
 
 func (s *service) GetWorkerInitLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 ) ([]brignext.LogEntry, error) {
-	return s.logStore.GetWorkerInitLogs(ctx, eventID, workerName)
+	return s.logStore.GetWorkerInitLogs(ctx, eventID)
 }
 
 func (s *service) StreamWorkerInitLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 ) (<-chan brignext.LogEntry, error) {
-	return s.logStore.StreamWorkerInitLogs(ctx, eventID, workerName)
+	return s.logStore.StreamWorkerInitLogs(ctx, eventID)
 }
 
 func (s *service) GetJob(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) (brignext.Job, error) {
-	job, err := s.store.GetJob(ctx, eventID, workerName, jobName)
+	job, err := s.store.GetJob(ctx, eventID, jobName)
 	if err != nil {
 		return job, errors.Wrapf(
 			err,
-			"error retrieving event %q worker %q job %q from store",
+			"error retrieving event %q worker job %q from store",
 			eventID,
-			workerName,
 			jobName,
 		)
 	}
@@ -1203,23 +1093,20 @@ func (s *service) GetJob(
 func (s *service) UpdateJobStatus(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 	status brignext.JobStatus,
 ) error {
 	if err := s.store.UpdateJobStatus(
 		ctx,
 		eventID,
-		workerName,
 		jobName,
 		status,
 	); err != nil {
 		return errors.Wrapf(
 			err,
-			"error updating status on worker %q job %q of event %q in store",
-			workerName,
-			jobName,
+			"error updating status of event %q worker job %q in store",
 			eventID,
+			jobName,
 		)
 	}
 	return nil
@@ -1228,35 +1115,31 @@ func (s *service) UpdateJobStatus(
 func (s *service) GetJobLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) ([]brignext.LogEntry, error) {
-	return s.logStore.GetJobLogs(ctx, eventID, workerName, jobName)
+	return s.logStore.GetJobLogs(ctx, eventID, jobName)
 }
 
 func (s *service) StreamJobLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) (<-chan brignext.LogEntry, error) {
-	return s.logStore.StreamJobLogs(ctx, eventID, workerName, jobName)
+	return s.logStore.StreamJobLogs(ctx, eventID, jobName)
 }
 
 func (s *service) GetJobInitLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) ([]brignext.LogEntry, error) {
-	return s.logStore.GetJobInitLogs(ctx, eventID, workerName, jobName)
+	return s.logStore.GetJobInitLogs(ctx, eventID, jobName)
 }
 
 func (s *service) StreamJobInitLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) (<-chan brignext.LogEntry, error) {
-	return s.logStore.StreamJobInitLogs(ctx, eventID, workerName, jobName)
+	return s.logStore.StreamJobInitLogs(ctx, eventID, jobName)
 }

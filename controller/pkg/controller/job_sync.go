@@ -56,7 +56,6 @@ func (c *controller) syncJobPod(obj interface{}) {
 
 	// Use the API to update job phase so it corresponds to job pod phase
 	eventID := jobPod.Labels["brignext.io/event"]
-	workerName := jobPod.Labels["brignext.io/worker"]
 	jobName := jobPod.Labels["brignext.io/job"]
 
 	status := brignext.JobStatus{}
@@ -89,7 +88,6 @@ func (c *controller) syncJobPod(obj interface{}) {
 	if err := c.apiClient.UpdateJobStatus(
 		ctx,
 		eventID,
-		workerName,
 		jobName,
 		status,
 	); err != nil {
@@ -97,9 +95,8 @@ func (c *controller) syncJobPod(obj interface{}) {
 		// don't want to block forever and we don't have access to the context
 		// here. Maybe we can make the context an attribute of the controller?
 		log.Printf(
-			"error updating status for event %q worker %q job %q: %s",
+			"error updating status for event %q worker job %q: %s",
 			eventID,
-			workerName,
 			jobName,
 			err,
 		)

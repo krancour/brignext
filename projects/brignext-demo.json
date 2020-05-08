@@ -5,27 +5,25 @@
     "foo": "bar",
     "bat": "baz"
   },
-  "workerConfigs": {
-    "my-cli-worker": {
-      "events": [
-        {
-          "source": "brignext-cli",
-          "types": ["exec"]
-        }
-      ],
-      "container": {
-        "environment": {
-          "FOO": "bar"
-        }
-      },
-      "workspaceSize": "10Gi",
-      "git": {
-        "cloneURL": "https://github.com/krancour/empty-testbed.git"
-      },
-      "jobsConfig": {
-        "allowPrivileged": true,
-        "allowDockerSocketMount": true
+  "workerConfig": {
+    "events": [
+      {
+        "source": "brignext-cli",
+        "types": ["exec"]
       }
+    ],
+    "container": {
+      "environment": {
+        "FOO": "bar"
+      }
+    },
+    "workspaceSize": "10Gi",
+    "git": {
+      "cloneURL": "https://github.com/krancour/empty-testbed.git"
+    },
+    "jobsConfig": {
+      "allowPrivileged": true,
+      "allowDockerSocketMount": true
     }
   }
 }

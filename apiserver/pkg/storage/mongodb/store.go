@@ -591,9 +591,9 @@ func (s *store) UpdateProject(
 		},
 		bson.M{
 			"$set": bson.M{
-				"description":   project.Description,
-				"tags":          project.Tags,
-				"workerConfigs": project.WorkerConfigs,
+				"description":  project.Description,
+				"tags":         project.Tags,
+				"workerConfig": project.WorkerConfig,
 			},
 		},
 	)
@@ -775,21 +775,17 @@ func (s *store) CancelEvent(
 		return false, nil
 	}
 
-	for workerName, worker := range event.Workers {
-		if worker.Status.Phase == brignext.WorkerPhasePending {
-			worker.Status.Phase = brignext.WorkerPhaseCanceled
-			event.Workers[workerName] = worker
-		} else if cancelProcessing &&
-			worker.Status.Phase == brignext.WorkerPhaseRunning {
-			worker.Status.Phase = brignext.WorkerPhaseAborted
-			// There may be running jobs that need to be recorded as aborted
-			for jobName, job := range worker.Jobs {
-				if job.Status.Phase == brignext.JobPhaseRunning {
-					job.Status.Phase = brignext.JobPhaseAborted
-					worker.Jobs[jobName] = job
-				}
+	if event.Worker.Status.Phase == brignext.WorkerPhasePending {
+		event.Worker.Status.Phase = brignext.WorkerPhaseCanceled
+	} else if cancelProcessing &&
+		event.Worker.Status.Phase == brignext.WorkerPhaseRunning {
+		event.Worker.Status.Phase = brignext.WorkerPhaseAborted
+		// There may be running jobs that need to be recorded as aborted
+		for jobName, job := range event.Worker.Jobs {
+			if job.Status.Phase == brignext.JobPhaseRunning {
+				job.Status.Phase = brignext.JobPhaseAborted
+				event.Worker.Jobs[jobName] = job
 			}
-			event.Workers[workerName] = worker
 		}
 	}
 
@@ -816,7 +812,6 @@ func (s *store) DeleteEvent(
 		return false, err
 	}
 	phasesToDelete := []brignext.EventPhase{
-		brignext.EventPhaseMoot,
 		brignext.EventPhaseCanceled,
 		brignext.EventPhaseAborted,
 		brignext.EventPhaseSucceeded,
@@ -841,57 +836,30 @@ func (s *store) DeleteEvent(
 	return res.DeletedCount == 1, nil
 }
 
-func (s *store) GetWorker(
-	ctx context.Context,
-	eventID string,
-	workerName string,
-) (brignext.Worker, error) {
-	worker := brignext.Worker{}
-	event, err := s.GetEvent(ctx, eventID)
-	if err != nil {
-		return worker, errors.Wrapf(err, "error finding event %q", eventID)
-	}
-	var ok bool
-	worker, ok = event.Workers[workerName]
-	if !ok {
-		return worker, &brignext.ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-		}
-	}
-	return worker, nil
-}
-
 func (s *store) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	status brignext.WorkerStatus,
 ) error {
 	res, err := s.eventsCollection.UpdateOne(
 		ctx,
-		bson.M{
-			"_id":                                 eventID,
-			fmt.Sprintf("workers.%s", workerName): bson.M{"$exists": true},
-		},
+		bson.M{"_id": eventID},
 		bson.M{
 			"$set": bson.M{
-				fmt.Sprintf("workers.%s.status", workerName): status,
+				"worker.status": status,
 			},
 		},
 	)
 	if err != nil {
 		return errors.Wrapf(
 			err,
-			"error updating status on worker %q of event %q",
-			workerName,
+			"error updating status of event %q worker",
 			eventID,
 		)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
+		return &brignext.ErrEventNotFound{
+			ID: eventID,
 		}
 	}
 	return nil
@@ -900,26 +868,19 @@ func (s *store) UpdateWorkerStatus(
 func (s *store) GetJob(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) (brignext.Job, error) {
 	job := brignext.Job{}
-	worker, err := s.GetWorker(ctx, eventID, workerName)
+	event, err := s.GetEvent(ctx, eventID)
 	if err != nil {
-		return job, errors.Wrapf(
-			err,
-			"error finding event %q worker %q",
-			eventID,
-			workerName,
-		)
+		return job, err
 	}
 	var ok bool
-	job, ok = worker.Jobs[jobName]
+	job, ok = event.Worker.Jobs[jobName]
 	if !ok {
 		return job, &brignext.ErrJobNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-			JobName:    jobName,
+			EventID: eventID,
+			JobName: jobName,
 		}
 	}
 	return job, nil
@@ -928,19 +889,17 @@ func (s *store) GetJob(
 func (s *store) UpdateJobStatus(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 	status brignext.JobStatus,
 ) error {
 	res, err := s.eventsCollection.UpdateOne(
 		ctx,
 		bson.M{
-			"_id":                                 eventID,
-			fmt.Sprintf("workers.%s", workerName): bson.M{"$exists": true},
+			"_id": eventID,
 		},
 		bson.M{
 			"$set": bson.M{
-				fmt.Sprintf("workers.%s.jobs.%s", workerName, jobName): brignext.Job{
+				fmt.Sprintf("worker.jobs.%s", jobName): brignext.Job{
 					Status: status,
 				},
 			},
@@ -949,16 +908,14 @@ func (s *store) UpdateJobStatus(
 	if err != nil {
 		return errors.Wrapf(
 			err,
-			"error updating status on worker %q job %q of event %q",
-			workerName,
-			jobName,
+			"error updating status of event %q worker job %q",
 			eventID,
+			jobName,
 		)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
+		return &brignext.ErrEventNotFound{
+			ID: eventID,
 		}
 	}
 	return nil

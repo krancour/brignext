@@ -15,14 +15,12 @@ import (
 
 func jobGet(c *cli.Context) error {
 	// Args
-	if c.Args().Len() != 3 {
+	if c.Args().Len() != 2 {
 		return errors.New(
-			"job get requires three arguments-- an event ID, a worker name, " +
-				"and a job name",
+			"job get requires two arguments-- an event ID and a job name",
 		)
 	}
 	eventID := c.Args().Get(0)
-	workerName := c.Args().Get(1)
 	jobName := c.Args().Get(2)
 
 	// Command-specific flags
@@ -37,7 +35,7 @@ func jobGet(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	job, err := client.GetJob(c.Context, eventID, workerName, jobName)
+	job, err := client.GetJob(c.Context, eventID, jobName)
 	if err != nil {
 		return err
 	}

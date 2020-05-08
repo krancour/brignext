@@ -20,8 +20,6 @@ func (s *server) jobUpdateStatus(
 
 	eventID := mux.Vars(r)["eventID"]
 
-	workerName := mux.Vars(r)["workerName"]
-
 	jobName := mux.Vars(r)["jobName"]
 
 	bodyBytes, err := ioutil.ReadAll(r.Body)
@@ -64,21 +62,19 @@ func (s *server) jobUpdateStatus(
 		s.service.UpdateJobStatus(
 			r.Context(),
 			eventID,
-			workerName,
 			jobName,
 			status,
 		); err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrWorkerNotFound); ok {
+		if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 			return
 		}
 		log.Println(
 			errors.Wrapf(
 				err,
-				"error updating status on worker %q job %q of event %q",
-				workerName,
-				jobName,
+				"error updating status on event %q worker job %q",
 				eventID,
+				jobName,
 			),
 		)
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)

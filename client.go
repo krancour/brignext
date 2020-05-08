@@ -25,10 +25,7 @@ type Client interface {
 
 	CreateServiceAccount(context.Context, ServiceAccount) (string, error)
 	GetServiceAccounts(context.Context) ([]ServiceAccount, error)
-	GetServiceAccount(
-		context.Context,
-		string,
-	) (ServiceAccount, error)
+	GetServiceAccount(context.Context, string) (ServiceAccount, error)
 	LockServiceAccount(context.Context, string) error
 	UnlockServiceAccount(context.Context, string) (string, error)
 
@@ -38,23 +35,13 @@ type Client interface {
 	UpdateProject(context.Context, Project) error
 	DeleteProject(context.Context, string) error
 
-	GetSecrets(
-		ctx context.Context,
-		projectID string,
-		workerName string,
-	) (map[string]string, error)
+	GetSecrets(ctx context.Context, projectID string) (map[string]string, error)
 	SetSecrets(
 		ctx context.Context,
 		projectID string,
-		workerName string,
 		secrets map[string]string,
 	) error
-	UnsetSecrets(
-		ctx context.Context,
-		projectID string,
-		workerName string,
-		keys []string,
-	) error
+	UnsetSecrets(ctx context.Context, projectID string, keys []string) error
 
 	CreateEvent(context.Context, Event) (string, error)
 	GetEvents(context.Context) ([]Event, error)
@@ -83,79 +70,50 @@ type Client interface {
 		deleteProcessing bool,
 	) (int64, error)
 
-	GetWorker(
-		ctx context.Context,
-		eventID string,
-		workerName string,
-	) (Worker, error)
 	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		status WorkerStatus,
 	) error
-	CancelWorker(
-		ctx context.Context,
-		eventID string,
-		workerName string,
-		cancelRunning bool,
-	) (bool, error)
-	GetWorkerLogs(
-		ctx context.Context,
-		eventID string,
-		workerName string,
-	) ([]LogEntry, error)
+	GetWorkerLogs(ctx context.Context, eventID string) ([]LogEntry, error)
 	StreamWorkerLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 	) (<-chan LogEntry, <-chan error, error)
 	GetWorkerInitLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 	) ([]LogEntry, error)
 	StreamWorkerInitLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 	) (<-chan LogEntry, <-chan error, error)
 
-	GetJob(
-		ctx context.Context,
-		eventID string,
-		workerName string,
-		jobName string,
-	) (Job, error)
+	GetJob(ctx context.Context, eventID string, jobName string) (Job, error)
 	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
 		status JobStatus,
 	) error
 	GetJobLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
 	) ([]LogEntry, error)
 	StreamJobLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
 	) (<-chan LogEntry, <-chan error, error)
 	GetJobInitLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
 	) ([]LogEntry, error)
 	StreamJobInitLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
 	) (<-chan LogEntry, <-chan error, error)
 }
@@ -763,11 +721,10 @@ func (c *client) DeleteProject(_ context.Context, id string) error {
 func (c *client) GetSecrets(
 	ctx context.Context,
 	projectID string,
-	workerName string,
 ) (map[string]string, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/projects/%s/workers/%s/secrets", projectID, workerName),
+		fmt.Sprintf("v2/projects/%s/worker/secrets", projectID),
 		nil,
 	)
 	if err != nil {
@@ -781,9 +738,8 @@ func (c *client) GetSecrets(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &ErrWorkerNotFound{
-			ProjectID:  projectID,
-			WorkerName: workerName,
+		return nil, &ErrProjectNotFound{
+			ID: projectID,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -806,7 +762,6 @@ func (c *client) GetSecrets(
 func (c *client) SetSecrets(
 	ctx context.Context,
 	projectID string,
-	workerName string,
 	secrets map[string]string,
 ) error {
 	secretsBytes, err := json.Marshal(secrets)
@@ -816,7 +771,7 @@ func (c *client) SetSecrets(
 
 	req, err := c.buildRequest(
 		http.MethodPost,
-		fmt.Sprintf("v2/projects/%s/workers/%s/secrets", projectID, workerName),
+		fmt.Sprintf("v2/projects/%s/worker/secrets", projectID),
 		secretsBytes,
 	)
 	if err != nil {
@@ -844,7 +799,6 @@ func (c *client) SetSecrets(
 func (c *client) UnsetSecrets(
 	ctx context.Context,
 	projectID string,
-	workerName string,
 	keys []string,
 ) error {
 	keysStruct := struct {
@@ -859,7 +813,7 @@ func (c *client) UnsetSecrets(
 
 	req, err := c.buildRequest(
 		http.MethodDelete,
-		fmt.Sprintf("v2/projects/%s/workers/%s/secrets", projectID, workerName),
+		fmt.Sprintf("v2/projects/%s/worker/secrets", projectID),
 		keysBytes,
 	)
 	if err != nil {
@@ -1267,7 +1221,6 @@ func (c *client) buildRequest(
 func (c *client) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	status WorkerStatus,
 ) error {
 	statusBytes, err := json.Marshal(
@@ -1283,7 +1236,7 @@ func (c *client) UpdateWorkerStatus(
 
 	req, err := c.buildRequest(
 		http.MethodPut,
-		fmt.Sprintf("v2/events/%s/workers/%s/status", eventID, workerName),
+		fmt.Sprintf("v2/events/%s/worker/status", eventID),
 		statusBytes,
 	)
 	if err != nil {
@@ -1297,9 +1250,8 @@ func (c *client) UpdateWorkerStatus(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
+		return &ErrEventNotFound{
+			ID: eventID,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -1309,108 +1261,13 @@ func (c *client) UpdateWorkerStatus(
 	return nil
 }
 
-func (c *client) GetWorker(
-	ctx context.Context,
-	eventID string,
-	workerName string,
-) (Worker, error) {
-	worker := Worker{}
-	req, err := c.buildRequest(
-		http.MethodGet,
-		fmt.Sprintf("v2/events/%s/workers/%s", eventID, workerName),
-		nil,
-	)
-	if err != nil {
-		return worker, errors.Wrap(err, "error creating HTTP request")
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return worker, errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return worker, &ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-		}
-	}
-	if resp.StatusCode != http.StatusOK {
-		return worker, errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return worker, errors.Wrap(err, "error reading response body")
-	}
-
-	if err := json.Unmarshal(respBodyBytes, &worker); err != nil {
-		return worker, errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	return worker, nil
-}
-
-func (c *client) CancelWorker(
-	ctx context.Context,
-	eventID string,
-	workerName string,
-	cancelRunning bool,
-) (bool, error) {
-	req, err := c.buildRequest(
-		http.MethodPut,
-		fmt.Sprintf("v2/events/%s/workers/%s/cancel", eventID, workerName),
-		nil,
-	)
-	if err != nil {
-		return false, errors.Wrap(err, "error creating HTTP request")
-	}
-	q := req.URL.Query()
-	if cancelRunning {
-		q.Set("cancelRunning", "true")
-	}
-	req.URL.RawQuery = q.Encode()
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return false, errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return false, &ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-		}
-	}
-	if resp.StatusCode != http.StatusOK {
-		return false, errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return false, errors.Wrap(err, "error reading response body")
-	}
-
-	respStruct := struct {
-		Canceled bool `json:"canceled"`
-	}{}
-	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
-		return false, errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	return respStruct.Canceled, nil
-}
-
 func (c *client) GetWorkerLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 ) ([]LogEntry, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/events/%s/workers/%s/logs", eventID, workerName),
+		fmt.Sprintf("v2/events/%s/worker/logs", eventID),
 		nil,
 	)
 	if err != nil {
@@ -1424,9 +1281,8 @@ func (c *client) GetWorkerLogs(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
+		return nil, &ErrEventNotFound{
+			ID: eventID,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -1449,11 +1305,10 @@ func (c *client) GetWorkerLogs(
 func (c *client) StreamWorkerLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 ) (<-chan LogEntry, <-chan error, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/events/%s/workers/%s/logs", eventID, workerName),
+		fmt.Sprintf("v2/events/%s/worker/logs", eventID),
 		nil,
 	)
 	if err != nil {
@@ -1469,9 +1324,8 @@ func (c *client) StreamWorkerLogs(
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, nil, &ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
+		return nil, nil, &ErrEventNotFound{
+			ID: eventID,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -1492,11 +1346,10 @@ func (c *client) StreamWorkerLogs(
 func (c *client) GetWorkerInitLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 ) ([]LogEntry, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/events/%s/workers/%s/logs", eventID, workerName),
+		fmt.Sprintf("v2/events/%s/worker/logs", eventID),
 		nil,
 	)
 	if err != nil {
@@ -1513,9 +1366,8 @@ func (c *client) GetWorkerInitLogs(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
+		return nil, &ErrEventNotFound{
+			ID: eventID,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -1538,11 +1390,10 @@ func (c *client) GetWorkerInitLogs(
 func (c *client) StreamWorkerInitLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 ) (<-chan LogEntry, <-chan error, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/events/%s/workers/%s/logs", eventID, workerName),
+		fmt.Sprintf("v2/events/%s/worker/logs", eventID),
 		nil,
 	)
 	if err != nil {
@@ -1559,9 +1410,8 @@ func (c *client) StreamWorkerInitLogs(
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, nil, &ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
+		return nil, nil, &ErrEventNotFound{
+			ID: eventID,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -1582,16 +1432,14 @@ func (c *client) StreamWorkerInitLogs(
 func (c *client) GetJob(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) (Job, error) {
 	job := Job{}
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf(
-			"v2/events/%s/workers/%s/jobs/%s",
+			"v2/events/%s/worker/jobs/%s",
 			eventID,
-			workerName,
 			jobName,
 		),
 		nil,
@@ -1608,9 +1456,8 @@ func (c *client) GetJob(
 
 	if resp.StatusCode == http.StatusNotFound {
 		return job, &ErrJobNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-			JobName:    jobName,
+			EventID: eventID,
+			JobName: jobName,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -1632,7 +1479,6 @@ func (c *client) GetJob(
 func (c *client) UpdateJobStatus(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 	status JobStatus,
 ) error {
@@ -1650,9 +1496,8 @@ func (c *client) UpdateJobStatus(
 	req, err := c.buildRequest(
 		http.MethodPut,
 		fmt.Sprintf(
-			"v2/events/%s/workers/%s/jobs/%s/status",
+			"v2/events/%s/worker/jobs/%s/status",
 			eventID,
-			workerName,
 			jobName,
 		),
 		statusBytes,
@@ -1668,9 +1513,9 @@ func (c *client) UpdateJobStatus(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
+		return &ErrJobNotFound{
+			EventID: eventID,
+			JobName: jobName,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -1683,15 +1528,13 @@ func (c *client) UpdateJobStatus(
 func (c *client) GetJobLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) ([]LogEntry, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf(
-			"v2/events/%s/workers/%s/jobs/%s/logs",
+			"v2/events/%s/worker/jobs/%s/logs",
 			eventID,
-			workerName,
 			jobName,
 		),
 		nil,
@@ -1708,9 +1551,8 @@ func (c *client) GetJobLogs(
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, &ErrJobNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-			JobName:    jobName,
+			EventID: eventID,
+			JobName: jobName,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -1733,15 +1575,13 @@ func (c *client) GetJobLogs(
 func (c *client) StreamJobLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) (<-chan LogEntry, <-chan error, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf(
-			"v2/events/%s/workers/%s/jobs/%s/logs",
+			"v2/events/%s/worker/jobs/%s/logs",
 			eventID,
-			workerName,
 			jobName,
 		),
 		nil,
@@ -1760,9 +1600,8 @@ func (c *client) StreamJobLogs(
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil, &ErrJobNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-			JobName:    jobName,
+			EventID: eventID,
+			JobName: jobName,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -1783,15 +1622,13 @@ func (c *client) StreamJobLogs(
 func (c *client) GetJobInitLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) ([]LogEntry, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf(
-			"v2/events/%s/workers/%s/jobs/%s/logs",
+			"v2/events/%s/worker/jobs/%s/logs",
 			eventID,
-			workerName,
 			jobName,
 		),
 		nil,
@@ -1811,9 +1648,8 @@ func (c *client) GetJobInitLogs(
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, &ErrJobNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-			JobName:    jobName,
+			EventID: eventID,
+			JobName: jobName,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -1836,15 +1672,13 @@ func (c *client) GetJobInitLogs(
 func (c *client) StreamJobInitLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) (<-chan LogEntry, <-chan error, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf(
-			"v2/events/%s/workers/%s/jobs/%s/logs",
+			"v2/events/%s/worker/jobs/%s/logs",
 			eventID,
-			workerName,
 			jobName,
 		),
 		nil,
@@ -1864,9 +1698,8 @@ func (c *client) StreamJobInitLogs(
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil, &ErrJobNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-			JobName:    jobName,
+			EventID: eventID,
+			JobName: jobName,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {

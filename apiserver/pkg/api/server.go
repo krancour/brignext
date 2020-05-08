@@ -173,19 +173,19 @@ func NewServer(
 
 	// List secrets
 	s.router.HandleFunc(
-		"/v2/projects/{projectID}/workers/{workerName}/secrets",
+		"/v2/projects/{projectID}/worker/secrets",
 		tokenAuthFilter.Decorate(s.secretsList),
 	).Methods(http.MethodGet)
 
 	// Set secrets
 	s.router.HandleFunc(
-		"/v2/projects/{projectID}/workers/{workerName}/secrets",
+		"/v2/projects/{projectID}/worker/secrets",
 		tokenAuthFilter.Decorate(s.secretsSet),
 	).Methods(http.MethodPost)
 
 	// Unset secrets
 	s.router.HandleFunc(
-		"/v2/projects/{projectID}/workers/{workerName}/secrets",
+		"/v2/projects/{projectID}/worker/secrets",
 		tokenAuthFilter.Decorate(s.secretsUnset),
 	).Methods(http.MethodDelete)
 
@@ -231,45 +231,33 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.eventsDelete),
 	).Methods(http.MethodDelete)
 
-	// Get worker
-	s.router.HandleFunc(
-		"/v2/events/{eventID}/workers/{workerName}",
-		tokenAuthFilter.Decorate(s.workerGet),
-	).Methods(http.MethodGet)
-
 	// Update worker status
 	s.router.HandleFunc(
-		"/v2/events/{eventID}/workers/{workerName}/status",
+		"/v2/events/{eventID}/worker/status",
 		tokenAuthFilter.Decorate(s.workerUpdateStatus),
-	).Methods(http.MethodPut)
-
-	// Cancel worker
-	s.router.HandleFunc(
-		"/v2/events/{eventID}/workers/{workerName}/cancel",
-		tokenAuthFilter.Decorate(s.workerCancel),
 	).Methods(http.MethodPut)
 
 	// Get/stream worker logs
 	s.router.HandleFunc(
-		"/v2/events/{eventID}/workers/{workerName}/logs",
+		"/v2/events/{eventID}/worker/logs",
 		tokenAuthFilter.Decorate(s.workerLogs),
 	).Methods(http.MethodGet)
 
 	// Get job
 	s.router.HandleFunc(
-		"/v2/events/{eventID}/workers/{workerName}/jobs/{jobName}",
+		"/v2/events/{eventID}/worker/jobs/{jobName}",
 		tokenAuthFilter.Decorate(s.jobGet),
 	).Methods(http.MethodGet)
 
 	// Update job status
 	s.router.HandleFunc(
-		"/v2/events/{eventID}/workers/{workerName}/jobs/{jobName}/status",
+		"/v2/events/{eventID}/worker/jobs/{jobName}/status",
 		tokenAuthFilter.Decorate(s.jobUpdateStatus),
 	).Methods(http.MethodPut)
 
 	// Get/stream job logs
 	s.router.HandleFunc(
-		"/v2/events/{eventID}/workers/{workerName}/jobs/{jobName}/logs",
+		"/v2/events/{eventID}/worker/jobs/{jobName}/logs",
 		tokenAuthFilter.Decorate(s.jobLogs),
 	).Methods(http.MethodGet)
 
