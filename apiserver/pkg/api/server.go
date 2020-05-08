@@ -173,19 +173,19 @@ func NewServer(
 
 	// List secrets
 	s.router.HandleFunc(
-		"/v2/projects/{projectID}/worker/secrets",
+		"/v2/projects/{projectID}/secrets",
 		tokenAuthFilter.Decorate(s.secretsList),
 	).Methods(http.MethodGet)
 
 	// Set secrets
 	s.router.HandleFunc(
-		"/v2/projects/{projectID}/worker/secrets",
+		"/v2/projects/{projectID}/secrets",
 		tokenAuthFilter.Decorate(s.secretsSet),
 	).Methods(http.MethodPost)
 
 	// Unset secrets
 	s.router.HandleFunc(
-		"/v2/projects/{projectID}/worker/secrets",
+		"/v2/projects/{projectID}/secrets",
 		tokenAuthFilter.Decorate(s.secretsUnset),
 	).Methods(http.MethodDelete)
 

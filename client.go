@@ -724,7 +724,7 @@ func (c *client) GetSecrets(
 ) (map[string]string, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/projects/%s/worker/secrets", projectID),
+		fmt.Sprintf("v2/projects/%s/secrets", projectID),
 		nil,
 	)
 	if err != nil {
@@ -771,7 +771,7 @@ func (c *client) SetSecrets(
 
 	req, err := c.buildRequest(
 		http.MethodPost,
-		fmt.Sprintf("v2/projects/%s/worker/secrets", projectID),
+		fmt.Sprintf("v2/projects/%s/secrets", projectID),
 		secretsBytes,
 	)
 	if err != nil {
@@ -813,7 +813,7 @@ func (c *client) UnsetSecrets(
 
 	req, err := c.buildRequest(
 		http.MethodDelete,
-		fmt.Sprintf("v2/projects/%s/worker/secrets", projectID),
+		fmt.Sprintf("v2/projects/%s/secrets", projectID),
 		keysBytes,
 	)
 	if err != nil {

@@ -252,26 +252,26 @@ func (s *scheduler) CreateProject(
 		)
 	}
 
-	// Create a secret for the worker config
+	// Create a secret to hold project secrets
 	if _, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
 	).Create(
 		ctx,
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "worker-config",
+				Name: "project-secrets",
 				Labels: map[string]string{
-					componentLabel: "worker-config",
+					componentLabel: "project-secrets",
 					projectLabel:   project.ID,
 				},
 			},
-			Type: corev1.SecretType("brignext.io/worker-config"),
+			Type: corev1.SecretType("brignext.io/project-secrets"),
 		},
 		metav1.CreateOptions{},
 	); err != nil {
 		return project, errors.Wrapf(
 			err,
-			"error creating secret worker-config in namespace %q",
+			"error creating secret \"project-secrets\" in namespace %q",
 			project.Kubernetes.Namespace,
 		)
 	}
@@ -311,11 +311,11 @@ func (s *scheduler) GetSecrets(
 ) (map[string]string, error) {
 	secret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
-	).Get(ctx, "worker-config", metav1.GetOptions{})
+	).Get(ctx, "project-secrets", metav1.GetOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
-			"error retrieving secret worker-config in namespace %q",
+			"error retrieving secret \"project-secrets\" in namespace %q",
 			project.Kubernetes.Namespace,
 		)
 	}
@@ -333,11 +333,11 @@ func (s *scheduler) SetSecrets(
 ) error {
 	secret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
-	).Get(ctx, "worker-config", metav1.GetOptions{})
+	).Get(ctx, "project-secrets", metav1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(
 			err,
-			"error retrieving secret worker-config in namespace %q",
+			"error retrieving secret \"project-secrets\" in namespace %q",
 			project.Kubernetes.Namespace,
 		)
 	}
@@ -367,11 +367,11 @@ func (s *scheduler) UnsetSecrets(
 ) error {
 	secret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
-	).Get(ctx, "worker-config", metav1.GetOptions{})
+	).Get(ctx, "project-secrets", metav1.GetOptions{})
 	if err != nil {
 		return errors.Wrapf(
 			err,
-			"error retrieving secret worker-config in namespace %q",
+			"error retrieving secret \"project-secrets\" in namespace %q",
 			project.Kubernetes.Namespace,
 		)
 	}
@@ -457,19 +457,19 @@ func (s *scheduler) CreateEvent(
 		)
 	}
 
-	// Get the worker config's secrets
-	workerConfigSecret, err := s.kubeClient.CoreV1().Secrets(
+	// Get the project's secrets
+	projectSecretsSecret, err := s.kubeClient.CoreV1().Secrets(
 		event.Kubernetes.Namespace,
-	).Get(ctx, "worker-config", metav1.GetOptions{})
+	).Get(ctx, "project-secrets", metav1.GetOptions{})
 	if err != nil {
 		return event, errors.Wrapf(
 			err,
-			"error finding secret worker-config in namespace %q",
+			"error finding secret \"project-secrets\" in namespace %q",
 			event.Kubernetes.Namespace,
 		)
 	}
 	secrets := map[string]string{}
-	for key, value := range workerConfigSecret.Data {
+	for key, value := range projectSecretsSecret.Data {
 		secrets[key] = string(value)
 	}
 
@@ -502,8 +502,8 @@ func (s *scheduler) CreateEvent(
 		data[filename] = []byte(contents)
 	}
 	data["worker.json"] = workerJSON
-	data["gitSSHKey"] = workerConfigSecret.Data["gitSSHKey"]
-	data["gitSSHCert"] = workerConfigSecret.Data["gitSSHCert"]
+	data["gitSSHKey"] = projectSecretsSecret.Data["gitSSHKey"]
+	data["gitSSHCert"] = projectSecretsSecret.Data["gitSSHCert"]
 	if _, err := s.kubeClient.CoreV1().Secrets(
 		event.Kubernetes.Namespace,
 	).Create(
