@@ -1,6 +1,10 @@
 package brignext
 
-import "time"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+)
 
 // nolint: lll
 type Event struct {
@@ -8,6 +12,7 @@ type Event struct {
 	ProjectID  string                 `json:"projectID" bson:"projectID"`
 	Source     string                 `json:"source" bson:"source"`
 	Type       string                 `json:"type" bson:"type"`
+	Labels     EventLabels            `json:"labels" bson:"labels"`
 	ShortTitle string                 `json:"shortTitle" bson:"shortTitle"`
 	LongTitle  string                 `json:"longTitle" bson:"longTitle"`
 	Git        EventGitConfig         `json:"git" bson:"git"`
@@ -15,4 +20,22 @@ type Event struct {
 	Worker     *Worker                `json:"worker,omitempty" bson:"worker"`
 	Created    *time.Time             `json:"created,omitempty" bson:"created"`
 	Payload    string                 `json:"payload,omitempty" bson:"-"`
+}
+
+// UnmarshalBSON implements custom BSON marshaling for the Event type. This does
+// little more than guarantees that the Labels field isn't nil so that custom
+// marshaling of the EventLabels (which is more involved) can succeed.
+func (e *Event) UnmarshalBSON(bytes []byte) error {
+	if e.Labels == nil {
+		e.Labels = EventLabels{}
+	}
+	type EventAlias Event
+	return bson.Unmarshal(
+		bytes,
+		&struct {
+			*EventAlias `bson:",inline"`
+		}{
+			EventAlias: (*EventAlias)(e),
+		},
+	)
 }
