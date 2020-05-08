@@ -22,7 +22,6 @@ type store struct {
 	serviceAccountsCollection *mongo.Collection
 	projectsCollection        *mongo.Collection
 	eventsCollection          *mongo.Collection
-	eventLocksCollection      *mongo.Collection
 }
 
 func NewStore(database *mongo.Database) (storage.Store, error) {
@@ -135,7 +134,6 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 		serviceAccountsCollection: serviceAccountsCollection,
 		projectsCollection:        projectsCollection,
 		eventsCollection:          eventsCollection,
-		eventLocksCollection:      eventLocksCollection,
 	}, nil
 }
 
@@ -627,43 +625,6 @@ func (s *store) DeleteProject(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *store) LockEvent(ctx context.Context, eventID string) (bool, error) {
-	if _, err := s.eventLocksCollection.InsertOne(
-		ctx,
-		bson.M{
-			"_id":       eventID,
-			"clientID":  s.id,
-			"timestamp": time.Now(),
-		},
-	); err != nil {
-		if writeException, ok := err.(mongo.WriteException); ok {
-			if len(writeException.WriteErrors) == 1 &&
-				writeException.WriteErrors[0].Code == 11000 {
-				return false, nil
-			}
-		}
-		return false, errors.Wrapf(
-			err,
-			"error obtaining lock on event %q",
-			eventID,
-		)
-	}
-	return true, nil
-}
-
-func (s *store) UnlockEvent(ctx context.Context, eventID string) error {
-	if _, err := s.eventLocksCollection.DeleteOne(
-		ctx,
-		bson.M{
-			"_id":      eventID,
-			"clientID": s.id,
-		},
-	); err != nil {
-		return errors.Wrapf(err, "error releasing lock on event %q", eventID)
-	}
-	return nil
-}
-
 func (s *store) CreateEvent(ctx context.Context, event brignext.Event) error {
 	if _, err := s.eventsCollection.InsertOne(ctx, event); err != nil {
 		return errors.Wrapf(err, "error inserting new event %q", event.ID)
@@ -731,103 +692,86 @@ func (s *store) GetEvent(
 	return event, nil
 }
 
-func (s *store) UpdateEventStatus(
-	ctx context.Context,
-	id string,
-	status brignext.EventStatus,
-) error {
-	res, err := s.eventsCollection.UpdateOne(
-		ctx,
-		bson.M{
-			"_id": id,
-		},
-		bson.M{
-			"$set": bson.M{"status": status},
-		},
-	)
-	if err != nil {
-		return errors.Wrapf(err, "error updating event %q status", id)
-	}
-	if res.MatchedCount == 0 {
-		return &brignext.ErrEventNotFound{
-			ID: id,
-		}
-	}
-	return nil
-}
-
 func (s *store) CancelEvent(
 	ctx context.Context,
 	id string,
-	cancelProcessing bool,
+	cancelRunning bool,
 ) (bool, error) {
-	event, err := s.GetEvent(ctx, id)
+	res, err := s.eventsCollection.UpdateOne(
+		ctx,
+		bson.M{
+			"_id":                 id,
+			"worker.status.phase": brignext.WorkerPhasePending,
+		},
+		bson.M{
+			"$set": bson.M{
+				"worker.status.phase": brignext.WorkerPhaseCanceled,
+			},
+		},
+	)
 	if err != nil {
-		return false, err
+		return false, errors.Wrapf(
+			err,
+			"error updating status of event %q worker",
+			id,
+		)
+	}
+	if res.MatchedCount == 1 {
+		return true, nil
 	}
 
-	if event.Status.Phase == brignext.EventPhasePending {
-		event.Status.Phase = brignext.EventPhaseCanceled
-	} else if cancelProcessing &&
-		event.Status.Phase == brignext.EventPhaseProcessing {
-		event.Status.Phase = brignext.EventPhaseAborted
-	} else {
+	if !cancelRunning {
 		return false, nil
 	}
 
-	if event.Worker.Status.Phase == brignext.WorkerPhasePending {
-		event.Worker.Status.Phase = brignext.WorkerPhaseCanceled
-	} else if cancelProcessing &&
-		event.Worker.Status.Phase == brignext.WorkerPhaseRunning {
-		event.Worker.Status.Phase = brignext.WorkerPhaseAborted
-		// There may be running jobs that need to be recorded as aborted
-		for jobName, job := range event.Worker.Jobs {
-			if job.Status.Phase == brignext.JobPhaseRunning {
-				job.Status.Phase = brignext.JobPhaseAborted
-				event.Worker.Jobs[jobName] = job
-			}
-		}
-	}
-
-	if _, err = s.eventsCollection.ReplaceOne(
+	res, err = s.eventsCollection.UpdateOne(
 		ctx,
 		bson.M{
-			"_id": id,
+			"_id":                 id,
+			"worker.status.phase": brignext.WorkerPhaseRunning,
 		},
-		event,
-	); err != nil {
-		return false, errors.Wrapf(err, "error canceling event %q", id)
+		bson.M{
+			"$set": bson.M{
+				"worker.status.phase": brignext.WorkerPhaseAborted,
+			},
+		},
+	)
+	if err != nil {
+		return false, errors.Wrapf(
+			err,
+			"error updating status of event %q worker",
+			id,
+		)
 	}
-
-	return true, nil
+	return res.MatchedCount == 1, nil
 }
 
 func (s *store) DeleteEvent(
 	ctx context.Context,
 	id string,
 	deletePending bool,
-	deleteProcessing bool,
+	deleteRunning bool,
 ) (bool, error) {
 	if _, err := s.GetEvent(ctx, id); err != nil {
 		return false, err
 	}
-	phasesToDelete := []brignext.EventPhase{
-		brignext.EventPhaseCanceled,
-		brignext.EventPhaseAborted,
-		brignext.EventPhaseSucceeded,
-		brignext.EventPhaseFailed,
+	phasesToDelete := []brignext.WorkerPhase{
+		brignext.WorkerPhaseCanceled,
+		brignext.WorkerPhaseAborted,
+		brignext.WorkerPhaseSucceeded,
+		brignext.WorkerPhaseFailed,
 	}
 	if deletePending {
-		phasesToDelete = append(phasesToDelete, brignext.EventPhasePending)
+		phasesToDelete = append(phasesToDelete, brignext.WorkerPhasePending)
 	}
-	if deleteProcessing {
-		phasesToDelete = append(phasesToDelete, brignext.EventPhaseProcessing)
+	if deleteRunning {
+		phasesToDelete = append(phasesToDelete, brignext.WorkerPhaseRunning)
 	}
 	res, err := s.eventsCollection.DeleteOne(
 		ctx,
 		bson.M{
-			"_id":          id,
-			"status.phase": bson.M{"$in": phasesToDelete},
+			"_id":                 id,
+			"worker.status.phase": bson.M{"$in": phasesToDelete},
 		},
 	)
 	if err != nil {

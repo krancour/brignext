@@ -25,14 +25,16 @@ func main() {
 			Usage: "Manage events",
 			Subcommands: []*cli.Command{
 				{
-					Name:        "cancel",
-					Usage:       "Cancel event(s) without deleting them",
-					Description: "By default, only cancels events in a PENDING state.",
-					ArgsUsage:   "[EVENT_ID]",
+					Name:  "cancel",
+					Usage: "Cancel event(s) without deleting them",
+					Description: "By default, only cancels event(s) with their worker " +
+						"in a PENDING state.",
+					ArgsUsage: "[EVENT_ID]",
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
-							Name:  flagProcessing,
-							Usage: "If set, will also abort events in a PROCESSING state",
+							Name: flagRunning,
+							Usage: "If set, will also abort event(s) with their worker " +
+								"in a RUNNING state",
 						},
 						&cli.StringFlag{
 							Name: flagProject,
@@ -74,18 +76,19 @@ func main() {
 				{
 					Name:  "delete",
 					Usage: "Delete event(s)",
-					Description: "By default, only deletes events in a terminal state " +
-						"(neither PENDING nor PROCESSING).",
+					Description: "By default, only deletes event(s) with their worker " +
+						"in a terminal state (neither PENDING nor RUNNING).",
 					ArgsUsage: "[EVENT_ID]",
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
-							Name:  flagPending,
-							Usage: "If set, will also delete events in a PENDING state",
+							Name: flagPending,
+							Usage: "If set, will also delete event(s) with their worker " +
+								"in a PENDING state",
 						},
 						&cli.BoolFlag{
-							Name: flagProcessing,
-							Usage: "If set, will also abort and delete events in a " +
-								"PROCESSING state",
+							Name: flagRunning,
+							Usage: "If set, will also abort and delete event(s) with their " +
+								"worker in a RUNNING state",
 						},
 						&cli.StringFlag{
 							Name: flagProject,

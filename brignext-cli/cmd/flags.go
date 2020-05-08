@@ -13,7 +13,6 @@ const (
 	flagPayload     = "payload"
 	flagPayloadFile = "payload-file"
 	flagPending     = "pending"
-	flagProcessing  = "processing"
 	flagProject     = "project"
 	flagRoot        = "root"
 	flagRunning     = "running"

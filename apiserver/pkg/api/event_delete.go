@@ -23,11 +23,11 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 		deletePending, _ = strconv.ParseBool(deletePendingStr) // nolint: errcheck
 	}
 
-	deleteProcessingStr := r.URL.Query().Get("deleteProcessing")
-	var deleteProcessing bool
-	if deleteProcessingStr != "" {
-		deleteProcessing, _ =
-			strconv.ParseBool(deleteProcessingStr) // nolint: errcheck
+	deleteRunningStr := r.URL.Query().Get("deleteRunning")
+	var deleteRunning bool
+	if deleteRunningStr != "" {
+		deleteRunning, _ =
+			strconv.ParseBool(deleteRunningStr) // nolint: errcheck
 	}
 
 	if eventID != "" {
@@ -35,7 +35,7 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 			r.Context(),
 			eventID,
 			deletePending,
-			deleteProcessing,
+			deleteRunning,
 		)
 		if err != nil {
 			if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
@@ -72,7 +72,7 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 		r.Context(),
 		projectID,
 		deletePending,
-		deleteProcessing,
+		deleteRunning,
 	)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {

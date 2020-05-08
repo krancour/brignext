@@ -429,7 +429,7 @@ func (s *scheduler) CreateEvent(
 	if err != nil {
 		return event, errors.Wrapf(err, "error marshaling event %q", event.ID)
 	}
-	if _, err := s.kubeClient.CoreV1().Secrets(
+	if _, err = s.kubeClient.CoreV1().Secrets(
 		event.Kubernetes.Namespace,
 	).Create(
 		ctx,
@@ -504,7 +504,7 @@ func (s *scheduler) CreateEvent(
 	data["worker.json"] = workerJSON
 	data["gitSSHKey"] = projectSecretsSecret.Data["gitSSHKey"]
 	data["gitSSHCert"] = projectSecretsSecret.Data["gitSSHCert"]
-	if _, err := s.kubeClient.CoreV1().Secrets(
+	if _, err = s.kubeClient.CoreV1().Secrets(
 		event.Kubernetes.Namespace,
 	).Create(
 		ctx,

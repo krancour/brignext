@@ -42,7 +42,7 @@ func eventGet(c *cli.Context) error {
 	switch strings.ToLower(output) {
 	case "table":
 		table := uitable.New()
-		table.AddRow("ID", "PROJECT", "SOURCE", "TYPE", "AGE", "PHASE")
+		table.AddRow("ID", "PROJECT", "SOURCE", "TYPE", "AGE", "WORKER PHASE")
 		var age string
 		if event.Created != nil {
 			age = duration.ShortHumanDuration(time.Since(*event.Created))
@@ -53,7 +53,7 @@ func eventGet(c *cli.Context) error {
 			event.Source,
 			event.Type,
 			age,
-			event.Status.Phase,
+			event.Worker.Status.Phase,
 		)
 		fmt.Println(table)
 

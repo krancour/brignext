@@ -55,28 +55,20 @@ type Store interface {
 	UpdateProject(context.Context, brignext.Project) error
 	DeleteProject(context.Context, string) error
 
-	LockEvent(context.Context, string) (bool, error)
-	UnlockEvent(context.Context, string) error
-
 	CreateEvent(context.Context, brignext.Event) error
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
 	GetEvent(context.Context, string) (brignext.Event, error)
-	UpdateEventStatus(
-		ctx context.Context,
-		id string,
-		status brignext.EventStatus,
-	) error
 	CancelEvent(
 		ctx context.Context,
 		id string,
-		cancelProcessing bool,
+		cancelRunning bool,
 	) (bool, error)
 	DeleteEvent(
 		ctx context.Context,
 		id string,
 		deletePending bool,
-		deleteProcessing bool,
+		deleteRunning bool,
 	) (bool, error)
 
 	UpdateWorkerStatus(

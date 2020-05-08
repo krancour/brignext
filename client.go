@@ -50,24 +50,24 @@ type Client interface {
 	CancelEvent(
 		ctx context.Context,
 		id string,
-		cancelProcessing bool,
+		cancelRunning bool,
 	) (bool, error)
 	CancelEventsByProject(
 		ctx context.Context,
 		projectID string,
-		cancelProcessing bool,
+		cancelRunning bool,
 	) (int64, error)
 	DeleteEvent(
 		ctx context.Context,
 		id string,
 		deletePending bool,
-		deleteProcessing bool,
+		deleteRunning bool,
 	) (bool, error)
 	DeleteEventsByProject(
 		ctx context.Context,
 		projectID string,
 		deletePending bool,
-		deleteProcessing bool,
+		deleteRunning bool,
 	) (int64, error)
 
 	UpdateWorkerStatus(
@@ -991,7 +991,7 @@ func (c *client) GetEvent(ctx context.Context, id string) (Event, error) {
 func (c *client) CancelEvent(
 	ctx context.Context,
 	id string,
-	cancelProcessing bool,
+	cancelRunning bool,
 ) (bool, error) {
 	req, err := c.buildRequest(
 		http.MethodPut,
@@ -1002,8 +1002,8 @@ func (c *client) CancelEvent(
 		return false, errors.Wrap(err, "error creating HTTP request")
 	}
 	q := req.URL.Query()
-	if cancelProcessing {
-		q.Set("cancelProcessing", "true")
+	if cancelRunning {
+		q.Set("cancelRunning", "true")
 	}
 	req.URL.RawQuery = q.Encode()
 
@@ -1040,7 +1040,7 @@ func (c *client) CancelEvent(
 func (c *client) CancelEventsByProject(
 	ctx context.Context,
 	projectID string,
-	cancelProcessing bool,
+	cancelRunning bool,
 ) (int64, error) {
 	req, err := c.buildRequest(
 		http.MethodPut,
@@ -1051,8 +1051,8 @@ func (c *client) CancelEventsByProject(
 		return 0, errors.Wrap(err, "error creating HTTP request")
 	}
 	q := req.URL.Query()
-	if cancelProcessing {
-		q.Set("cancelProcessing", "true")
+	if cancelRunning {
+		q.Set("cancelRunning", "true")
 	}
 	req.URL.RawQuery = q.Encode()
 
@@ -1090,7 +1090,7 @@ func (c *client) DeleteEvent(
 	ctx context.Context,
 	id string,
 	deletePending bool,
-	deleteProcessing bool,
+	deleteRunning bool,
 ) (bool, error) {
 	req, err := c.buildRequest(
 		http.MethodDelete,
@@ -1104,8 +1104,8 @@ func (c *client) DeleteEvent(
 	if deletePending {
 		q.Set("deletePending", "true")
 	}
-	if deleteProcessing {
-		q.Set("deleteProcessing", "true")
+	if deleteRunning {
+		q.Set("deleteRunning", "true")
 	}
 	req.URL.RawQuery = q.Encode()
 
@@ -1143,7 +1143,7 @@ func (c *client) DeleteEventsByProject(
 	ctx context.Context,
 	projectID string,
 	deletePending bool,
-	deleteProcessing bool,
+	deleteRunning bool,
 ) (int64, error) {
 	req, err := c.buildRequest(
 		http.MethodDelete,
@@ -1157,8 +1157,8 @@ func (c *client) DeleteEventsByProject(
 	if deletePending {
 		q.Set("deletePending", "true")
 	}
-	if deleteProcessing {
-		q.Set("deleteProcessing", "true")
+	if deleteRunning {
+		q.Set("deleteRunning", "true")
 	}
 	req.URL.RawQuery = q.Encode()
 

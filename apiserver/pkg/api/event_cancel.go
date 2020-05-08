@@ -17,18 +17,18 @@ func (s *server) eventsCancel(w http.ResponseWriter, r *http.Request) {
 	eventID := mux.Vars(r)["id"]
 	projectID := mux.Vars(r)["projectID"]
 
-	cancelProcessingStr := r.URL.Query().Get("cancelProcessing")
-	var cancelProcessing bool
-	if cancelProcessingStr != "" {
-		cancelProcessing, _ =
-			strconv.ParseBool(cancelProcessingStr) // nolint: errcheck
+	cancelRunningStr := r.URL.Query().Get("cancelRunning")
+	var cancelRunning bool
+	if cancelRunningStr != "" {
+		cancelRunning, _ =
+			strconv.ParseBool(cancelRunningStr) // nolint: errcheck
 	}
 
 	if eventID != "" {
 		canceled, err := s.service.CancelEvent(
 			r.Context(),
 			eventID,
-			cancelProcessing,
+			cancelRunning,
 		)
 		if err != nil {
 			if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
@@ -64,7 +64,7 @@ func (s *server) eventsCancel(w http.ResponseWriter, r *http.Request) {
 	canceled, err := s.service.CancelEventsByProject(
 		r.Context(),
 		projectID,
-		cancelProcessing,
+		cancelRunning,
 	)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {

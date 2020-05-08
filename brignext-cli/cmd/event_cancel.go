@@ -9,7 +9,7 @@ import (
 
 func eventCancel(c *cli.Context) error {
 	// Command-specific flags
-	cancelProcessing := c.Bool(flagProcessing)
+	cancelRunning := c.Bool(flagRunning)
 	projectID := c.String(flagProject)
 
 	// Args
@@ -37,7 +37,7 @@ func eventCancel(c *cli.Context) error {
 		if canceled, err = client.CancelEvent(
 			c.Context,
 			eventID,
-			cancelProcessing,
+			cancelRunning,
 		); err != nil {
 			return err
 		} else if canceled {
@@ -54,7 +54,7 @@ func eventCancel(c *cli.Context) error {
 	canceled, err := client.CancelEventsByProject(
 		c.Context,
 		projectID,
-		cancelProcessing,
+		cancelRunning,
 	)
 	if err != nil {
 		return err

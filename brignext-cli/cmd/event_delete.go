@@ -10,7 +10,7 @@ import (
 func eventDelete(c *cli.Context) error {
 	// Command-specific flags
 	deletePending := c.Bool(flagPending)
-	deleteProcessing := c.Bool(flagProcessing)
+	deleteRunning := c.Bool(flagRunning)
 	projectID := c.String(flagProject)
 
 	// Args
@@ -39,7 +39,7 @@ func eventDelete(c *cli.Context) error {
 			c.Context,
 			eventID,
 			deletePending,
-			deleteProcessing,
+			deleteRunning,
 		); err != nil {
 			return err
 		} else if deleted {
@@ -57,7 +57,7 @@ func eventDelete(c *cli.Context) error {
 		c.Context,
 		projectID,
 		deletePending,
-		deleteProcessing,
+		deleteRunning,
 	)
 	if err != nil {
 		return err

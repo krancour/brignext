@@ -2,14 +2,12 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/krancour/brignext/v2"
 	"github.com/krancour/brignext/v2/apiserver/pkg/crypto"
 	"github.com/krancour/brignext/v2/apiserver/pkg/scheduler"
 	"github.com/krancour/brignext/v2/apiserver/pkg/storage"
-	"github.com/krancour/brignext/v2/pkg/retries"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
@@ -71,24 +69,24 @@ type Service interface {
 	CancelEvent(
 		ctx context.Context,
 		id string,
-		cancelProcessing bool,
+		cancelRunning bool,
 	) (bool, error)
 	CancelEventsByProject(
 		ctx context.Context,
 		projectID string,
-		cancelingProcessing bool,
+		cancelingRunning bool,
 	) (int64, error)
 	DeleteEvent(
 		ctx context.Context,
 		id string,
 		deletePending bool,
-		deleteProcessing bool,
+		deleteRunning bool,
 	) (bool, error)
 	DeleteEventsByProject(
 		ctx context.Context,
 		projectID string,
 		deletePending bool,
-		deleteProcessing bool,
+		deleteRunning bool,
 	) (int64, error)
 
 	UpdateWorkerStatus(
@@ -673,9 +671,6 @@ func (s *service) CreateEvent(
 
 	now := time.Now()
 	event.Created = &now
-	event.Status = &brignext.EventStatus{
-		Phase: brignext.EventPhasePending,
-	}
 
 	// We send this to the scheduler first because we expect the scheduler will
 	// will add some scheduler-specific details that we will want to persist.
@@ -755,7 +750,7 @@ func (s *service) GetEvent(
 func (s *service) CancelEvent(
 	ctx context.Context,
 	id string,
-	cancelProcessing bool,
+	cancelRunning bool,
 ) (bool, error) {
 	event, err := s.store.GetEvent(ctx, id)
 	if err != nil {
@@ -767,7 +762,7 @@ func (s *service) CancelEvent(
 		if ok, err = s.store.CancelEvent(
 			ctx,
 			id,
-			cancelProcessing,
+			cancelRunning,
 		); err != nil {
 			return errors.Wrapf(err, "error updating event %q in store", id)
 		}
@@ -789,7 +784,7 @@ func (s *service) CancelEvent(
 func (s *service) CancelEventsByProject(
 	ctx context.Context,
 	projectID string,
-	cancelProcessing bool,
+	cancelRunning bool,
 ) (int64, error) {
 
 	// Find all events. We'll iterate over all of them and try to cancel each.
@@ -807,7 +802,7 @@ func (s *service) CancelEventsByProject(
 	var canceledCount int64
 	for _, event := range events {
 		if err := s.store.DoTx(ctx, func(ctx context.Context) error {
-			ok, err := s.store.CancelEvent(ctx, event.ID, cancelProcessing)
+			ok, err := s.store.CancelEvent(ctx, event.ID, cancelRunning)
 			if err != nil {
 				return errors.Wrapf(
 					err,
@@ -838,7 +833,7 @@ func (s *service) DeleteEvent(
 	ctx context.Context,
 	id string,
 	deletePending bool,
-	deleteProcessing bool,
+	deleteRunning bool,
 ) (bool, error) {
 	event, err := s.store.GetEvent(ctx, id)
 	if err != nil {
@@ -850,7 +845,7 @@ func (s *service) DeleteEvent(
 			ctx,
 			id,
 			deletePending,
-			deleteProcessing,
+			deleteRunning,
 		); err != nil {
 			return errors.Wrapf(err, "error removing event %q from store", id)
 		}
@@ -872,7 +867,7 @@ func (s *service) DeleteEventsByProject(
 	ctx context.Context,
 	projectID string,
 	deletePending bool,
-	deleteProcessing bool,
+	deleteRunning bool,
 ) (int64, error) {
 
 	// Find all events. We'll iterate over all of them and try to delete each.
@@ -894,7 +889,7 @@ func (s *service) DeleteEventsByProject(
 				ctx,
 				event.ID,
 				deletePending,
-				deleteProcessing,
+				deleteRunning,
 			)
 			if err != nil {
 				return errors.Wrapf(
@@ -922,7 +917,6 @@ func (s *service) DeleteEventsByProject(
 	return deletedCount, nil
 }
 
-// TODO: This logic isn't correct!!! It must be fixed!!!
 func (s *service) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
@@ -939,109 +933,6 @@ func (s *service) UpdateWorkerStatus(
 			eventID,
 		)
 	}
-
-	if err := retries.ManageRetries(
-		ctx,
-		fmt.Sprintf("obtaining lock on event %q", eventID),
-		5,
-		10*time.Second,
-		func() (bool, error) {
-			locked, err := s.store.LockEvent(ctx, eventID)
-			if err != nil {
-				// s.store.LockEvent(...) reports success or failure in obtaining a lock
-				// using a boolean. Any error wasn't merely inability to obtain a lock.
-				// It was something else unexpected and we should not retry.
-				return false, err
-			}
-			// Retry is indicated if a lock was NOT obtained.
-			return !locked, nil
-		},
-	); err != nil {
-		return err
-	}
-
-	event, err := s.store.GetEvent(ctx, eventID)
-	if err != nil {
-		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
-	}
-
-	// Bail early if the event is already in a terminal phase
-	switch event.Status.Phase {
-	case brignext.EventPhasePending:
-	case brignext.EventPhaseProcessing:
-	default:
-		return nil
-	}
-
-	// Determine the worker phase changes event phase...
-
-	// TODO: This can stand to go through a big simplification now that
-	// events can only have one worker.
-
-	var anyStarted bool // Will be true if any worker has (at least) started
-	var anyFailed bool  // Will be true if any worker has failed
-	// Will remain true only if all workers are in a terminal state
-	allFinished := true
-
-	eventStatus := brignext.EventStatus{}
-	var latestWorkerEnd *time.Time
-
-	if eventStatus.Started == nil ||
-		(event.Worker.Status.Started != nil &&
-			event.Worker.Status.Started.Before(*eventStatus.Started)) {
-		eventStatus.Started = event.Worker.Status.Started
-	}
-	if latestWorkerEnd == nil ||
-		(event.Worker.Status.Ended != nil &&
-			event.Worker.Status.Ended.After(*latestWorkerEnd)) {
-		latestWorkerEnd = event.Worker.Status.Ended
-	}
-	switch event.Worker.Status.Phase {
-	case brignext.WorkerPhasePending:
-		allFinished = false
-	case brignext.WorkerPhaseRunning:
-		anyStarted = true
-		allFinished = false
-	case brignext.WorkerPhaseSucceeded:
-		anyStarted = true
-	case brignext.WorkerPhaseFailed:
-		anyStarted = true
-		anyFailed = true
-	}
-
-	// Note there are no transitions to aborted or canceled phases here. Those are
-	// handled separately, from the top down, instead of determining event phase
-	// based on worker phases like we are doing here.
-	if !anyStarted {
-		eventStatus.Phase = brignext.EventPhasePending
-	} else if allFinished {
-		// We're done-- figure out more specific state
-		if anyFailed {
-			eventStatus.Phase = brignext.EventPhaseFailed
-		} else {
-			eventStatus.Phase = brignext.EventPhaseSucceeded
-		}
-	} else {
-		// We've started, but haven't finished, so we're processing
-		eventStatus.Phase = brignext.EventPhaseProcessing
-	}
-
-	if allFinished {
-		eventStatus.Ended = latestWorkerEnd
-	}
-
-	if err := s.store.UpdateEventStatus(
-		ctx,
-		eventID,
-		eventStatus,
-	); err != nil {
-		return errors.Wrapf(err, "error updating event %q status in store", eventID)
-	}
-
-	if err := s.store.UnlockEvent(ctx, eventID); err != nil {
-		return errors.Wrapf(err, "error releasing lock on event %q", eventID)
-	}
-
 	return nil
 }
 
