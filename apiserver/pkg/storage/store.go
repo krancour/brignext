@@ -47,11 +47,9 @@ type Store interface {
 
 	CreateProject(context.Context, brignext.Project) error
 	GetProjects(context.Context) ([]brignext.Project, error)
-	GetProjectsBySubscription(
+	GetSubscribedProjects(
 		ctx context.Context,
-		eventSource string,
-		eventType string,
-		eventLabels brignext.EventLabels,
+		event brignext.Event,
 	) ([]brignext.Project, error)
 	GetProject(context.Context, string) (brignext.Project, error)
 	UpdateProject(context.Context, brignext.Project) error
