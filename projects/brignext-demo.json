@@ -1,7 +1,7 @@
 {
   "id": "brignext-demo",
   "description": "A project that demonstrates brignext",
-  "events": [
+  "eventSubscriptions": [
     {
       "source": "brignext-cli",
       "types": ["exec"],

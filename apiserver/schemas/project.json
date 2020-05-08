@@ -31,9 +31,9 @@
 			"minLength": 3,
 			"maxLength": 50
 		},
-		"triggeringEvents": {
+		"eventSubscription": {
 			"type": "object",
-			"description": "Describes a set of events that trigger a worker",
+			"description": "Describes a set of events that the project is subscribed to",
 			"required": [
 				"source"
 			],
@@ -251,14 +251,14 @@
 			],
 			"description": "A brief description of the project"
 		},
-		"events": {
+		"eventSubscriptions": {
 			"type": [
 				"array",
 				"null"
 			],
 			"description": "The events that this project subscribes to",
 			"items": {
-				"$ref": "#/definitions/triggeringEvents"
+				"$ref": "#/definitions/eventSubscription"
 			}
 		},
 		"workerConfig": {

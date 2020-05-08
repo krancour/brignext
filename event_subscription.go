@@ -5,7 +5,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
-type TriggeringEvents struct {
+type EventSubscription struct {
 	Source string      `json:"source" bson:"source"`
 	Types  []string    `json:"types" bson:"types"`
 	Labels EventLabels `json:"labels" bson:"labels"`
@@ -13,17 +13,17 @@ type TriggeringEvents struct {
 
 type EventLabels map[string]string
 
-func (t *TriggeringEvents) Matches(eventSource, eventType string) bool {
-	if t.Source == "" ||
+func (e *EventSubscription) Matches(eventSource, eventType string) bool {
+	if e.Source == "" ||
 		eventSource == "" ||
 		eventType == "" ||
-		t.Source != eventSource {
+		e.Source != eventSource {
 		return false
 	}
-	if len(t.Types) == 0 {
+	if len(e.Types) == 0 {
 		return true
 	}
-	for _, tipe := range t.Types {
+	for _, tipe := range e.Types {
 		if tipe == eventType {
 			return true
 		}
@@ -31,21 +31,21 @@ func (t *TriggeringEvents) Matches(eventSource, eventType string) bool {
 	return false
 }
 
-// UnmarshalBSON implements custom BSON marshaling for the TriggeringEvents
+// UnmarshalBSON implements custom BSON marshaling for the EventSubscription
 // type. This does little more than guarantees that the Labels field isn't nil
 // so that custom marshaling of the EventLabels (which is more involved) can
 // succeed.
-func (t *TriggeringEvents) UnmarshalBSON(bytes []byte) error {
-	if t.Labels == nil {
-		t.Labels = EventLabels{}
+func (e *EventSubscription) UnmarshalBSON(bytes []byte) error {
+	if e.Labels == nil {
+		e.Labels = EventLabels{}
 	}
-	type TriggeringEventsAlias TriggeringEvents
+	type EventSubscriptionAlias EventSubscription
 	return bson.Unmarshal(
 		bytes,
 		&struct {
-			*TriggeringEventsAlias `bson:",inline"`
+			*EventSubscriptionAlias `bson:",inline"`
 		}{
-			TriggeringEventsAlias: (*TriggeringEventsAlias)(t),
+			EventSubscriptionAlias: (*EventSubscriptionAlias)(e),
 		},
 	)
 }

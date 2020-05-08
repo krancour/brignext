@@ -594,9 +594,9 @@ func (s *store) UpdateProject(
 		},
 		bson.M{
 			"$set": bson.M{
-				"description":  project.Description,
-				"events":       project.TriggeringEvents,
-				"workerConfig": project.WorkerConfig,
+				"description":        project.Description,
+				"eventSubscriptions": project.EventSubscriptions,
+				"workerConfig":       project.WorkerConfig,
 			},
 		},
 	)
