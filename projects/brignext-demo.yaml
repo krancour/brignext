@@ -4,7 +4,7 @@ events:
 - source: brignext-cli
   types:
   - exec
-  tags:
+  labels:
     foo: bar
     bat: baz
 workerConfig:

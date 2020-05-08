@@ -47,9 +47,11 @@ type Store interface {
 
 	CreateProject(context.Context, brignext.Project) error
 	GetProjects(context.Context) ([]brignext.Project, error)
-	GetProjectsByTags(
-		context.Context,
-		brignext.ProjectTags,
+	GetProjectsBySubscription(
+		ctx context.Context,
+		eventSource string,
+		eventType string,
+		eventLabels brignext.EventLabels,
 	) ([]brignext.Project, error)
 	GetProject(context.Context, string) (brignext.Project, error)
 	UpdateProject(context.Context, brignext.Project) error

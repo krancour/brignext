@@ -57,7 +57,7 @@
 						"$ref": "#/definitions/identifier"
 					}
 				},
-				"tags": {
+				"labels": {
 					"type": [
 						"object",
 						"null"

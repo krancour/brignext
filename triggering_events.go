@@ -8,10 +8,10 @@ import (
 type TriggeringEvents struct {
 	Source string      `json:"source" bson:"source"`
 	Types  []string    `json:"types" bson:"types"`
-	Tags   ProjectTags `json:"tags" bson:"tags"`
+	Labels EventLabels `json:"labels" bson:"labels"`
 }
 
-type ProjectTags map[string]string
+type EventLabels map[string]string
 
 func (t *TriggeringEvents) Matches(eventSource, eventType string) bool {
 	if t.Source == "" ||
@@ -32,12 +32,12 @@ func (t *TriggeringEvents) Matches(eventSource, eventType string) bool {
 }
 
 // UnmarshalBSON implements custom BSON marshaling for the TriggeringEvents
-// type. This does little more than guarantees that the Tags field isn't nil so
-// that custom marshaling of the ProjectTags (which is more involved) can
+// type. This does little more than guarantees that the Labels field isn't nil
+// so that custom marshaling of the EventLabels (which is more involved) can
 // succeed.
 func (t *TriggeringEvents) UnmarshalBSON(bytes []byte) error {
-	if t.Tags == nil {
-		t.Tags = ProjectTags{}
+	if t.Labels == nil {
+		t.Labels = EventLabels{}
 	}
 	type TriggeringEventsAlias TriggeringEvents
 	return bson.Unmarshal(
@@ -50,8 +50,8 @@ func (t *TriggeringEvents) UnmarshalBSON(bytes []byte) error {
 	)
 }
 
-// MarshalBSONValue implements custom BSON marshaling for the ProjectTags type.
-// ProjectTags is, essentially, a map[string]string, but when marshaled to BSON,
+// MarshalBSONValue implements custom BSON marshaling for the EventLabels type.
+// EventLabels is, essentially, a map[string]string, but when marshaled to BSON,
 // it must be represented as follows because Mongo can index this more easily,
 // making for faster queries:
 //
@@ -61,10 +61,10 @@ func (t *TriggeringEvents) UnmarshalBSON(bytes []byte) error {
 //   ...
 //   { "key": "keyN", "value": "valueN" }
 // ]
-func (p ProjectTags) MarshalBSONValue() (bsontype.Type, []byte, error) {
-	ms := make([]bson.M, len(p))
+func (e EventLabels) MarshalBSONValue() (bsontype.Type, []byte, error) {
+	ms := make([]bson.M, len(e))
 	var i int
-	for k, v := range p {
+	for k, v := range e {
 		ms[i] = bson.M{
 			"key":   k,
 			"value": v,
@@ -74,8 +74,8 @@ func (p ProjectTags) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	return bson.MarshalValue(ms)
 }
 
-// UnmarshalBSONValue implements custom BSON unmarshaling for the ProjectTags
-// type. ProjectTags is, essentially, a map[string]string, but when marshaled to
+// UnmarshalBSONValue implements custom BSON unmarshaling for the EventLabels
+// type. EventLabels is, essentially, a map[string]string, but when marshaled to
 // BSON, it is represented as follows because Mongo can index this more easily,
 // making for faster queries:
 //
@@ -85,16 +85,16 @@ func (p ProjectTags) MarshalBSONValue() (bsontype.Type, []byte, error) {
 //   ...
 //   { "key": "keyN", "value": "valueN" }
 // ]
-func (p ProjectTags) UnmarshalBSONValue(_ bsontype.Type, bytes []byte) error {
-	tags := bson.M{}
-	if err := bson.Unmarshal(bytes, &tags); err != nil {
+func (e EventLabels) UnmarshalBSONValue(_ bsontype.Type, bytes []byte) error {
+	labels := bson.M{}
+	if err := bson.Unmarshal(bytes, &labels); err != nil {
 		return err
 	}
-	for _, tag := range tags {
-		t := tag.(bson.M)
-		k := t["key"].(string)
-		v := t["value"].(string)
-		p[k] = v
+	for _, label := range labels {
+		l := label.(bson.M)
+		k := l["key"].(string)
+		v := l["value"].(string)
+		e[k] = v
 	}
 	return nil
 }
