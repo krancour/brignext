@@ -9,15 +9,28 @@ import (
 
 // nolint: lll
 type Project struct {
-	ID           string                   `json:"id" bson:"_id"`
-	Description  string                   `json:"description" bson:"description"`
-	Tags         ProjectTags              `json:"tags" bson:"tags"`
-	WorkerConfig WorkerConfig             `json:"workerConfig" bson:"workerConfig"`
-	Kubernetes   *ProjectKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
-	Created      *time.Time               `json:"created,omitempty" bson:"created"`
+	ID               string                   `json:"id" bson:"_id"`
+	Description      string                   `json:"description" bson:"description"`
+	TriggeringEvents []TriggeringEvents       `json:"events" bson:"events"`
+	Tags             ProjectTags              `json:"tags" bson:"tags"`
+	WorkerConfig     WorkerConfig             `json:"workerConfig" bson:"workerConfig"`
+	Kubernetes       *ProjectKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
+	Created          *time.Time               `json:"created,omitempty" bson:"created"`
 }
 
 type ProjectTags map[string]string
+
+func (p *Project) Matches(eventSource, eventType string) bool {
+	if len(p.TriggeringEvents) == 0 {
+		return true
+	}
+	for _, tes := range p.TriggeringEvents {
+		if tes.Matches(eventSource, eventType) {
+			return true
+		}
+	}
+	return false
+}
 
 // UnmarshalBSON implements custom BSON marshaling for the Project type. This
 // does little more than guarantees that the Tags field isn't nil so that custom

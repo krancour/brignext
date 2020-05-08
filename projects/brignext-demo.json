@@ -1,17 +1,17 @@
 {
   "id": "brignext-demo",
   "description": "A project that demonstrates brignext",
+  "events": [
+    {
+      "source": "brignext-cli",
+      "types": ["exec"]
+    }
+  ],
   "tags": {
     "foo": "bar",
     "bat": "baz"
   },
   "workerConfig": {
-    "events": [
-      {
-        "source": "brignext-cli",
-        "types": ["exec"]
-      }
-    ],
     "container": {
       "environment": {
         "FOO": "bar"

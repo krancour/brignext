@@ -8,16 +8,16 @@ import (
 
 func TestTriggeringEventsMatches(t *testing.T) {
 	testCases := []struct {
-		name        string
-		tes         TriggeringEvents
-		eventSource string
-		eventType   string
-		shouldMatch bool
+		name             string
+		triggeringEvents TriggeringEvents
+		eventSource      string
+		eventType        string
+		shouldMatch      bool
 	}{
 		{
 			// Edge case-- really this shouldn't ever happen
 			name: "triggering event source not specified",
-			tes: TriggeringEvents{
+			triggeringEvents: TriggeringEvents{
 				Types: []string{"push"},
 			},
 			eventSource: "github",
@@ -27,7 +27,7 @@ func TestTriggeringEventsMatches(t *testing.T) {
 		{
 			// Edge case-- really this shouldn't ever happen
 			name: "event source not specified",
-			tes: TriggeringEvents{
+			triggeringEvents: TriggeringEvents{
 				Source: "github",
 				Types:  []string{"push"},
 			},
@@ -37,7 +37,7 @@ func TestTriggeringEventsMatches(t *testing.T) {
 		{
 			// Edge case-- really this shouldn't ever happen
 			name: "neither triggering event source nor event source specified",
-			tes: TriggeringEvents{
+			triggeringEvents: TriggeringEvents{
 				Types: []string{"push"},
 			},
 			eventType:   "push",
@@ -45,7 +45,7 @@ func TestTriggeringEventsMatches(t *testing.T) {
 		},
 		{
 			name: "source does not match",
-			tes: TriggeringEvents{
+			triggeringEvents: TriggeringEvents{
 				Source: "github",
 				Types:  []string{"push"},
 			},
@@ -55,7 +55,7 @@ func TestTriggeringEventsMatches(t *testing.T) {
 		},
 		{
 			name: "source matches, no triggering types specified",
-			tes: TriggeringEvents{
+			triggeringEvents: TriggeringEvents{
 				Source: "github",
 			},
 			eventSource: "github",
@@ -64,7 +64,7 @@ func TestTriggeringEventsMatches(t *testing.T) {
 		},
 		{
 			name: "source matches, type does not",
-			tes: TriggeringEvents{
+			triggeringEvents: TriggeringEvents{
 				Source: "github",
 				Types:  []string{"push"},
 			},
@@ -74,7 +74,7 @@ func TestTriggeringEventsMatches(t *testing.T) {
 		},
 		{
 			name: "source and type both match",
-			tes: TriggeringEvents{
+			triggeringEvents: TriggeringEvents{
 				Source: "github",
 				Types:  []string{"push"},
 			},
@@ -89,7 +89,10 @@ func TestTriggeringEventsMatches(t *testing.T) {
 			require.Equal(
 				t,
 				testCase.shouldMatch,
-				testCase.tes.Matches(testCase.eventSource, testCase.eventType),
+				testCase.triggeringEvents.Matches(
+					testCase.eventSource,
+					testCase.eventType,
+				),
 			)
 		})
 	}
