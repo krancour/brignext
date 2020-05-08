@@ -590,7 +590,7 @@ func (s *store) UpdateProject(
 		bson.M{
 			"$set": bson.M{
 				"description":  project.Description,
-				"tags":         project.Tags,
+				"events":       project.TriggeringEvents,
 				"workerConfig": project.WorkerConfig,
 			},
 		},

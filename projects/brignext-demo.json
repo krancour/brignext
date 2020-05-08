@@ -4,13 +4,13 @@
   "events": [
     {
       "source": "brignext-cli",
-      "types": ["exec"]
+      "types": ["exec"],
+      "tags": {
+        "foo": "bar",
+        "bat": "baz"
+      }
     }
   ],
-  "tags": {
-    "foo": "bar",
-    "bat": "baz"
-  },
   "workerConfig": {
     "container": {
       "environment": {

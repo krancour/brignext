@@ -56,6 +56,18 @@
 					"items": {
 						"$ref": "#/definitions/identifier"
 					}
+				},
+				"tags": {
+					"type": [
+						"object",
+						"null"
+					],
+					"additionalProperties": true,
+					"patternProperties": {
+						"^[a-z][a-z\\d-]*[a-z\\d]$": {
+							"$ref": "#/definitions/identifier"
+						}
+					}
 				}
 			}
 		},
@@ -201,7 +213,10 @@
 					"description": "A directory relative to the workspace where all configuration files needed by the worker can be located"
 				},
 				"defaultConfigFiles": {
-					"type": "object",
+					"type": [
+						"object",
+						"null"
+					],
 					"description": "A map of config file / script contents indexed by filename-- useful for projects that don't utilize any VCS",
 					"additionalProperties": {
 						"type": "string"
@@ -244,18 +259,6 @@
 			"description": "The events that this project subscribes to",
 			"items": {
 				"$ref": "#/definitions/triggeringEvents"
-			}
-		},
-		"tags": {
-			"type": [
-				"object",
-				"null"
-			],
-			"additionalProperties": true,
-			"patternProperties": {
-				"^[a-z][a-z\\d-]*[a-z\\d]$": {
-					"$ref": "#/definitions/identifier"
-				}
 			}
 		},
 		"workerConfig": {
