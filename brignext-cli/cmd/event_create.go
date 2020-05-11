@@ -58,11 +58,11 @@ func eventCreate(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	eventID, err := client.CreateEvent(c.Context, event)
+	eventIDs, err := client.CreateEvent(c.Context, event)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Created event %q.\n\n", eventID)
+	fmt.Printf("Created event %q.\n\n", eventIDs[0])
 
 	return nil
 }

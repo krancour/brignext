@@ -3,11 +3,15 @@
   "description": "A project that demonstrates brignext",
   "eventSubscriptions": [
     {
-      "source": "brignext-cli",
-      "types": ["exec"],
+      "source": "github.com/krancour/brignext-github-app",
+      "types": [
+        "pull_request:opened",
+        "pull_request:synchronize",
+        "pull_request:reopened",
+        "push"
+      ],
       "labels": {
-        "foo": "bar",
-        "bat": "baz"
+        "repo": "krancour/brignext-demo"
       }
     }
   ],

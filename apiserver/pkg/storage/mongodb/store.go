@@ -76,6 +76,29 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 		)
 	}
 
+	projectsCollection := database.Collection("projects")
+	if _, err := projectsCollection.Indexes().CreateMany(
+		ctx,
+		[]mongo.IndexModel{
+			{
+				Keys: bson.M{
+					"eventSubscriptions.source": 1,
+					"eventSubscriptions.types":  1,
+				},
+			},
+			{
+				Keys: bson.M{
+					"eventSubscriptions.labels": 1,
+				},
+			},
+		},
+	); err != nil {
+		return nil, errors.Wrap(
+			err,
+			"error adding indexes to projects collection",
+		)
+	}
+
 	eventsCollection := database.Collection("events")
 	if _, err := eventsCollection.Indexes().CreateMany(
 		ctx,
@@ -95,32 +118,13 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 		return nil, errors.Wrap(err, "error adding indexes to events collection")
 	}
 
-	var lockSeconds int32 = 30
-	eventLocksCollection := database.Collection("event-locks")
-	if _, err := eventLocksCollection.Indexes().CreateOne(
-		ctx,
-		mongo.IndexModel{
-			Keys: bson.M{
-				"timestamp": 1,
-			},
-			Options: &options.IndexOptions{
-				ExpireAfterSeconds: &lockSeconds,
-			},
-		},
-	); err != nil {
-		return nil, errors.Wrap(
-			err,
-			"error adding indexes to event locks collection",
-		)
-	}
-
 	return &store{
 		id:                        uuid.NewV4().String(),
 		database:                  database,
 		usersCollection:           database.Collection("users"),
 		sessionsCollection:        sessionsCollection,
 		serviceAccountsCollection: serviceAccountsCollection,
-		projectsCollection:        database.Collection("projects"),
+		projectsCollection:        projectsCollection,
 		eventsCollection:          eventsCollection,
 	}, nil
 }
@@ -519,14 +523,27 @@ func (s *store) GetSubscribedProjects(
 	ctx context.Context,
 	event brignext.Event,
 ) ([]brignext.Project, error) {
-	labelConditions := make([]bson.M, len(event.Labels))
-	var i int
-	for key, value := range event.Labels {
-		labelConditions[i] = bson.M{
-			"key":   key,
-			"value": value,
+	subscriptionMatchCriteria := bson.M{
+		"source": event.Source,
+		"types": bson.M{
+			"$in": []string{event.Type, "*"},
+		},
+	}
+	if len(event.Labels) > 0 {
+		labelConditions := make([]bson.M, len(event.Labels))
+		var i int
+		for key, value := range event.Labels {
+			labelConditions[i] = bson.M{
+				"$elemMatch": bson.M{
+					"key":   key,
+					"value": value,
+				},
+			}
+			i++
 		}
-		i++
+		subscriptionMatchCriteria["labels"] = bson.M{
+			"$all": labelConditions,
+		}
 	}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"_id": 1})
@@ -534,15 +551,7 @@ func (s *store) GetSubscribedProjects(
 		ctx,
 		bson.M{
 			"eventSubscriptions": bson.M{
-				"$elemMatch": bson.M{
-					"source": event.Source,
-					"types": bson.M{
-						"$in": []string{event.Type, "*"},
-					},
-					"labels": bson.M{
-						"$all": labelConditions,
-					},
-				},
+				"$elemMatch": subscriptionMatchCriteria,
 			},
 		},
 		findOptions,

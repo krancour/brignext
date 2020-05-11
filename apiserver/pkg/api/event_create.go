@@ -45,7 +45,7 @@ func (s *server) eventCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := s.service.CreateEvent(r.Context(), event)
+	ids, err := s.service.CreateEvent(r.Context(), event)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
@@ -58,9 +58,9 @@ func (s *server) eventCreate(w http.ResponseWriter, r *http.Request) {
 
 	responseBytes, err := json.Marshal(
 		struct {
-			ID string `json:"id"`
+			IDs []string `json:"ids"`
 		}{
-			ID: id,
+			IDs: ids,
 		},
 	)
 	if err != nil {

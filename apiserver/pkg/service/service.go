@@ -62,7 +62,7 @@ type Service interface {
 		keys []string,
 	) error
 
-	CreateEvent(context.Context, brignext.Event) (string, error)
+	CreateEvent(context.Context, brignext.Event) ([]string, error)
 	GetEvents(context.Context) ([]brignext.Event, error)
 	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
 	GetEvent(context.Context, string) (brignext.Event, error)
@@ -618,11 +618,37 @@ func (s *service) UnsetSecrets(
 func (s *service) CreateEvent(
 	ctx context.Context,
 	event brignext.Event,
-) (string, error) {
+) ([]string, error) {
+
+	// If no project ID is specified, we use other criteria to locate projects
+	// that are subscribed to this event. We iterate over all of those and create
+	// an event for each of these by making a recursive call to this same
+	// function.
+	if event.ProjectID == "" {
+		projects, err := s.store.GetSubscribedProjects(ctx, event)
+		if err != nil {
+			return nil, errors.Wrap(
+				err,
+				"error retrieving subscribed projects from store",
+			)
+		}
+		eventIDs := make([]string, len(projects))
+		for i, project := range projects {
+			event.ProjectID = project.ID
+			eids, err := s.CreateEvent(ctx, event)
+			if err != nil {
+				return eventIDs, err
+			}
+			// eids will always contain precisely one element
+			eventIDs[i] = eids[0]
+		}
+		return eventIDs, nil
+	}
+
 	// Make sure the project exists
 	project, err := s.store.GetProject(ctx, event.ProjectID)
 	if err != nil {
-		return "", errors.Wrapf(
+		return nil, errors.Wrapf(
 			err,
 			"error retrieving project %q from store",
 			event.ProjectID,
@@ -684,7 +710,7 @@ func (s *service) CreateEvent(
 		event,
 	)
 	if err != nil {
-		return "", errors.Wrapf(
+		return nil, errors.Wrapf(
 			err,
 			"error creating event %q in scheduler",
 			event.ID,
@@ -694,9 +720,9 @@ func (s *service) CreateEvent(
 		// We need to roll this back manually because the scheduler doesn't
 		// automatically roll anything back upon failure.
 		s.scheduler.DeleteEvent(ctx, event) // nolint: errcheck
-		return "", errors.Wrapf(err, "error storing new event %q", event.ID)
+		return nil, errors.Wrapf(err, "error storing new event %q", event.ID)
 	}
-	return event.ID, nil
+	return []string{event.ID}, nil
 }
 
 func (s *service) GetEvents(ctx context.Context) ([]brignext.Event, error) {

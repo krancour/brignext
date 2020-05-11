@@ -23,6 +23,13 @@
 			"maxLength": 250
 		},
 
+		"label": {
+			"type": "string",
+			"pattern": "^[\\w:/\\-\\.\\?=\\*]*$",
+			"minLength": 1,
+			"maxLength": 250
+		},
+
 		"gitConfig": {
 			"type": "object",
 			"description": "Worker configuration pertaining specifically to git",
@@ -53,19 +60,22 @@
 
 	"title": "Event",
 	"type": "object",
-	"required": ["projectID", "source", "type"],
+	"required": ["source", "type"],
 	"additionalProperties": false,
 	"properties": {
 		"projectID": {
-			"allOf": [{ "$ref": "#/definitions/identifier" }],
+			"oneOf": [
+				{ "$ref": "#/definitions/empty" },
+				{ "$ref": "#/definitions/identifier" }
+			],
 			"description": "The ID of the project the event is for"
 		},
 		"source": {
-			"allOf": [{ "$ref": "#/definitions/identifier" }],
+			"allOf": [{ "$ref": "#/definitions/url" }],
 			"description": "The name of the source that is sending the event"
 		},
 		"type": {
-			"allOf": [{ "$ref": "#/definitions/identifier" }],
+			"allOf": [{ "$ref": "#/definitions/label" }],
 			"description": "The type of the event"
 		},
 		"labels": {
@@ -75,8 +85,8 @@
 			],
 			"additionalProperties": true,
 			"patternProperties": {
-				"^[a-z][a-z\\d-]*[a-z\\d]$": {
-					"$ref": "#/definitions/identifier"
+				"^[\\w:/\\-\\.\\?=\\*]*$": {
+					"$ref": "#/definitions/label"
 				}
 			}
 		},

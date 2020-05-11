@@ -1,4 +1,4 @@
-id: brignext-demo
+id: another-brignext-demo
 description: A project that demonstrates brignext
 eventSubscriptions:
 - source: github.com/krancour/brignext-github-app

@@ -43,7 +43,7 @@ type Client interface {
 	) error
 	UnsetSecrets(ctx context.Context, projectID string, keys []string) error
 
-	CreateEvent(context.Context, Event) (string, error)
+	CreateEvent(context.Context, Event) ([]string, error)
 	GetEvents(context.Context) ([]Event, error)
 	GetEventsByProject(context.Context, string) ([]Event, error)
 	GetEvent(context.Context, string) (Event, error)
@@ -838,45 +838,45 @@ func (c *client) UnsetSecrets(
 	return nil
 }
 
-func (c *client) CreateEvent(_ context.Context, event Event) (string, error) {
+func (c *client) CreateEvent(_ context.Context, event Event) ([]string, error) {
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
-		return "", errors.Wrap(err, "error marshaling event")
+		return nil, errors.Wrap(err, "error marshaling event")
 	}
 
 	req, err := c.buildRequest(http.MethodPost, "v2/events", eventBytes)
 	if err != nil {
-		return "", errors.Wrap(err, "error creating HTTP request")
+		return nil, errors.Wrap(err, "error creating HTTP request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return "", errors.Wrap(err, "error invoking API")
+		return nil, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return "", &ErrProjectNotFound{
+		return nil, &ErrProjectNotFound{
 			ID: event.ProjectID,
 		}
 	}
 	if resp.StatusCode != http.StatusCreated {
-		return "", errors.Errorf("received %d from API server", resp.StatusCode)
+		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", errors.Wrap(err, "error reading response body")
+		return nil, errors.Wrap(err, "error reading response body")
 	}
 
 	respStruct := struct {
-		ID string `json:"id"`
+		IDs []string `json:"ids"`
 	}{}
 	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
-		return "", errors.Wrap(err, "error unmarshaling response body")
+		return nil, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return respStruct.ID, nil
+	return respStruct.IDs, nil
 }
 
 func (c *client) GetEvents(context.Context) ([]Event, error) {
