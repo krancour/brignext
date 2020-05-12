@@ -2,7 +2,7 @@ const defaultShell: string = "/bin/sh"
 
 const defaultTimeout: number = 1000 * 60 * 15
 
-const brigadeImage: string = "debian:jessie-slim"
+const defaultJobImage: string = "debian:jessie-slim"
 
 export class Result {
   data: string
@@ -35,7 +35,7 @@ export abstract class Job {
   public tasks: string[]
   public args: string[]
   public env: { [key: string]: string }
-  public image: string = brigadeImage
+  public image: string = defaultJobImage
   public imageForcePull: boolean = false
   public mountPath: string = "/src"
   public timeout: number = defaultTimeout

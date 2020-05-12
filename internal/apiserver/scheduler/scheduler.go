@@ -638,10 +638,10 @@ func (s *scheduler) CancelEvent(
 		)
 	}
 
-	// Delete all config maps related to this event. Brigade itself doesn't create
-	// any, but we're not discounting the possibility that a worker or job might
-	// create some. We are, of course, assuming that anything created by a worker
-	// or job is labeled appropriately.
+	// Delete all config maps related to this event. BrigNext itself doesn't
+	// create any, but we're not discounting the possibility that a worker or job
+	// might create some. We are, of course, assuming that anything created by a
+	// worker or job is labeled appropriately.
 	if err := s.deleteConfigMapsByLabelSelector(
 		ctx,
 		event.Kubernetes.Namespace,
@@ -720,10 +720,10 @@ func (s *scheduler) DeleteEvent(
 		)
 	}
 
-	// Delete all config maps related to this event. Brigade itself doesn't create
-	// any, but we're not discounting the possibility that a worker or job might
-	// create some. We are, of course, assuming that anything created by a worker
-	// or job is labeled appropriately.
+	// Delete all config maps related to this event. BrigNext itself doesn't
+	// create any, but we're not discounting the possibility that a worker or job
+	// might create some. We are, of course, assuming that anything created by a
+	// worker or job is labeled appropriately.
 	if err := s.deleteConfigMapsByLabelSelector(
 		ctx,
 		event.Kubernetes.Namespace,

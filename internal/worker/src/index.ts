@@ -15,8 +15,8 @@ const event: Event = require("/var/event/event.json")
 const worker: Worker = require("/var/worker/worker.json")
 
 const scriptLocations = [
-  "/var/vcs/" + worker.configFilesDirectory + "/brigade.js",
-  "/var/worker/brigade.js"
+  "/var/vcs/" + worker.configFilesDirectory + "/c.js",
+  "/var/worker/brignext.js"
 ]
 
 let script = ""
@@ -27,15 +27,15 @@ for (let scriptFileLocation of scriptLocations) {
 }
 
 if (script) {
-  // Install aliases for common ways of referring to Brigade/Brigadier.
+  // Install aliases for common ways of referring to BrigNext/Brigadier.
   moduleAlias.addAliases({
-    "brigade": __dirname + "/brigadier",
+    "brignext": __dirname + "/brigadier",
     "brigadier": __dirname + "/brigadier",
     "@brigadecore/brigadier": __dirname + "/brigadier",
   })
 
   // Add the current module resolution paths to module-alias, so the
-  // node_modules that prestart.js adds to will be resolvable from the Brigade
+  // node_modules that prestart.js adds to will be resolvable from the BrigNext
   // script and any local dependencies.
   module.paths.forEach(moduleAlias.addPath)
 

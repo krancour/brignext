@@ -247,7 +247,7 @@ func (c *controller) createWorkerPod(
 			initContainers,
 			corev1.Container{
 				Name:            "vcs",
-				Image:           "brigadecore/git-sidecar:latest",
+				Image:           "brigadecore/git-sidecar:v1.4.0",
 				ImagePullPolicy: corev1.PullAlways,
 				VolumeMounts: []corev1.VolumeMount{
 					vcsVolumeMount,

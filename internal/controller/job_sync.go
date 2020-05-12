@@ -61,7 +61,7 @@ func (c *controller) syncJobPod(obj interface{}) {
 	status := brignext.JobStatus{}
 	switch jobPod.Status.Phase {
 	case corev1.PodPending:
-		// This pod is on its way up. For Brigade's purposes, this counts as
+		// This pod is on its way up. For BrigNext's purposes, this counts as
 		// running.
 		status.Phase = brignext.JobPhaseRunning
 	case corev1.PodRunning:

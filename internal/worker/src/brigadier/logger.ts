@@ -14,7 +14,7 @@ export class Logger {
     if (typeof ctx === "string") {
       ctx = [ctx]
     }
-    this.context = `[${new Array("brigade", ...ctx).join(":")}]`
+    this.context = `[${new Array("brignext", ...ctx).join(":")}]`
     this.logLevel = logLevel
   }
   error(message?: any, ...optionalParams: any[]): void {

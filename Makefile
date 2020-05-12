@@ -141,9 +141,8 @@ build-controller:
 .PHONY: build-worker
 build-worker:
 	docker build \
-		-f internal/worker/Dockerfile \
 		-t $(DOCKER_IMAGE_PREFIX)brignext-worker:$(IMMUTABLE_DOCKER_TAG) \
-		.
+		internal/worker/
 	docker tag $(DOCKER_IMAGE_PREFIX)brignext-worker:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-worker:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: build-logger-linux

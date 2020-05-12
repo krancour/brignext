@@ -87,7 +87,7 @@ func (c *controller) syncWorkerPod(obj interface{}) {
 		// capacity
 		c.workerPodsSet[namespacedWorkerPodName] = struct{}{}
 
-		// For Brigade's purposes, this counts as running
+		// For BrigNext's purposes, this counts as running
 		status.Phase = brignext.WorkerPhaseRunning
 	case corev1.PodRunning:
 		// Make sure this pod IS counted as consuming capacity

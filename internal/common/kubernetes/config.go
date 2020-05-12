@@ -14,7 +14,6 @@ const envconfigPrefix = "KUBE"
 type config struct {
 	MasterURL      string `envconfig:"MASTER"`
 	KubeConfigPath string `envconfig:"CONFIG"`
-	Namespace      string `envconfig:"BRIGNEXT_NAMESPACE" default:"brigade"`
 }
 
 // Client returns a new Kubernetes client
@@ -40,16 +39,4 @@ func Client() (*kubernetes.Clientset, error) {
 		)
 	}
 	return kubernetes.NewForConfig(cfg)
-}
-
-// BrigNextNamespace returns the Kubernetes namespace used by BrigNext
-func BrigNextNamespace() (string, error) {
-	c := config{}
-	if err := envconfig.Process(envconfigPrefix, &c); err != nil {
-		return "", errors.Wrap(
-			err,
-			"error getting kubernetes configuration from environment",
-		)
-	}
-	return c.Namespace, nil
 }

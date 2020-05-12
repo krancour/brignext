@@ -1,4 +1,4 @@
-# Brigade 2 State Transitions
+# BrigNext State Transitions
 
 ## Events
 

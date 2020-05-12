@@ -165,7 +165,7 @@ export class Job extends jobs.Job {
     if (this.useSource && currentWorker.git.cloneURL != "") {
       let vcsInitContainer = new kubernetes.V1Container()
       vcsInitContainer.name = "vcs"
-      vcsInitContainer.image = "brigadecore/git-sidecar:latest"
+      vcsInitContainer.image = "brigadecore/git-sidecar:v1.4.0"
       vcsInitContainer.imagePullPolicy = "Always"
       vcsInitContainer.env = [
         { name: "BRIGADE_REMOTE_URL", value: currentWorker.git.cloneURL },
@@ -292,7 +292,7 @@ export class Job extends jobs.Job {
 
     // Security related settings
 
-    // Every Brigade project has, in its dedicated namespace, a service account
+    // Every BrigNext project has, in its dedicated namespace, a service account
     // named "jobs", which exists for the express use of all jobs in the
     // project.
     pod.spec.serviceAccountName = "jobs"

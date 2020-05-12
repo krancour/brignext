@@ -15,7 +15,7 @@ workerConfig:
       FOO: bar
   workspaceSize: 10Gi
   defaultConfigFiles:
-    brigade.js: |-
+    brignext.js: |-
       const { events, Job, Group} = require("brigadier");
 
       events.on("github.com/krancour/brignext/cli:exec", (e, w) => {
