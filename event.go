@@ -18,8 +18,11 @@ type Event struct {
 	Git        EventGitConfig         `json:"git" bson:"git"`
 	Kubernetes *EventKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
 	Worker     *Worker                `json:"worker,omitempty" bson:"worker"`
-	Created    *time.Time             `json:"created,omitempty" bson:"created"`
 	Payload    string                 `json:"payload,omitempty" bson:"-"`
+	Created    *time.Time             `json:"created,omitempty" bson:"created"`
+	// TODO: These fields are not yet in use
+	CreatedBy  string `json:"createdBy,omitempty" bson:"createdBy"`
+	CanceledBy string `json:"canceledBy,omitempty" bson:"canceledBy"`
 }
 
 // UnmarshalBSON implements custom BSON marshaling for the Event type. This does
