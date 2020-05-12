@@ -2,7 +2,9 @@
 
 set -euo pipefail
 
-oses="linux darwin windows"
+# TODO: Uncomment this
+# oses="linux darwin windows"
+oses="darwin"
 archs="amd64"
 
 for os in $oses; do
@@ -10,9 +12,9 @@ for os in $oses; do
     echo "building $os-$arch"
     GOOS=$os GOARCH=$arch CGO_ENABLED=0 \
       go build \
-      -ldflags "-w -X github.com/krancour/brignext/v2/pkg/version.version=$VERSION -X github.com/krancour/brignext/v2/pkg/version.commit=$COMMIT" \
+      -ldflags "-w -X github.com/krancour/brignext/v2/internal/common/version.version=$VERSION -X github.com/krancour/brignext/v2/internal/common/version.commit=$COMMIT" \
       -o ./bin/brignext-$os-$arch \
-      ./brignext-cli/cmd
+      ./internal/cli
   done
   if [ $os = 'windows' ]; then
     mv ./bin/brignext-$os-$arch ./bin/brignext-$os-$arch.exe
