@@ -23,7 +23,7 @@
     },
     "workspaceSize": "10Gi",
     "git": {
-      "cloneURL": "https://github.com/krancour/empty-testbed.git"
+      "cloneURL": "https://github.com/krancour/brignext-demo.git"
     },
     "jobsConfig": {
       "allowPrivileged": true,
