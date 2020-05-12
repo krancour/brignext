@@ -1,11 +1,12 @@
-const process = require("process")
-const fs = require("fs")
-const { execFileSync } = require("child_process")
+const process = require("process");
+const fs = require("fs");
+const { execFileSync } = require("child_process");
+const path = require('path');
 
 const worker = require("/var/worker/worker.json");
 
 const configFileLocations = [
-  "/var/vcs/" + worker.configFilesDirectory + "/brignext.json",
+  path.join("/var/vcs", worker.configFilesDirectory, "brignext.json"),
   "/var/worker/brignext.json"
 ];
 

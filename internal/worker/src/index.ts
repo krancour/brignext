@@ -15,7 +15,7 @@ const event: Event = require("/var/event/event.json")
 const worker: Worker = require("/var/worker/worker.json")
 
 const scriptLocations = [
-  "/var/vcs/" + worker.configFilesDirectory + "/c.js",
+  path.join("/var/vcs", worker.configFilesDirectory, "brignext.js"),
   "/var/worker/brignext.js"
 ]
 
@@ -44,10 +44,10 @@ if (script) {
   // module-alias is now at 2.2.0.
   (moduleAlias as any).addAlias(".", (fromPath: string) => {
     // A custom handler for local dependencies to handle cases where the entry
-    // script is outside `/vcs`.
+    // script is outside `/var/vcs`.
 
-    // For entry scripts outside /vcs only, rewrite dot-slash-prefixed requires
-    // to be rooted at `/vcs`.
+    // For entry scripts outside /var/vcs only, rewrite dot-slash-prefixed
+    // requires to be rooted at `/var/vcs`.
     if (!fromPath.startsWith("/var/vcs") && fromPath === realScriptPath) {
       return "/var/vcs"
     }

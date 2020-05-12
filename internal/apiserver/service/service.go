@@ -692,7 +692,7 @@ func (s *service) CreateEvent(
 	}
 
 	if event.Worker.ConfigFilesDirectory == "" {
-		event.Worker.ConfigFilesDirectory = ".brignext"
+		event.Worker.ConfigFilesDirectory = "."
 	}
 
 	now := time.Now()
