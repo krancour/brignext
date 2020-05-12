@@ -17,6 +17,9 @@ const (
 	// JobPhaseFailed represents the state wherein a job has run to
 	// completion but experienced errors.
 	JobPhaseFailed JobPhase = "FAILED"
+	// JobPhaseTimedOut represents the state wherein a job has has not completed
+	// within a designated timeframe.
+	JobPhaseTimedOut JobPhase = "TIMED_OUT"
 	// JobPhaseUnknown represents the state wherein a job's state is unknown.
 	JobPhaseUnknown JobPhase = "UNKNOWN"
 )

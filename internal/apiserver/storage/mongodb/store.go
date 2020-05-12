@@ -767,6 +767,7 @@ func (s *store) DeleteEvent(
 		brignext.WorkerPhaseAborted,
 		brignext.WorkerPhaseSucceeded,
 		brignext.WorkerPhaseFailed,
+		brignext.WorkerPhaseTimedOut,
 	}
 	if deletePending {
 		phasesToDelete = append(phasesToDelete, brignext.WorkerPhasePending)

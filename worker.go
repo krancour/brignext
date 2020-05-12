@@ -23,6 +23,9 @@ const (
 	// WorkerPhaseFailed represents the state wherein a worker has run to
 	// completion but experienced errors.
 	WorkerPhaseFailed WorkerPhase = "FAILED"
+	// WorkerPhaseTimedOut represents the state wherein a worker has has not
+	// completed within a designated timeframe.
+	WorkerPhaseTimedOut WorkerPhase = "TIMED_OUT"
 	// WorkerPhaseUnknown represents the state wherein a worker's state is
 	// unknown.
 	WorkerPhaseUnknown WorkerPhase = "UNKNOWN"
