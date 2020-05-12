@@ -14,12 +14,6 @@ import (
 )
 
 func projectList(c *cli.Context) error {
-	// Args
-	if c.Args().Len() != 0 {
-		return errors.New("project list requires no arguments")
-	}
-
-	// Command-specific flags
 	output := c.String(flagOutput)
 
 	if err := validateOutputFormat(output); err != nil {

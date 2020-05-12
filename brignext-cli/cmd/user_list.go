@@ -12,12 +12,6 @@ import (
 )
 
 func userList(c *cli.Context) error {
-	// Args
-	if c.Args().Len() != 0 {
-		return errors.New("user list requires no arguments")
-	}
-
-	// Command-specific flags
 	output := c.String(flagOutput)
 
 	if err := validateOutputFormat(output); err != nil {

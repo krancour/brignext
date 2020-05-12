@@ -13,14 +13,7 @@ import (
 )
 
 func projectUpdate(c *cli.Context) error {
-	// Args
-	if c.Args().Len() != 1 {
-		return errors.New(
-			"project update requires one argument-- a path to a file containing a " +
-				"project definition",
-		)
-	}
-	filename := c.Args().Get(0)
+	filename := c.String(flagFile)
 
 	// Read and parse the file
 	projectBytes, err := ioutil.ReadFile(filename)

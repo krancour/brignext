@@ -8,11 +8,6 @@ import (
 )
 
 func logout(c *cli.Context) error {
-	// Args
-	if c.Args().Len() != 0 {
-		return errors.New("logout requires no arguments")
-	}
-
 	client, err := getClient(c)
 	if err != nil {
 		return errors.Wrap(err, "error getting brignext client")

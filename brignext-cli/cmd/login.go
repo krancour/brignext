@@ -14,15 +14,7 @@ import (
 )
 
 func login(c *cli.Context) error {
-	// Args
-	if c.Args().Len() != 1 {
-		return errors.New(
-			"login requires one argument-- the address of the API server",
-		)
-	}
-	address := c.Args().Get(0)
-
-	// Command-specific flags
+	address := c.String(flagServer)
 	browseToAuthURL := c.Bool(flagBrowse)
 	password := c.String(flagPassword)
 	rootLogin := c.Bool(flagRoot)

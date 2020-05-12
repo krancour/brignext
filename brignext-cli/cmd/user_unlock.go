@@ -8,13 +8,7 @@ import (
 )
 
 func userUnlock(c *cli.Context) error {
-	// Args
-	if c.Args().Len() != 1 {
-		return errors.New(
-			"user unlock requires one argument-- a user ID",
-		)
-	}
-	id := c.Args().Get(0)
+	id := c.String(flagID)
 
 	client, err := getClient(c)
 	if err != nil {

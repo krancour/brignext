@@ -1,10 +1,7 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
-	"strings"
 
 	"github.com/krancour/brignext/v2"
 
@@ -13,48 +10,8 @@ import (
 )
 
 func serviceAccountCreate(c *cli.Context) error {
-	// Args
-	var id string
-	if c.Args().Len() == 1 {
-		id = c.Args().Get(0)
-	} else if c.Args().Len() != 0 {
-		return errors.New(
-			"service-account create requires, at most, one argument-- the new " +
-				"service account ID",
-		)
-	}
-
-	// Command-specific flags
 	description := c.String(flagDescription)
-
-	reader := bufio.NewReader(os.Stdin)
-
-	for {
-		id = strings.TrimSpace(id)
-		if id != "" {
-			break
-		}
-		fmt.Print("Service account ID? ")
-		var err error
-		if id, err = reader.ReadString('\n'); err != nil {
-			return errors.Wrap(err, "error reading service account ID from stdin")
-		}
-	}
-
-	for {
-		description = strings.TrimSpace(description)
-		if description != "" {
-			break
-		}
-		fmt.Print("Service account description? ")
-		var err error
-		if description, err = reader.ReadString('\n'); err != nil {
-			return errors.Wrap(
-				err,
-				"error reading service account description from stdin",
-			)
-		}
-	}
+	id := c.String(flagID)
 
 	client, err := getClient(c)
 	if err != nil {

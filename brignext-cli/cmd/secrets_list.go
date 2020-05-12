@@ -12,16 +12,8 @@ import (
 )
 
 func secretsList(c *cli.Context) error {
-	// Args
-	if c.Args().Len() != 1 {
-		return errors.New(
-			"secrets list requires one arguments-- a project ID",
-		)
-	}
-	projectID := c.Args().Get(0)
-
-	// Command-specific flags
 	output := c.String(flagOutput)
+	projectID := c.String(flagProject)
 
 	if err := validateOutputFormat(output); err != nil {
 		return err

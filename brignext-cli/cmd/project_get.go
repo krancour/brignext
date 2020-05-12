@@ -14,15 +14,7 @@ import (
 )
 
 func projectGet(c *cli.Context) error {
-	// Args
-	if c.Args().Len() != 1 {
-		return errors.New(
-			"project get requires one argument-- a project ID",
-		)
-	}
-	id := c.Args().Get(0)
-
-	// Command-specific flags
+	id := c.String(flagID)
 	output := c.String(flagOutput)
 
 	if err := validateOutputFormat(output); err != nil {

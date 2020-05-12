@@ -35,45 +35,56 @@ func main() {
 					Usage: "Cancel event(s) without deleting them",
 					Description: "By default, only cancels event(s) with their worker " +
 						"in a PENDING state.",
-					ArgsUsage: "[EVENT_ID]",
 					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:    flagID,
+							Aliases: []string{"i"},
+							Usage: "Cancel the specified event; mutually exclusive with " +
+								"--project",
+						},
 						&cli.BoolFlag{
-							Name: flagRunning,
-							Usage: "If set, will also abort event(s) with their worker " +
-								"in a RUNNING state",
+							Name:    flagRunning,
+							Aliases: []string{"r"},
+							Usage: "If set, will also abort event(s) with their worker in a" +
+								"RUNNING state",
 						},
 						&cli.StringFlag{
-							Name: flagProject,
-							Usage: "Cancel all events for the specified project " +
-								"(ignores EVENT_ID argument)",
+							Name:    flagProject,
+							Aliases: []string{"p"},
+							Usage: "Cancel events for the specified project; mutually " +
+								"exclusive with --id",
 						},
 					},
 					Action: eventCancel,
 				},
 				{
-					Name:      "create",
-					Usage:     "Create a new event",
-					ArgsUsage: "PROJECT_ID",
+					Name:  "create",
+					Usage: "Create a new event",
 					Flags: []cli.Flag{
 						&cli.StringFlag{
-							Name:    flagPayload,
-							Aliases: []string{"p"},
-							Usage:   "The event payload",
+							Name:  flagPayload,
+							Usage: "The event payload",
 						},
 						&cli.StringFlag{
 							Name:  flagPayloadFile,
 							Usage: "The location of a file containing the event payload",
 						},
 						&cli.StringFlag{
+							Name:     flagProject,
+							Aliases:  []string{"p"},
+							Usage:    "Create an event for the specified project (required)",
+							Required: true,
+						},
+						&cli.StringFlag{
 							Name:    flagSource,
 							Aliases: []string{"s"},
-							Usage:   "The event source",
-							Value:   "brignext-cli",
+							Usage:   "Override the default event source",
+							Value:   "github.com/krancour/brignext/cli",
 						},
 						&cli.StringFlag{
 							Name:    flagType,
 							Aliases: []string{"t"},
-							Usage:   "The event type",
+							Usage:   "Override the default event type",
 							Value:   "exec",
 						},
 					},
@@ -84,8 +95,13 @@ func main() {
 					Usage: "Delete event(s)",
 					Description: "By default, only deletes event(s) with their worker " +
 						"in a terminal state (neither PENDING nor RUNNING).",
-					ArgsUsage: "[EVENT_ID]",
 					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:    flagID,
+							Aliases: []string{"i"},
+							Usage: "Delete the specified event; mutually exclusive with " +
+								" --project",
+						},
 						&cli.BoolFlag{
 							Name: flagPending,
 							Usage: "If set, will also delete event(s) with their worker " +
@@ -97,87 +113,100 @@ func main() {
 								"worker in a RUNNING state",
 						},
 						&cli.StringFlag{
-							Name: flagProject,
-							Usage: "Delete all events for the specified project " +
-								"(ignores EVENT_ID argument)",
+							Name:    flagProject,
+							Aliases: []string{"p"},
+							Usage: "Delete events for the specified project; mutually " +
+								"exclusive with --id",
 						},
 					},
 					Action: eventDelete,
 				},
 				{
-					Name:      "get",
-					Usage:     "Get an event",
-					ArgsUsage: "EVENT_ID",
+					Name:  "get",
+					Usage: "Retrieve an event",
 					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:     flagID,
+							Aliases:  []string{"i"},
+							Usage:    "Retrieve the specified event (required)",
+							Required: true,
+						},
 						cliFlagOutput,
 					},
 					Action: eventGet,
 				},
 				{
 					Name:  "list",
-					Usage: "List events",
+					Usage: "Retrieve many events",
 					Flags: []cli.Flag{
 						cliFlagOutput,
 						&cli.StringFlag{
 							Name:  flagProject,
-							Usage: "Return events only for the specified project",
+							Usage: "Retrieve events only for the specified project",
 						},
 					},
 					Action: eventList,
 				},
 			},
 		},
+
 		{
-			Name:  "job",
-			Usage: "Manage jobs",
-			Subcommands: []*cli.Command{
-				{
-					Name:      "get",
-					Usage:     "Get a job",
-					ArgsUsage: "EVENT_ID WORKER_NAME JOB_NAME",
-					Flags: []cli.Flag{
-						cliFlagOutput,
-					},
-					Action: jobGet,
+			Name:  "logs",
+			Usage: "View worker or job logs",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:    flagEvent,
+					Aliases: []string{"e"},
+					Usage:   "View logs from the specified event",
 				},
-				{
-					Name:      "logs",
-					Usage:     "Get job logs",
-					ArgsUsage: "EVENT_ID WORKER_NAME JOB_NAME",
-					Flags: []cli.Flag{
-						&cli.BoolFlag{
-							Name:    flagFollow,
-							Aliases: []string{"f"},
-							Usage:   "If set, will stream job logs until interrupted",
-						},
-					},
-					Action: jobLogs,
+				&cli.BoolFlag{
+					Name:    flagFollow,
+					Aliases: []string{"f"},
+					Usage:   "If set, will stream logs until interrupted",
+				},
+				&cli.BoolFlag{
+					Name:    flagInit,
+					Aliases: []string{"i"},
+					Usage:   "View logs from the corresponding init container",
+				},
+				&cli.StringFlag{
+					Name:    flagJob,
+					Aliases: []string{"j"},
+					Usage: "View logs from the specified job; if not set, displays " +
+						"worker logs",
 				},
 			},
+			Action: logs,
 		},
 		{
-			Name:      "login",
-			Usage:     "Log in to BrigNext",
-			ArgsUsage: "API_SERVER_ADDRESS",
+			Name:  "login",
+			Usage: "Log in to BrigNext",
 			Description: "By default, initiates authentication using OpenID " +
 				"Connect. This may not be supported by all BrigNext API servers.",
 			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:    flagServer,
+					Aliases: []string{"s"},
+					Usage: "Log into the API server at the specified address " +
+						"(required)",
+					Required: true,
+				},
 				&cli.BoolFlag{
 					Name:    flagBrowse,
 					Aliases: []string{"b"},
 					Usage: "Use the system's default web browser to complete " +
-						"authentication (not applicable when --root is used)",
+						"authentication; not applicable when --root is used",
 				},
 				&cli.StringFlag{
 					Name:    flagPassword,
 					Aliases: []string{"p"},
-					Usage: "Specify the password for root user login " +
-						"non-interactively (only applicable when --root is used)",
+					Usage: "Specify the password for non-interactive root user login; " +
+						"only applicable when --root is used",
 				},
 				&cli.BoolFlag{
 					Name:    flagRoot,
 					Aliases: []string{"r"},
-					Usage:   "Log in as the root user (does not use OpenID Connect)",
+					Usage:   "Log in as the root user; does not use OpenID Connect",
 				},
 			},
 			Action: login,
@@ -192,50 +221,79 @@ func main() {
 			Usage: "Manage projects",
 			Subcommands: []*cli.Command{
 				{
-					Name:      "create",
-					Usage:     "Create a new project",
-					ArgsUsage: "FILE",
-					Action:    projectCreate,
-				},
-				{
-					Name:      "delete",
-					Usage:     "Delete a project",
-					ArgsUsage: "PROJECT_ID",
-					Action:    projectDelete,
-				},
-				{
-					Name:      "get",
-					Usage:     "Get a project",
-					ArgsUsage: "PROJECT_ID",
+					Name:  "create",
+					Usage: "Create a new project",
 					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:    flagFile,
+							Aliases: []string{"f"},
+							Usage: "A YAML or JSON file that describes the project " +
+								"(required)",
+							Required:  true,
+							TakesFile: true,
+						},
+					},
+					Action: projectCreate,
+				},
+				{
+					Name:  "delete",
+					Usage: "Delete a project",
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:     flagID,
+							Aliases:  []string{"i"},
+							Usage:    "Delete the specified project (required)",
+							Required: true,
+						},
+					},
+					Action: projectDelete,
+				},
+				{
+					Name:  "get",
+					Usage: "Retrieve a project",
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:     flagID,
+							Aliases:  []string{"i"},
+							Usage:    "Retrieve the specified project (required)",
+							Required: true,
+						},
 						cliFlagOutput,
 					},
 					Action: projectGet,
 				},
 				{
 					Name:  "list",
-					Usage: "List projects",
+					Usage: "Retrieve many projects",
 					Flags: []cli.Flag{
 						cliFlagOutput,
 					},
 					Action: projectList,
 				},
 				{
-					Name:      "update",
-					Usage:     "Update a project",
-					ArgsUsage: "FILE",
-					Action:    projectUpdate,
+					Name:  "update",
+					Usage: "Update a project",
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:    flagFile,
+							Aliases: []string{"f"},
+							Usage: "A YAML or JSON file that describes the project " +
+								"(required)",
+							Required:  true,
+							TakesFile: true,
+						},
+					},
+					Action: projectUpdate,
 				},
 			},
 		},
 		{
 			Name:  "secrets",
-			Usage: "Manage worker secrets",
+			Usage: "Manage project secrets",
 			Subcommands: []*cli.Command{
 				{
-					Name:      "list",
-					Usage:     "List a worker's secrets",
-					ArgsUsage: "PROJECT_ID WORKER_NAME",
+					Name:  "list",
+					Usage: "List a project's secrets; values are always redacted",
 					Flags: []cli.Flag{
 						cliFlagOutput,
 					},
@@ -243,16 +301,42 @@ func main() {
 				},
 				{
 					Name:  "set",
-					Usage: "Define or redefine the value of a secret",
-					ArgsUsage: "PROJECT_ID WORKER_NAME KEY_0=VALUE_0 " +
-						"[KEY_1=VALUE_1 .. KEY_N=VALUE_N]",
+					Usage: "Define or redefine the value of one or more secrets",
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:     flagProject,
+							Aliases:  []string{"p"},
+							Usage:    "Set secrets for the specified project (required)",
+							Required: true,
+						},
+						&cli.StringSliceFlag{
+							Name:    flagSet,
+							Aliases: []string{"s"},
+							Usage: "Set a secret using the specified key=value pair " +
+								"(required)",
+							Required: true,
+						},
+					},
 					Action: secretsSet,
 				},
 				{
-					Name:      "unset",
-					Usage:     "Clear the value of a secret",
-					ArgsUsage: "PROJECT_ID WORKER_NAME KEY_0 [KEY_1 .. KEY_N]",
-					Action:    secretsUnset,
+					Name:  "unset",
+					Usage: "Clear the value of one or more secrets",
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:     flagProject,
+							Aliases:  []string{"p"},
+							Usage:    "Clear secrets for the specified project",
+							Required: true,
+						},
+						&cli.StringSliceFlag{
+							Name:     flagUnset,
+							Aliases:  []string{"u"},
+							Usage:    "Clear a secret haveing the specified key (required)",
+							Required: true,
+						},
+					},
+					Action: secretsUnset,
 				},
 			},
 		},
@@ -261,46 +345,73 @@ func main() {
 			Usage: "Manage service accounts",
 			Subcommands: []*cli.Command{
 				{
-					Name:      "create",
-					Usage:     "Create a new service account",
-					ArgsUsage: "[SERVICE_ACCOUNT_ID]",
+					Name:  "create",
+					Usage: "Create a new service account",
 					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:    flagID,
+							Aliases: []string{"i"},
+							Usage: "Create a service account with the specified ID " +
+								"(required)",
+							Required: true,
+						},
 						&cli.StringFlag{
 							Name:    flagDescription,
 							Aliases: []string{"d"},
-							Usage:   "A description of the service account",
+							Usage: "Create a service account with the specified " +
+								"description (required)",
+							Required: true,
 						},
 					},
 					Action: serviceAccountCreate,
 				},
 				{
-					Name:      "get",
-					Usage:     "Get a service account",
-					ArgsUsage: "SERVICE_ACCOUNT_ID",
+					Name:  "get",
+					Usage: "Retrieve a service account",
 					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:     flagID,
+							Aliases:  []string{"i"},
+							Usage:    "Retrieve the specified service account (required)",
+							Required: true,
+						},
 						cliFlagOutput,
 					},
 					Action: serviceAccountGet,
 				},
 				{
 					Name:  "list",
-					Usage: "List service accounts",
+					Usage: "Retrieve many service accounts",
 					Flags: []cli.Flag{
 						cliFlagOutput,
 					},
 					Action: serviceAccountList,
 				},
 				{
-					Name:      "lock",
-					Usage:     "Lock a service account out of BrigNext",
-					ArgsUsage: "SERVICE_ACCOUNT_ID",
-					Action:    serviceAccountLock,
+					Name:  "lock",
+					Usage: "Lock a service account out of BrigNext",
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:     flagID,
+							Aliases:  []string{"i"},
+							Usage:    "Lock the specified service account (required)",
+							Required: true,
+						},
+					},
+					Action: serviceAccountLock,
 				},
 				{
-					Name:      "unlock",
-					Usage:     "Restore a service account's access to BrigNext",
-					ArgsUsage: "SERVICE_ACCOUNT_ID",
-					Action:    serviceAccountUnlock,
+					Name:  "unlock",
+					Usage: "Restore a service account's access to BrigNext",
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:     flagID,
+							Aliases:  []string{"i"},
+							Usage:    "Unlock the specified service account (required)",
+							Required: true,
+						},
+					},
+					Action: serviceAccountUnlock,
 				},
 			},
 		},
@@ -309,52 +420,52 @@ func main() {
 			Usage: "Manage users",
 			Subcommands: []*cli.Command{
 				{
-					Name:      "get",
-					Usage:     "Get a user",
-					ArgsUsage: "USER_ID",
+					Name:  "get",
+					Usage: "Retrieve a user",
 					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:     flagID,
+							Aliases:  []string{"i"},
+							Usage:    "Retrieve the specified user (required)",
+							Required: true,
+						},
 						cliFlagOutput,
 					},
 					Action: userGet,
 				},
 				{
 					Name:  "list",
-					Usage: "List users",
+					Usage: "Retrieve many users",
 					Flags: []cli.Flag{
 						cliFlagOutput,
 					},
 					Action: userList,
 				},
 				{
-					Name:      "lock",
-					Usage:     "Lock a user out of BrigNext",
-					ArgsUsage: "USER_ID",
-					Action:    userLock,
-				},
-				{
-					Name:      "unlock",
-					Usage:     "Restore a user's access to BrigNext",
-					ArgsUsage: "USER_ID",
-					Action:    userUnlock,
-				},
-			},
-		},
-		{
-			Name:  "worker",
-			Usage: "Manage workers",
-			Subcommands: []*cli.Command{
-				{
-					Name:      "logs",
-					Usage:     "Get worker logs",
-					ArgsUsage: "EVENT_ID WORKER_NAME",
+					Name:  "lock",
+					Usage: "Lock a user out of BrigNext",
 					Flags: []cli.Flag{
-						&cli.BoolFlag{
-							Name:    flagFollow,
-							Aliases: []string{"f"},
-							Usage:   "If set, will stream worker logs until interrupted",
+						&cli.StringFlag{
+							Name:     flagID,
+							Aliases:  []string{"i"},
+							Usage:    "Lock the specified user (required)",
+							Required: true,
 						},
 					},
-					Action: workerLogs,
+					Action: userLock,
+				},
+				{
+					Name:  "unlock",
+					Usage: "Restore a user's access to BrigNext",
+					Flags: []cli.Flag{
+						&cli.StringFlag{
+							Name:     flagID,
+							Aliases:  []string{"i"},
+							Usage:    "Unlock the specified user (required)",
+							Required: true,
+						},
+					},
+					Action: userUnlock,
 				},
 			},
 		},

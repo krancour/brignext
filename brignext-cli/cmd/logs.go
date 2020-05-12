@@ -8,17 +8,11 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func workerLogs(c *cli.Context) error {
-	// Args
-	if c.Args().Len() != 1 {
-		return errors.New(
-			"worker logs requires one arguments-- an event ID",
-		)
-	}
-	eventID := c.Args().Get(0)
-
-	// Command-specific flags
+func logs(c *cli.Context) error {
+	eventID := c.String(flagEvent)
 	follow := c.Bool(flagFollow)
+	// initLogs := c.Bool(flagInits)
+	jobName := c.String(flagJob)
 
 	client, err := getClient(c)
 	if err != nil {
@@ -27,7 +21,11 @@ func workerLogs(c *cli.Context) error {
 
 	if !follow {
 		var logEntries []brignext.LogEntry
-		logEntries, err = client.GetWorkerLogs(c.Context, eventID)
+		if jobName == "" {
+			logEntries, err = client.GetWorkerLogs(c.Context, eventID)
+		} else {
+			logEntries, err = client.GetJobLogs(c.Context, eventID, jobName)
+		}
 		if err != nil {
 			return err
 		}
@@ -37,10 +35,20 @@ func workerLogs(c *cli.Context) error {
 		return nil
 	}
 
-	logEntryCh, errCh, err := client.StreamWorkerLogs(
-		c.Context,
-		eventID,
-	)
+	var logEntryCh <-chan brignext.LogEntry
+	var errCh <-chan error
+	if jobName == "" {
+		logEntryCh, errCh, err = client.StreamWorkerLogs(
+			c.Context,
+			eventID,
+		)
+	} else {
+		logEntryCh, errCh, err = client.StreamJobLogs(
+			c.Context,
+			eventID,
+			jobName,
+		)
+	}
 	if err != nil {
 		return err
 	}

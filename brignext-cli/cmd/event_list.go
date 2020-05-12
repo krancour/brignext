@@ -15,14 +15,6 @@ import (
 )
 
 func eventList(c *cli.Context) error {
-	// Args
-	if c.Args().Len() != 0 {
-		return errors.New(
-			"event list requires no arguments",
-		)
-	}
-
-	// Command-specific flags
 	output := c.String(flagOutput)
 	projectID := c.String(flagProject)
 

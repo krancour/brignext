@@ -11,20 +11,11 @@ import (
 )
 
 func eventCreate(c *cli.Context) error {
-	// Args
-	if c.Args().Len() != 1 {
-		return errors.New(
-			"event create requires one argument-- a project ID " +
-				"for for which an event should be created",
-		)
-	}
-	projectID := c.Args().Get(0)
-
-	// Command-specific flags
 	payload := c.String(flagPayload)
 	payloadFile := c.String(flagPayloadFile)
-	eventType := c.String(flagType)
+	projectID := c.String(flagProject)
 	source := c.String(flagSource)
+	eventType := c.String(flagType)
 
 	if payload != "" && payloadFile != "" {
 		return errors.New(

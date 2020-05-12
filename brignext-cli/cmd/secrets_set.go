@@ -9,16 +9,8 @@ import (
 )
 
 func secretsSet(c *cli.Context) error {
-	// Args
-	if c.Args().Len() < 3 {
-		return errors.New(
-			"secrets set requires at least two arguments-- a project ID " +
-				"and one or more secret key/value pairs delimited by an " +
-				"= character",
-		)
-	}
-	projectID := c.Args().Get(0)
-	kvPairs := c.Args().Slice()[1:]
+	projectID := c.String(flagProject)
+	kvPairs := c.StringSlice(flagSet)
 
 	secrets := map[string]string{}
 	for _, kvPair := range kvPairs {

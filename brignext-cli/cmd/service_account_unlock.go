@@ -8,13 +8,7 @@ import (
 )
 
 func serviceAccountUnlock(c *cli.Context) error {
-	// Args
-	if c.Args().Len() != 1 {
-		return errors.New(
-			"service-account unlock requires one argument-- a service account ID",
-		)
-	}
-	id := c.Args().Get(0)
+	id := c.String(flagID)
 
 	client, err := getClient(c)
 	if err != nil {

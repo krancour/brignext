@@ -8,24 +8,17 @@ import (
 )
 
 func eventDelete(c *cli.Context) error {
-	// Command-specific flags
+	eventID := c.String(flagID)
 	deletePending := c.Bool(flagPending)
-	deleteRunning := c.Bool(flagRunning)
 	projectID := c.String(flagProject)
+	deleteRunning := c.Bool(flagRunning)
 
-	// Args
-	var eventID string
-	if projectID == "" {
-		if c.Args().Len() != 1 {
-			return errors.New(
-				"event delete requires one argument-- an event ID",
-			)
-		}
-		eventID = c.Args().Get(0)
-	} else if c.Args().Len() != 0 {
-		return errors.New(
-			"event delete requires no arguments when the --project flag is used",
-		)
+	if eventID == "" && projectID == "" {
+		return errors.New("one of --id or --project must be set")
+	}
+
+	if eventID != "" && projectID != "" {
+		return errors.New("--id and --project are mutually exclusive")
 	}
 
 	client, err := getClient(c)

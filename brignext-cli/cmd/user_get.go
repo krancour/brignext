@@ -12,15 +12,7 @@ import (
 )
 
 func userGet(c *cli.Context) error {
-	// Args
-	if c.Args().Len() != 1 {
-		return errors.New(
-			"user get requires one argument-- a user ID",
-		)
-	}
-	id := c.Args().Get(0)
-
-	// Command-specific flags
+	id := c.String(flagID)
 	output := c.String(flagOutput)
 
 	if err := validateOutputFormat(output); err != nil {

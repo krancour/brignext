@@ -8,15 +8,8 @@ import (
 )
 
 func secretsUnset(c *cli.Context) error {
-	// Args
-	if c.Args().Len() < 2 {
-		return errors.New(
-			"secrets unset requires at least two arguments-- a project ID " +
-				"and a secret key",
-		)
-	}
-	projectID := c.Args().Get(0)
-	keys := c.Args().Slice()[1:]
+	projectID := c.String(flagProject)
+	keys := c.StringSlice(flagUnset)
 
 	client, err := getClient(c)
 	if err != nil {

@@ -15,15 +15,7 @@ import (
 )
 
 func serviceAccountGet(c *cli.Context) error {
-	// Args
-	if c.Args().Len() != 1 {
-		return errors.New(
-			"service-account get requires one argument-- a service account ID ",
-		)
-	}
-	id := c.Args().Get(0)
-
-	// Command-specific flags
+	id := c.String(flagID)
 	output := c.String(flagOutput)
 
 	if err := validateOutputFormat(output); err != nil {

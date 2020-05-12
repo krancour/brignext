@@ -16,12 +16,6 @@ import (
 )
 
 func serviceAccountList(c *cli.Context) error {
-	// Args
-	if c.Args().Len() != 0 {
-		return errors.New("service-account list requires no arguments")
-	}
-
-	// Command-specific flags
 	output := c.String(flagOutput)
 
 	if err := validateOutputFormat(output); err != nil {
