@@ -75,17 +75,17 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			http.Error(w, "{}", http.StatusUnauthorized)
 			return
 		}
-		if (session.Root && !t.rootUserEnabled) ||
-			!session.Authenticated ||
+		if (session.Spec.Root && !t.rootUserEnabled) ||
+			!session.Status.Authenticated ||
 			time.Now().After(session.Expires) {
 			http.Error(w, "{}", http.StatusUnauthorized)
 			return
 		}
 		var principal Principal
-		if session.Root {
+		if session.Spec.Root {
 			principal = rootPrincipal
 		} else {
-			user, err := t.findUser(r.Context(), session.UserID)
+			user, err := t.findUser(r.Context(), session.Spec.UserID)
 			if err != nil {
 				http.Error(w, "{}", http.StatusUnauthorized)
 				return

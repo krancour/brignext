@@ -221,12 +221,22 @@ func (s *service) CreateRootSession(ctx context.Context) (string, error) {
 	token := crypto.NewToken(256)
 	now := time.Now()
 	session := brignext.Session{
-		ID:            uuid.NewV4().String(),
-		Root:          true,
-		HashedToken:   crypto.ShortSHA("", token),
-		Authenticated: true,
-		Expires:       now.Add(time.Hour),
-		Created:       now,
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: "github.com/krancour/brignext/v2",
+			Kind:       "Session",
+		},
+		SessionMeta: brignext.SessionMeta{
+			ID:      uuid.NewV4().String(),
+			Created: now,
+			Expires: now.Add(time.Hour),
+		},
+		Spec: brignext.SessionSpec{
+			Root:        true,
+			HashedToken: crypto.ShortSHA("", token),
+		},
+		Status: brignext.SessionStatus{
+			Authenticated: true,
+		},
 	}
 	if err := s.store.CreateSession(ctx, session); err != nil {
 		return "", errors.Wrapf(
@@ -244,10 +254,18 @@ func (s *service) CreateUserSession(
 	oauth2State := crypto.NewToken(30)
 	token := crypto.NewToken(256)
 	session := brignext.Session{
-		ID:                uuid.NewV4().String(),
-		HashedOAuth2State: crypto.ShortSHA("", oauth2State),
-		HashedToken:       crypto.ShortSHA("", token),
-		Created:           time.Now(),
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: "github.com/krancour/brignext/v2",
+			Kind:       "Session",
+		},
+		SessionMeta: brignext.SessionMeta{
+			ID:      uuid.NewV4().String(),
+			Created: time.Now(),
+		},
+		Spec: brignext.SessionSpec{
+			HashedOAuth2State: crypto.ShortSHA("", oauth2State),
+			HashedToken:       crypto.ShortSHA("", token),
+		},
 	}
 	if err := s.store.CreateSession(ctx, session); err != nil {
 		return "", "", errors.Wrapf(

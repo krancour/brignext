@@ -51,18 +51,26 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 		[]mongo.IndexModel{
 			{
 				Keys: bson.M{
-					"hashedOAuth2State": 1,
+					"metadata.id": 1,
+				},
+				Options: &options.IndexOptions{
+					Unique: &unique,
+				},
+			},
+			{
+				Keys: bson.M{
+					"spec.hashedOAuth2State": 1,
 				},
 				Options: &options.IndexOptions{
 					Unique: &unique,
 					PartialFilterExpression: bson.M{
-						"hashedOAuth2State": bson.M{"exists": true},
+						"spec.hashedOAuth2State": bson.M{"exists": true},
 					},
 				},
 			},
 			{
 				Keys: bson.M{
-					"hashedToken": 1,
+					"spec.hashedToken": 1,
 				},
 				Options: &options.IndexOptions{
 					Unique: &unique,
@@ -288,7 +296,7 @@ func (s *store) GetSessionByHashedOAuth2State(
 	session := brignext.Session{}
 	res := s.sessionsCollection.FindOne(
 		ctx,
-		bson.M{"hashedOAuth2State": hashedOAuth2State},
+		bson.M{"spec.hashedOAuth2State": hashedOAuth2State},
 	)
 	if res.Err() == mongo.ErrNoDocuments {
 		return session, &brignext.ErrSessionNotFound{}
@@ -310,7 +318,7 @@ func (s *store) GetSessionByHashedToken(
 	hashedToken string,
 ) (brignext.Session, error) {
 	session := brignext.Session{}
-	res := s.sessionsCollection.FindOne(ctx, bson.M{"hashedToken": hashedToken})
+	res := s.sessionsCollection.FindOne(ctx, bson.M{"spec.hashedToken": hashedToken})
 	if res.Err() == mongo.ErrNoDocuments {
 		return session, &brignext.ErrSessionNotFound{}
 	}
@@ -335,13 +343,13 @@ func (s *store) AuthenticateSession(
 	res, err := s.sessionsCollection.UpdateOne(
 		ctx,
 		bson.M{
-			"_id": sessionID,
+			"metadata.id": sessionID,
 		},
 		bson.M{
 			"$set": bson.M{
-				"userID":        userID,
-				"authenticated": true,
-				"expires":       expires,
+				"metadata.expires":     expires,
+				"spec.userID":          userID,
+				"status.authenticated": true,
 			},
 		},
 	)
@@ -357,7 +365,7 @@ func (s *store) AuthenticateSession(
 }
 
 func (s *store) DeleteSession(ctx context.Context, id string) error {
-	res, err := s.sessionsCollection.DeleteOne(ctx, bson.M{"_id": id})
+	res, err := s.sessionsCollection.DeleteOne(ctx, bson.M{"metadata.id": id})
 	if err != nil {
 		return errors.Wrapf(err, "error deleting session %q", id)
 	}
@@ -373,7 +381,7 @@ func (s *store) DeleteSessionsByUser(
 	ctx context.Context,
 	userID string,
 ) (int64, error) {
-	res, err := s.sessionsCollection.DeleteMany(ctx, bson.M{"userID": userID})
+	res, err := s.sessionsCollection.DeleteMany(ctx, bson.M{"spec.userID": userID})
 	if err != nil {
 		return 0, errors.Wrapf(err, "error deleting sessions for user %q", userID)
 	}
