@@ -16,15 +16,3 @@ type Project struct {
 	CreatedBy     string `json:"createdBy,omitempty" bson:"createdBy"`
 	LastUpdatedBy string `json:"lastUpdatedBy,omitempty" bson:"lastUpdatedBy"`
 }
-
-func (p *Project) Matches(eventSource, eventType string) bool {
-	if len(p.EventSubscriptions) == 0 {
-		return true
-	}
-	for _, eventSubscription := range p.EventSubscriptions {
-		if eventSubscription.Matches(eventSource, eventType) {
-			return true
-		}
-	}
-	return false
-}
