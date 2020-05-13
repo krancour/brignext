@@ -431,8 +431,8 @@ func (s *service) CreateProject(
 ) error {
 	// TODO: Move where we set this to where we set the other defaults-- i.e.
 	// set it at the time an event is created-- not when the project is created.
-	if project.WorkerConfig.LogLevel == "" {
-		project.WorkerConfig.LogLevel = brignext.LogLevelInfo
+	if project.Spec.WorkerConfig.LogLevel == "" {
+		project.Spec.WorkerConfig.LogLevel = brignext.LogLevelInfo
 	}
 
 	now := time.Now()
@@ -658,13 +658,13 @@ func (s *service) CreateEvent(
 	event.ID = uuid.NewV4().String()
 
 	event.Worker = &brignext.Worker{
-		Container:            project.WorkerConfig.Container,
-		WorkspaceSize:        project.WorkerConfig.WorkspaceSize,
-		Git:                  project.WorkerConfig.Git,
-		JobsConfig:           project.WorkerConfig.JobsConfig,
-		LogLevel:             project.WorkerConfig.LogLevel,
-		ConfigFilesDirectory: project.WorkerConfig.ConfigFilesDirectory,
-		DefaultConfigFiles:   project.WorkerConfig.DefaultConfigFiles,
+		Container:            project.Spec.WorkerConfig.Container,
+		WorkspaceSize:        project.Spec.WorkerConfig.WorkspaceSize,
+		Git:                  project.Spec.WorkerConfig.Git,
+		JobsConfig:           project.Spec.WorkerConfig.JobsConfig,
+		LogLevel:             project.Spec.WorkerConfig.LogLevel,
+		ConfigFilesDirectory: project.Spec.WorkerConfig.ConfigFilesDirectory,
+		DefaultConfigFiles:   project.Spec.WorkerConfig.DefaultConfigFiles,
 		Jobs:                 map[string]brignext.Job{},
 		Status: brignext.WorkerStatus{
 			Phase: brignext.WorkerPhasePending,

@@ -18,12 +18,6 @@
 			"maxLength": 50
 		},
 
-		"description": {
-			"type": "string",
-			"minLength": 3,
-			"maxLength": 80
-		},
-
 		"url": {
 			"type": "string",
 			"pattern": "^[\\w:/\\-\\.\\?=]*$",
@@ -38,13 +32,77 @@
 			"maxLength": 250
 		},
 
+		"apiVersion": {
+			"type": "string",
+			"description": "The major version of the BrigNext API with which this object conforms",
+			"enum": ["github.com/krancour/brignext/v2"]
+		},
+
+		"kind": {
+			"type": "string",
+			"description": "The type of object represented by the document",
+			"enum": ["Project"]
+		},
+
+		"objectMeta": {
+			"type": "object",
+			"description": "Immutable project metadata",
+			"required": ["id"],
+			"additionalProperties": false,
+			"properties": {
+				"id": {
+					"allOf": [
+						{
+							"$ref": "#/definitions/identifier"
+						}
+					],
+					"description": "A meaningful identifier for the project"
+				}
+			}
+		},
+
+		"projectSpec": {
+			"type": "object",
+			"description": "Mutable project specification",
+			"additionalProperties": false,
+			"properties": {
+				"description": {
+					"oneOf": [
+						{
+							"$ref": "#/definitions/empty"
+						},
+						{
+							"$ref": "#/definitions/description"
+						}
+					],
+					"description": "A brief description of the project"
+				},
+				"eventSubscriptions": {
+					"type": [
+						"array",
+						"null"
+					],
+					"description": "The events that this project subscribes to",
+					"items": {
+						"$ref": "#/definitions/eventSubscription"
+					}
+				},
+				"workerConfig": {
+					"$ref": "#/definitions/workerConfig"
+				}
+			}
+		},
+
+		"description": {
+			"type": "string",
+			"minLength": 3,
+			"maxLength": 80
+		},
+
 		"eventSubscription": {
 			"type": "object",
 			"description": "Describes a set of events that the project is subscribed to",
-			"required": [
-				"source",
-				"types"
-			],
+			"required": ["source", "types"],
 			"additionalProperties": false,
 			"properties": {
 				"source": {
@@ -241,42 +299,20 @@
 
 	"title": "Project",
 	"type": "object",
-	"required": [
-		"id"
-	],
+	"required": ["apiVersion", "kind", "metadata"],
 	"additionalProperties": false,
 	"properties": {
-		"id": {
-			"allOf": [
-				{
-					"$ref": "#/definitions/identifier"
-				}
-			],
-			"description": "A meaningful identifier for the project"
+		"apiVersion": {
+			"$ref": "#/definitions/apiVersion"
 		},
-		"description": {
-			"oneOf": [
-				{
-					"$ref": "#/definitions/empty"
-				},
-				{
-					"$ref": "#/definitions/description"
-				}
-			],
-			"description": "A brief description of the project"
+		"kind": {
+			"$ref": "#/definitions/kind"
 		},
-		"eventSubscriptions": {
-			"type": [
-				"array",
-				"null"
-			],
-			"description": "The events that this project subscribes to",
-			"items": {
-				"$ref": "#/definitions/eventSubscription"
-			}
+		"metadata": {
+			"$ref": "#/definitions/objectMeta"
 		},
-		"workerConfig": {
-			"$ref": "#/definitions/workerConfig"
+		"spec": {
+			"$ref": "#/definitions/projectSpec"
 		}
 	}
 }

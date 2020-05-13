@@ -82,6 +82,11 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 		[]mongo.IndexModel{
 			{
 				Keys: bson.M{
+					"metadata.id": 1,
+				},
+			},
+			{
+				Keys: bson.M{
 					"eventSubscriptions.source": 1,
 					"eventSubscriptions.types":  1,
 				},
@@ -507,7 +512,7 @@ func (s *store) CreateProject(
 
 func (s *store) GetProjects(ctx context.Context) ([]brignext.Project, error) {
 	findOptions := options.Find()
-	findOptions.SetSort(bson.M{"_id": 1})
+	findOptions.SetSort(bson.M{"metadata.id": 1})
 	cur, err := s.projectsCollection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "error finding projects")
@@ -550,7 +555,7 @@ func (s *store) GetSubscribedProjects(
 	cur, err := s.projectsCollection.Find(
 		ctx,
 		bson.M{
-			"eventSubscriptions": bson.M{
+			"spec.eventSubscriptions": bson.M{
 				"$elemMatch": subscriptionMatchCriteria,
 			},
 		},
@@ -571,7 +576,7 @@ func (s *store) GetProject(
 	id string,
 ) (brignext.Project, error) {
 	project := brignext.Project{}
-	res := s.projectsCollection.FindOne(ctx, bson.M{"_id": id})
+	res := s.projectsCollection.FindOne(ctx, bson.M{"metadata.id": id})
 	if res.Err() == mongo.ErrNoDocuments {
 		return project, &brignext.ErrProjectNotFound{
 			ID: id,
@@ -592,13 +597,11 @@ func (s *store) UpdateProject(
 	res, err := s.projectsCollection.UpdateOne(
 		ctx,
 		bson.M{
-			"_id": project.ID,
+			"metadata.id": project.ID,
 		},
 		bson.M{
 			"$set": bson.M{
-				"description":        project.Description,
-				"eventSubscriptions": project.EventSubscriptions,
-				"workerConfig":       project.WorkerConfig,
+				"spec": project.Spec,
 			},
 		},
 	)
@@ -614,7 +617,7 @@ func (s *store) UpdateProject(
 }
 
 func (s *store) DeleteProject(ctx context.Context, id string) error {
-	res, err := s.projectsCollection.DeleteOne(ctx, bson.M{"_id": id})
+	res, err := s.projectsCollection.DeleteOne(ctx, bson.M{"metadata.id": id})
 	if err != nil {
 		return errors.Wrapf(err, "error deleting project %q", id)
 	}

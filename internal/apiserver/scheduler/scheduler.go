@@ -86,7 +86,7 @@ func (s *scheduler) CreateProject(
 	project brignext.Project,
 ) (brignext.Project, error) {
 	// Create a unique namespace name for the project
-	project.Kubernetes = &brignext.ProjectKubernetesConfig{
+	project.Kubernetes = &brignext.ProjectKubernetesMeta{
 		Namespace: strings.ToLower(
 			fmt.Sprintf("brignext-%s-%s", project.ID, crypto.NewToken(10)),
 		),
@@ -400,7 +400,7 @@ func (s *scheduler) CreateEvent(
 	event.Kubernetes = &brignext.EventKubernetesConfig{
 		Namespace: project.Kubernetes.Namespace,
 	}
-	event.Worker.Kubernetes = project.WorkerConfig.Kubernetes
+	event.Worker.Kubernetes = project.Spec.WorkerConfig.Kubernetes
 
 	// Create a secret with event details
 	eventJSON, err := json.MarshalIndent(

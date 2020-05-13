@@ -1,21 +1,25 @@
-id: vcs-demo
-description: A project that demonstrates brignext
-eventSubscriptions:
-- source: github.com/krancour/brignext-github-app
-  types:
-  - pull_request:opened
-  - pull_request:synchronize
-  - pull_request:reopened
-  - push
-  labels:
-    repo: krancour/brignext-demo
-workerConfig:
-  container:
-    environment:
-      FOO: bar
-  workspaceSize: 10Gi
-  git:
-    cloneURL: https://github.com/krancour/brignext-demo.git
-  jobsConfig:
-    allowPrivileged: true
-    allowDockerSocketMount: true
+apiVersion: github.com/krancour/brignext/v2
+kind: Project
+metadata:
+  id: vcs-demo
+spec:
+  description: A project that demonstrates BrigNext with VCS integration
+  eventSubscriptions:
+  - source: github.com/krancour/brignext-github-app
+    types:
+    - pull_request:opened
+    - pull_request:synchronize
+    - pull_request:reopened
+    - push
+    labels:
+      repo: krancour/brignext-demo
+  workerConfig:
+    container:
+      environment:
+        FOO: bar
+    workspaceSize: 10Gi
+    git:
+      cloneURL: https://github.com/krancour/brignext-demo.git
+    jobsConfig:
+      allowPrivileged: true
+      allowDockerSocketMount: true
