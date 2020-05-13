@@ -343,6 +343,7 @@ func (s *service) CreateServiceAccount(
 	serviceAccount.HashedToken = crypto.ShortSHA("", token)
 	now := time.Now()
 	serviceAccount.Created = &now
+	serviceAccount.Status = &brignext.ServiceAccountStatus{}
 	if err := s.store.CreateServiceAccount(ctx, serviceAccount); err != nil {
 		return "", errors.Wrapf(
 			err,

@@ -42,9 +42,9 @@ func serviceAccountGet(c *cli.Context) error {
 		}
 		table.AddRow(
 			serviceAccount.ID,
-			serviceAccount.Description,
+			serviceAccount.Spec.Description,
 			age,
-			serviceAccount.Locked != nil && *serviceAccount.Locked,
+			serviceAccount.Status.Locked,
 		)
 		fmt.Println(table)
 

@@ -74,14 +74,24 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 	}
 
 	serviceAccountsCollection := database.Collection("service-accounts")
-	if _, err := serviceAccountsCollection.Indexes().CreateOne(
+	if _, err := serviceAccountsCollection.Indexes().CreateMany(
 		ctx,
-		mongo.IndexModel{
-			Keys: bson.M{
-				"hashedToken": 1,
+		[]mongo.IndexModel{
+			{
+				Keys: bson.M{
+					"metadata.id": 1,
+				},
+				Options: &options.IndexOptions{
+					Unique: &unique,
+				},
 			},
-			Options: &options.IndexOptions{
-				Unique: &unique,
+			{
+				Keys: bson.M{
+					"hashedToken": 1,
+				},
+				Options: &options.IndexOptions{
+					Unique: &unique,
+				},
 			},
 		},
 	); err != nil {
@@ -399,7 +409,7 @@ func (s *store) GetServiceAccounts(
 	ctx context.Context,
 ) ([]brignext.ServiceAccount, error) {
 	findOptions := options.Find()
-	findOptions.SetSort(bson.M{"_id": 1})
+	findOptions.SetSort(bson.M{"metadata.id": 1})
 	cur, err := s.serviceAccountsCollection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "error finding service accounts")
@@ -416,7 +426,7 @@ func (s *store) GetServiceAccount(
 	id string,
 ) (brignext.ServiceAccount, error) {
 	serviceAccount := brignext.ServiceAccount{}
-	res := s.serviceAccountsCollection.FindOne(ctx, bson.M{"_id": id})
+	res := s.serviceAccountsCollection.FindOne(ctx, bson.M{"metadata.id": id})
 	if res.Err() == mongo.ErrNoDocuments {
 		return serviceAccount, &brignext.ErrServiceAccountNotFound{
 			ID: id,
@@ -470,9 +480,9 @@ func (s *store) LockServiceAccount(
 ) error {
 	res, err := s.serviceAccountsCollection.UpdateOne(
 		ctx,
-		bson.M{"_id": id},
+		bson.M{"metadata.id": id},
 		bson.M{
-			"$set": bson.M{"locked": true},
+			"$set": bson.M{"status.locked": true},
 		},
 	)
 	if err != nil {
@@ -493,10 +503,12 @@ func (s *store) UnlockServiceAccount(
 ) error {
 	res, err := s.serviceAccountsCollection.UpdateOne(
 		ctx,
-		bson.M{"_id": id},
+		bson.M{"metadata.id": id},
 		bson.M{
-			"$unset": bson.M{"locked": 1},
-			"$set":   bson.M{"hashedToken": newHashedToken},
+			"$set": bson.M{
+				"status.locked": false,
+				"hashedToken":   newHashedToken,
+			},
 		},
 	)
 	if err != nil {

@@ -21,8 +21,16 @@ func serviceAccountCreate(c *cli.Context) error {
 	token, err := client.CreateServiceAccount(
 		c.Context,
 		brignext.ServiceAccount{
-			ID:          id,
-			Description: description,
+			TypeMeta: brignext.TypeMeta{
+				APIVersion: "github.com/krancour/brignext/v2",
+				Kind:       "ServiceAccount",
+			},
+			ServiceAccountMeta: brignext.ServiceAccountMeta{
+				ID: id,
+			},
+			Spec: brignext.ServiceAccountSpec{
+				Description: description,
+			},
 		},
 	)
 	if err != nil {

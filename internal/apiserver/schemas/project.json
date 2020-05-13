@@ -18,6 +18,12 @@
 			"maxLength": 50
 		},
 
+		"description": {
+			"type": "string",
+			"minLength": 3,
+			"maxLength": 80
+		},
+
 		"url": {
 			"type": "string",
 			"pattern": "^[\\w:/\\-\\.\\?=]*$",
@@ -44,7 +50,7 @@
 			"enum": ["Project"]
 		},
 
-		"objectMeta": {
+		"projectMeta": {
 			"type": "object",
 			"description": "Immutable project metadata",
 			"required": ["id"],
@@ -91,12 +97,6 @@
 					"$ref": "#/definitions/workerConfig"
 				}
 			}
-		},
-
-		"description": {
-			"type": "string",
-			"minLength": 3,
-			"maxLength": 80
 		},
 
 		"eventSubscription": {
@@ -309,7 +309,7 @@
 			"$ref": "#/definitions/kind"
 		},
 		"metadata": {
-			"$ref": "#/definitions/objectMeta"
+			"$ref": "#/definitions/projectMeta"
 		},
 		"spec": {
 			"$ref": "#/definitions/projectSpec"

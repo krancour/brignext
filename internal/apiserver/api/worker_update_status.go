@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -43,7 +42,6 @@ func (s *server) workerUpdateStatus(
 		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 		return
 	} else if !validationResult.Valid() {
-		fmt.Println(validationResult.Errors())
 		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
 		return
 	}
