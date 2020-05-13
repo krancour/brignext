@@ -37,7 +37,7 @@ func userGet(c *cli.Context) error {
 			user.ID,
 			user.Name,
 			user.FirstSeen,
-			user.Locked,
+			user.Status.Locked,
 		)
 		fmt.Println(table)
 

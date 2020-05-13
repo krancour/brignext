@@ -30,6 +30,21 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 
 	unique := true
 
+	usersCollection := database.Collection("users")
+	if _, err := usersCollection.Indexes().CreateOne(
+		ctx,
+		mongo.IndexModel{
+			Keys: bson.M{
+				"metadata.id": 1,
+			},
+			Options: &options.IndexOptions{
+				Unique: &unique,
+			},
+		},
+	); err != nil {
+		return nil, errors.Wrap(err, "error adding indexes to users collection")
+	}
+
 	sessionsCollection := database.Collection("sessions")
 	if _, err := sessionsCollection.Indexes().CreateMany(
 		ctx,
@@ -84,6 +99,9 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 				Keys: bson.M{
 					"metadata.id": 1,
 				},
+				Options: &options.IndexOptions{
+					Unique: &unique,
+				},
 			},
 			{
 				Keys: bson.M{
@@ -126,7 +144,7 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 	return &store{
 		id:                        uuid.NewV4().String(),
 		database:                  database,
-		usersCollection:           database.Collection("users"),
+		usersCollection:           usersCollection,
 		sessionsCollection:        sessionsCollection,
 		serviceAccountsCollection: serviceAccountsCollection,
 		projectsCollection:        projectsCollection,
@@ -176,7 +194,7 @@ func (s *store) CreateUser(ctx context.Context, user brignext.User) error {
 
 func (s *store) GetUsers(ctx context.Context) ([]brignext.User, error) {
 	findOptions := options.Find()
-	findOptions.SetSort(bson.M{"_id": 1})
+	findOptions.SetSort(bson.M{"metadata.id": 1})
 	cur, err := s.usersCollection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "error finding users")
@@ -190,7 +208,7 @@ func (s *store) GetUsers(ctx context.Context) ([]brignext.User, error) {
 
 func (s *store) GetUser(ctx context.Context, id string) (brignext.User, error) {
 	user := brignext.User{}
-	res := s.usersCollection.FindOne(ctx, bson.M{"_id": id})
+	res := s.usersCollection.FindOne(ctx, bson.M{"metadata.id": id})
 	if res.Err() == mongo.ErrNoDocuments {
 		return user, &brignext.ErrUserNotFound{
 			ID: id,
@@ -208,9 +226,9 @@ func (s *store) GetUser(ctx context.Context, id string) (brignext.User, error) {
 func (s *store) LockUser(ctx context.Context, id string) error {
 	res, err := s.usersCollection.UpdateOne(
 		ctx,
-		bson.M{"_id": id},
+		bson.M{"metadata.id": id},
 		bson.M{
-			"$set": bson.M{"locked": true},
+			"$set": bson.M{"status.locked": true},
 		},
 	)
 	if err != nil {
@@ -227,9 +245,9 @@ func (s *store) LockUser(ctx context.Context, id string) error {
 func (s *store) UnlockUser(ctx context.Context, id string) error {
 	res, err := s.usersCollection.UpdateOne(
 		ctx,
-		bson.M{"_id": id},
+		bson.M{"metadata.id": id},
 		bson.M{
-			"$unset": bson.M{"locked": 1},
+			"$set": bson.M{"status.locked": false},
 		},
 	)
 	if err != nil {

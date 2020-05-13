@@ -90,7 +90,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 				http.Error(w, "{}", http.StatusUnauthorized)
 				return
 			}
-			if user.Locked {
+			if user.Status.Locked {
 				http.Error(w, "{}", http.StatusForbidden)
 				return
 			}
