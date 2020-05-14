@@ -1223,10 +1223,19 @@ func (c *client) UpdateWorkerStatus(
 	status WorkerStatus,
 ) error {
 	statusBytes, err := json.Marshal(
-		WorkerStatus{
-			Started: status.Started,
-			Ended:   status.Ended,
-			Phase:   status.Phase,
+		struct {
+			TypeMeta     `json:",inline"`
+			WorkerStatus `json:",inline"`
+		}{
+			TypeMeta: TypeMeta{
+				APIVersion: "github.com/krancour/brignext/v2",
+				Kind:       "WorkerStatus",
+			},
+			WorkerStatus: WorkerStatus{
+				Started: status.Started,
+				Ended:   status.Ended,
+				Phase:   status.Phase,
+			},
 		},
 	)
 	if err != nil {
@@ -1435,10 +1444,19 @@ func (c *client) UpdateJobStatus(
 	status JobStatus,
 ) error {
 	statusBytes, err := json.Marshal(
-		JobStatus{
-			Started: status.Started,
-			Ended:   status.Ended,
-			Phase:   status.Phase,
+		struct {
+			TypeMeta  `json:",inline"`
+			JobStatus `json:",inline"`
+		}{
+			TypeMeta: TypeMeta{
+				APIVersion: "github.com/krancour/brignext/v2",
+				Kind:       "JobStatus",
+			},
+			JobStatus: JobStatus{
+				Started: status.Started,
+				Ended:   status.Ended,
+				Phase:   status.Phase,
+			},
 		},
 	)
 	if err != nil {
