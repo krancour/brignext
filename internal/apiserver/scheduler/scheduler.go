@@ -397,22 +397,22 @@ func (s *scheduler) CreateEvent(
 	event brignext.Event,
 ) (brignext.Event, error) {
 	// Fill in scheduler-specific details
-	event.Kubernetes = &brignext.EventKubernetesConfig{
+	event.Kubernetes = &brignext.EventKubernetesMeta{
 		Namespace: project.Kubernetes.Namespace,
 	}
-	event.Worker.Kubernetes = project.Spec.WorkerConfig.Kubernetes
+	event.Spec.Worker.Kubernetes = project.Spec.WorkerConfig.Kubernetes
 
 	// Create a secret with event details
 	eventJSON, err := json.MarshalIndent(
 		struct {
-			ID         string                         `json:"id"`
-			ProjectID  string                         `json:"projectID"`
-			Source     string                         `json:"source"`
-			Type       string                         `json:"type"`
-			ShortTitle string                         `json:"shortTitle"`
-			LongTitle  string                         `json:"longTitle"`
-			Kubernetes brignext.EventKubernetesConfig `json:"kubernetes"`
-			Payload    string                         `json:"payload"`
+			ID         string                       `json:"id"`
+			ProjectID  string                       `json:"projectID"`
+			Source     string                       `json:"source"`
+			Type       string                       `json:"type"`
+			ShortTitle string                       `json:"shortTitle"`
+			LongTitle  string                       `json:"longTitle"`
+			Kubernetes brignext.EventKubernetesMeta `json:"kubernetes"`
+			Payload    string                       `json:"payload"`
 		}{
 			ID:         event.ID,
 			ProjectID:  event.ProjectID,
@@ -421,7 +421,7 @@ func (s *scheduler) CreateEvent(
 			ShortTitle: event.ShortTitle,
 			LongTitle:  event.LongTitle,
 			Kubernetes: *event.Kubernetes,
-			Payload:    event.Payload,
+			Payload:    event.Spec.Payload,
 		},
 		"",
 		"  ",
@@ -481,11 +481,11 @@ func (s *scheduler) CreateEvent(
 			Secrets              map[string]string        `json:"secrets"`
 			ConfigFilesDirectory string                   `json:"configFilesDirectory"` // nolint: lll
 		}{
-			Git:                  event.Worker.Git,
-			JobsConfig:           event.Worker.JobsConfig,
-			LogLevel:             event.Worker.LogLevel,
+			Git:                  event.Spec.Worker.Git,
+			JobsConfig:           event.Spec.Worker.JobsConfig,
+			LogLevel:             event.Spec.Worker.LogLevel,
 			Secrets:              secrets,
-			ConfigFilesDirectory: event.Worker.ConfigFilesDirectory,
+			ConfigFilesDirectory: event.Spec.Worker.ConfigFilesDirectory,
 		},
 		"",
 		"  ",
@@ -498,7 +498,7 @@ func (s *scheduler) CreateEvent(
 		)
 	}
 	data := map[string][]byte{}
-	for filename, contents := range event.Worker.DefaultConfigFiles {
+	for filename, contents := range event.Spec.Worker.DefaultConfigFiles {
 		data[filename] = []byte(contents)
 	}
 	data["worker.json"] = workerJSON
@@ -594,7 +594,7 @@ func (s *scheduler) GetEvent(
 			event.Kubernetes.Namespace,
 		)
 	}
-	event.Payload = eventStruct.Payload
+	event.Spec.Payload = eventStruct.Payload
 	return event, nil
 }
 

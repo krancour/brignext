@@ -158,7 +158,10 @@
 					"description": "The command to execute within the container"
 				},
 				"environment": {
-					"type": "object",
+					"type": [
+						"object",
+						"null"
+					],
 					"description": "A map of environment variables and their values",
 					"additionalProperties": {
 						"type": "string"

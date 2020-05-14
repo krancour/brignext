@@ -21,18 +21,8 @@
       }
     ],
     "workerConfig": {
-      "container": {
-        "environment": {
-          "FOO": "bar"
-        }
-      },
-      "workspaceSize": "10Gi",
       "git": {
         "cloneURL": "https://github.com/krancour/brignext-demo.git"
-      },
-      "jobsConfig": {
-        "allowPrivileged": true,
-        "allowDockerSocketMount": true
       }
     }
   }

@@ -38,10 +38,18 @@ func eventCreate(c *cli.Context) error {
 	}
 
 	event := brignext.Event{
-		ProjectID: projectID,
-		Source:    source,
-		Type:      eventType,
-		Payload:   payload,
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: "github.com/krancour/brignext/v2",
+			Kind:       "Event",
+		},
+		EventMeta: brignext.EventMeta{
+			ProjectID: projectID,
+			Source:    source,
+			Type:      eventType,
+		},
+		Spec: brignext.EventSpec{
+			Payload: payload,
+		},
 	}
 
 	client, err := getClient(c)

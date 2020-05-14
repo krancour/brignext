@@ -57,7 +57,7 @@ func eventList(c *cli.Context) error {
 				event.Source,
 				event.Type,
 				age,
-				event.Worker.Status.Phase,
+				event.Spec.Worker.Status.Phase,
 			)
 		}
 		fmt.Println(table)

@@ -676,7 +676,7 @@ func (s *service) CreateEvent(
 
 	event.ID = uuid.NewV4().String()
 
-	event.Worker = &brignext.Worker{
+	event.Spec.Worker = &brignext.Worker{
 		Container:            project.Spec.WorkerConfig.Container,
 		WorkspaceSize:        project.Spec.WorkerConfig.WorkspaceSize,
 		Git:                  project.Spec.WorkerConfig.Git,
@@ -689,29 +689,29 @@ func (s *service) CreateEvent(
 			Phase: brignext.WorkerPhasePending,
 		},
 	}
-	if event.Worker.WorkspaceSize == "" {
-		event.Worker.WorkspaceSize = "10Gi"
+	if event.Spec.Worker.WorkspaceSize == "" {
+		event.Spec.Worker.WorkspaceSize = "10Gi"
 	}
 
 	// VCS details from the event override project-level details
-	if event.Git.CloneURL != "" {
-		event.Worker.Git.CloneURL = event.Git.CloneURL
+	if event.Spec.Git.CloneURL != "" {
+		event.Spec.Worker.Git.CloneURL = event.Spec.Git.CloneURL
 	}
-	if event.Git.Commit != "" {
-		event.Worker.Git.Commit = event.Git.Commit
+	if event.Spec.Git.Commit != "" {
+		event.Spec.Worker.Git.Commit = event.Spec.Git.Commit
 	}
-	if event.Git.Ref != "" {
-		event.Worker.Git.Ref = event.Git.Ref
-	}
-
-	if event.Worker.Git.CloneURL != "" &&
-		event.Worker.Git.Commit == "" &&
-		event.Worker.Git.Ref == "" {
-		event.Worker.Git.Ref = "master"
+	if event.Spec.Git.Ref != "" {
+		event.Spec.Worker.Git.Ref = event.Spec.Git.Ref
 	}
 
-	if event.Worker.ConfigFilesDirectory == "" {
-		event.Worker.ConfigFilesDirectory = "."
+	if event.Spec.Worker.Git.CloneURL != "" &&
+		event.Spec.Worker.Git.Commit == "" &&
+		event.Spec.Worker.Git.Ref == "" {
+		event.Spec.Worker.Git.Ref = "master"
+	}
+
+	if event.Spec.Worker.ConfigFilesDirectory == "" {
+		event.Spec.Worker.ConfigFilesDirectory = "."
 	}
 
 	now := time.Now()

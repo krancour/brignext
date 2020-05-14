@@ -36,14 +36,14 @@ func (c *controller) handleProjectWorkerMessage(
 	}
 	// If the worker's phase isn't PENDING or RUNNING, there's nothing for us to
 	// do. It's already in a terminal state.
-	if event.Worker.Status.Phase != brignext.WorkerPhasePending &&
-		event.Worker.Status.Phase != brignext.WorkerPhaseRunning {
+	if event.Spec.Worker.Status.Phase != brignext.WorkerPhasePending &&
+		event.Spec.Worker.Status.Phase != brignext.WorkerPhaseRunning {
 		return nil
 	}
 
 	// If the phase is pending, we'll wait for available capacity and then get
 	// the worker pod started
-	if event.Worker.Status.Phase == brignext.WorkerPhasePending {
+	if event.Spec.Worker.Status.Phase == brignext.WorkerPhasePending {
 		// Wait for capacity, then start the pod
 		select {
 		case <-c.availabilityCh:
@@ -88,7 +88,7 @@ func (c *controller) handleProjectWorkerMessage(
 				)
 			}
 			// If worker phase isn't RUNNING, we're done
-			if event.Worker.Status.Phase != brignext.WorkerPhaseRunning {
+			if event.Spec.Worker.Status.Phase != brignext.WorkerPhaseRunning {
 				return nil
 			}
 		// TODO: We should also have a case for worker timeout
@@ -102,7 +102,7 @@ func (c *controller) createWorkspacePVC(
 	ctx context.Context,
 	event brignext.Event,
 ) error {
-	storageQuantityStr := event.Worker.WorkspaceSize
+	storageQuantityStr := event.Spec.Worker.WorkspaceSize
 	if storageQuantityStr == "" {
 		storageQuantityStr = "1G"
 	}
@@ -161,7 +161,7 @@ func (c *controller) createWorkerPod(
 	event brignext.Event,
 ) error {
 	imagePullSecrets := []corev1.LocalObjectReference{}
-	for _, imagePullSecret := range event.Worker.Kubernetes.ImagePullSecrets {
+	for _, imagePullSecret := range event.Spec.Worker.Kubernetes.ImagePullSecrets {
 		imagePullSecrets = append(
 			imagePullSecrets,
 			corev1.LocalObjectReference{
@@ -170,11 +170,11 @@ func (c *controller) createWorkerPod(
 		)
 	}
 
-	image := event.Worker.Container.Image
+	image := event.Spec.Worker.Container.Image
 	if image == "" {
 		image = c.controllerConfig.DefaultWorkerImage
 	}
-	imagePullPolicy := event.Worker.Container.ImagePullPolicy
+	imagePullPolicy := event.Spec.Worker.Container.ImagePullPolicy
 	if imagePullPolicy == "" {
 		imagePullPolicy = c.controllerConfig.DefaultWorkerImagePullPolicy
 	}
@@ -225,7 +225,7 @@ func (c *controller) createWorkerPod(
 	}
 
 	initContainers := []corev1.Container{}
-	if event.Worker.Git.CloneURL != "" {
+	if event.Spec.Worker.Git.CloneURL != "" {
 		volumes = append(
 			volumes,
 			corev1.Volume{
@@ -255,15 +255,15 @@ func (c *controller) createWorkerPod(
 				Env: []corev1.EnvVar{
 					{
 						Name:  "BRIGADE_REMOTE_URL",
-						Value: event.Worker.Git.CloneURL,
+						Value: event.Spec.Worker.Git.CloneURL,
 					},
 					{
 						Name:  "BRIGADE_COMMIT_ID",
-						Value: event.Worker.Git.Commit,
+						Value: event.Spec.Worker.Git.Commit,
 					},
 					{
 						Name:  "BRIGADE_COMMIT_REF",
-						Value: event.Worker.Git.Ref,
+						Value: event.Spec.Worker.Git.Ref,
 					},
 					{
 						Name: "BRIGADE_REPO_KEY",
@@ -289,7 +289,7 @@ func (c *controller) createWorkerPod(
 					},
 					{
 						Name:  "BRIGADE_SUBMODULES",
-						Value: strconv.FormatBool(event.Worker.Git.InitSubmodules),
+						Value: strconv.FormatBool(event.Spec.Worker.Git.InitSubmodules),
 					},
 					{
 						Name:  "BRIGADE_WORKSPACE",
@@ -301,7 +301,7 @@ func (c *controller) createWorkerPod(
 	}
 
 	env := []corev1.EnvVar{}
-	for key, val := range event.Worker.Container.Environment {
+	for key, val := range event.Spec.Worker.Container.Environment {
 		env = append(
 			env,
 			corev1.EnvVar{
@@ -331,7 +331,7 @@ func (c *controller) createWorkerPod(
 					Name:            "worker",
 					Image:           image,
 					ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),
-					Command:         strings.Split(event.Worker.Container.Command, ""),
+					Command:         strings.Split(event.Spec.Worker.Container.Command, ""),
 					Env:             env,
 					VolumeMounts:    volumeMounts,
 				},

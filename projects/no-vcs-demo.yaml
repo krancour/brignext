@@ -14,10 +14,6 @@ spec:
     labels:
       repo: krancour/brignext-demo
   workerConfig:
-    container:
-      environment:
-        FOO: bar
-    workspaceSize: 10Gi
     defaultConfigFiles:
       brignext.js: |-
         const { events, Job, Group} = require("brigadier");
@@ -43,6 +39,3 @@ spec:
             console.error(e);
           });
         });
-    jobsConfig:
-      allowPrivileged: true
-      allowDockerSocketMount: true

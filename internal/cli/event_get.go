@@ -45,15 +45,15 @@ func eventGet(c *cli.Context) error {
 			event.Source,
 			event.Type,
 			age,
-			event.Worker.Status.Phase,
+			event.Spec.Worker.Status.Phase,
 		)
 		fmt.Println(table)
 
-		if len(event.Worker.Jobs) > 0 {
+		if len(event.Spec.Worker.Jobs) > 0 {
 			fmt.Printf("\nEvent %q worker jobs:\n\n", event.ID)
 			table = uitable.New()
 			table.AddRow("NAME", "STARTED", "ENDED", "PHASE")
-			for jobName, job := range event.Worker.Jobs {
+			for jobName, job := range event.Spec.Worker.Jobs {
 				var started, ended string
 				if job.Status.Started != nil {
 					started =

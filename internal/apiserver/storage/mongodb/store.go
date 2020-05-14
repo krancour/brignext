@@ -146,12 +146,17 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 		[]mongo.IndexModel{
 			{
 				Keys: bson.M{
-					"projectID": 1,
+					"metadata.ID": 1,
 				},
 			},
 			{
 				Keys: bson.M{
-					"created": -1,
+					"metadata.projectID": 1,
+				},
+			},
+			{
+				Keys: bson.M{
+					"metadata.created": -1,
 				},
 			},
 		},
@@ -666,7 +671,7 @@ func (s *store) DeleteProject(ctx context.Context, id string) error {
 	}
 	if _, err := s.eventsCollection.DeleteMany(
 		ctx,
-		bson.M{"projectID": id},
+		bson.M{"metadata.projectID": id},
 	); err != nil {
 		return errors.Wrapf(err, "error deleting events for project %q", id)
 	}
@@ -682,7 +687,7 @@ func (s *store) CreateEvent(ctx context.Context, event brignext.Event) error {
 
 func (s *store) GetEvents(ctx context.Context) ([]brignext.Event, error) {
 	findOptions := options.Find()
-	findOptions.SetSort(bson.M{"created": -1})
+	findOptions.SetSort(bson.M{"metadata.created": -1})
 	cur, err := s.eventsCollection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "error finding events")
@@ -699,9 +704,9 @@ func (s *store) GetEventsByProject(
 	projectID string,
 ) ([]brignext.Event, error) {
 	findOptions := options.Find()
-	findOptions.SetSort(bson.M{"created": -1})
+	findOptions.SetSort(bson.M{"metadata.created": -1})
 	cur, err :=
-		s.eventsCollection.Find(ctx, bson.M{"projectID": projectID}, findOptions)
+		s.eventsCollection.Find(ctx, bson.M{"metadata.projectID": projectID}, findOptions)
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
@@ -725,7 +730,7 @@ func (s *store) GetEvent(
 	id string,
 ) (brignext.Event, error) {
 	event := brignext.Event{}
-	res := s.eventsCollection.FindOne(ctx, bson.M{"_id": id})
+	res := s.eventsCollection.FindOne(ctx, bson.M{"metadata.id": id})
 	if res.Err() == mongo.ErrNoDocuments {
 		return event, &brignext.ErrEventNotFound{
 			ID: id,
@@ -748,12 +753,12 @@ func (s *store) CancelEvent(
 	res, err := s.eventsCollection.UpdateOne(
 		ctx,
 		bson.M{
-			"_id":                 id,
-			"worker.status.phase": brignext.WorkerPhasePending,
+			"metadata.id":              id,
+			"spec.worker.status.phase": brignext.WorkerPhasePending,
 		},
 		bson.M{
 			"$set": bson.M{
-				"worker.status.phase": brignext.WorkerPhaseCanceled,
+				"spec.worker.status.phase": brignext.WorkerPhaseCanceled,
 			},
 		},
 	)
@@ -775,12 +780,12 @@ func (s *store) CancelEvent(
 	res, err = s.eventsCollection.UpdateOne(
 		ctx,
 		bson.M{
-			"_id":                 id,
-			"worker.status.phase": brignext.WorkerPhaseRunning,
+			"metadata.id":              id,
+			"spec.worker.status.phase": brignext.WorkerPhaseRunning,
 		},
 		bson.M{
 			"$set": bson.M{
-				"worker.status.phase": brignext.WorkerPhaseAborted,
+				"spec.worker.status.phase": brignext.WorkerPhaseAborted,
 			},
 		},
 	)
@@ -819,8 +824,8 @@ func (s *store) DeleteEvent(
 	res, err := s.eventsCollection.DeleteOne(
 		ctx,
 		bson.M{
-			"_id":                 id,
-			"worker.status.phase": bson.M{"$in": phasesToDelete},
+			"metadata.id":              id,
+			"spec.worker.status.phase": bson.M{"$in": phasesToDelete},
 		},
 	)
 	if err != nil {
@@ -836,10 +841,10 @@ func (s *store) UpdateWorkerStatus(
 ) error {
 	res, err := s.eventsCollection.UpdateOne(
 		ctx,
-		bson.M{"_id": eventID},
+		bson.M{"metadata.id": eventID},
 		bson.M{
 			"$set": bson.M{
-				"worker.status": status,
+				"spec.worker.status": status,
 			},
 		},
 	)
@@ -869,7 +874,7 @@ func (s *store) GetJob(
 		return job, err
 	}
 	var ok bool
-	job, ok = event.Worker.Jobs[jobName]
+	job, ok = event.Spec.Worker.Jobs[jobName]
 	if !ok {
 		return job, &brignext.ErrJobNotFound{
 			EventID: eventID,
@@ -888,11 +893,11 @@ func (s *store) UpdateJobStatus(
 	res, err := s.eventsCollection.UpdateOne(
 		ctx,
 		bson.M{
-			"_id": eventID,
+			"metadata.id": eventID,
 		},
 		bson.M{
 			"$set": bson.M{
-				fmt.Sprintf("worker.jobs.%s", jobName): brignext.Job{
+				fmt.Sprintf("spec.worker.jobs.%s", jobName): brignext.Job{
 					Status: status,
 				},
 			},

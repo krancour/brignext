@@ -30,6 +30,77 @@
 			"maxLength": 250
 		},
 
+		"apiVersion": {
+			"type": "string",
+			"description": "The major version of the BrigNext API with which this object conforms",
+			"enum": ["github.com/krancour/brignext/v2"]
+		},
+
+		"kind": {
+			"type": "string",
+			"description": "The type of object represented by the document",
+			"enum": ["Event"]
+		},
+
+		"eventMeta": {
+			"type": "object",
+			"description": "Immutable event metadata",
+			"required": ["source", "type"],
+			"additionalProperties": false,
+			"properties": {
+				"projectID": {
+					"oneOf": [
+						{ "$ref": "#/definitions/empty" },
+						{ "$ref": "#/definitions/identifier" }
+					],
+					"description": "The ID of the project the event is for"
+				},
+				"source": {
+					"allOf": [{ "$ref": "#/definitions/url" }],
+					"description": "The name of the source that is sending the event"
+				},
+				"type": {
+					"allOf": [{ "$ref": "#/definitions/label" }],
+					"description": "The type of the event"
+				},
+				"labels": {
+					"type": [
+						"object",
+						"null"
+					],
+					"additionalProperties": true,
+					"patternProperties": {
+						"^[\\w:/\\-\\.\\?=\\*]*$": {
+							"$ref": "#/definitions/label"
+						}
+					}
+				},
+				"shortTitle": {
+					"type": "string",
+					"description": "A succint description of the event",
+					"maxLength": 50
+				},
+				"longTitle": {
+					"type": "string",
+					"description": "A detailed description of the event",
+					"maxLength": 100
+				}
+			}
+		},
+
+		"eventSpec": {
+			"type": "object",
+			"description": "Mutable project specification",
+			"additionalProperties": false,
+			"properties": {
+				"git": { "$ref": "#/definitions/gitConfig" },
+				"payload": {
+					"type": "string",
+					"description": "Event payload"
+				}
+			}
+		},
+		
 		"gitConfig": {
 			"type": "object",
 			"description": "Worker configuration pertaining specifically to git",
@@ -60,50 +131,20 @@
 
 	"title": "Event",
 	"type": "object",
-	"required": ["source", "type"],
+	"required": ["apiVersion", "kind", "metadata"],
 	"additionalProperties": false,
 	"properties": {
-		"projectID": {
-			"oneOf": [
-				{ "$ref": "#/definitions/empty" },
-				{ "$ref": "#/definitions/identifier" }
-			],
-			"description": "The ID of the project the event is for"
+		"apiVersion": {
+			"$ref": "#/definitions/apiVersion"
 		},
-		"source": {
-			"allOf": [{ "$ref": "#/definitions/url" }],
-			"description": "The name of the source that is sending the event"
+		"kind": {
+			"$ref": "#/definitions/kind"
 		},
-		"type": {
-			"allOf": [{ "$ref": "#/definitions/label" }],
-			"description": "The type of the event"
+		"metadata": {
+			"$ref": "#/definitions/eventMeta"
 		},
-		"labels": {
-			"type": [
-				"object",
-				"null"
-			],
-			"additionalProperties": true,
-			"patternProperties": {
-				"^[\\w:/\\-\\.\\?=\\*]*$": {
-					"$ref": "#/definitions/label"
-				}
-			}
-		},
-		"shortTitle": {
-			"type": "string",
-			"description": "A succint description of the event",
-			"maxLength": 50
-		},
-		"longTitle": {
-			"type": "string",
-			"description": "A detailed description of the event",
-			"maxLength": 100
-		},
-		"git": { "$ref": "#/definitions/gitConfig" },
-		"payload": {
-			"type": "string",
-			"description": "Event payload"
+		"spec": {
+			"$ref": "#/definitions/eventSpec"
 		}
 	}
 }
