@@ -43,8 +43,8 @@ func TestTokenAuthFilterWithHeaderNotBearer(t *testing.T) {
 
 func TestTokenAuthFilterWithTokenInvalid(t *testing.T) {
 	a := NewTokenAuthFilter(
-		func(context.Context, string) (brignext.Session, error) {
-			return brignext.Session{}, &brignext.ErrSessionNotFound{}
+		func(context.Context, string) (Session, error) {
+			return Session{}, &brignext.ErrSessionNotFound{}
 		},
 		nil,
 		false,
@@ -67,8 +67,8 @@ func TestTokenAuthFilterWithTokenInvalid(t *testing.T) {
 
 func TestTokenAuthFilterWithUnauthenticatedSession(t *testing.T) {
 	a := NewTokenAuthFilter(
-		func(context.Context, string) (brignext.Session, error) {
-			return brignext.Session{}, nil
+		func(context.Context, string) (Session, error) {
+			return Session{}, nil
 		},
 		func(context.Context, string) (brignext.User, error) {
 			return brignext.User{}, nil
@@ -97,8 +97,8 @@ func TestTokenAuthFilterWithUnauthenticatedSession(t *testing.T) {
 func TestTokenAuthFilterWithAuthenticatedSession(t *testing.T) {
 	const sessionID = "foobar"
 	a := NewTokenAuthFilter(
-		func(context.Context, string) (brignext.Session, error) {
-			return brignext.Session{
+		func(context.Context, string) (Session, error) {
+			return Session{
 				ID:            sessionID,
 				Authenticated: true,
 				Expires:       time.Now().Add(time.Minute),

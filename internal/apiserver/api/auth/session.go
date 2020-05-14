@@ -1,12 +1,16 @@
-package brignext
+package auth
 
-import "time"
+import (
+	"time"
+
+	"github.com/krancour/brignext/v2"
+)
 
 type Session struct {
-	TypeMeta    `json:",inline" bson:",inline"`
-	SessionMeta `json:"metadata" bson:"metadata"`
-	Spec        SessionSpec   `json:"spec" bson:"spec"`
-	Status      SessionStatus `json:"status" bson:"status"`
+	brignext.TypeMeta `json:",inline" bson:",inline"`
+	SessionMeta       `json:"metadata" bson:"metadata"`
+	Spec              SessionSpec   `json:"spec" bson:"spec"`
+	Status            SessionStatus `json:"status" bson:"status"`
 }
 
 type SessionMeta struct {

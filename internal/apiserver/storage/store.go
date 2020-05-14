@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2"
+	"github.com/krancour/brignext/v2/internal/apiserver/api/auth"
 )
 
 type Store interface {
@@ -16,12 +17,12 @@ type Store interface {
 	LockUser(context.Context, string) error
 	UnlockUser(context.Context, string) error
 
-	CreateSession(context.Context, brignext.Session) error
+	CreateSession(context.Context, auth.Session) error
 	GetSessionByHashedOAuth2State(
 		context.Context,
 		string,
-	) (brignext.Session, error)
-	GetSessionByHashedToken(context.Context, string) (brignext.Session, error)
+	) (auth.Session, error)
+	GetSessionByHashedToken(context.Context, string) (auth.Session, error)
 	AuthenticateSession(
 		ctx context.Context,
 		sessionID string,

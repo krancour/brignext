@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2"
+	"github.com/krancour/brignext/v2/internal/apiserver/api/auth"
 	"github.com/krancour/brignext/v2/internal/apiserver/storage"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -286,7 +287,7 @@ func (s *store) UnlockUser(ctx context.Context, id string) error {
 
 func (s *store) CreateSession(
 	ctx context.Context,
-	session brignext.Session,
+	session auth.Session,
 ) error {
 	if _, err := s.sessionsCollection.InsertOne(ctx, session); err != nil {
 		return errors.Wrapf(err, "error inserting new session %q", session.ID)
@@ -297,8 +298,8 @@ func (s *store) CreateSession(
 func (s *store) GetSessionByHashedOAuth2State(
 	ctx context.Context,
 	hashedOAuth2State string,
-) (brignext.Session, error) {
-	session := brignext.Session{}
+) (auth.Session, error) {
+	session := auth.Session{}
 	res := s.sessionsCollection.FindOne(
 		ctx,
 		bson.M{"spec.hashedOAuth2State": hashedOAuth2State},
@@ -321,8 +322,8 @@ func (s *store) GetSessionByHashedOAuth2State(
 func (s *store) GetSessionByHashedToken(
 	ctx context.Context,
 	hashedToken string,
-) (brignext.Session, error) {
-	session := brignext.Session{}
+) (auth.Session, error) {
+	session := auth.Session{}
 	res := s.sessionsCollection.FindOne(ctx, bson.M{"spec.hashedToken": hashedToken})
 	if res.Err() == mongo.ErrNoDocuments {
 		return session, &brignext.ErrSessionNotFound{}

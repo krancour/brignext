@@ -10,10 +10,7 @@ import (
 	"github.com/krancour/brignext/v2/internal/apiserver/crypto"
 )
 
-type FindSessionFn func(
-	ctx context.Context,
-	token string,
-) (brignext.Session, error)
+type FindSessionFn func(ctx context.Context, token string) (Session, error)
 
 type FindUserFn func(
 	ctx context.Context,
