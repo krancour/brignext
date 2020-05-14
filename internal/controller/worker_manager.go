@@ -36,14 +36,14 @@ func (c *controller) handleProjectWorkerMessage(
 	}
 	// If the worker's phase isn't PENDING or RUNNING, there's nothing for us to
 	// do. It's already in a terminal state.
-	if event.Spec.Worker.Status.Phase != brignext.WorkerPhasePending &&
-		event.Spec.Worker.Status.Phase != brignext.WorkerPhaseRunning {
+	if event.Status.WorkerStatus.Phase != brignext.WorkerPhasePending &&
+		event.Status.WorkerStatus.Phase != brignext.WorkerPhaseRunning {
 		return nil
 	}
 
 	// If the phase is pending, we'll wait for available capacity and then get
 	// the worker pod started
-	if event.Spec.Worker.Status.Phase == brignext.WorkerPhasePending {
+	if event.Status.WorkerStatus.Phase == brignext.WorkerPhasePending {
 		// Wait for capacity, then start the pod
 		select {
 		case <-c.availabilityCh:
@@ -88,7 +88,7 @@ func (c *controller) handleProjectWorkerMessage(
 				)
 			}
 			// If worker phase isn't RUNNING, we're done
-			if event.Spec.Worker.Status.Phase != brignext.WorkerPhaseRunning {
+			if event.Status.WorkerStatus.Phase != brignext.WorkerPhaseRunning {
 				return nil
 			}
 		// TODO: We should also have a case for worker timeout

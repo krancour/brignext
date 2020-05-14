@@ -594,7 +594,7 @@ func (s *store) GetSubscribedProjects(
 		}
 	}
 	findOptions := options.Find()
-	findOptions.SetSort(bson.M{"_id": 1})
+	findOptions.SetSort(bson.M{"metadata.id": 1})
 	cur, err := s.projectsCollection.Find(
 		ctx,
 		bson.M{
@@ -753,12 +753,12 @@ func (s *store) CancelEvent(
 	res, err := s.eventsCollection.UpdateOne(
 		ctx,
 		bson.M{
-			"metadata.id":              id,
-			"spec.worker.status.phase": brignext.WorkerPhasePending,
+			"metadata.id":               id,
+			"status.workerStatus.phase": brignext.WorkerPhasePending,
 		},
 		bson.M{
 			"$set": bson.M{
-				"spec.worker.status.phase": brignext.WorkerPhaseCanceled,
+				"status.workerStatus.phase": brignext.WorkerPhaseCanceled,
 			},
 		},
 	)
@@ -780,12 +780,12 @@ func (s *store) CancelEvent(
 	res, err = s.eventsCollection.UpdateOne(
 		ctx,
 		bson.M{
-			"metadata.id":              id,
-			"spec.worker.status.phase": brignext.WorkerPhaseRunning,
+			"metadata.id":               id,
+			"status.workerStatus.phase": brignext.WorkerPhaseRunning,
 		},
 		bson.M{
 			"$set": bson.M{
-				"spec.worker.status.phase": brignext.WorkerPhaseAborted,
+				"status.workerStatus.phase": brignext.WorkerPhaseAborted,
 			},
 		},
 	)
@@ -824,8 +824,8 @@ func (s *store) DeleteEvent(
 	res, err := s.eventsCollection.DeleteOne(
 		ctx,
 		bson.M{
-			"metadata.id":              id,
-			"spec.worker.status.phase": bson.M{"$in": phasesToDelete},
+			"metadata.id":               id,
+			"status.workerStatus.phase": bson.M{"$in": phasesToDelete},
 		},
 	)
 	if err != nil {
@@ -844,7 +844,7 @@ func (s *store) UpdateWorkerStatus(
 		bson.M{"metadata.id": eventID},
 		bson.M{
 			"$set": bson.M{
-				"spec.worker.status": status,
+				"status.workerStatus": status,
 			},
 		},
 	)
@@ -863,27 +863,6 @@ func (s *store) UpdateWorkerStatus(
 	return nil
 }
 
-func (s *store) GetJob(
-	ctx context.Context,
-	eventID string,
-	jobName string,
-) (brignext.Job, error) {
-	job := brignext.Job{}
-	event, err := s.GetEvent(ctx, eventID)
-	if err != nil {
-		return job, err
-	}
-	var ok bool
-	job, ok = event.Spec.Worker.Jobs[jobName]
-	if !ok {
-		return job, &brignext.ErrJobNotFound{
-			EventID: eventID,
-			JobName: jobName,
-		}
-	}
-	return job, nil
-}
-
 func (s *store) UpdateJobStatus(
 	ctx context.Context,
 	eventID string,
@@ -897,9 +876,7 @@ func (s *store) UpdateJobStatus(
 		},
 		bson.M{
 			"$set": bson.M{
-				fmt.Sprintf("spec.worker.jobs.%s", jobName): brignext.Job{
-					Status: status,
-				},
+				fmt.Sprintf("status.jobStatuses.%s", jobName): status,
 			},
 		},
 	)

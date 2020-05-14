@@ -12,6 +12,7 @@ type Event struct {
 	EventMeta  `json:"metadata" bson:"metadata"`
 	Spec       EventSpec            `json:"spec" bson:"spec"`
 	Kubernetes *EventKubernetesMeta `json:"kubernetes,omitempty" bson:"kubernetes"`
+	Status     *EventStatus         `json:"status,omitempty" bson:"status"`
 }
 
 type EventMeta struct {
@@ -31,12 +32,17 @@ type EventMeta struct {
 
 type EventSpec struct {
 	Git     EventGitConfig `json:"git" bson:"git"`
-	Worker  *Worker        `json:"worker,omitempty" bson:"worker"`
+	Worker  *WorkerSpec    `json:"worker,omitempty" bson:"worker"`
 	Payload string         `json:"payload,omitempty" bson:"-"`
 }
 
 type EventKubernetesMeta struct {
 	Namespace string `json:"namespace" bson:"namespace"`
+}
+
+type EventStatus struct {
+	WorkerStatus WorkerStatus         `json:"workerStatus" bson:"workerStatus"`
+	JobStatuses  map[string]JobStatus `json:"jobStatuses" bson:"jobStatuses"`
 }
 
 // UnmarshalBSON implements custom BSON marshaling for the Event type. This does

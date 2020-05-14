@@ -13,7 +13,7 @@ spec:
     - push
     labels:
       repo: krancour/brignext-demo
-  workerConfig:
+  worker:
     defaultConfigFiles:
       brignext.js: |-
         const { events, Job, Group} = require("brigadier");

@@ -111,11 +111,6 @@ type Service interface {
 		eventID string,
 	) (<-chan brignext.LogEntry, error)
 
-	GetJob(
-		ctx context.Context,
-		eventID string,
-		jobName string,
-	) (brignext.Job, error)
 	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
@@ -450,8 +445,8 @@ func (s *service) CreateProject(
 ) error {
 	// TODO: Move where we set this to where we set the other defaults-- i.e.
 	// set it at the time an event is created-- not when the project is created.
-	if project.Spec.WorkerConfig.LogLevel == "" {
-		project.Spec.WorkerConfig.LogLevel = brignext.LogLevelInfo
+	if project.Spec.Worker.LogLevel == "" {
+		project.Spec.Worker.LogLevel = brignext.LogLevelInfo
 	}
 
 	now := time.Now()
@@ -676,19 +671,8 @@ func (s *service) CreateEvent(
 
 	event.ID = uuid.NewV4().String()
 
-	event.Spec.Worker = &brignext.Worker{
-		Container:            project.Spec.WorkerConfig.Container,
-		WorkspaceSize:        project.Spec.WorkerConfig.WorkspaceSize,
-		Git:                  project.Spec.WorkerConfig.Git,
-		JobsConfig:           project.Spec.WorkerConfig.JobsConfig,
-		LogLevel:             project.Spec.WorkerConfig.LogLevel,
-		ConfigFilesDirectory: project.Spec.WorkerConfig.ConfigFilesDirectory,
-		DefaultConfigFiles:   project.Spec.WorkerConfig.DefaultConfigFiles,
-		Jobs:                 map[string]brignext.Job{},
-		Status: brignext.WorkerStatus{
-			Phase: brignext.WorkerPhasePending,
-		},
-	}
+	event.Spec.Worker = &project.Spec.Worker
+
 	if event.Spec.Worker.WorkspaceSize == "" {
 		event.Spec.Worker.WorkspaceSize = "10Gi"
 	}
@@ -716,6 +700,13 @@ func (s *service) CreateEvent(
 
 	now := time.Now()
 	event.Created = &now
+
+	event.Status = &brignext.EventStatus{
+		WorkerStatus: brignext.WorkerStatus{
+			Phase: brignext.WorkerPhasePending,
+		},
+		JobStatuses: map[string]brignext.JobStatus{},
+	}
 
 	// We send this to the scheduler first because we expect the scheduler will
 	// will add some scheduler-specific details that we will want to persist.
@@ -1007,23 +998,6 @@ func (s *service) StreamWorkerInitLogs(
 	eventID string,
 ) (<-chan brignext.LogEntry, error) {
 	return s.logStore.StreamWorkerInitLogs(ctx, eventID)
-}
-
-func (s *service) GetJob(
-	ctx context.Context,
-	eventID string,
-	jobName string,
-) (brignext.Job, error) {
-	job, err := s.store.GetJob(ctx, eventID, jobName)
-	if err != nil {
-		return job, errors.Wrapf(
-			err,
-			"error retrieving event %q worker job %q from store",
-			eventID,
-			jobName,
-		)
-	}
-	return job, nil
 }
 
 func (s *service) UpdateJobStatus(

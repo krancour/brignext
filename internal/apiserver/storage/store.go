@@ -77,11 +77,6 @@ type Store interface {
 		status brignext.WorkerStatus,
 	) error
 
-	GetJob(
-		ctx context.Context,
-		eventID string,
-		jobName string,
-	) (brignext.Job, error)
 	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,

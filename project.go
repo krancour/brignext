@@ -23,7 +23,7 @@ type ProjectMeta struct {
 type ProjectSpec struct {
 	Description        string              `json:"description" bson:"description"`
 	EventSubscriptions []EventSubscription `json:"eventSubscriptions" bson:"eventSubscriptions"`
-	WorkerConfig       WorkerConfig        `json:"workerConfig" bson:"workerConfig"`
+	Worker             WorkerSpec          `json:"worker" bson:"worker"`
 }
 
 type ProjectKubernetesMeta struct {

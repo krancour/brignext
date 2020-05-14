@@ -93,8 +93,8 @@
 						"$ref": "#/definitions/eventSubscription"
 					}
 				},
-				"workerConfig": {
-					"$ref": "#/definitions/workerConfig"
+				"worker": {
+					"$ref": "#/definitions/workerSpec"
 				}
 			}
 		},
@@ -244,7 +244,7 @@
 			}
 		},
 
-		"workerConfig": {
+		"workerSpec": {
 			"type": "object",
 			"description": "Configuration for the Brignext worker",
 			"additionalProperties": false,

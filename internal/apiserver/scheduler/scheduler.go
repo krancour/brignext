@@ -400,7 +400,7 @@ func (s *scheduler) CreateEvent(
 	event.Kubernetes = &brignext.EventKubernetesMeta{
 		Namespace: project.Kubernetes.Namespace,
 	}
-	event.Spec.Worker.Kubernetes = project.Spec.WorkerConfig.Kubernetes
+	event.Spec.Worker.Kubernetes = project.Spec.Worker.Kubernetes
 
 	// Create a secret with event details
 	eventJSON, err := json.MarshalIndent(

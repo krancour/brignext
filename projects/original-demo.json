@@ -20,7 +20,7 @@
         }
       }
     ],
-    "workerConfig": {
+    "worker": {
       "git": {
         "cloneURL": "https://github.com/krancour/brignext-demo.git"
       }

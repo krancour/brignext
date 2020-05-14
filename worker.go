@@ -2,6 +2,15 @@ package brignext
 
 import "time"
 
+type LogLevel string
+
+const (
+	LogLevelDebug LogLevel = "DEBUG"
+	LogLevelInfo  LogLevel = "INFO"
+	LogLevelWarn  LogLevel = "WARN"
+	LogLevelError LogLevel = "ERROR"
+)
+
 type WorkerPhase string
 
 const (
@@ -32,7 +41,7 @@ const (
 )
 
 // nolint: lll
-type Worker struct {
+type WorkerSpec struct {
 	Container            ContainerConfig        `json:"container" bson:"container"`
 	WorkspaceSize        string                 `json:"workspaceSize" bson:"workspaceSize"`
 	Git                  WorkerGitConfig        `json:"git" bson:"git"`
@@ -41,8 +50,6 @@ type Worker struct {
 	LogLevel             LogLevel               `json:"logLevel" bson:"logLevel"`
 	ConfigFilesDirectory string                 `json:"configFilesDirectory" bson:"configFilesDirectory"`
 	DefaultConfigFiles   map[string]string      `json:"defaultConfigFiles" bson:"defaultConfigFiles"`
-	Jobs                 map[string]Job         `json:"jobs" bson:"jobs"`
-	Status               WorkerStatus           `json:"status" bson:"status"`
 }
 
 type WorkerStatus struct {

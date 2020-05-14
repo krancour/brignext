@@ -89,7 +89,6 @@ type Client interface {
 		eventID string,
 	) (<-chan LogEntry, <-chan error, error)
 
-	GetJob(ctx context.Context, eventID string, jobName string) (Job, error)
 	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
@@ -1427,53 +1426,6 @@ func (c *client) StreamWorkerInitLogs(
 	go c.receiveLogStream(ctx, resp.Body, logCh, errCh)
 
 	return logCh, errCh, nil
-}
-
-func (c *client) GetJob(
-	ctx context.Context,
-	eventID string,
-	jobName string,
-) (Job, error) {
-	job := Job{}
-	req, err := c.buildRequest(
-		http.MethodGet,
-		fmt.Sprintf(
-			"v2/events/%s/worker/jobs/%s",
-			eventID,
-			jobName,
-		),
-		nil,
-	)
-	if err != nil {
-		return job, errors.Wrap(err, "error creating HTTP request")
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return job, errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return job, &ErrJobNotFound{
-			EventID: eventID,
-			JobName: jobName,
-		}
-	}
-	if resp.StatusCode != http.StatusOK {
-		return job, errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return job, errors.Wrap(err, "error reading response body")
-	}
-
-	if err := json.Unmarshal(respBodyBytes, &job); err != nil {
-		return job, errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	return job, nil
 }
 
 func (c *client) UpdateJobStatus(
