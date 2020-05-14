@@ -2,8 +2,8 @@ apiVersion: github.com/krancour/brignext/v2
 kind: Project
 metadata:
   id: no-vcs-demo
-spec:
   description: A project that demonstrates BrigNext with no VCS integration
+spec:
   eventSubscriptions:
   - source: github.com/krancour/brignext-github-app
     types:

@@ -48,7 +48,7 @@ func serviceAccountList(c *cli.Context) error {
 			}
 			table.AddRow(
 				serviceAccount.ID,
-				serviceAccount.Spec.Description,
+				serviceAccount.Description,
 				age,
 				serviceAccount.Status.Locked,
 			)

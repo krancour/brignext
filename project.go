@@ -11,8 +11,9 @@ type Project struct {
 }
 
 type ProjectMeta struct {
-	ID      string     `json:"id" bson:"id"`
-	Created *time.Time `json:"created,omitempty" bson:"created"`
+	ID          string     `json:"id" bson:"id"`
+	Description string     `json:"description" bson:"description"`
+	Created     *time.Time `json:"created,omitempty" bson:"created"`
 	// TODO: These fields are not yet in use
 	CreatedBy     string     `json:"createdBy,omitempty" bson:"createdBy"`
 	LastUpdated   *time.Time `json:"lastUpdated,omitempty" bson:"lastUpdated"`
@@ -21,7 +22,6 @@ type ProjectMeta struct {
 
 // nolint: lll
 type ProjectSpec struct {
-	Description        string              `json:"description" bson:"description"`
 	EventSubscriptions []EventSubscription `json:"eventSubscriptions" bson:"eventSubscriptions"`
 	Worker             WorkerSpec          `json:"worker" bson:"worker"`
 }

@@ -46,7 +46,7 @@ func projectList(c *cli.Context) error {
 			}
 			table.AddRow(
 				project.ID,
-				project.Spec.Description,
+				project.Description,
 				age,
 			)
 		}

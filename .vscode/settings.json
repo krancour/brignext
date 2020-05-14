@@ -9,7 +9,7 @@
         "/projects/*.yaml",
         "/projects/*.yml"
       ],
-      "url": ".internal/apiserver/schemas/project.json"
+      "url": "./internal/apiserver/schemas/project.json"
     }
   ],
   "yaml.schemas": {

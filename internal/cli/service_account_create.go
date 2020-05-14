@@ -26,9 +26,7 @@ func serviceAccountCreate(c *cli.Context) error {
 				Kind:       "ServiceAccount",
 			},
 			ServiceAccountMeta: brignext.ServiceAccountMeta{
-				ID: id,
-			},
-			Spec: brignext.ServiceAccountSpec{
+				ID:          id,
 				Description: description,
 			},
 		},
