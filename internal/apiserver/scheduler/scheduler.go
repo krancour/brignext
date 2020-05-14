@@ -476,13 +476,13 @@ func (s *scheduler) CreateEvent(
 	workerJSON, err := json.MarshalIndent(
 		struct {
 			Git                  brignext.WorkerGitConfig `json:"git"`
-			JobsConfig           brignext.JobsConfig      `json:"jobsConfig"`
+			Jobs                 brignext.JobsSpec        `json:"jobs"`
 			LogLevel             brignext.LogLevel        `json:"logLevel"`
 			Secrets              map[string]string        `json:"secrets"`
 			ConfigFilesDirectory string                   `json:"configFilesDirectory"` // nolint: lll
 		}{
 			Git:                  event.Spec.Worker.Git,
-			JobsConfig:           event.Spec.Worker.JobsConfig,
+			Jobs:                 event.Spec.Worker.Jobs,
 			LogLevel:             event.Spec.Worker.LogLevel,
 			Secrets:              secrets,
 			ConfigFilesDirectory: event.Spec.Worker.ConfigFilesDirectory,

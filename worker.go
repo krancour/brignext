@@ -42,14 +42,22 @@ const (
 
 // nolint: lll
 type WorkerSpec struct {
-	Container            ContainerConfig        `json:"container" bson:"container"`
+	Container            ContainerSpec          `json:"container" bson:"container"`
 	WorkspaceSize        string                 `json:"workspaceSize" bson:"workspaceSize"`
 	Git                  WorkerGitConfig        `json:"git" bson:"git"`
 	Kubernetes           WorkerKubernetesConfig `json:"kubernetes" bson:"kubernetes"`
-	JobsConfig           JobsConfig             `json:"jobsConfig" bson:"jobsConfig"`
+	Jobs                 JobsSpec               `json:"jobs" bson:"jobs"`
 	LogLevel             LogLevel               `json:"logLevel" bson:"logLevel"`
 	ConfigFilesDirectory string                 `json:"configFilesDirectory" bson:"configFilesDirectory"`
 	DefaultConfigFiles   map[string]string      `json:"defaultConfigFiles" bson:"defaultConfigFiles"`
+}
+
+// nolint: lll
+type ContainerSpec struct {
+	Image           string            `json:"image" bson:"image"`
+	ImagePullPolicy string            `json:"imagePullPolicy" bson:"imagePullPolicy"`
+	Command         string            `json:"command" bson:"command"`
+	Environment     map[string]string `json:"environment" bson:"environment"`
 }
 
 type WorkerStatus struct {

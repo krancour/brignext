@@ -1,6 +1,6 @@
 export interface Worker {
   git: GitConfig
-  jobsConfig: JobsConfig
+  jobs: JobsSpec
   configFilesDirectory: string
 }
 
@@ -11,7 +11,7 @@ export interface GitConfig {
   initSubmodules: boolean
 }
 
-export interface JobsConfig {
+export interface JobsSpec {
   allowPrivileged: boolean
   allowDockerSocketMount: boolean
   kubernetes: JobsKubernetesConfig

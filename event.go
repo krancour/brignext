@@ -36,6 +36,12 @@ type EventSpec struct {
 	Payload string         `json:"payload,omitempty" bson:"-"`
 }
 
+type EventGitConfig struct {
+	CloneURL string `json:"cloneURL" bson:"cloneURL"`
+	Commit   string `json:"commit" bson:"commit"`
+	Ref      string `json:"ref" bson:"ref"`
+}
+
 type EventKubernetesMeta struct {
 	Namespace string `json:"namespace" bson:"namespace"`
 }

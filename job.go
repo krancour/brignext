@@ -24,9 +24,15 @@ const (
 	JobPhaseUnknown JobPhase = "UNKNOWN"
 )
 
-// Job is a single job that is executed by a worker that processes an event.
-type Job struct {
-	Status JobStatus `json:"status" bson:"status"`
+// nolint: lll
+type JobsSpec struct {
+	AllowPrivileged        bool                 `json:"allowPrivileged" bson:"allowPrivileged"`
+	AllowDockerSocketMount bool                 `json:"allowDockerSocketMount" bson:"allowDockerSocketMount"`
+	Kubernetes             JobsKubernetesConfig `json:"kubernetes" bson:"kubernetes"`
+}
+
+type JobsKubernetesConfig struct {
+	ImagePullSecrets []string `json:"imagePullSecrets" bson:"imagePullSecrets"`
 }
 
 type JobStatus struct {

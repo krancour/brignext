@@ -136,7 +136,7 @@
 			}
 		},
 
-		"containerConfig": {
+		"containerSpec": {
 			"type": "object",
 			"description": "Configuration for an OCI container",
 			"properties": {
@@ -170,7 +170,7 @@
 			}
 		},
 
-		"jobsConfig": {
+		"jobsSpec": {
 			"type": "object",
 			"description": "Configuration for any job containers the worker container might fan out to",
 			"properties": {
@@ -252,7 +252,7 @@
 				"container": {
 					"allOf": [
 						{
-							"$ref": "#/definitions/containerConfig"
+							"$ref": "#/definitions/containerSpec"
 						}
 					],
 					"description": "Configuration for the worker's main container"
@@ -267,8 +267,8 @@
 				"kubernetes": {
 					"$ref": "#/definitions/kubernetesConfig"
 				},
-				"jobsConfig": {
-					"$ref": "#/definitions/jobsConfig"
+				"jobs": {
+					"$ref": "#/definitions/jobsSpec"
 				},
 				"logLevel": {
 					"type": "string",
