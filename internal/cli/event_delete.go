@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -27,15 +28,16 @@ func eventDelete(c *cli.Context) error {
 	}
 
 	if eventID != "" {
-		var deleted bool
-		if deleted, err = client.DeleteEvent(
+		var eventRefList brignext.EventReferenceList
+		if eventRefList, err = client.DeleteEvent(
 			c.Context,
 			eventID,
 			deletePending,
 			deleteRunning,
 		); err != nil {
 			return err
-		} else if deleted {
+		}
+		if len(eventRefList.Items) != 0 {
 			fmt.Printf("Event %q deleted.\n", eventID)
 			return nil
 		}

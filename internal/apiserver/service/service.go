@@ -77,7 +77,7 @@ type Service interface {
 		ctx context.Context,
 		id string,
 		cancelRunning bool,
-	) (bool, error)
+	) (brignext.EventReferenceList, error)
 	CancelEventsByProject(
 		ctx context.Context,
 		projectID string,
@@ -88,7 +88,7 @@ type Service interface {
 		id string,
 		deletePending bool,
 		deleteRunning bool,
-	) (bool, error)
+	) (brignext.EventReferenceList, error)
 	DeleteEventsByProject(
 		ctx context.Context,
 		projectID string,
@@ -751,7 +751,8 @@ func (s *service) CreateEvent(
 		// We need to roll this back manually because the scheduler doesn't
 		// automatically roll anything back upon failure.
 		s.scheduler.DeleteEvent(ctx, event) // nolint: errcheck
-		return eventRefList, errors.Wrapf(err, "error storing new event %q", event.ID)
+		return eventRefList,
+			errors.Wrapf(err, "error storing new event %q", event.ID)
 	}
 
 	eventRefList.Items = []brignext.EventReference{
@@ -819,19 +820,30 @@ func (s *service) CancelEvent(
 	ctx context.Context,
 	id string,
 	cancelRunning bool,
-) (bool, error) {
-	event, err := s.store.GetEvent(ctx, id)
-	if err != nil {
-		return false, errors.Wrapf(err, "error retrieving event %q from store", id)
+) (brignext.EventReferenceList, error) {
+	eventRefList := brignext.EventReferenceList{
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "EventReferenceList",
+		},
+		ListMeta: brignext.ListMeta{},
+		Items:    []brignext.EventReference{},
 	}
 
-	var ok bool
+	event, err := s.store.GetEvent(ctx, id)
+	if err != nil {
+		return eventRefList,
+			errors.Wrapf(err, "error retrieving event %q from store", id)
+	}
+
 	err = s.store.DoTx(ctx, func(ctx context.Context) error {
-		if ok, err = s.store.CancelEvent(
+		var ok bool
+		ok, err = s.store.CancelEvent(
 			ctx,
 			id,
 			cancelRunning,
-		); err != nil {
+		)
+		if err != nil {
 			return errors.Wrapf(err, "error updating event %q in store", id)
 		}
 		if ok {
@@ -842,11 +854,21 @@ func (s *service) CancelEvent(
 					id,
 				)
 			}
+			eventRefList.Items = append(
+				eventRefList.Items,
+				brignext.EventReference{
+					TypeMeta: brignext.TypeMeta{
+						APIVersion: brignext.APIVersion,
+						Kind:       "EventReference",
+					},
+					ID: event.ID,
+				},
+			)
 		}
 		return nil
 	})
 
-	return ok, err
+	return eventRefList, err
 }
 
 func (s *service) CancelEventsByProject(
@@ -918,19 +940,31 @@ func (s *service) DeleteEvent(
 	id string,
 	deletePending bool,
 	deleteRunning bool,
-) (bool, error) {
+) (brignext.EventReferenceList, error) {
+	eventRefList := brignext.EventReferenceList{
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "EventReferenceList",
+		},
+		ListMeta: brignext.ListMeta{},
+		Items:    []brignext.EventReference{},
+	}
+
 	event, err := s.store.GetEvent(ctx, id)
 	if err != nil {
-		return false, errors.Wrapf(err, "error retrieving event %q from store", id)
+		return eventRefList,
+			errors.Wrapf(err, "error retrieving event %q from store", id)
 	}
-	var ok bool
+
 	err = s.store.DoTx(ctx, func(ctx context.Context) error {
-		if ok, err = s.store.DeleteEvent(
+		var ok bool
+		ok, err = s.store.DeleteEvent(
 			ctx,
 			id,
 			deletePending,
 			deleteRunning,
-		); err != nil {
+		)
+		if err != nil {
 			return errors.Wrapf(err, "error removing event %q from store", id)
 		}
 		if ok {
@@ -941,10 +975,20 @@ func (s *service) DeleteEvent(
 					id,
 				)
 			}
+			eventRefList.Items = append(
+				eventRefList.Items,
+				brignext.EventReference{
+					TypeMeta: brignext.TypeMeta{
+						APIVersion: brignext.APIVersion,
+						Kind:       "EventReference",
+					},
+					ID: event.ID,
+				},
+			)
 		}
 		return nil
 	})
-	return ok, err
+	return eventRefList, err
 }
 
 func (s *service) DeleteEventsByProject(

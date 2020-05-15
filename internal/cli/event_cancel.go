@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -26,14 +27,15 @@ func eventCancel(c *cli.Context) error {
 	}
 
 	if eventID != "" {
-		var canceled bool
-		if canceled, err = client.CancelEvent(
+		var eventRefList brignext.EventReferenceList
+		if eventRefList, err = client.CancelEvent(
 			c.Context,
 			eventID,
 			cancelRunning,
 		); err != nil {
 			return err
-		} else if canceled {
+		}
+		if len(eventRefList.Items) != 0 {
 			fmt.Printf("Event %q canceled.\n", eventID)
 			return nil
 		}

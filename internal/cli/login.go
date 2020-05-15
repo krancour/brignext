@@ -41,8 +41,8 @@ func login(c *cli.Context) error {
 			}
 		}
 
-		token, err := client.CreateRootSession(c.Context, password)
-		if err != nil {
+		var token brignext.Token
+		if token, err = client.CreateRootSession(c.Context, password); err != nil {
 			return err
 		}
 		tokenStr = token.Value

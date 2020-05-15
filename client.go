@@ -55,7 +55,7 @@ type Client interface {
 		ctx context.Context,
 		id string,
 		cancelRunning bool,
-	) (bool, error)
+	) (EventReferenceList, error)
 	CancelEventsByProject(
 		ctx context.Context,
 		projectID string,
@@ -66,7 +66,7 @@ type Client interface {
 		id string,
 		deletePending bool,
 		deleteRunning bool,
-	) (bool, error)
+	) (EventReferenceList, error)
 	DeleteEventsByProject(
 		ctx context.Context,
 		projectID string,
@@ -998,14 +998,16 @@ func (c *client) CancelEvent(
 	ctx context.Context,
 	id string,
 	cancelRunning bool,
-) (bool, error) {
+) (EventReferenceList, error) {
+	eventRefList := EventReferenceList{}
+
 	req, err := c.buildRequest(
 		http.MethodPut,
 		fmt.Sprintf("v2/events/%s/cancel", id),
 		nil,
 	)
 	if err != nil {
-		return false, errors.Wrap(err, "error creating HTTP request")
+		return eventRefList, errors.Wrap(err, "error creating HTTP request")
 	}
 	q := req.URL.Query()
 	if cancelRunning {
@@ -1015,33 +1017,30 @@ func (c *client) CancelEvent(
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return false, errors.Wrap(err, "error invoking API")
+		return eventRefList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return false, &ErrEventNotFound{
+		return eventRefList, &ErrEventNotFound{
 			ID: id,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return false, errors.Errorf("received %d from API server", resp.StatusCode)
+		return eventRefList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return false, errors.Wrap(err, "error reading response body")
+		return eventRefList, errors.Wrap(err, "error reading response body")
 	}
 
-	// TODO: This should be a more formalized object
-	respStruct := struct {
-		Canceled bool `json:"canceled"`
-	}{}
-	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
-		return false, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &eventRefList); err != nil {
+		return eventRefList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return respStruct.Canceled, nil
+	return eventRefList, nil
 }
 
 func (c *client) CancelEventsByProject(
@@ -1099,14 +1098,16 @@ func (c *client) DeleteEvent(
 	id string,
 	deletePending bool,
 	deleteRunning bool,
-) (bool, error) {
+) (EventReferenceList, error) {
+	eventRefList := EventReferenceList{}
+
 	req, err := c.buildRequest(
 		http.MethodDelete,
 		fmt.Sprintf("v2/events/%s", id),
 		nil,
 	)
 	if err != nil {
-		return false, errors.Wrap(err, "error creating HTTP request")
+		return eventRefList, errors.Wrap(err, "error creating HTTP request")
 	}
 	q := req.URL.Query()
 	if deletePending {
@@ -1119,33 +1120,30 @@ func (c *client) DeleteEvent(
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return false, errors.Wrap(err, "error invoking API")
+		return eventRefList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return false, &ErrEventNotFound{
+		return eventRefList, &ErrEventNotFound{
 			ID: id,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return false, errors.Errorf("received %d from API server", resp.StatusCode)
+		return eventRefList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return false, errors.Wrap(err, "error reading response body")
+		return eventRefList, errors.Wrap(err, "error reading response body")
 	}
 
-	// TODO: This should be a more formalized object
-	respStruct := struct {
-		Deleted bool `json:"deleted"`
-	}{}
-	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
-		return false, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &eventRefList); err != nil {
+		return eventRefList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return respStruct.Deleted, nil
+	return eventRefList, nil
 }
 
 func (c *client) DeleteEventsByProject(
