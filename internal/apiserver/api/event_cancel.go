@@ -61,7 +61,7 @@ func (s *server) eventsCancel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	canceled, err := s.service.CancelEventsByProject(
+	eventRefList, err := s.service.CancelEventsByProject(
 		r.Context(),
 		projectID,
 		cancelRunning,
@@ -78,13 +78,7 @@ func (s *server) eventsCancel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBytes, err := json.Marshal(
-		struct {
-			Canceled int64 `json:"canceled"`
-		}{
-			Canceled: canceled,
-		},
-	)
+	responseBytes, err := json.Marshal(eventRefList)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error marshaling cancel event response"),

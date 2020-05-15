@@ -44,7 +44,7 @@ func eventCancel(c *cli.Context) error {
 		)
 	}
 
-	canceled, err := client.CancelEventsByProject(
+	eventRefList, err := client.CancelEventsByProject(
 		c.Context,
 		projectID,
 		cancelRunning,
@@ -52,7 +52,11 @@ func eventCancel(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Canceled %d events for project %q.\n", canceled, projectID)
+	fmt.Printf(
+		"Canceled %d events for project %q.\n",
+		len(eventRefList.Items),
+		projectID,
+	)
 
 	return nil
 }

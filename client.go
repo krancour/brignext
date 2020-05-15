@@ -60,7 +60,7 @@ type Client interface {
 		ctx context.Context,
 		projectID string,
 		cancelRunning bool,
-	) (int64, error)
+	) (EventReferenceList, error)
 	DeleteEvent(
 		ctx context.Context,
 		id string,
@@ -72,7 +72,7 @@ type Client interface {
 		projectID string,
 		deletePending bool,
 		deleteRunning bool,
-	) (int64, error)
+	) (EventReferenceList, error)
 
 	UpdateWorkerStatus(
 		ctx context.Context,
@@ -1048,7 +1048,9 @@ func (c *client) CancelEventsByProject(
 	ctx context.Context,
 	projectID string,
 	cancelRunning bool,
-) (int64, error) {
+) (EventReferenceList, error) {
+	eventRefList := EventReferenceList{}
+
 	// TODO: Is this an acceptable way to do this RESTfully speaking?
 	req, err := c.buildRequest(
 		http.MethodPut,
@@ -1056,7 +1058,7 @@ func (c *client) CancelEventsByProject(
 		nil,
 	)
 	if err != nil {
-		return 0, errors.Wrap(err, "error creating HTTP request")
+		return eventRefList, errors.Wrap(err, "error creating HTTP request")
 	}
 	q := req.URL.Query()
 	if cancelRunning {
@@ -1066,33 +1068,30 @@ func (c *client) CancelEventsByProject(
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return 0, errors.Wrap(err, "error invoking API")
+		return eventRefList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return 0, &ErrProjectNotFound{
+		return eventRefList, &ErrProjectNotFound{
 			ID: projectID,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return 0, errors.Errorf("received %d from API server", resp.StatusCode)
+		return eventRefList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return 0, errors.Wrap(err, "error reading response body")
+		return eventRefList, errors.Wrap(err, "error reading response body")
 	}
 
-	// TODO: This should be a more formalized object
-	respStruct := struct {
-		Canceled int64 `json:"canceled"`
-	}{}
-	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
-		return 0, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &eventRefList); err != nil {
+		return eventRefList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return respStruct.Canceled, nil
+	return eventRefList, nil
 }
 
 func (c *client) DeleteEvent(
@@ -1154,14 +1153,16 @@ func (c *client) DeleteEventsByProject(
 	projectID string,
 	deletePending bool,
 	deleteRunning bool,
-) (int64, error) {
+) (EventReferenceList, error) {
+	eventRefList := EventReferenceList{}
+
 	req, err := c.buildRequest(
 		http.MethodDelete,
 		fmt.Sprintf("v2/projects/%s/events", projectID),
 		nil,
 	)
 	if err != nil {
-		return 0, errors.Wrap(err, "error creating HTTP request")
+		return eventRefList, errors.Wrap(err, "error creating HTTP request")
 	}
 	q := req.URL.Query()
 	if deletePending {
@@ -1174,33 +1175,30 @@ func (c *client) DeleteEventsByProject(
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return 0, errors.Wrap(err, "error invoking API")
+		return eventRefList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return 0, &ErrProjectNotFound{
+		return eventRefList, &ErrProjectNotFound{
 			ID: projectID,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return 0, errors.Errorf("received %d from API server", resp.StatusCode)
+		return eventRefList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return 0, errors.Wrap(err, "error reading response body")
+		return eventRefList, errors.Wrap(err, "error reading response body")
 	}
 
-	// TODO: This should be a more formalized object
-	respStruct := struct {
-		Deleted int64 `json:"deleted"`
-	}{}
-	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
-		return 0, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &eventRefList); err != nil {
+		return eventRefList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return respStruct.Deleted, nil
+	return eventRefList, nil
 }
 
 func (c *client) buildRequest(

@@ -46,7 +46,7 @@ func eventDelete(c *cli.Context) error {
 		)
 	}
 
-	deleted, err := client.DeleteEventsByProject(
+	eventRefList, err := client.DeleteEventsByProject(
 		c.Context,
 		projectID,
 		deletePending,
@@ -55,7 +55,11 @@ func eventDelete(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Deleted %d events for project %q.\n", deleted, projectID)
+	fmt.Printf(
+		"Deleted %d events for project %q.\n",
+		len(eventRefList.Items),
+		projectID,
+	)
 
 	return nil
 }

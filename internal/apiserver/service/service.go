@@ -82,7 +82,7 @@ type Service interface {
 		ctx context.Context,
 		projectID string,
 		cancelingRunning bool,
-	) (int64, error)
+	) (brignext.EventReferenceList, error)
 	DeleteEvent(
 		ctx context.Context,
 		id string,
@@ -94,7 +94,7 @@ type Service interface {
 		projectID string,
 		deletePending bool,
 		deleteRunning bool,
-	) (int64, error)
+	) (brignext.EventReferenceList, error)
 
 	UpdateWorkerStatus(
 		ctx context.Context,
@@ -853,21 +853,28 @@ func (s *service) CancelEventsByProject(
 	ctx context.Context,
 	projectID string,
 	cancelRunning bool,
-) (int64, error) {
+) (brignext.EventReferenceList, error) {
+	eventRefList := brignext.EventReferenceList{
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "EventReferenceList",
+		},
+		ListMeta: brignext.ListMeta{},
+		Items:    []brignext.EventReference{},
+	}
 
 	// Find all events. We'll iterate over all of them and try to cancel each.
 	// It sounds inefficient and it probably is, but this allows us to cancel
 	// each event in its own transaction.
 	eventList, err := s.store.GetEventsByProject(ctx, projectID)
 	if err != nil {
-		return 0, errors.Wrapf(
+		return eventRefList, errors.Wrapf(
 			err,
 			"error retrieving events for project %q",
 			projectID,
 		)
 	}
 
-	var canceledCount int64
 	for _, event := range eventList.Items {
 		if err := s.store.DoTx(ctx, func(ctx context.Context) error {
 			ok, err := s.store.CancelEvent(ctx, event.ID, cancelRunning)
@@ -879,7 +886,6 @@ func (s *service) CancelEventsByProject(
 				)
 			}
 			if ok {
-				canceledCount++
 				if err := s.scheduler.DeleteEvent(ctx, event); err != nil {
 					return errors.Wrapf(
 						err,
@@ -887,14 +893,24 @@ func (s *service) CancelEventsByProject(
 						event.ID,
 					)
 				}
+				eventRefList.Items = append(
+					eventRefList.Items,
+					brignext.EventReference{
+						TypeMeta: brignext.TypeMeta{
+							APIVersion: brignext.APIVersion,
+							Kind:       "EventReference",
+						},
+						ID: event.ID,
+					},
+				)
 			}
 			return nil
 		}); err != nil {
-			return canceledCount, err
+			return eventRefList, err
 		}
 	}
 
-	return canceledCount, nil
+	return eventRefList, nil
 }
 
 func (s *service) DeleteEvent(
@@ -936,21 +952,28 @@ func (s *service) DeleteEventsByProject(
 	projectID string,
 	deletePending bool,
 	deleteRunning bool,
-) (int64, error) {
+) (brignext.EventReferenceList, error) {
+	eventRefList := brignext.EventReferenceList{
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "EventReferenceList",
+		},
+		ListMeta: brignext.ListMeta{},
+		Items:    []brignext.EventReference{},
+	}
 
 	// Find all events. We'll iterate over all of them and try to delete each.
 	// It sounds inefficient and it probably is, but this allows us to delete
 	// each event in its own transaction.
 	eventList, err := s.store.GetEventsByProject(ctx, projectID)
 	if err != nil {
-		return 0, errors.Wrapf(
+		return eventRefList, errors.Wrapf(
 			err,
 			"error retrieving events for project %q",
 			projectID,
 		)
 	}
 
-	var deletedCount int64
 	for _, event := range eventList.Items {
 		if err := s.store.DoTx(ctx, func(ctx context.Context) error {
 			ok, err := s.store.DeleteEvent(
@@ -967,7 +990,6 @@ func (s *service) DeleteEventsByProject(
 				)
 			}
 			if ok {
-				deletedCount++
 				if err := s.scheduler.DeleteEvent(ctx, event); err != nil {
 					return errors.Wrapf(
 						err,
@@ -975,14 +997,24 @@ func (s *service) DeleteEventsByProject(
 						event.ID,
 					)
 				}
+				eventRefList.Items = append(
+					eventRefList.Items,
+					brignext.EventReference{
+						TypeMeta: brignext.TypeMeta{
+							APIVersion: brignext.APIVersion,
+							Kind:       "EventReference",
+						},
+						ID: event.ID,
+					},
+				)
 			}
 			return nil
 		}); err != nil {
-			return deletedCount, err
+			return eventRefList, err
 		}
 	}
 
-	return deletedCount, nil
+	return eventRefList, nil
 }
 
 func (s *service) UpdateWorkerStatus(

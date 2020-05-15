@@ -68,7 +68,7 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	deleted, err := s.service.DeleteEventsByProject(
+	eventRefList, err := s.service.DeleteEventsByProject(
 		r.Context(),
 		projectID,
 		deletePending,
@@ -86,13 +86,7 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBytes, err := json.Marshal(
-		struct {
-			Deleted int64 `json:"deleted"`
-		}{
-			Deleted: deleted,
-		},
-	)
+	responseBytes, err := json.Marshal(eventRefList)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error marshaling delete event response"),
