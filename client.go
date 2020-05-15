@@ -1229,22 +1229,7 @@ func (c *client) UpdateWorkerStatus(
 	eventID string,
 	status WorkerStatus,
 ) error {
-	statusBytes, err := json.Marshal(
-		struct {
-			TypeMeta     `json:",inline"`
-			WorkerStatus `json:",inline"`
-		}{
-			TypeMeta: TypeMeta{
-				APIVersion: APIVersion,
-				Kind:       "WorkerStatus",
-			},
-			WorkerStatus: WorkerStatus{
-				Started: status.Started,
-				Ended:   status.Ended,
-				Phase:   status.Phase,
-			},
-		},
-	)
+	statusBytes, err := json.Marshal(status)
 	if err != nil {
 		return errors.Wrap(err, "error marshaling status")
 	}
@@ -1450,22 +1435,7 @@ func (c *client) UpdateJobStatus(
 	jobName string,
 	status JobStatus,
 ) error {
-	statusBytes, err := json.Marshal(
-		struct {
-			TypeMeta  `json:",inline"`
-			JobStatus `json:",inline"`
-		}{
-			TypeMeta: TypeMeta{
-				APIVersion: APIVersion,
-				Kind:       "JobStatus",
-			},
-			JobStatus: JobStatus{
-				Started: status.Started,
-				Ended:   status.Ended,
-				Phase:   status.Phase,
-			},
-		},
-	)
+	statusBytes, err := json.Marshal(status)
 	if err != nil {
 		return errors.Wrap(err, "error marshaling status")
 	}

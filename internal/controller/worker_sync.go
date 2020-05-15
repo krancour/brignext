@@ -80,7 +80,12 @@ func (c *controller) syncWorkerPod(obj interface{}) {
 	// Use the API to update worker phase so it corresponds to worker pod phase
 	eventID := workerPod.Labels["brignext.io/event"]
 
-	status := brignext.WorkerStatus{}
+	status := brignext.WorkerStatus{
+		TypeMeta: &brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "WorkerStatus",
+		},
+	}
 	switch workerPod.Status.Phase {
 	case corev1.PodPending:
 		// A pending pod is on its way up. We need to count this as consuming

@@ -58,7 +58,12 @@ func (c *controller) syncJobPod(obj interface{}) {
 	eventID := jobPod.Labels["brignext.io/event"]
 	jobName := jobPod.Labels["brignext.io/job"]
 
-	status := brignext.JobStatus{}
+	status := brignext.JobStatus{
+		TypeMeta: &brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "JobStatus",
+		},
+	}
 	switch jobPod.Status.Phase {
 	case corev1.PodPending:
 		// This pod is on its way up. For BrigNext's purposes, this counts as

@@ -36,7 +36,8 @@ type JobsKubernetesConfig struct {
 }
 
 type JobStatus struct {
-	Started *time.Time `json:"started" bson:"started"`
-	Ended   *time.Time `json:"ended" bson:"ended"`
-	Phase   JobPhase   `json:"phase" bson:"phase"`
+	*TypeMeta `json:",inline,omitempty" bson:"-"`
+	Started   *time.Time `json:"started" bson:"started"`
+	Ended     *time.Time `json:"ended" bson:"ended"`
+	Phase     JobPhase   `json:"phase" bson:"phase"`
 }
