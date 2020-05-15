@@ -141,8 +141,9 @@ func main() {
 					Flags: []cli.Flag{
 						cliFlagOutput,
 						&cli.StringFlag{
-							Name:  flagProject,
-							Usage: "Retrieve events only for the specified project",
+							Name:    flagProject,
+							Aliases: []string{"p"},
+							Usage:   "Retrieve events only for the specified project",
 						},
 					},
 					Action: eventList,

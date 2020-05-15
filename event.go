@@ -6,6 +6,17 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+type EventReferenceList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata"`
+	Items    []EventReference `json:"items"`
+}
+
+type EventReference struct {
+	TypeMeta `json:",inline"`
+	ID       string `json:"id"`
+}
+
 type EventList struct {
 	TypeMeta `json:",inline"`
 	ListMeta `json:"metadata"`

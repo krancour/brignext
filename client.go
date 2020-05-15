@@ -47,7 +47,7 @@ type Client interface {
 	) error
 	UnsetSecret(ctx context.Context, projectID string, secretID string) error
 
-	CreateEvent(context.Context, Event) ([]string, error)
+	CreateEvent(context.Context, Event) (EventReferenceList, error)
 	GetEvents(context.Context) (EventList, error)
 	GetEventsByProject(context.Context, string) (EventList, error)
 	GetEvent(context.Context, string) (Event, error)
@@ -837,46 +837,48 @@ func (c *client) UnsetSecret(
 	return nil
 }
 
-func (c *client) CreateEvent(_ context.Context, event Event) ([]string, error) {
+func (c *client) CreateEvent(
+	_ context.Context,
+	event Event,
+) (EventReferenceList, error) {
+	eventRefList := EventReferenceList{}
+
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
-		return nil, errors.Wrap(err, "error marshaling event")
+		return eventRefList, errors.Wrap(err, "error marshaling event")
 	}
 
 	req, err := c.buildRequest(http.MethodPost, "v2/events", eventBytes)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating HTTP request")
+		return eventRefList, errors.Wrap(err, "error creating HTTP request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error invoking API")
+		return eventRefList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &ErrProjectNotFound{
+		return eventRefList, &ErrProjectNotFound{
 			ID: event.ProjectID,
 		}
 	}
 	if resp.StatusCode != http.StatusCreated {
-		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+		return eventRefList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
+		return eventRefList, errors.Wrap(err, "error reading response body")
 	}
 
-	// TODO: This should be a more formalized object
-	respStruct := struct {
-		IDs []string `json:"ids"`
-	}{}
-	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &eventRefList); err != nil {
+		return eventRefList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return respStruct.IDs, nil
+	return eventRefList, nil
 }
 
 func (c *client) GetEvents(context.Context) (EventList, error) {

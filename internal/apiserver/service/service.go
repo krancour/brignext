@@ -66,7 +66,10 @@ type Service interface {
 		secretID string,
 	) error
 
-	CreateEvent(context.Context, brignext.Event) ([]string, error)
+	CreateEvent(context.Context, brignext.Event) (
+		brignext.EventReferenceList,
+		error,
+	)
 	GetEvents(context.Context) (brignext.EventList, error)
 	GetEventsByProject(context.Context, string) (brignext.EventList, error)
 	GetEvent(context.Context, string) (brignext.Event, error)
@@ -646,7 +649,14 @@ func (s *service) UnsetSecret(
 func (s *service) CreateEvent(
 	ctx context.Context,
 	event brignext.Event,
-) ([]string, error) {
+) (brignext.EventReferenceList, error) {
+	eventRefList := brignext.EventReferenceList{
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "EventReferenceList",
+		},
+		ListMeta: brignext.ListMeta{},
+	}
 
 	// If no project ID is specified, we use other criteria to locate projects
 	// that are subscribed to this event. We iterate over all of those and create
@@ -655,28 +665,28 @@ func (s *service) CreateEvent(
 	if event.ProjectID == "" {
 		projectList, err := s.store.GetSubscribedProjects(ctx, event)
 		if err != nil {
-			return nil, errors.Wrap(
+			return eventRefList, errors.Wrap(
 				err,
 				"error retrieving subscribed projects from store",
 			)
 		}
-		eventIDs := make([]string, len(projectList.Items))
+		eventRefList.Items = make([]brignext.EventReference, len(projectList.Items))
 		for i, project := range projectList.Items {
 			event.ProjectID = project.ID
-			eids, err := s.CreateEvent(ctx, event)
+			eRefs, err := s.CreateEvent(ctx, event)
 			if err != nil {
-				return eventIDs, err
+				return eventRefList, err
 			}
 			// eids will always contain precisely one element
-			eventIDs[i] = eids[0]
+			eventRefList.Items[i] = eRefs.Items[0]
 		}
-		return eventIDs, nil
+		return eventRefList, nil
 	}
 
 	// Make sure the project exists
 	project, err := s.store.GetProject(ctx, event.ProjectID)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return eventRefList, errors.Wrapf(
 			err,
 			"error retrieving project %q from store",
 			event.ProjectID,
@@ -731,7 +741,7 @@ func (s *service) CreateEvent(
 		event,
 	)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return eventRefList, errors.Wrapf(
 			err,
 			"error creating event %q in scheduler",
 			event.ID,
@@ -741,9 +751,19 @@ func (s *service) CreateEvent(
 		// We need to roll this back manually because the scheduler doesn't
 		// automatically roll anything back upon failure.
 		s.scheduler.DeleteEvent(ctx, event) // nolint: errcheck
-		return nil, errors.Wrapf(err, "error storing new event %q", event.ID)
+		return eventRefList, errors.Wrapf(err, "error storing new event %q", event.ID)
 	}
-	return []string{event.ID}, nil
+
+	eventRefList.Items = []brignext.EventReference{
+		{
+			TypeMeta: brignext.TypeMeta{
+				APIVersion: brignext.APIVersion,
+				Kind:       "EventReference",
+			},
+			ID: event.ID,
+		},
+	}
+	return eventRefList, nil
 }
 
 func (s *service) GetEvents(ctx context.Context) (brignext.EventList, error) {
