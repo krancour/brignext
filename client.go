@@ -1228,7 +1228,7 @@ func (c *client) UpdateWorkerStatus(
 			WorkerStatus `json:",inline"`
 		}{
 			TypeMeta: TypeMeta{
-				APIVersion: "github.com/krancour/brignext/v2",
+				APIVersion: APIVersion,
 				Kind:       "WorkerStatus",
 			},
 			WorkerStatus: WorkerStatus{
@@ -1449,7 +1449,7 @@ func (c *client) UpdateJobStatus(
 			JobStatus `json:",inline"`
 		}{
 			TypeMeta: TypeMeta{
-				APIVersion: "github.com/krancour/brignext/v2",
+				APIVersion: APIVersion,
 				Kind:       "JobStatus",
 			},
 			JobStatus: JobStatus{

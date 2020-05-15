@@ -22,13 +22,13 @@ func serviceAccountCreate(c *cli.Context) error {
 		c.Context,
 		brignext.ServiceAccount{
 			TypeMeta: brignext.TypeMeta{
-				APIVersion: "github.com/krancour/brignext/v2",
+				APIVersion: brignext.APIVersion,
 				Kind:       "ServiceAccount",
 			},
-			ServiceAccountMeta: brignext.ServiceAccountMeta{
-				ID:          id,
-				Description: description,
+			ObjectMeta: brignext.ObjectMeta{
+				ID: id,
 			},
+			Description: description,
 		},
 	)
 	if err != nil {

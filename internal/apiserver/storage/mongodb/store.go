@@ -31,18 +31,17 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 
 	unique := true
 
-	usersCollection := database.Collection("users")
-	if _, err := usersCollection.Indexes().CreateOne(
-		ctx,
-		mongo.IndexModel{
-			Keys: bson.M{
-				"metadata.id": 1,
-			},
-			Options: &options.IndexOptions{
-				Unique: &unique,
-			},
+	idIndex := mongo.IndexModel{
+		Keys: bson.M{
+			"metadata.id": 1,
 		},
-	); err != nil {
+		Options: &options.IndexOptions{
+			Unique: &unique,
+		},
+	}
+
+	usersCollection := database.Collection("users")
+	if _, err := usersCollection.Indexes().CreateOne(ctx, idIndex); err != nil {
 		return nil, errors.Wrap(err, "error adding indexes to users collection")
 	}
 
@@ -50,28 +49,23 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 	if _, err := sessionsCollection.Indexes().CreateMany(
 		ctx,
 		[]mongo.IndexModel{
+			idIndex,
+			// Fast lookup for completing OIDC auth
 			{
 				Keys: bson.M{
-					"metadata.id": 1,
-				},
-				Options: &options.IndexOptions{
-					Unique: &unique,
-				},
-			},
-			{
-				Keys: bson.M{
-					"spec.hashedOAuth2State": 1,
+					"hashedOAuth2State": 1,
 				},
 				Options: &options.IndexOptions{
 					Unique: &unique,
 					PartialFilterExpression: bson.M{
-						"spec.hashedOAuth2State": bson.M{"exists": true},
+						"hashedOAuth2State": bson.M{"exists": true},
 					},
 				},
 			},
+			// Fast lookup by bearer token
 			{
 				Keys: bson.M{
-					"spec.hashedToken": 1,
+					"hashedToken": 1,
 				},
 				Options: &options.IndexOptions{
 					Unique: &unique,
@@ -86,14 +80,8 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 	if _, err := serviceAccountsCollection.Indexes().CreateMany(
 		ctx,
 		[]mongo.IndexModel{
-			{
-				Keys: bson.M{
-					"metadata.id": 1,
-				},
-				Options: &options.IndexOptions{
-					Unique: &unique,
-				},
-			},
+			idIndex,
+			// Fast lookup by bearer token
 			{
 				Keys: bson.M{
 					"hashedToken": 1,
@@ -114,23 +102,21 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 	if _, err := projectsCollection.Indexes().CreateMany(
 		ctx,
 		[]mongo.IndexModel{
+			idIndex,
+			// The next two indexes are involved in locating projects that have
+			// subscribed to a given event. Two of the fields (types and labels) are
+			// array fields. Indexes involving multiple array fields aren't permitted
+			// by MongoDB, so we create two separate indexes and MongoDB *should*
+			// utilize the intersection of the two indexes to support such queries.
 			{
 				Keys: bson.M{
-					"metadata.id": 1,
-				},
-				Options: &options.IndexOptions{
-					Unique: &unique,
-				},
-			},
-			{
-				Keys: bson.M{
-					"eventSubscriptions.source": 1,
-					"eventSubscriptions.types":  1,
+					"spec.eventSubscriptions.source": 1,
+					"spec.eventSubscriptions.types":  1,
 				},
 			},
 			{
 				Keys: bson.M{
-					"eventSubscriptions.labels": 1,
+					"spec.eventSubscriptions.labels": 1,
 				},
 			},
 		},
@@ -145,19 +131,17 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 	if _, err := eventsCollection.Indexes().CreateMany(
 		ctx,
 		[]mongo.IndexModel{
-			{
-				Keys: bson.M{
-					"metadata.ID": 1,
-				},
-			},
-			{
-				Keys: bson.M{
-					"metadata.projectID": 1,
-				},
-			},
+			idIndex,
+			// This facilitates sorting by event creation date/time
 			{
 				Keys: bson.M{
 					"metadata.created": -1,
+				},
+			},
+			// This facilitates quickly selecting all events for a given project
+			{
+				Keys: bson.M{
+					"projectID": 1,
 				},
 			},
 		},
@@ -201,6 +185,8 @@ func (s *store) DoTx(
 }
 
 func (s *store) CreateUser(ctx context.Context, user brignext.User) error {
+	now := time.Now()
+	user.Created = &now
 	if _, err :=
 		s.usersCollection.InsertOne(ctx, user); err != nil {
 		if writeException, ok := err.(mongo.WriteException); ok {
@@ -252,7 +238,9 @@ func (s *store) LockUser(ctx context.Context, id string) error {
 		ctx,
 		bson.M{"metadata.id": id},
 		bson.M{
-			"$set": bson.M{"status.locked": true},
+			"$set": bson.M{
+				"locked": time.Now(),
+			},
 		},
 	)
 	if err != nil {
@@ -271,7 +259,9 @@ func (s *store) UnlockUser(ctx context.Context, id string) error {
 		ctx,
 		bson.M{"metadata.id": id},
 		bson.M{
-			"$set": bson.M{"status.locked": false},
+			"$set": bson.M{
+				"locked": nil,
+			},
 		},
 	)
 	if err != nil {
@@ -289,6 +279,8 @@ func (s *store) CreateSession(
 	ctx context.Context,
 	session auth.Session,
 ) error {
+	now := time.Now()
+	session.Created = &now
 	if _, err := s.sessionsCollection.InsertOne(ctx, session); err != nil {
 		return errors.Wrapf(err, "error inserting new session %q", session.ID)
 	}
@@ -302,7 +294,7 @@ func (s *store) GetSessionByHashedOAuth2State(
 	session := auth.Session{}
 	res := s.sessionsCollection.FindOne(
 		ctx,
-		bson.M{"spec.hashedOAuth2State": hashedOAuth2State},
+		bson.M{"hashedOAuth2State": hashedOAuth2State},
 	)
 	if res.Err() == mongo.ErrNoDocuments {
 		return session, &brignext.ErrSessionNotFound{}
@@ -324,7 +316,7 @@ func (s *store) GetSessionByHashedToken(
 	hashedToken string,
 ) (auth.Session, error) {
 	session := auth.Session{}
-	res := s.sessionsCollection.FindOne(ctx, bson.M{"spec.hashedToken": hashedToken})
+	res := s.sessionsCollection.FindOne(ctx, bson.M{"hashedToken": hashedToken})
 	if res.Err() == mongo.ErrNoDocuments {
 		return session, &brignext.ErrSessionNotFound{}
 	}
@@ -353,9 +345,9 @@ func (s *store) AuthenticateSession(
 		},
 		bson.M{
 			"$set": bson.M{
-				"metadata.expires":     expires,
-				"spec.userID":          userID,
-				"status.authenticated": true,
+				"userID":        userID,
+				"authenticated": time.Now(),
+				"expires":       expires,
 			},
 		},
 	)
@@ -387,7 +379,7 @@ func (s *store) DeleteSessionsByUser(
 	ctx context.Context,
 	userID string,
 ) (int64, error) {
-	res, err := s.sessionsCollection.DeleteMany(ctx, bson.M{"spec.userID": userID})
+	res, err := s.sessionsCollection.DeleteMany(ctx, bson.M{"userID": userID})
 	if err != nil {
 		return 0, errors.Wrapf(err, "error deleting sessions for user %q", userID)
 	}
@@ -398,6 +390,8 @@ func (s *store) CreateServiceAccount(
 	ctx context.Context,
 	serviceAccount brignext.ServiceAccount,
 ) error {
+	now := time.Now()
+	serviceAccount.Created = &now
 	if _, err := s.serviceAccountsCollection.InsertOne(
 		ctx,
 		serviceAccount,
@@ -496,7 +490,9 @@ func (s *store) LockServiceAccount(
 		ctx,
 		bson.M{"metadata.id": id},
 		bson.M{
-			"$set": bson.M{"status.locked": true},
+			"$set": bson.M{
+				"locked": time.Now(),
+			},
 		},
 	)
 	if err != nil {
@@ -520,8 +516,8 @@ func (s *store) UnlockServiceAccount(
 		bson.M{"metadata.id": id},
 		bson.M{
 			"$set": bson.M{
-				"status.locked": false,
-				"hashedToken":   newHashedToken,
+				"locked":      nil,
+				"hashedToken": newHashedToken,
 			},
 		},
 	)
@@ -540,6 +536,8 @@ func (s *store) CreateProject(
 	ctx context.Context,
 	project brignext.Project,
 ) error {
+	now := time.Now()
+	project.Created = &now
 	if _, err := s.projectsCollection.InsertOne(ctx, project); err != nil {
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
@@ -641,11 +639,13 @@ func (s *store) UpdateProject(
 	res, err := s.projectsCollection.UpdateOne(
 		ctx,
 		bson.M{
-			"metadata.id": project.ID,
+			"metadata.id":          project.ID,
+			"metadata.lastUpdated": time.Now(),
 		},
 		bson.M{
 			"$set": bson.M{
-				"spec": project.Spec,
+				"spec":       project.Spec,
+				"kubernetes": project.Kubernetes,
 			},
 		},
 	)
@@ -672,7 +672,7 @@ func (s *store) DeleteProject(ctx context.Context, id string) error {
 	}
 	if _, err := s.eventsCollection.DeleteMany(
 		ctx,
-		bson.M{"metadata.projectID": id},
+		bson.M{"projectID": id},
 	); err != nil {
 		return errors.Wrapf(err, "error deleting events for project %q", id)
 	}
@@ -680,6 +680,8 @@ func (s *store) DeleteProject(ctx context.Context, id string) error {
 }
 
 func (s *store) CreateEvent(ctx context.Context, event brignext.Event) error {
+	now := time.Now()
+	event.Created = &now
 	if _, err := s.eventsCollection.InsertOne(ctx, event); err != nil {
 		return errors.Wrapf(err, "error inserting new event %q", event.ID)
 	}
@@ -707,7 +709,7 @@ func (s *store) GetEventsByProject(
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"metadata.created": -1})
 	cur, err :=
-		s.eventsCollection.Find(ctx, bson.M{"metadata.projectID": projectID}, findOptions)
+		s.eventsCollection.Find(ctx, bson.M{"projectID": projectID}, findOptions)
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
@@ -759,6 +761,7 @@ func (s *store) CancelEvent(
 		},
 		bson.M{
 			"$set": bson.M{
+				"canceled":                  time.Now(),
 				"status.workerStatus.phase": brignext.WorkerPhaseCanceled,
 			},
 		},
@@ -786,6 +789,7 @@ func (s *store) CancelEvent(
 		},
 		bson.M{
 			"$set": bson.M{
+				"canceled":                  time.Now(),
 				"status.workerStatus.phase": brignext.WorkerPhaseAborted,
 			},
 		},

@@ -50,7 +50,7 @@
 			"enum": ["Project"]
 		},
 
-		"projectMeta": {
+		"objectMeta": {
 			"type": "object",
 			"description": "Project metadata",
 			"required": ["id"],
@@ -63,7 +63,15 @@
 						}
 					],
 					"description": "A meaningful identifier for the project"
-				},
+				}
+			}
+		},
+
+		"projectSpec": {
+			"type": "object",
+			"description": "Project specification",
+			"additionalProperties": false,
+			"properties": {
 				"description": {
 					"oneOf": [
 						{
@@ -74,15 +82,7 @@
 						}
 					],
 					"description": "A brief description of the project"
-				}
-			}
-		},
-
-		"projectSpec": {
-			"type": "object",
-			"description": "Project specification",
-			"additionalProperties": false,
-			"properties": {
+				},
 				"eventSubscriptions": {
 					"type": [
 						"array",
@@ -312,7 +312,7 @@
 			"$ref": "#/definitions/kind"
 		},
 		"metadata": {
-			"$ref": "#/definitions/projectMeta"
+			"$ref": "#/definitions/objectMeta"
 		},
 		"spec": {
 			"$ref": "#/definitions/projectSpec"

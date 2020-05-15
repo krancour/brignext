@@ -83,10 +83,14 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrUserNotFound); ok {
 			user = brignext.User{
-				UserMeta: brignext.UserMeta{
-					ID:   claims.Email,
-					Name: claims.Name,
+				TypeMeta: brignext.TypeMeta{
+					APIVersion: brignext.APIVersion,
+					Kind:       "User",
 				},
+				ObjectMeta: brignext.ObjectMeta{
+					ID: claims.Email,
+				},
+				Name: claims.Name,
 			}
 			if err = s.service.CreateUser(r.Context(), user); err != nil {
 				log.Println(

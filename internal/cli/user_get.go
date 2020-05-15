@@ -36,8 +36,8 @@ func userGet(c *cli.Context) error {
 		table.AddRow(
 			user.ID,
 			user.Name,
-			user.FirstSeen,
-			user.Status.Locked,
+			user.Created,
+			user.Locked != nil,
 		)
 		fmt.Println(table)
 

@@ -7,25 +7,12 @@ import (
 )
 
 type Session struct {
-	brignext.TypeMeta `json:",inline" bson:",inline"`
-	SessionMeta       `json:"metadata" bson:"metadata"`
-	Spec              SessionSpec   `json:"spec" bson:"spec"`
-	Status            SessionStatus `json:"status" bson:"status"`
-}
-
-type SessionMeta struct {
-	ID      string    `json:"id" bson:"id"`
-	Created time.Time `json:"created" bson:"created"`
-	Expires time.Time `json:"expires" bson:"expires"`
-}
-
-type SessionSpec struct {
-	Root              bool   `json:"root" bson:"root"`
-	UserID            string `json:"userID" bson:"userID"`
-	HashedOAuth2State string `json:"-" bson:"hashedOAuth2State"`
-	HashedToken       string `json:"-" bson:"hashedToken"`
-}
-
-type SessionStatus struct {
-	Authenticated bool `json:"authenticated" bson:"authenticated"`
+	brignext.TypeMeta   `json:",inline" bson:",inline"`
+	brignext.ObjectMeta `json:"metadata" bson:"metadata"`
+	Root                bool       `json:"root" bson:"root"`
+	UserID              string     `json:"userID" bson:"userID"`
+	HashedOAuth2State   string     `json:"-" bson:"hashedOAuth2State"`
+	HashedToken         string     `json:"-" bson:"hashedToken"`
+	Authenticated       *time.Time `json:"authenticated" bson:"authenticated"`
+	Expires             *time.Time `json:"expires" bson:"expires"`
 }

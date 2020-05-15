@@ -159,7 +159,6 @@ func NewService(
 }
 
 func (s *service) CreateUser(ctx context.Context, user brignext.User) error {
-	user.FirstSeen = time.Now()
 	if err := s.store.CreateUser(ctx, user); err != nil {
 		return errors.Wrapf(err, "error storing new user %q", user.ID)
 	}
@@ -216,23 +215,19 @@ func (s *service) UnlockUser(ctx context.Context, id string) error {
 func (s *service) CreateRootSession(ctx context.Context) (string, error) {
 	token := crypto.NewToken(256)
 	now := time.Now()
+	expiryTime := now.Add(time.Hour)
 	session := auth.Session{
 		TypeMeta: brignext.TypeMeta{
-			APIVersion: "github.com/krancour/brignext/v2",
+			APIVersion: brignext.APIVersion,
 			Kind:       "Session",
 		},
-		SessionMeta: auth.SessionMeta{
-			ID:      uuid.NewV4().String(),
-			Created: now,
-			Expires: now.Add(time.Hour),
+		ObjectMeta: brignext.ObjectMeta{
+			ID: uuid.NewV4().String(),
 		},
-		Spec: auth.SessionSpec{
-			Root:        true,
-			HashedToken: crypto.ShortSHA("", token),
-		},
-		Status: auth.SessionStatus{
-			Authenticated: true,
-		},
+		Root:          true,
+		HashedToken:   crypto.ShortSHA("", token),
+		Authenticated: &now,
+		Expires:       &expiryTime,
 	}
 	if err := s.store.CreateSession(ctx, session); err != nil {
 		return "", errors.Wrapf(
@@ -251,17 +246,14 @@ func (s *service) CreateUserSession(
 	token := crypto.NewToken(256)
 	session := auth.Session{
 		TypeMeta: brignext.TypeMeta{
-			APIVersion: "github.com/krancour/brignext/v2",
+			APIVersion: brignext.APIVersion,
 			Kind:       "Session",
 		},
-		SessionMeta: auth.SessionMeta{
-			ID:      uuid.NewV4().String(),
-			Created: time.Now(),
+		ObjectMeta: brignext.ObjectMeta{
+			ID: uuid.NewV4().String(),
 		},
-		Spec: auth.SessionSpec{
-			HashedOAuth2State: crypto.ShortSHA("", oauth2State),
-			HashedToken:       crypto.ShortSHA("", token),
-		},
+		HashedOAuth2State: crypto.ShortSHA("", oauth2State),
+		HashedToken:       crypto.ShortSHA("", token),
 	}
 	if err := s.store.CreateSession(ctx, session); err != nil {
 		return "", "", errors.Wrapf(
@@ -355,9 +347,6 @@ func (s *service) CreateServiceAccount(
 ) (string, error) {
 	token := crypto.NewToken(256)
 	serviceAccount.HashedToken = crypto.ShortSHA("", token)
-	now := time.Now()
-	serviceAccount.Created = &now
-	serviceAccount.Status = &brignext.ServiceAccountStatus{}
 	if err := s.store.CreateServiceAccount(ctx, serviceAccount); err != nil {
 		return "", errors.Wrapf(
 			err,
@@ -450,8 +439,6 @@ func (s *service) CreateProject(
 		project.Spec.Worker.LogLevel = brignext.LogLevelInfo
 	}
 
-	now := time.Now()
-	project.Created = &now
 	// We send this to the scheduler first because we expect the scheduler will
 	// will add some scheduler-specific details that we will want to persist.
 	// This is in contrast to most of our functions wherein we start a transaction
@@ -672,35 +659,32 @@ func (s *service) CreateEvent(
 
 	event.ID = uuid.NewV4().String()
 
-	event.Spec.Worker = &project.Spec.Worker
+	event.Worker = &project.Spec.Worker
 
-	if event.Spec.Worker.WorkspaceSize == "" {
-		event.Spec.Worker.WorkspaceSize = "10Gi"
+	if event.Worker.WorkspaceSize == "" {
+		event.Worker.WorkspaceSize = "10Gi"
 	}
 
 	// VCS details from the event override project-level details
-	if event.Spec.Git.CloneURL != "" {
-		event.Spec.Worker.Git.CloneURL = event.Spec.Git.CloneURL
+	if event.Git.CloneURL != "" {
+		event.Worker.Git.CloneURL = event.Git.CloneURL
 	}
-	if event.Spec.Git.Commit != "" {
-		event.Spec.Worker.Git.Commit = event.Spec.Git.Commit
+	if event.Git.Commit != "" {
+		event.Worker.Git.Commit = event.Git.Commit
 	}
-	if event.Spec.Git.Ref != "" {
-		event.Spec.Worker.Git.Ref = event.Spec.Git.Ref
-	}
-
-	if event.Spec.Worker.Git.CloneURL != "" &&
-		event.Spec.Worker.Git.Commit == "" &&
-		event.Spec.Worker.Git.Ref == "" {
-		event.Spec.Worker.Git.Ref = "master"
+	if event.Git.Ref != "" {
+		event.Worker.Git.Ref = event.Git.Ref
 	}
 
-	if event.Spec.Worker.ConfigFilesDirectory == "" {
-		event.Spec.Worker.ConfigFilesDirectory = "."
+	if event.Worker.Git.CloneURL != "" &&
+		event.Worker.Git.Commit == "" &&
+		event.Worker.Git.Ref == "" {
+		event.Worker.Git.Ref = "master"
 	}
 
-	now := time.Now()
-	event.Created = &now
+	if event.Worker.ConfigFilesDirectory == "" {
+		event.Worker.ConfigFilesDirectory = "."
+	}
 
 	event.Status = &brignext.EventStatus{
 		WorkerStatus: brignext.WorkerStatus{

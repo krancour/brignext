@@ -5,18 +5,18 @@ import (
 )
 
 type EventSubscription struct {
-	Source string      `json:"source" bson:"source"`
-	Types  []string    `json:"types" bson:"types"`
-	Labels EventLabels `json:"labels" bson:"labels"`
+	Source string   `json:"source" bson:"source"`
+	Types  []string `json:"types" bson:"types"`
+	Labels Labels   `json:"labels" bson:"labels"`
 }
 
-// UnmarshalBSON implements custom BSON marshaling for the EventSubscription
+// UnmarshalBSON implements custom BSON unmarshaling for the EventSubscription
 // type. This does little more than guarantees that the Labels field isn't nil
-// so that custom marshaling of the EventLabels (which is more involved) can
+// so that custom unmarshaling of the EventLabels (which is more involved) can
 // succeed.
 func (e *EventSubscription) UnmarshalBSON(bytes []byte) error {
 	if e.Labels == nil {
-		e.Labels = EventLabels{}
+		e.Labels = Labels{}
 	}
 	type EventSubscriptionAlias EventSubscription
 	return bson.Unmarshal(

@@ -50,7 +50,7 @@ func serviceAccountList(c *cli.Context) error {
 				serviceAccount.ID,
 				serviceAccount.Description,
 				age,
-				serviceAccount.Status.Locked,
+				serviceAccount.Locked != nil,
 			)
 		}
 		fmt.Println(table)
