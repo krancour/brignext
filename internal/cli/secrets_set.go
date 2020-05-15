@@ -4,21 +4,26 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
 
 func secretsSet(c *cli.Context) error {
 	projectID := c.String(flagProject)
-	kvPairs := c.StringSlice(flagSet)
+	kvPairsStr := c.StringSlice(flagSet)
 
-	secrets := map[string]string{}
-	for _, kvPair := range kvPairs {
-		kvTokens := strings.SplitN(kvPair, "=", 2)
+	// We'll make two passes-- we'll parse all the input into a map first,
+	// verifying as we go that the input looks good. Only after we know it's good
+	// will we iterate over the k/v pairs in the map to set secrets via the API.
+
+	kvPairs := map[string]string{}
+	for _, kvPairStr := range kvPairsStr {
+		kvTokens := strings.SplitN(kvPairStr, "=", 2)
 		if len(kvTokens) != 2 {
 			return errors.New("secrets set argument %q is formatted incorrectly")
 		}
-		secrets[kvTokens[0]] = kvTokens[1]
+		kvPairs[kvTokens[0]] = kvTokens[1]
 	}
 
 	client, err := getClient(c)
@@ -26,12 +31,26 @@ func secretsSet(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err := client.SetSecrets(
-		c.Context,
-		projectID,
-		secrets,
-	); err != nil {
-		return err
+	// TODO: It would be nicer / more efficient to do a bulk secrets set, but
+	// what's the right pattern for doing that restfully?
+	for k, v := range kvPairs {
+		secret := brignext.Secret{
+			TypeMeta: brignext.TypeMeta{
+				APIVersion: brignext.APIVersion,
+				Kind:       "Secret",
+			},
+			ObjectMeta: brignext.ObjectMeta{
+				ID: k,
+			},
+			Value: v,
+		}
+		if err := client.SetSecret(
+			c.Context,
+			projectID,
+			secret,
+		); err != nil {
+			return err
+		}
 	}
 
 	fmt.Printf("Set secrets for project %q.\n", projectID)

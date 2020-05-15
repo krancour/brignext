@@ -51,16 +51,16 @@ type Service interface {
 	GetSecrets(
 		ctx context.Context,
 		projectID string,
-	) (map[string]string, error)
-	SetSecrets(
+	) (brignext.SecretList, error)
+	SetSecret(
 		ctx context.Context,
 		projectID string,
-		secrets map[string]string,
+		secret brignext.Secret,
 	) error
-	UnsetSecrets(
+	UnsetSecret(
 		ctx context.Context,
 		projectID string,
-		keys []string,
+		secretID string,
 	) error
 
 	CreateEvent(context.Context, brignext.Event) ([]string, error)
@@ -550,30 +550,30 @@ func (s *service) DeleteProject(ctx context.Context, id string) error {
 func (s *service) GetSecrets(
 	ctx context.Context,
 	projectID string,
-) (map[string]string, error) {
+) (brignext.SecretList, error) {
+	secretList := brignext.SecretList{}
 	project, err := s.store.GetProject(ctx, projectID)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return secretList, errors.Wrapf(
 			err,
 			"error retrieving project %q from store",
 			projectID,
 		)
 	}
-	secrets, err := s.scheduler.GetSecrets(ctx, project)
-	if err != nil {
-		return nil, errors.Wrapf(
+	if secretList, err = s.scheduler.GetSecrets(ctx, project); err != nil {
+		return secretList, errors.Wrapf(
 			err,
 			"error getting worker secrets for project %q from scheduler",
 			projectID,
 		)
 	}
-	return secrets, nil
+	return secretList, nil
 }
 
-func (s *service) SetSecrets(
+func (s *service) SetSecret(
 	ctx context.Context,
 	projectID string,
-	secrets map[string]string,
+	secret brignext.Secret,
 ) error {
 	project, err := s.store.GetProject(ctx, projectID)
 	if err != nil {
@@ -584,20 +584,20 @@ func (s *service) SetSecrets(
 		)
 	}
 	// Secrets aren't stored in the database. We only pass them to the scheduler.
-	if err := s.scheduler.SetSecrets(ctx, project, secrets); err != nil {
+	if err := s.scheduler.SetSecret(ctx, project, secret); err != nil {
 		return errors.Wrapf(
 			err,
-			"error setting secrets for project %q worker in scheduler",
+			"error setting secret for project %q worker in scheduler",
 			projectID,
 		)
 	}
 	return nil
 }
 
-func (s *service) UnsetSecrets(
+func (s *service) UnsetSecret(
 	ctx context.Context,
 	projectID string,
-	keys []string,
+	secretID string,
 ) error {
 	project, err := s.store.GetProject(ctx, projectID)
 	if err != nil {
@@ -609,7 +609,7 @@ func (s *service) UnsetSecrets(
 	}
 	// Secrets aren't stored in the database. We only have to remove them from the
 	// scheduler.
-	if err := s.scheduler.UnsetSecrets(ctx, project, keys); err != nil {
+	if err := s.scheduler.UnsetSecret(ctx, project, secretID); err != nil {
 		return errors.Wrapf(
 			err,
 			"error unsetting secrets for project %q worker in scheduler",

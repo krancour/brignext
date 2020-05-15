@@ -155,9 +155,10 @@ func main() {
 			Usage: "View worker or job logs",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
-					Name:    flagEvent,
-					Aliases: []string{"e"},
-					Usage:   "View logs from the specified event",
+					Name:     flagEvent,
+					Aliases:  []string{"e"},
+					Usage:    "View logs from the specified event",
+					Required: true,
 				},
 				&cli.BoolFlag{
 					Name:    flagFollow,
@@ -293,9 +294,15 @@ func main() {
 			Subcommands: []*cli.Command{
 				{
 					Name:  "list",
-					Usage: "List a project's secrets; values are always redacted",
+					Usage: "Retrieve many secrets; values are always redacted",
 					Flags: []cli.Flag{
 						cliFlagOutput,
+						&cli.StringFlag{
+							Name:     flagProject,
+							Aliases:  []string{"p"},
+							Usage:    "Retrieve secrets for the specified project (required)",
+							Required: true,
+						},
 					},
 					Action: secretsList,
 				},

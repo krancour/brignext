@@ -16,12 +16,16 @@ func secretsUnset(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err := client.UnsetSecrets(
-		c.Context,
-		projectID,
-		keys,
-	); err != nil {
-		return err
+	// TODO: It would be nicer / more efficient to do a bulk secrets unset, but
+	// what's the right pattern for doing that restfully?
+	for _, secretID := range keys {
+		if err := client.UnsetSecret(
+			c.Context,
+			projectID,
+			secretID,
+		); err != nil {
+			return err
+		}
 	}
 
 	fmt.Printf("Unset secrets for project %q.\n", projectID)

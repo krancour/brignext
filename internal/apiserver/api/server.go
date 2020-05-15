@@ -31,6 +31,7 @@ type server struct {
 	router                     *mux.Router
 	serviceAccountSchemaLoader gojsonschema.JSONLoader
 	projectSchemaLoader        gojsonschema.JSONLoader
+	secretSchemaLoader         gojsonschema.JSONLoader
 	eventSchemaLoader          gojsonschema.JSONLoader
 	workerStatusSchemaLoader   gojsonschema.JSONLoader
 	jobStatusSchemaLoader      gojsonschema.JSONLoader
@@ -52,6 +53,7 @@ func NewServer(
 		router:                     mux.NewRouter(),
 		serviceAccountSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/service-account.json"),
 		projectSchemaLoader:        gojsonschema.NewReferenceLoader("file:///brignext/schemas/project.json"),
+		secretSchemaLoader:         gojsonschema.NewReferenceLoader("file:///brignext/schemas/secret.json"),
 		eventSchemaLoader:          gojsonschema.NewReferenceLoader("file:///brignext/schemas/event.json"),
 		workerStatusSchemaLoader:   gojsonschema.NewReferenceLoader("file:///brignext/schemas/worker-status.json"),
 		jobStatusSchemaLoader:      gojsonschema.NewReferenceLoader("file:///brignext/schemas/job-status.json"),
@@ -177,16 +179,16 @@ func NewServer(
 		tokenAuthFilter.Decorate(s.secretsList),
 	).Methods(http.MethodGet)
 
-	// Set secrets
+	// Set secret
 	s.router.HandleFunc(
 		"/v2/projects/{projectID}/secrets",
-		tokenAuthFilter.Decorate(s.secretsSet),
+		tokenAuthFilter.Decorate(s.secretSet),
 	).Methods(http.MethodPost)
 
-	// Unset secrets
+	// Unset secret
 	s.router.HandleFunc(
-		"/v2/projects/{projectID}/secrets",
-		tokenAuthFilter.Decorate(s.secretsUnset),
+		"/v2/projects/{projectID}/secrets/{secretID}",
+		tokenAuthFilter.Decorate(s.secretUnset),
 	).Methods(http.MethodDelete)
 
 	// Create event

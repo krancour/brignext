@@ -15,7 +15,7 @@ func (s *server) secretsList(w http.ResponseWriter, r *http.Request) {
 
 	projectID := mux.Vars(r)["projectID"]
 
-	secrets, err := s.service.GetSecrets(r.Context(), projectID)
+	secretList, err := s.service.GetSecrets(r.Context(), projectID)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
@@ -26,7 +26,7 @@ func (s *server) secretsList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBytes, err := json.Marshal(secrets)
+	responseBytes, err := json.Marshal(secretList)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error marshaling list secrets response"),

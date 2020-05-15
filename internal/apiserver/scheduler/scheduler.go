@@ -44,16 +44,16 @@ type Scheduler interface {
 	GetSecrets(
 		ctx context.Context,
 		project brignext.Project,
-	) (map[string]string, error)
-	SetSecrets(
+	) (brignext.SecretList, error)
+	SetSecret(
 		ctx context.Context,
 		project brignext.Project,
-		secrets map[string]string,
+		secret brignext.Secret,
 	) error
-	UnsetSecrets(
+	UnsetSecret(
 		ctx context.Context,
 		project brignext.Project,
-		keys []string,
+		secretID string,
 	) error
 
 	CreateEvent(
@@ -308,30 +308,49 @@ func (s *scheduler) DeleteProject(
 func (s *scheduler) GetSecrets(
 	ctx context.Context,
 	project brignext.Project,
-) (map[string]string, error) {
-	secret, err := s.kubeClient.CoreV1().Secrets(
+) (brignext.SecretList, error) {
+	secretList := brignext.SecretList{
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "SecretList",
+		},
+		ListMeta: brignext.ListMeta{},
+	}
+
+	k8sSecret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
 	).Get(ctx, "project-secrets", metav1.GetOptions{})
 	if err != nil {
-		return nil, errors.Wrapf(
+		return secretList, errors.Wrapf(
 			err,
 			"error retrieving secret \"project-secrets\" in namespace %q",
 			project.Kubernetes.Namespace,
 		)
 	}
-	secrets := map[string]string{}
-	for key := range secret.Data {
-		secrets[key] = "*** REDACTED ***"
+	secretList.Items = make([]brignext.Secret, len(k8sSecret.Data))
+	var i int
+	for key := range k8sSecret.Data {
+		secretList.Items[i] = brignext.Secret{
+			TypeMeta: brignext.TypeMeta{
+				APIVersion: brignext.APIVersion,
+				Kind:       "Secret",
+			},
+			ObjectMeta: brignext.ObjectMeta{
+				ID: key,
+			},
+			Value: "*** REDACTED ***",
+		}
+		i++
 	}
-	return secrets, nil
+	return secretList, nil
 }
 
-func (s *scheduler) SetSecrets(
+func (s *scheduler) SetSecret(
 	ctx context.Context,
 	project brignext.Project,
-	secrets map[string]string,
+	secret brignext.Secret,
 ) error {
-	secret, err := s.kubeClient.CoreV1().Secrets(
+	k8sSecret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
 	).Get(ctx, "project-secrets", metav1.GetOptions{})
 	if err != nil {
@@ -341,15 +360,15 @@ func (s *scheduler) SetSecrets(
 			project.Kubernetes.Namespace,
 		)
 	}
-	if secret.Data == nil {
-		secret.Data = map[string][]byte{}
+	if k8sSecret.Data == nil {
+		k8sSecret.Data = map[string][]byte{}
 	}
-	for key, value := range secrets {
-		secret.Data[key] = []byte(value)
-	}
+	k8sSecret.Data[secret.ID] = []byte(secret.Value)
+	// TODO: Can we do this more efficiently (and avoid race conditions) with a
+	// patch?
 	if _, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
-	).Update(ctx, secret, metav1.UpdateOptions{}); err != nil {
+	).Update(ctx, k8sSecret, metav1.UpdateOptions{}); err != nil {
 		return errors.Wrapf(
 			err,
 			"error updating project secret %q in namespace %q",
@@ -360,12 +379,12 @@ func (s *scheduler) SetSecrets(
 	return nil
 }
 
-func (s *scheduler) UnsetSecrets(
+func (s *scheduler) UnsetSecret(
 	ctx context.Context,
 	project brignext.Project,
-	keys []string,
+	secretID string,
 ) error {
-	secret, err := s.kubeClient.CoreV1().Secrets(
+	k8sSecret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
 	).Get(ctx, "project-secrets", metav1.GetOptions{})
 	if err != nil {
@@ -375,12 +394,12 @@ func (s *scheduler) UnsetSecrets(
 			project.Kubernetes.Namespace,
 		)
 	}
-	for _, key := range keys {
-		delete(secret.Data, key)
-	}
+	delete(k8sSecret.Data, secretID)
+	// TODO: Can we do this more efficiently (and avoid race conditions) with a
+	// patch?
 	if _, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
-	).Update(ctx, secret, metav1.UpdateOptions{}); err != nil {
+	).Update(ctx, k8sSecret, metav1.UpdateOptions{}); err != nil {
 		return errors.Wrapf(
 			err,
 			"error updating project secret %q in namespace %q",

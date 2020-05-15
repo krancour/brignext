@@ -35,13 +35,13 @@ type Client interface {
 	UpdateProject(context.Context, Project) error
 	DeleteProject(context.Context, string) error
 
-	GetSecrets(ctx context.Context, projectID string) (map[string]string, error)
-	SetSecrets(
+	GetSecrets(ctx context.Context, projectID string) (SecretList, error)
+	SetSecret(
 		ctx context.Context,
 		projectID string,
-		secrets map[string]string,
+		secret Secret,
 	) error
-	UnsetSecrets(ctx context.Context, projectID string, keys []string) error
+	UnsetSecret(ctx context.Context, projectID string, secretID string) error
 
 	CreateEvent(context.Context, Event) ([]string, error)
 	GetEvents(context.Context) (EventList, error)
@@ -726,58 +726,59 @@ func (c *client) DeleteProject(_ context.Context, id string) error {
 func (c *client) GetSecrets(
 	ctx context.Context,
 	projectID string,
-) (map[string]string, error) {
+) (SecretList, error) {
+	secretList := SecretList{}
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf("v2/projects/%s/secrets", projectID),
 		nil,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating HTTP request")
+		return secretList, errors.Wrap(err, "error creating HTTP request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error invoking API")
+		return secretList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &ErrProjectNotFound{
+		return secretList, &ErrProjectNotFound{
 			ID: projectID,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+		return secretList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
+		return secretList, errors.Wrap(err, "error reading response body")
 	}
 
-	secrets := map[string]string{}
-	if err := json.Unmarshal(respBodyBytes, &secrets); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &secretList); err != nil {
+		return secretList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return secrets, nil
+	return secretList, nil
 }
 
-func (c *client) SetSecrets(
+func (c *client) SetSecret(
 	ctx context.Context,
 	projectID string,
-	secrets map[string]string,
+	secret Secret,
 ) error {
-	secretsBytes, err := json.Marshal(secrets)
+	secretBytes, err := json.Marshal(secret)
 	if err != nil {
-		return errors.Wrap(err, "error marshaling secrets")
+		return errors.Wrap(err, "error marshaling secret")
 	}
 
 	req, err := c.buildRequest(
 		http.MethodPost,
 		fmt.Sprintf("v2/projects/%s/secrets", projectID),
-		secretsBytes,
+		secretBytes,
 	)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
@@ -801,25 +802,15 @@ func (c *client) SetSecrets(
 	return nil
 }
 
-func (c *client) UnsetSecrets(
+func (c *client) UnsetSecret(
 	ctx context.Context,
 	projectID string,
-	keys []string,
+	secretID string,
 ) error {
-	keysStruct := struct {
-		Keys []string `json:"keys"`
-	}{
-		Keys: keys,
-	}
-	keysBytes, err := json.Marshal(keysStruct)
-	if err != nil {
-		return errors.Wrap(err, "error marshaling keys")
-	}
-
 	req, err := c.buildRequest(
 		http.MethodDelete,
-		fmt.Sprintf("v2/projects/%s/secrets", projectID),
-		keysBytes,
+		fmt.Sprintf("v2/projects/%s/secrets/%s", projectID, secretID),
+		nil,
 	)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")

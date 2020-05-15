@@ -24,7 +24,7 @@ func secretsList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	secrets, err := client.GetSecrets(c.Context, projectID)
+	secretList, err := client.GetSecrets(c.Context, projectID)
 	if err != nil {
 		return err
 	}
@@ -33,13 +33,13 @@ func secretsList(c *cli.Context) error {
 	case "table":
 		table := uitable.New()
 		table.AddRow("KEY", "VALUE")
-		for key, value := range secrets {
-			table.AddRow(key, value)
+		for _, secret := range secretList.Items {
+			table.AddRow(secret.ID, secret.Value)
 		}
 		fmt.Println(table)
 
 	case "yaml":
-		yamlBytes, err := yaml.Marshal(secrets)
+		yamlBytes, err := yaml.Marshal(secretList)
 		if err != nil {
 			return errors.Wrap(
 				err,
@@ -49,7 +49,7 @@ func secretsList(c *cli.Context) error {
 		fmt.Println(string(yamlBytes))
 
 	case "json":
-		prettyJSON, err := json.MarshalIndent(secrets, "", "  ")
+		prettyJSON, err := json.MarshalIndent(secretList, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,

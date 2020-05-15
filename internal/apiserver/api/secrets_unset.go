@@ -1,8 +1,6 @@
 package api
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -11,36 +9,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (s *server) secretsUnset(w http.ResponseWriter, r *http.Request) {
+func (s *server) secretUnset(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
 	projectID := mux.Vars(r)["projectID"]
+	secretID := mux.Vars(r)["secretID"]
 
-	bodyBytes, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Println(
-			errors.Wrap(err, "error reading body of unset secrets request"),
-		)
-		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
-		return
-	}
-
-	keysStruct := struct {
-		Keys []string `json:"keys"`
-	}{}
-	if err := json.Unmarshal(bodyBytes, &keysStruct); err != nil {
-		log.Println(
-			errors.Wrap(err, "error unmarshaling body of unset secrets request"),
-		)
-		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
-		return
-	}
-
-	if err := s.service.UnsetSecrets(
-		r.Context(),
-		projectID,
-		keysStruct.Keys,
-	); err != nil {
+	if err :=
+		s.service.UnsetSecret(r.Context(), projectID, secretID); err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 			return
