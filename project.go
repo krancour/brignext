@@ -1,6 +1,11 @@
 package brignext
 
-// nolint: lll
+type ProjectList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata"`
+	Items    []Project `json:"items"`
+}
+
 type Project struct {
 	TypeMeta   `json:",inline" bson:",inline"`
 	ObjectMeta `json:"metadata" bson:"metadata"`

@@ -23,12 +23,12 @@ func userList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	users, err := client.GetUsers(c.Context)
+	userList, err := client.GetUsers(c.Context)
 	if err != nil {
 		return err
 	}
 
-	if len(users) == 0 {
+	if len(userList.Items) == 0 {
 		fmt.Println("No users found.")
 		return nil
 	}
@@ -37,7 +37,7 @@ func userList(c *cli.Context) error {
 	case "table":
 		table := uitable.New()
 		table.AddRow("ID", "NAME", "FIRST SEEN", "LOCKED?")
-		for _, user := range users {
+		for _, user := range userList.Items {
 			table.AddRow(
 				user.ID,
 				user.Name,
@@ -48,7 +48,7 @@ func userList(c *cli.Context) error {
 		fmt.Println(table)
 
 	case "yaml":
-		yamlBytes, err := yaml.Marshal(users)
+		yamlBytes, err := yaml.Marshal(userList)
 		if err != nil {
 			return errors.Wrap(
 				err,
@@ -58,7 +58,7 @@ func userList(c *cli.Context) error {
 		fmt.Println(string(yamlBytes))
 
 	case "json":
-		prettyJSON, err := json.MarshalIndent(users, "", "  ")
+		prettyJSON, err := json.MarshalIndent(userList, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,

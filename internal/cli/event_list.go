@@ -27,17 +27,17 @@ func eventList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	var events []brignext.Event
+	var eventList brignext.EventList
 	if projectID == "" {
-		events, err = client.GetEvents(c.Context)
+		eventList, err = client.GetEvents(c.Context)
 	} else {
-		events, err = client.GetEventsByProject(c.Context, projectID)
+		eventList, err = client.GetEventsByProject(c.Context, projectID)
 	}
 	if err != nil {
 		return err
 	}
 
-	if len(events) == 0 {
+	if len(eventList.Items) == 0 {
 		fmt.Println("No events found.")
 		return nil
 	}
@@ -46,7 +46,7 @@ func eventList(c *cli.Context) error {
 	case "table":
 		table := uitable.New()
 		table.AddRow("ID", "PROJECT", "SOURCE", "TYPE", "AGE", "WORKER PHASE")
-		for _, event := range events {
+		for _, event := range eventList.Items {
 			var age string
 			if event.Created != nil {
 				age = duration.ShortHumanDuration(time.Since(*event.Created))
@@ -63,7 +63,7 @@ func eventList(c *cli.Context) error {
 		fmt.Println(table)
 
 	case "yaml":
-		yamlBytes, err := yaml.Marshal(events)
+		yamlBytes, err := yaml.Marshal(eventList)
 		if err != nil {
 			return errors.Wrap(
 				err,
@@ -73,7 +73,7 @@ func eventList(c *cli.Context) error {
 		fmt.Println(string(yamlBytes))
 
 	case "json":
-		prettyJSON, err := json.MarshalIndent(events, "", "  ")
+		prettyJSON, err := json.MarshalIndent(eventList, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,

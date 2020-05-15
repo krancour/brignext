@@ -202,18 +202,24 @@ func (s *store) CreateUser(ctx context.Context, user brignext.User) error {
 	return nil
 }
 
-func (s *store) GetUsers(ctx context.Context) ([]brignext.User, error) {
+func (s *store) GetUsers(ctx context.Context) (brignext.UserList, error) {
+	userList := brignext.UserList{
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "UserList",
+		},
+		Items: []brignext.User{},
+	}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"metadata.id": 1})
 	cur, err := s.usersCollection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
-		return nil, errors.Wrap(err, "error finding users")
+		return userList, errors.Wrap(err, "error finding users")
 	}
-	users := []brignext.User{}
-	if err := cur.All(ctx, &users); err != nil {
-		return nil, errors.Wrap(err, "error decoding users")
+	if err := cur.All(ctx, &userList.Items); err != nil {
+		return userList, errors.Wrap(err, "error decoding users")
 	}
-	return users, nil
+	return userList, nil
 }
 
 func (s *store) GetUser(ctx context.Context, id string) (brignext.User, error) {
@@ -415,18 +421,24 @@ func (s *store) CreateServiceAccount(
 
 func (s *store) GetServiceAccounts(
 	ctx context.Context,
-) ([]brignext.ServiceAccount, error) {
+) (brignext.ServiceAccountList, error) {
+	serviceAccountList := brignext.ServiceAccountList{
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "ServiceAccountList",
+		},
+		Items: []brignext.ServiceAccount{},
+	}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"metadata.id": 1})
 	cur, err := s.serviceAccountsCollection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
-		return nil, errors.Wrap(err, "error finding service accounts")
+		return serviceAccountList, errors.Wrap(err, "error finding service accounts")
 	}
-	serviceAccounts := []brignext.ServiceAccount{}
-	if err := cur.All(ctx, &serviceAccounts); err != nil {
-		return nil, errors.Wrap(err, "error decoding service accounts")
+	if err := cur.All(ctx, &serviceAccountList.Items); err != nil {
+		return serviceAccountList, errors.Wrap(err, "error decoding service accounts")
 	}
-	return serviceAccounts, nil
+	return serviceAccountList, nil
 }
 
 func (s *store) GetServiceAccount(
@@ -552,24 +564,37 @@ func (s *store) CreateProject(
 	return nil
 }
 
-func (s *store) GetProjects(ctx context.Context) ([]brignext.Project, error) {
+func (s *store) GetProjects(ctx context.Context) (brignext.ProjectList, error) {
+	projectList := brignext.ProjectList{
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "ProjectList",
+		},
+		Items: []brignext.Project{},
+	}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"metadata.id": 1})
 	cur, err := s.projectsCollection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
-		return nil, errors.Wrap(err, "error finding projects")
+		return projectList, errors.Wrap(err, "error finding projects")
 	}
-	projects := []brignext.Project{}
-	if err := cur.All(ctx, &projects); err != nil {
-		return nil, errors.Wrap(err, "error decoding projects")
+	if err := cur.All(ctx, &projectList.Items); err != nil {
+		return projectList, errors.Wrap(err, "error decoding projects")
 	}
-	return projects, nil
+	return projectList, nil
 }
 
 func (s *store) GetSubscribedProjects(
 	ctx context.Context,
 	event brignext.Event,
-) ([]brignext.Project, error) {
+) (brignext.ProjectList, error) {
+	projectList := brignext.ProjectList{
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "ProjectList",
+		},
+		Items: []brignext.Project{},
+	}
 	subscriptionMatchCriteria := bson.M{
 		"source": event.Source,
 		"types": bson.M{
@@ -604,13 +629,12 @@ func (s *store) GetSubscribedProjects(
 		findOptions,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "error finding projects")
+		return projectList, errors.Wrap(err, "error finding projects")
 	}
-	projects := []brignext.Project{}
-	if err := cur.All(ctx, &projects); err != nil {
-		return nil, errors.Wrap(err, "error decoding projects")
+	if err := cur.All(ctx, &projectList.Items); err != nil {
+		return projectList, errors.Wrap(err, "error decoding projects")
 	}
-	return projects, nil
+	return projectList, nil
 }
 
 func (s *store) GetProject(
@@ -688,44 +712,56 @@ func (s *store) CreateEvent(ctx context.Context, event brignext.Event) error {
 	return nil
 }
 
-func (s *store) GetEvents(ctx context.Context) ([]brignext.Event, error) {
+func (s *store) GetEvents(ctx context.Context) (brignext.EventList, error) {
+	eventList := brignext.EventList{
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "EventList",
+		},
+		Items: []brignext.Event{},
+	}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"metadata.created": -1})
 	cur, err := s.eventsCollection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
-		return nil, errors.Wrap(err, "error finding events")
+		return eventList, errors.Wrap(err, "error finding events")
 	}
-	events := []brignext.Event{}
-	if err := cur.All(ctx, &events); err != nil {
-		return nil, errors.Wrap(err, "error decoding events")
+	if err := cur.All(ctx, &eventList.Items); err != nil {
+		return eventList, errors.Wrap(err, "error decoding events")
 	}
-	return events, nil
+	return eventList, nil
 }
 
 func (s *store) GetEventsByProject(
 	ctx context.Context,
 	projectID string,
-) ([]brignext.Event, error) {
+) (brignext.EventList, error) {
+	eventList := brignext.EventList{
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "EventList",
+		},
+		Items: []brignext.Event{},
+	}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"metadata.created": -1})
 	cur, err :=
 		s.eventsCollection.Find(ctx, bson.M{"projectID": projectID}, findOptions)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return eventList, errors.Wrapf(
 			err,
 			"error finding events for project %q",
 			projectID,
 		)
 	}
-	events := []brignext.Event{}
-	if err := cur.All(ctx, &events); err != nil {
-		return nil, errors.Wrapf(
+	if err := cur.All(ctx, &eventList.Items); err != nil {
+		return eventList, errors.Wrapf(
 			err,
 			"error decoding events for project %q",
 			projectID,
 		)
 	}
-	return events, nil
+	return eventList, nil
 }
 
 func (s *store) GetEvent(

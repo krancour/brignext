@@ -12,12 +12,12 @@ import (
 func (s *server) eventList(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	var events []brignext.Event
+	var eventList brignext.EventList
 	var err error
 	if projectID := r.URL.Query().Get("projectID"); projectID != "" {
-		events, err = s.service.GetEventsByProject(r.Context(), projectID)
+		eventList, err = s.service.GetEventsByProject(r.Context(), projectID)
 	} else {
-		events, err = s.service.GetEvents(r.Context())
+		eventList, err = s.service.GetEvents(r.Context())
 	}
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
@@ -29,7 +29,7 @@ func (s *server) eventList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBytes, err := json.Marshal(events)
+	responseBytes, err := json.Marshal(eventList)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error marshaling list events response"),

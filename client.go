@@ -14,7 +14,7 @@ import (
 )
 
 type Client interface {
-	GetUsers(context.Context) ([]User, error)
+	GetUsers(context.Context) (UserList, error)
 	GetUser(context.Context, string) (User, error)
 	LockUser(context.Context, string) error
 	UnlockUser(context.Context, string) error
@@ -24,13 +24,13 @@ type Client interface {
 	DeleteSession(context.Context) error
 
 	CreateServiceAccount(context.Context, ServiceAccount) (string, error)
-	GetServiceAccounts(context.Context) ([]ServiceAccount, error)
+	GetServiceAccounts(context.Context) (ServiceAccountList, error)
 	GetServiceAccount(context.Context, string) (ServiceAccount, error)
 	LockServiceAccount(context.Context, string) error
 	UnlockServiceAccount(context.Context, string) (string, error)
 
 	CreateProject(context.Context, Project) error
-	GetProjects(context.Context) ([]Project, error)
+	GetProjects(context.Context) (ProjectList, error)
 	GetProject(context.Context, string) (Project, error)
 	UpdateProject(context.Context, Project) error
 	DeleteProject(context.Context, string) error
@@ -44,8 +44,8 @@ type Client interface {
 	UnsetSecrets(ctx context.Context, projectID string, keys []string) error
 
 	CreateEvent(context.Context, Event) ([]string, error)
-	GetEvents(context.Context) ([]Event, error)
-	GetEventsByProject(context.Context, string) ([]Event, error)
+	GetEvents(context.Context) (EventList, error)
+	GetEventsByProject(context.Context, string) (EventList, error)
 	GetEvent(context.Context, string) (Event, error)
 	CancelEvent(
 		ctx context.Context,
@@ -137,33 +137,34 @@ func NewClient(apiAddress, apiToken string, allowInsecure bool) Client {
 	}
 }
 
-func (c *client) GetUsers(context.Context) ([]User, error) {
+func (c *client) GetUsers(context.Context) (UserList, error) {
+	userList := UserList{}
+
 	req, err := c.buildRequest(http.MethodGet, "v2/users", nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating HTTP request")
+		return userList, errors.Wrap(err, "error creating HTTP request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error invoking API")
+		return userList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+		return userList, errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
+		return userList, errors.Wrap(err, "error reading response body")
 	}
 
-	users := []User{}
-	if err := json.Unmarshal(respBodyBytes, &users); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &userList); err != nil {
+		return userList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return users, nil
+	return userList, nil
 }
 
 func (c *client) GetUser(_ context.Context, id string) (User, error) {
@@ -407,33 +408,36 @@ func (c *client) CreateServiceAccount(
 
 func (c *client) GetServiceAccounts(
 	context.Context,
-) ([]ServiceAccount, error) {
+) (ServiceAccountList, error) {
+	serviceAccountList := ServiceAccountList{}
+
 	req, err := c.buildRequest(http.MethodGet, "v2/service-accounts", nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating HTTP request")
+		return serviceAccountList, errors.Wrap(err, "error creating HTTP request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error invoking API")
+		return serviceAccountList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+		return serviceAccountList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
+		return serviceAccountList, errors.Wrap(err, "error reading response body")
 	}
 
-	serviceAccounts := []ServiceAccount{}
-	if err := json.Unmarshal(respBodyBytes, &serviceAccounts); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &serviceAccountList); err != nil {
+		return serviceAccountList,
+			errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return serviceAccounts, nil
+	return serviceAccountList, nil
 }
 
 func (c *client) GetServiceAccount(
@@ -583,33 +587,34 @@ func (c *client) CreateProject(
 	return nil
 }
 
-func (c *client) GetProjects(context.Context) ([]Project, error) {
+func (c *client) GetProjects(context.Context) (ProjectList, error) {
+	projectList := ProjectList{}
+
 	req, err := c.buildRequest(http.MethodGet, "v2/projects", nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating HTTP request")
+		return projectList, errors.Wrap(err, "error creating HTTP request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error invoking API")
+		return projectList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+		return projectList, errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
+		return projectList, errors.Wrap(err, "error reading response body")
 	}
 
-	projects := []Project{}
-	if err := json.Unmarshal(respBodyBytes, &projects); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &projectList); err != nil {
+		return projectList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return projects, nil
+	return projectList, nil
 }
 
 func (c *client) GetProject(_ context.Context, id string) (Project, error) {
@@ -878,42 +883,45 @@ func (c *client) CreateEvent(_ context.Context, event Event) ([]string, error) {
 	return respStruct.IDs, nil
 }
 
-func (c *client) GetEvents(context.Context) ([]Event, error) {
+func (c *client) GetEvents(context.Context) (EventList, error) {
+	eventList := EventList{}
+
 	req, err := c.buildRequest(http.MethodGet, "v2/events", nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating HTTP request")
+		return eventList, errors.Wrap(err, "error creating HTTP request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error invoking API")
+		return eventList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+		return eventList, errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
+		return eventList, errors.Wrap(err, "error reading response body")
 	}
 
-	events := []Event{}
-	if err := json.Unmarshal(respBodyBytes, &events); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &eventList); err != nil {
+		return eventList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return events, nil
+	return eventList, nil
 }
 
 func (c *client) GetEventsByProject(
 	_ context.Context,
 	projectID string,
-) ([]Event, error) {
+) (EventList, error) {
+	eventList := EventList{}
+
 	req, err := c.buildRequest(http.MethodGet, "v2/events", nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating HTTP request")
+		return eventList, errors.Wrap(err, "error creating HTTP request")
 	}
 	if projectID != "" {
 		q := req.URL.Query()
@@ -923,30 +931,29 @@ func (c *client) GetEventsByProject(
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error invoking API")
+		return eventList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &ErrProjectNotFound{
+		return eventList, &ErrProjectNotFound{
 			ID: projectID,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+		return eventList, errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
+		return eventList, errors.Wrap(err, "error reading response body")
 	}
 
-	events := []Event{}
-	if err := json.Unmarshal(respBodyBytes, &events); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &eventList); err != nil {
+		return eventList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return events, nil
+	return eventList, nil
 }
 
 func (c *client) GetEvent(ctx context.Context, id string) (Event, error) {

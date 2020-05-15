@@ -19,3 +19,6 @@ type ObjectMeta struct {
 	LastUpdated *time.Time `json:"lastUpdated,omitempty" bson:"lastUpdated"`
 	// LastUpdatedBy string     `json:"lastUpdatedBy,omitempty" bson:"lastUpdatedBy"`
 }
+
+type ListMeta struct {
+}

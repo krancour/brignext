@@ -25,12 +25,12 @@ func projectList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	projects, err := client.GetProjects(c.Context)
+	projectList, err := client.GetProjects(c.Context)
 	if err != nil {
 		return err
 	}
 
-	if len(projects) == 0 {
+	if len(projectList.Items) == 0 {
 		fmt.Println("No projects found.")
 		return nil
 	}
@@ -39,7 +39,7 @@ func projectList(c *cli.Context) error {
 	case "table":
 		table := uitable.New()
 		table.AddRow("ID", "DESCRIPTION", "AGE")
-		for _, project := range projects {
+		for _, project := range projectList.Items {
 			var age string
 			if project.Created != nil {
 				age = duration.ShortHumanDuration(time.Since(*project.Created))
@@ -53,7 +53,7 @@ func projectList(c *cli.Context) error {
 		fmt.Println(table)
 
 	case "yaml":
-		yamlBytes, err := yaml.Marshal(projects)
+		yamlBytes, err := yaml.Marshal(projectList)
 		if err != nil {
 			return errors.Wrap(
 				err,
@@ -63,7 +63,7 @@ func projectList(c *cli.Context) error {
 		fmt.Println(string(yamlBytes))
 
 	case "json":
-		prettyJSON, err := json.MarshalIndent(projects, "", "  ")
+		prettyJSON, err := json.MarshalIndent(projectList, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,

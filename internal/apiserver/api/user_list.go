@@ -11,7 +11,7 @@ import (
 func (s *server) userList(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	users, err := s.service.GetUsers(r.Context())
+	userList, err := s.service.GetUsers(r.Context())
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error retrieving all users"),
@@ -20,7 +20,7 @@ func (s *server) userList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBytes, err := json.Marshal(users)
+	responseBytes, err := json.Marshal(userList)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error marshaling list users response"),

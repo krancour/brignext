@@ -15,7 +15,7 @@ import (
 
 type Service interface {
 	CreateUser(context.Context, brignext.User) error
-	GetUsers(context.Context) ([]brignext.User, error)
+	GetUsers(context.Context) (brignext.UserList, error)
 	GetUser(context.Context, string) (brignext.User, error)
 	LockUser(context.Context, string) error
 	UnlockUser(context.Context, string) error
@@ -33,7 +33,7 @@ type Service interface {
 	DeleteSessionsByUser(context.Context, string) (int64, error)
 
 	CreateServiceAccount(context.Context, brignext.ServiceAccount) (string, error)
-	GetServiceAccounts(context.Context) ([]brignext.ServiceAccount, error)
+	GetServiceAccounts(context.Context) (brignext.ServiceAccountList, error)
 	GetServiceAccount(context.Context, string) (brignext.ServiceAccount, error)
 	GetServiceAccountByToken(
 		context.Context,
@@ -43,7 +43,7 @@ type Service interface {
 	UnlockServiceAccount(context.Context, string) (string, error)
 
 	CreateProject(context.Context, brignext.Project) error
-	GetProjects(context.Context) ([]brignext.Project, error)
+	GetProjects(context.Context) (brignext.ProjectList, error)
 	GetProject(context.Context, string) (brignext.Project, error)
 	UpdateProject(context.Context, brignext.Project) error
 	DeleteProject(context.Context, string) error
@@ -64,8 +64,8 @@ type Service interface {
 	) error
 
 	CreateEvent(context.Context, brignext.Event) ([]string, error)
-	GetEvents(context.Context) ([]brignext.Event, error)
-	GetEventsByProject(context.Context, string) ([]brignext.Event, error)
+	GetEvents(context.Context) (brignext.EventList, error)
+	GetEventsByProject(context.Context, string) (brignext.EventList, error)
 	GetEvent(context.Context, string) (brignext.Event, error)
 	CancelEvent(
 		ctx context.Context,
@@ -165,12 +165,12 @@ func (s *service) CreateUser(ctx context.Context, user brignext.User) error {
 	return nil
 }
 
-func (s *service) GetUsers(ctx context.Context) ([]brignext.User, error) {
-	users, err := s.store.GetUsers(ctx)
+func (s *service) GetUsers(ctx context.Context) (brignext.UserList, error) {
+	userList, err := s.store.GetUsers(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "error retrieving users from store")
+		return userList, errors.Wrap(err, "error retrieving users from store")
 	}
-	return users, nil
+	return userList, nil
 }
 
 func (s *service) GetUser(
@@ -359,12 +359,12 @@ func (s *service) CreateServiceAccount(
 
 func (s *service) GetServiceAccounts(
 	ctx context.Context,
-) ([]brignext.ServiceAccount, error) {
-	serviceAccounts, err := s.store.GetServiceAccounts(ctx)
+) (brignext.ServiceAccountList, error) {
+	serviceAccountList, err := s.store.GetServiceAccounts(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "error retrieving service accounts from store")
+		return serviceAccountList, errors.Wrap(err, "error retrieving service accounts from store")
 	}
-	return serviceAccounts, nil
+	return serviceAccountList, nil
 }
 
 func (s *service) GetServiceAccount(
@@ -463,12 +463,14 @@ func (s *service) CreateProject(
 	return nil
 }
 
-func (s *service) GetProjects(ctx context.Context) ([]brignext.Project, error) {
-	projects, err := s.store.GetProjects(ctx)
+func (s *service) GetProjects(
+	ctx context.Context,
+) (brignext.ProjectList, error) {
+	projectList, err := s.store.GetProjects(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "error retrieving projects from store")
+		return projectList, errors.Wrap(err, "error retrieving projects from store")
 	}
-	return projects, nil
+	return projectList, nil
 }
 
 func (s *service) GetProject(
@@ -627,15 +629,15 @@ func (s *service) CreateEvent(
 	// an event for each of these by making a recursive call to this same
 	// function.
 	if event.ProjectID == "" {
-		projects, err := s.store.GetSubscribedProjects(ctx, event)
+		projectList, err := s.store.GetSubscribedProjects(ctx, event)
 		if err != nil {
 			return nil, errors.Wrap(
 				err,
 				"error retrieving subscribed projects from store",
 			)
 		}
-		eventIDs := make([]string, len(projects))
-		for i, project := range projects {
+		eventIDs := make([]string, len(projectList.Items))
+		for i, project := range projectList.Items {
 			event.ProjectID = project.ID
 			eids, err := s.CreateEvent(ctx, event)
 			if err != nil {
@@ -720,30 +722,31 @@ func (s *service) CreateEvent(
 	return []string{event.ID}, nil
 }
 
-func (s *service) GetEvents(ctx context.Context) ([]brignext.Event, error) {
-	events, err := s.store.GetEvents(ctx)
+func (s *service) GetEvents(ctx context.Context) (brignext.EventList, error) {
+	eventList, err := s.store.GetEvents(ctx)
 	if err != nil {
-		return nil, errors.Wrap(err, "error retrieving events from store")
+		return eventList, errors.Wrap(err, "error retrieving events from store")
 	}
-	return events, nil
+	return eventList, nil
 }
 
 func (s *service) GetEventsByProject(
 	ctx context.Context,
 	projectID string,
-) ([]brignext.Event, error) {
+) (brignext.EventList, error) {
 	if _, err := s.store.GetProject(ctx, projectID); err != nil {
-		return nil, errors.Wrapf(err, "error retrieving project %q", projectID)
+		return brignext.EventList{},
+			errors.Wrapf(err, "error retrieving project %q", projectID)
 	}
-	events, err := s.store.GetEventsByProject(ctx, projectID)
+	eventList, err := s.store.GetEventsByProject(ctx, projectID)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return eventList, errors.Wrapf(
 			err,
 			"error retrieving events for project %q from store",
 			projectID,
 		)
 	}
-	return events, nil
+	return eventList, nil
 }
 
 func (s *service) GetEvent(
@@ -811,7 +814,7 @@ func (s *service) CancelEventsByProject(
 	// Find all events. We'll iterate over all of them and try to cancel each.
 	// It sounds inefficient and it probably is, but this allows us to cancel
 	// each event in its own transaction.
-	events, err := s.store.GetEventsByProject(ctx, projectID)
+	eventList, err := s.store.GetEventsByProject(ctx, projectID)
 	if err != nil {
 		return 0, errors.Wrapf(
 			err,
@@ -821,7 +824,7 @@ func (s *service) CancelEventsByProject(
 	}
 
 	var canceledCount int64
-	for _, event := range events {
+	for _, event := range eventList.Items {
 		if err := s.store.DoTx(ctx, func(ctx context.Context) error {
 			ok, err := s.store.CancelEvent(ctx, event.ID, cancelRunning)
 			if err != nil {
@@ -894,7 +897,7 @@ func (s *service) DeleteEventsByProject(
 	// Find all events. We'll iterate over all of them and try to delete each.
 	// It sounds inefficient and it probably is, but this allows us to delete
 	// each event in its own transaction.
-	events, err := s.store.GetEventsByProject(ctx, projectID)
+	eventList, err := s.store.GetEventsByProject(ctx, projectID)
 	if err != nil {
 		return 0, errors.Wrapf(
 			err,
@@ -904,7 +907,7 @@ func (s *service) DeleteEventsByProject(
 	}
 
 	var deletedCount int64
-	for _, event := range events {
+	for _, event := range eventList.Items {
 		if err := s.store.DoTx(ctx, func(ctx context.Context) error {
 			ok, err := s.store.DeleteEvent(
 				ctx,

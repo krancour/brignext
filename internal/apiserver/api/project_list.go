@@ -11,7 +11,7 @@ import (
 func (s *server) projectList(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	projects, err := s.service.GetProjects(r.Context())
+	projectList, err := s.service.GetProjects(r.Context())
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error retrieving all projects"),
@@ -20,7 +20,7 @@ func (s *server) projectList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBytes, err := json.Marshal(projects)
+	responseBytes, err := json.Marshal(projectList)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error marshaling list projects response"),

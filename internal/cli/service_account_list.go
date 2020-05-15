@@ -27,12 +27,12 @@ func serviceAccountList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	serviceAccounts, err := client.GetServiceAccounts(c.Context)
+	serviceAccountList, err := client.GetServiceAccounts(c.Context)
 	if err != nil {
 		return err
 	}
 
-	if len(serviceAccounts) == 0 {
+	if len(serviceAccountList.Items) == 0 {
 		fmt.Println("No service accounts found.")
 		return nil
 	}
@@ -41,7 +41,7 @@ func serviceAccountList(c *cli.Context) error {
 	case "table":
 		table := uitable.New()
 		table.AddRow("ID", "DESCRIPTION", "AGE", "LOCKED?")
-		for _, serviceAccount := range serviceAccounts {
+		for _, serviceAccount := range serviceAccountList.Items {
 			var age string
 			if serviceAccount.Created != nil {
 				age = duration.ShortHumanDuration(time.Since(*serviceAccount.Created))
@@ -56,7 +56,7 @@ func serviceAccountList(c *cli.Context) error {
 		fmt.Println(table)
 
 	case "yaml":
-		yamlBytes, err := yaml.Marshal(serviceAccounts)
+		yamlBytes, err := yaml.Marshal(serviceAccountList)
 		if err != nil {
 			return errors.Wrap(
 				err,
@@ -66,7 +66,7 @@ func serviceAccountList(c *cli.Context) error {
 		fmt.Println(string(yamlBytes))
 
 	case "json":
-		prettyJSON, err := json.MarshalIndent(serviceAccounts, "", "  ")
+		prettyJSON, err := json.MarshalIndent(serviceAccountList, "", "  ")
 		if err != nil {
 			return errors.Wrap(
 				err,

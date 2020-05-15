@@ -20,7 +20,7 @@ func (c *controller) defaultManageProjectWorkerQueueConsumers(
 	defer ticker.Stop()
 
 	for {
-		projects, err := c.apiClient.GetProjects(ctx)
+		projectList, err := c.apiClient.GetProjects(ctx)
 		if err != nil {
 			select {
 			case c.errCh <- err:
@@ -32,7 +32,7 @@ func (c *controller) defaultManageProjectWorkerQueueConsumers(
 		// Build a set of current projects. This makes it a little faster and easier
 		// to search for projects later in this algorithm.
 		currentProjects := map[string]struct{}{}
-		for _, project := range projects {
+		for _, project := range projectList.Items {
 			currentProjects[project.ID] = struct{}{}
 		}
 

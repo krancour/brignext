@@ -6,7 +6,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// nolint: lll
+type EventList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata"`
+	Items    []Event `json:"items"`
+}
+
 type Event struct {
 	TypeMeta   `json:",inline" bson:",inline"`
 	EventMeta  `json:"metadata" bson:"metadata"`

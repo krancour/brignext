@@ -11,7 +11,7 @@ import (
 func (s *server) serviceAccountList(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	serviceAccounts, err := s.service.GetServiceAccounts(r.Context())
+	serviceAccountList, err := s.service.GetServiceAccounts(r.Context())
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error retrieving all service accounts"),
@@ -20,7 +20,7 @@ func (s *server) serviceAccountList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBytes, err := json.Marshal(serviceAccounts)
+	responseBytes, err := json.Marshal(serviceAccountList)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error marshaling list service accounts response"),
