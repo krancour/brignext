@@ -14,10 +14,11 @@ type EventList struct {
 
 type Event struct {
 	TypeMeta   `json:",inline" bson:",inline"`
-	EventMeta  `json:"metadata" bson:"metadata"`
+	ObjectMeta `json:"metadata" bson:"metadata"`
 	ProjectID  string         `json:"projectID" bson:"projectID"`
 	Source     string         `json:"source" bson:"source"`
 	Type       string         `json:"type" bson:"type"`
+	Labels     Labels         `json:"labels" bson:"labels"`
 	ShortTitle string         `json:"shortTitle" bson:"shortTitle"`
 	LongTitle  string         `json:"longTitle" bson:"longTitle"`
 	Git        EventGitConfig `json:"git" bson:"git"`
@@ -27,11 +28,6 @@ type Event struct {
 	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
 	Canceled   *time.Time        `json:"canceled,omitempty" bson:"canceled"`
 	Status     *EventStatus      `json:"status,omitempty" bson:"status"`
-}
-
-type EventMeta struct {
-	ObjectMeta `json:",inline" bson:",inline"`
-	Labels     Labels `json:"labels" bson:"labels"`
 }
 
 type EventGitConfig struct {

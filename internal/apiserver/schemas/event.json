@@ -42,24 +42,10 @@
 			"enum": ["Event"]
 		},
 
-		"eventMeta": {
+		"objectMeta": {
 			"type": "object",
 			"description": "Event metadata",
-			"additionalProperties": false,
-			"properties": {
-				"labels": {
-					"type": [
-						"object",
-						"null"
-					],
-					"additionalProperties": true,
-					"patternProperties": {
-						"^[\\w:/\\-\\.\\?=\\*]*$": {
-							"$ref": "#/definitions/label"
-						}
-					}
-				}
-			}
+			"additionalProperties": false
 		},
 
 		"gitConfig": {
@@ -102,7 +88,7 @@
 			"$ref": "#/definitions/kind"
 		},
 		"metadata": {
-			"$ref": "#/definitions/eventMeta"
+			"$ref": "#/definitions/objectMeta"
 		},
 		"projectID": {
 			"oneOf": [
@@ -118,6 +104,19 @@
 		"type": {
 			"allOf": [{ "$ref": "#/definitions/label" }],
 			"description": "The type of the event"
+		},
+		"labels": {
+			"type": [
+				"object",
+				"null"
+			],
+			"additionalProperties": true,
+			"patternProperties": {
+				"^[\\w:/\\-\\.\\?=\\*]*$": {
+					"$ref": "#/definitions/label"
+				}
+			},
+			"description": "Labels to help BrigNext route the event to subscribed projects"
 		},
 		"shortTitle": {
 			"type": "string",
