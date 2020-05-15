@@ -13,21 +13,25 @@ import (
 	"github.com/pkg/errors"
 )
 
+// TODO: All client functions that receive a non-empty response should assert
+// version information meets expectations. In this way, we could proactively
+// detect the condition where a client and server major version are mismatched.
+
 type Client interface {
 	GetUsers(context.Context) (UserList, error)
 	GetUser(context.Context, string) (User, error)
 	LockUser(context.Context, string) error
 	UnlockUser(context.Context, string) error
 
-	CreateRootSession(ctx context.Context, password string) (string, error)
+	CreateRootSession(ctx context.Context, password string) (Token, error)
 	CreateUserSession(context.Context) (string, string, error)
 	DeleteSession(context.Context) error
 
-	CreateServiceAccount(context.Context, ServiceAccount) (string, error)
+	CreateServiceAccount(context.Context, ServiceAccount) (Token, error)
 	GetServiceAccounts(context.Context) (ServiceAccountList, error)
 	GetServiceAccount(context.Context, string) (ServiceAccount, error)
 	LockServiceAccount(context.Context, string) error
-	UnlockServiceAccount(context.Context, string) (string, error)
+	UnlockServiceAccount(context.Context, string) (Token, error)
 
 	CreateProject(context.Context, Project) error
 	GetProjects(context.Context) (ProjectList, error)
@@ -265,14 +269,16 @@ func (c *client) UnlockUser(_ context.Context, id string) error {
 func (c *client) CreateRootSession(
 	_ context.Context,
 	password string,
-) (string, error) {
+) (Token, error) {
+	token := Token{}
+
 	req, err := http.NewRequest(
 		http.MethodPost,
 		fmt.Sprintf("%s/v2/sessions", c.apiAddress),
 		nil,
 	)
 	if err != nil {
-		return "", errors.Wrap(err, "error creating HTTP request")
+		return token, errors.Wrap(err, "error creating HTTP request")
 	}
 	q := req.URL.Query()
 	q.Set("root", "true")
@@ -281,27 +287,24 @@ func (c *client) CreateRootSession(
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return "", errors.Wrap(err, "error invoking API")
+		return token, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		return "", errors.Errorf("received %d from API server", resp.StatusCode)
+		return token, errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", errors.Wrap(err, "error reading response body")
+		return token, errors.Wrap(err, "error reading response body")
 	}
 
-	respStruct := struct {
-		Token string `json:"token"`
-	}{}
-	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
-		return "", errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &token); err != nil {
+		return token, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return respStruct.Token, nil
+	return token, nil
 }
 
 func (c *client) CreateUserSession(context.Context) (string, string, error) {
@@ -329,6 +332,7 @@ func (c *client) CreateUserSession(context.Context) (string, string, error) {
 		return "", "", errors.Wrap(err, "error reading response body")
 	}
 
+	// TODO: This should be a more formalized object
 	respStruct := struct {
 		Token   string `json:"token"`
 		AuthURL string `json:"authURL"`
@@ -362,10 +366,12 @@ func (c *client) DeleteSession(context.Context) error {
 func (c *client) CreateServiceAccount(
 	_ context.Context,
 	serviceAccount ServiceAccount,
-) (string, error) {
+) (Token, error) {
+	token := Token{}
+
 	serviceAccountBytes, err := json.Marshal(serviceAccount)
 	if err != nil {
-		return "", errors.Wrap(err, "error marshaling service account")
+		return token, errors.Wrap(err, "error marshaling service account")
 	}
 
 	req, err := c.buildRequest(
@@ -374,37 +380,34 @@ func (c *client) CreateServiceAccount(
 		serviceAccountBytes,
 	)
 	if err != nil {
-		return "", errors.Wrap(err, "error creating HTTP request")
+		return token, errors.Wrap(err, "error creating HTTP request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return "", errors.Wrap(err, "error invoking API")
+		return token, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusConflict {
-		return "", &ErrServiceAccountIDConflict{
+		return token, &ErrServiceAccountIDConflict{
 			ID: serviceAccount.ID,
 		}
 	}
 	if resp.StatusCode != http.StatusCreated {
-		return "", errors.Errorf("received %d from API server", resp.StatusCode)
+		return token, errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", errors.Wrap(err, "error reading response body")
+		return token, errors.Wrap(err, "error reading response body")
 	}
 
-	respStruct := struct {
-		Token string `json:"token"`
-	}{}
-	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
-		return "", errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &token); err != nil {
+		return token, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return respStruct.Token, nil
+	return token, nil
 }
 
 func (c *client) GetServiceAccounts(
@@ -516,44 +519,43 @@ func (c *client) LockServiceAccount(_ context.Context, id string) error {
 func (c *client) UnlockServiceAccount(
 	_ context.Context,
 	id string,
-) (string, error) {
+) (Token, error) {
+	token := Token{}
+
 	req, err := c.buildRequest(
 		http.MethodDelete,
 		fmt.Sprintf("v2/service-accounts/%s/lock", id),
 		nil,
 	)
 	if err != nil {
-		return "", errors.Wrap(err, "error creating HTTP request")
+		return token, errors.Wrap(err, "error creating HTTP request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return "", errors.Wrap(err, "error invoking API")
+		return token, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return "", &ErrServiceAccountNotFound{
+		return token, &ErrServiceAccountNotFound{
 			ID: id,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return "", errors.Errorf("received %d from API server", resp.StatusCode)
+		return token, errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", errors.Wrap(err, "error reading response body")
+		return token, errors.Wrap(err, "error reading response body")
 	}
 
-	respStruct := struct {
-		Token string `json:"token"`
-	}{}
-	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
-		return "", errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &token); err != nil {
+		return token, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return respStruct.Token, nil
+	return token, nil
 }
 
 func (c *client) CreateProject(
@@ -866,6 +868,7 @@ func (c *client) CreateEvent(_ context.Context, event Event) ([]string, error) {
 		return nil, errors.Wrap(err, "error reading response body")
 	}
 
+	// TODO: This should be a more formalized object
 	respStruct := struct {
 		IDs []string `json:"ids"`
 	}{}
@@ -1028,6 +1031,7 @@ func (c *client) CancelEvent(
 		return false, errors.Wrap(err, "error reading response body")
 	}
 
+	// TODO: This should be a more formalized object
 	respStruct := struct {
 		Canceled bool `json:"canceled"`
 	}{}
@@ -1043,6 +1047,7 @@ func (c *client) CancelEventsByProject(
 	projectID string,
 	cancelRunning bool,
 ) (int64, error) {
+	// TODO: Is this an acceptable way to do this RESTfully speaking?
 	req, err := c.buildRequest(
 		http.MethodPut,
 		fmt.Sprintf("v2/projects/%s/events/cancel", projectID),
@@ -1077,6 +1082,7 @@ func (c *client) CancelEventsByProject(
 		return 0, errors.Wrap(err, "error reading response body")
 	}
 
+	// TODO: This should be a more formalized object
 	respStruct := struct {
 		Canceled int64 `json:"canceled"`
 	}{}
@@ -1130,6 +1136,7 @@ func (c *client) DeleteEvent(
 		return false, errors.Wrap(err, "error reading response body")
 	}
 
+	// TODO: This should be a more formalized object
 	respStruct := struct {
 		Deleted bool `json:"deleted"`
 	}{}
@@ -1183,6 +1190,7 @@ func (c *client) DeleteEventsByProject(
 		return 0, errors.Wrap(err, "error reading response body")
 	}
 
+	// TODO: This should be a more formalized object
 	respStruct := struct {
 		Deleted int64 `json:"deleted"`
 	}{}

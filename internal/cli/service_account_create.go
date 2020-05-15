@@ -36,7 +36,7 @@ func serviceAccountCreate(c *cli.Context) error {
 	}
 
 	fmt.Printf("\nService account %q created with token:\n", id)
-	fmt.Printf("\n\t%s\n", token)
+	fmt.Printf("\n\t%s\n", token.Value)
 	fmt.Println(
 		"\nStore this token someplace secure NOW. It cannot be retrieved " +
 			"later through any other means.",

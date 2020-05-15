@@ -29,13 +29,7 @@ func (s *server) serviceAccountUnlock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseBytes, err := json.Marshal(
-		struct {
-			Token string `json:"token"`
-		}{
-			Token: token,
-		},
-	)
+	responseBytes, err := json.Marshal(token)
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error marshaling create service account response"),

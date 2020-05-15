@@ -24,7 +24,7 @@ func serviceAccountUnlock(c *cli.Context) error {
 		"\nService account %q unlocked and a new token has been issued:\n",
 		id,
 	)
-	fmt.Printf("\n\t%s\n", token)
+	fmt.Printf("\n\t%s\n", token.Value)
 	fmt.Println(
 		"\nStore this token someplace secure NOW. It cannot be retrieved " +
 			"later through any other means.",

@@ -20,7 +20,7 @@ type Service interface {
 	LockUser(context.Context, string) error
 	UnlockUser(context.Context, string) error
 
-	CreateRootSession(context.Context) (string, error)
+	CreateRootSession(context.Context) (brignext.Token, error)
 	CreateUserSession(context.Context) (string, string, error)
 	GetSessionByOAuth2State(context.Context, string) (auth.Session, error)
 	GetSessionByToken(context.Context, string) (auth.Session, error)
@@ -32,7 +32,10 @@ type Service interface {
 	DeleteSession(context.Context, string) error
 	DeleteSessionsByUser(context.Context, string) (int64, error)
 
-	CreateServiceAccount(context.Context, brignext.ServiceAccount) (string, error)
+	CreateServiceAccount(
+		context.Context,
+		brignext.ServiceAccount,
+	) (brignext.Token, error)
 	GetServiceAccounts(context.Context) (brignext.ServiceAccountList, error)
 	GetServiceAccount(context.Context, string) (brignext.ServiceAccount, error)
 	GetServiceAccountByToken(
@@ -40,7 +43,7 @@ type Service interface {
 		string,
 	) (brignext.ServiceAccount, error)
 	LockServiceAccount(context.Context, string) error
-	UnlockServiceAccount(context.Context, string) (string, error)
+	UnlockServiceAccount(context.Context, string) (brignext.Token, error)
 
 	CreateProject(context.Context, brignext.Project) error
 	GetProjects(context.Context) (brignext.ProjectList, error)
@@ -212,8 +215,16 @@ func (s *service) UnlockUser(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *service) CreateRootSession(ctx context.Context) (string, error) {
-	token := crypto.NewToken(256)
+func (s *service) CreateRootSession(
+	ctx context.Context,
+) (brignext.Token, error) {
+	token := brignext.Token{
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "Token",
+		},
+		Value: crypto.NewToken(256),
+	}
 	now := time.Now()
 	expiryTime := now.Add(time.Hour)
 	session := auth.Session{
@@ -225,12 +236,12 @@ func (s *service) CreateRootSession(ctx context.Context) (string, error) {
 			ID: uuid.NewV4().String(),
 		},
 		Root:          true,
-		HashedToken:   crypto.ShortSHA("", token),
+		HashedToken:   crypto.ShortSHA("", token.Value),
 		Authenticated: &now,
 		Expires:       &expiryTime,
 	}
 	if err := s.store.CreateSession(ctx, session); err != nil {
-		return "", errors.Wrapf(
+		return token, errors.Wrapf(
 			err,
 			"error storing new root session %q",
 			session.ID,
@@ -344,11 +355,17 @@ func (s *service) DeleteSessionsByUser(
 func (s *service) CreateServiceAccount(
 	ctx context.Context,
 	serviceAccount brignext.ServiceAccount,
-) (string, error) {
-	token := crypto.NewToken(256)
-	serviceAccount.HashedToken = crypto.ShortSHA("", token)
+) (brignext.Token, error) {
+	token := brignext.Token{
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "Token",
+		},
+		Value: crypto.NewToken(256),
+	}
+	serviceAccount.HashedToken = crypto.ShortSHA("", token.Value)
 	if err := s.store.CreateServiceAccount(ctx, serviceAccount); err != nil {
-		return "", errors.Wrapf(
+		return token, errors.Wrapf(
 			err,
 			"error storing new service account %q",
 			serviceAccount.ID,
@@ -414,14 +431,20 @@ func (s *service) LockServiceAccount(ctx context.Context, id string) error {
 func (s *service) UnlockServiceAccount(
 	ctx context.Context,
 	id string,
-) (string, error) {
-	newToken := crypto.NewToken(256)
+) (brignext.Token, error) {
+	newToken := brignext.Token{
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "Token",
+		},
+		Value: crypto.NewToken(256),
+	}
 	if err := s.store.UnlockServiceAccount(
 		ctx,
 		id,
-		crypto.ShortSHA("", newToken),
+		crypto.ShortSHA("", newToken.Value),
 	); err != nil {
-		return "", errors.Wrapf(
+		return newToken, errors.Wrapf(
 			err,
 			"error unlocking service account %q in the store",
 			id,

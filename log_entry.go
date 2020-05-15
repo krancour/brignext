@@ -9,6 +9,7 @@ type LogEntryList struct {
 }
 
 type LogEntry struct {
-	Time    time.Time `json:"time" bson:"time"`
-	Message string    `json:"message" bson:"log"`
+	TypeMeta `json:",inline"`
+	Time     time.Time `json:"time" bson:"time"`
+	Message  string    `json:"message" bson:"log"`
 }

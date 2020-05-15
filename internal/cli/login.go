@@ -25,7 +25,7 @@ func login(c *cli.Context) error {
 		c.Bool(flagInsecure),
 	)
 
-	var token, authURL string
+	var tokenStr, authURL string
 
 	var err error
 	if rootLogin {
@@ -41,11 +41,12 @@ func login(c *cli.Context) error {
 			}
 		}
 
-		if token, err =
-			client.CreateRootSession(c.Context, password); err != nil {
+		token, err := client.CreateRootSession(c.Context, password)
+		if err != nil {
 			return err
 		}
-	} else if authURL, token, err =
+		tokenStr = token.Value
+	} else if authURL, tokenStr, err =
 		client.CreateUserSession(c.Context); err != nil {
 		return err
 	}
@@ -53,7 +54,7 @@ func login(c *cli.Context) error {
 	if err := saveConfig(
 		&config{
 			APIAddress: address,
-			APIToken:   token,
+			APIToken:   tokenStr,
 		},
 	); err != nil {
 		return errors.Wrap(err, "error persisting configuration")
