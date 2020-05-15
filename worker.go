@@ -2,6 +2,15 @@ package brignext
 
 import "time"
 
+type LogLevel string
+
+const (
+	LogLevelDebug LogLevel = "DEBUG"
+	LogLevelInfo  LogLevel = "INFO"
+	LogLevelWarn  LogLevel = "WARN"
+	LogLevelError LogLevel = "ERROR"
+)
+
 type WorkerPhase string
 
 const (
@@ -23,27 +32,37 @@ const (
 	// WorkerPhaseFailed represents the state wherein a worker has run to
 	// completion but experienced errors.
 	WorkerPhaseFailed WorkerPhase = "FAILED"
+	// WorkerPhaseTimedOut represents the state wherein a worker has has not
+	// completed within a designated timeframe.
+	WorkerPhaseTimedOut WorkerPhase = "TIMED_OUT"
 	// WorkerPhaseUnknown represents the state wherein a worker's state is
 	// unknown.
 	WorkerPhaseUnknown WorkerPhase = "UNKNOWN"
 )
 
 // nolint: lll
-type Worker struct {
-	Container            ContainerConfig        `json:"container" bson:"container"`
+type WorkerSpec struct {
+	Container            ContainerSpec          `json:"container" bson:"container"`
 	WorkspaceSize        string                 `json:"workspaceSize" bson:"workspaceSize"`
 	Git                  WorkerGitConfig        `json:"git" bson:"git"`
 	Kubernetes           WorkerKubernetesConfig `json:"kubernetes" bson:"kubernetes"`
-	JobsConfig           JobsConfig             `json:"jobsConfig" bson:"jobsConfig"`
+	Jobs                 JobsSpec               `json:"jobs" bson:"jobs"`
 	LogLevel             LogLevel               `json:"logLevel" bson:"logLevel"`
 	ConfigFilesDirectory string                 `json:"configFilesDirectory" bson:"configFilesDirectory"`
 	DefaultConfigFiles   map[string]string      `json:"defaultConfigFiles" bson:"defaultConfigFiles"`
-	Jobs                 map[string]Job         `json:"jobs" bson:"jobs"`
-	Status               WorkerStatus           `json:"status" bson:"status"`
+}
+
+// nolint: lll
+type ContainerSpec struct {
+	Image           string            `json:"image" bson:"image"`
+	ImagePullPolicy string            `json:"imagePullPolicy" bson:"imagePullPolicy"`
+	Command         string            `json:"command" bson:"command"`
+	Environment     map[string]string `json:"environment" bson:"environment"`
 }
 
 type WorkerStatus struct {
-	Started *time.Time  `json:"started" bson:"started"`
-	Ended   *time.Time  `json:"ended" bson:"ended"`
-	Phase   WorkerPhase `json:"phase" bson:"phase"`
+	*TypeMeta `json:",inline,omitempty" bson:"-"`
+	Started   *time.Time  `json:"started" bson:"started"`
+	Ended     *time.Time  `json:"ended" bson:"ended"`
+	Phase     WorkerPhase `json:"phase" bson:"phase"`
 }

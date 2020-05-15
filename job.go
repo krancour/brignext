@@ -17,17 +17,27 @@ const (
 	// JobPhaseFailed represents the state wherein a job has run to
 	// completion but experienced errors.
 	JobPhaseFailed JobPhase = "FAILED"
+	// JobPhaseTimedOut represents the state wherein a job has has not completed
+	// within a designated timeframe.
+	JobPhaseTimedOut JobPhase = "TIMED_OUT"
 	// JobPhaseUnknown represents the state wherein a job's state is unknown.
 	JobPhaseUnknown JobPhase = "UNKNOWN"
 )
 
-// Job is a single job that is executed by a worker that processes an event.
-type Job struct {
-	Status JobStatus `json:"status" bson:"status"`
+// nolint: lll
+type JobsSpec struct {
+	AllowPrivileged        bool                 `json:"allowPrivileged" bson:"allowPrivileged"`
+	AllowDockerSocketMount bool                 `json:"allowDockerSocketMount" bson:"allowDockerSocketMount"`
+	Kubernetes             JobsKubernetesConfig `json:"kubernetes" bson:"kubernetes"`
+}
+
+type JobsKubernetesConfig struct {
+	ImagePullSecrets []string `json:"imagePullSecrets" bson:"imagePullSecrets"`
 }
 
 type JobStatus struct {
-	Started *time.Time `json:"started" bson:"started"`
-	Ended   *time.Time `json:"ended" bson:"ended"`
-	Phase   JobPhase   `json:"phase" bson:"phase"`
+	*TypeMeta `json:",inline,omitempty" bson:"-"`
+	Started   *time.Time `json:"started" bson:"started"`
+	Ended     *time.Time `json:"ended" bson:"ended"`
+	Phase     JobPhase   `json:"phase" bson:"phase"`
 }

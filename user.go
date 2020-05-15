@@ -1,12 +1,16 @@
 package brignext
 
-import (
-	"time"
-)
+import "time"
+
+type UserList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata"`
+	Items    []User `json:"items"`
+}
 
 type User struct {
-	ID        string    `json:"id" bson:"_id"`
-	Name      string    `json:"name" bson:"name"`
-	FirstSeen time.Time `json:"firstSeen" bson:"firstSeen"`
-	Locked    bool      `json:"locked" bson:"locked"`
+	TypeMeta   `json:",inline" bson:",inline"`
+	ObjectMeta `json:"metadata" bson:"metadata"`
+	Name       string     `json:"name" bson:"name"`
+	Locked     *time.Time `json:"locked" bson:"locked"`
 }

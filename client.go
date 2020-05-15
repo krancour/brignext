@@ -14,7 +14,7 @@ import (
 )
 
 type Client interface {
-	GetUsers(context.Context) ([]User, error)
+	GetUsers(context.Context) (UserList, error)
 	GetUser(context.Context, string) (User, error)
 	LockUser(context.Context, string) error
 	UnlockUser(context.Context, string) error
@@ -24,138 +24,95 @@ type Client interface {
 	DeleteSession(context.Context) error
 
 	CreateServiceAccount(context.Context, ServiceAccount) (string, error)
-	GetServiceAccounts(context.Context) ([]ServiceAccount, error)
-	GetServiceAccount(
-		context.Context,
-		string,
-	) (ServiceAccount, error)
+	GetServiceAccounts(context.Context) (ServiceAccountList, error)
+	GetServiceAccount(context.Context, string) (ServiceAccount, error)
 	LockServiceAccount(context.Context, string) error
 	UnlockServiceAccount(context.Context, string) (string, error)
 
 	CreateProject(context.Context, Project) error
-	GetProjects(context.Context) ([]Project, error)
+	GetProjects(context.Context) (ProjectList, error)
 	GetProject(context.Context, string) (Project, error)
 	UpdateProject(context.Context, Project) error
 	DeleteProject(context.Context, string) error
 
-	GetSecrets(
+	GetSecrets(ctx context.Context, projectID string) (SecretList, error)
+	SetSecret(
 		ctx context.Context,
 		projectID string,
-		workerName string,
-	) (map[string]string, error)
-	SetSecrets(
-		ctx context.Context,
-		projectID string,
-		workerName string,
-		secrets map[string]string,
+		secret Secret,
 	) error
-	UnsetSecrets(
-		ctx context.Context,
-		projectID string,
-		workerName string,
-		keys []string,
-	) error
+	UnsetSecret(ctx context.Context, projectID string, secretID string) error
 
-	CreateEvent(context.Context, Event) (string, error)
-	GetEvents(context.Context) ([]Event, error)
-	GetEventsByProject(context.Context, string) ([]Event, error)
+	CreateEvent(context.Context, Event) ([]string, error)
+	GetEvents(context.Context) (EventList, error)
+	GetEventsByProject(context.Context, string) (EventList, error)
 	GetEvent(context.Context, string) (Event, error)
 	CancelEvent(
 		ctx context.Context,
 		id string,
-		cancelProcessing bool,
+		cancelRunning bool,
 	) (bool, error)
 	CancelEventsByProject(
 		ctx context.Context,
 		projectID string,
-		cancelProcessing bool,
+		cancelRunning bool,
 	) (int64, error)
 	DeleteEvent(
 		ctx context.Context,
 		id string,
 		deletePending bool,
-		deleteProcessing bool,
+		deleteRunning bool,
 	) (bool, error)
 	DeleteEventsByProject(
 		ctx context.Context,
 		projectID string,
 		deletePending bool,
-		deleteProcessing bool,
+		deleteRunning bool,
 	) (int64, error)
 
-	GetWorker(
-		ctx context.Context,
-		eventID string,
-		workerName string,
-	) (Worker, error)
 	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		status WorkerStatus,
 	) error
-	CancelWorker(
-		ctx context.Context,
-		eventID string,
-		workerName string,
-		cancelRunning bool,
-	) (bool, error)
-	GetWorkerLogs(
-		ctx context.Context,
-		eventID string,
-		workerName string,
-	) ([]LogEntry, error)
+	GetWorkerLogs(ctx context.Context, eventID string) (LogEntryList, error)
 	StreamWorkerLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 	) (<-chan LogEntry, <-chan error, error)
 	GetWorkerInitLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
-	) ([]LogEntry, error)
+	) (LogEntryList, error)
 	StreamWorkerInitLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 	) (<-chan LogEntry, <-chan error, error)
 
-	GetJob(
-		ctx context.Context,
-		eventID string,
-		workerName string,
-		jobName string,
-	) (Job, error)
 	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
 		status JobStatus,
 	) error
 	GetJobLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
-	) ([]LogEntry, error)
+	) (LogEntryList, error)
 	StreamJobLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
 	) (<-chan LogEntry, <-chan error, error)
 	GetJobInitLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
-	) ([]LogEntry, error)
+	) (LogEntryList, error)
 	StreamJobInitLogs(
 		ctx context.Context,
 		eventID string,
-		workerName string,
 		jobName string,
 	) (<-chan LogEntry, <-chan error, error)
 }
@@ -180,33 +137,34 @@ func NewClient(apiAddress, apiToken string, allowInsecure bool) Client {
 	}
 }
 
-func (c *client) GetUsers(context.Context) ([]User, error) {
+func (c *client) GetUsers(context.Context) (UserList, error) {
+	userList := UserList{}
+
 	req, err := c.buildRequest(http.MethodGet, "v2/users", nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating HTTP request")
+		return userList, errors.Wrap(err, "error creating HTTP request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error invoking API")
+		return userList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+		return userList, errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
+		return userList, errors.Wrap(err, "error reading response body")
 	}
 
-	users := []User{}
-	if err := json.Unmarshal(respBodyBytes, &users); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &userList); err != nil {
+		return userList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return users, nil
+	return userList, nil
 }
 
 func (c *client) GetUser(_ context.Context, id string) (User, error) {
@@ -450,33 +408,36 @@ func (c *client) CreateServiceAccount(
 
 func (c *client) GetServiceAccounts(
 	context.Context,
-) ([]ServiceAccount, error) {
+) (ServiceAccountList, error) {
+	serviceAccountList := ServiceAccountList{}
+
 	req, err := c.buildRequest(http.MethodGet, "v2/service-accounts", nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating HTTP request")
+		return serviceAccountList, errors.Wrap(err, "error creating HTTP request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error invoking API")
+		return serviceAccountList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+		return serviceAccountList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
+		return serviceAccountList, errors.Wrap(err, "error reading response body")
 	}
 
-	serviceAccounts := []ServiceAccount{}
-	if err := json.Unmarshal(respBodyBytes, &serviceAccounts); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &serviceAccountList); err != nil {
+		return serviceAccountList,
+			errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return serviceAccounts, nil
+	return serviceAccountList, nil
 }
 
 func (c *client) GetServiceAccount(
@@ -626,33 +587,35 @@ func (c *client) CreateProject(
 	return nil
 }
 
-func (c *client) GetProjects(context.Context) ([]Project, error) {
+func (c *client) GetProjects(context.Context) (ProjectList, error) {
+	projectList := ProjectList{}
+
 	req, err := c.buildRequest(http.MethodGet, "v2/projects", nil)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating HTTP request")
+		return projectList, errors.Wrap(err, "error creating HTTP request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error invoking API")
+		return projectList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+		return projectList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
+		return projectList, errors.Wrap(err, "error reading response body")
 	}
 
-	projects := []Project{}
-	if err := json.Unmarshal(respBodyBytes, &projects); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &projectList); err != nil {
+		return projectList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return projects, nil
+	return projectList, nil
 }
 
 func (c *client) GetProject(_ context.Context, id string) (Project, error) {
@@ -763,61 +726,59 @@ func (c *client) DeleteProject(_ context.Context, id string) error {
 func (c *client) GetSecrets(
 	ctx context.Context,
 	projectID string,
-	workerName string,
-) (map[string]string, error) {
+) (SecretList, error) {
+	secretList := SecretList{}
 	req, err := c.buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/projects/%s/workers/%s/secrets", projectID, workerName),
+		fmt.Sprintf("v2/projects/%s/secrets", projectID),
 		nil,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating HTTP request")
+		return secretList, errors.Wrap(err, "error creating HTTP request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error invoking API")
+		return secretList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &ErrWorkerNotFound{
-			ProjectID:  projectID,
-			WorkerName: workerName,
+		return secretList, &ErrProjectNotFound{
+			ID: projectID,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+		return secretList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
+		return secretList, errors.Wrap(err, "error reading response body")
 	}
 
-	secrets := map[string]string{}
-	if err := json.Unmarshal(respBodyBytes, &secrets); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &secretList); err != nil {
+		return secretList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return secrets, nil
+	return secretList, nil
 }
 
-func (c *client) SetSecrets(
+func (c *client) SetSecret(
 	ctx context.Context,
 	projectID string,
-	workerName string,
-	secrets map[string]string,
+	secret Secret,
 ) error {
-	secretsBytes, err := json.Marshal(secrets)
+	secretBytes, err := json.Marshal(secret)
 	if err != nil {
-		return errors.Wrap(err, "error marshaling secrets")
+		return errors.Wrap(err, "error marshaling secret")
 	}
 
 	req, err := c.buildRequest(
 		http.MethodPost,
-		fmt.Sprintf("v2/projects/%s/workers/%s/secrets", projectID, workerName),
-		secretsBytes,
+		fmt.Sprintf("v2/projects/%s/secrets", projectID),
+		secretBytes,
 	)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
@@ -841,26 +802,15 @@ func (c *client) SetSecrets(
 	return nil
 }
 
-func (c *client) UnsetSecrets(
+func (c *client) UnsetSecret(
 	ctx context.Context,
 	projectID string,
-	workerName string,
-	keys []string,
+	secretID string,
 ) error {
-	keysStruct := struct {
-		Keys []string `json:"keys"`
-	}{
-		Keys: keys,
-	}
-	keysBytes, err := json.Marshal(keysStruct)
-	if err != nil {
-		return errors.Wrap(err, "error marshaling keys")
-	}
-
 	req, err := c.buildRequest(
 		http.MethodDelete,
-		fmt.Sprintf("v2/projects/%s/workers/%s/secrets", projectID, workerName),
-		keysBytes,
+		fmt.Sprintf("v2/projects/%s/secrets/%s", projectID, secretID),
+		nil,
 	)
 	if err != nil {
 		return errors.Wrap(err, "error creating HTTP request")
@@ -884,88 +834,15 @@ func (c *client) UnsetSecrets(
 	return nil
 }
 
-func (c *client) CreateEvent(_ context.Context, event Event) (string, error) {
+func (c *client) CreateEvent(_ context.Context, event Event) ([]string, error) {
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
-		return "", errors.Wrap(err, "error marshaling event")
+		return nil, errors.Wrap(err, "error marshaling event")
 	}
 
 	req, err := c.buildRequest(http.MethodPost, "v2/events", eventBytes)
 	if err != nil {
-		return "", errors.Wrap(err, "error creating HTTP request")
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return "", errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return "", &ErrProjectNotFound{
-			ID: event.ProjectID,
-		}
-	}
-	if resp.StatusCode != http.StatusCreated {
-		return "", errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", errors.Wrap(err, "error reading response body")
-	}
-
-	respStruct := struct {
-		ID string `json:"id"`
-	}{}
-	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
-		return "", errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	return respStruct.ID, nil
-}
-
-func (c *client) GetEvents(context.Context) ([]Event, error) {
-	req, err := c.buildRequest(http.MethodGet, "v2/events", nil)
-	if err != nil {
 		return nil, errors.Wrap(err, "error creating HTTP request")
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
-	}
-
-	events := []Event{}
-	if err := json.Unmarshal(respBodyBytes, &events); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	return events, nil
-}
-
-func (c *client) GetEventsByProject(
-	_ context.Context,
-	projectID string,
-) ([]Event, error) {
-	req, err := c.buildRequest(http.MethodGet, "v2/events", nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "error creating HTTP request")
-	}
-	if projectID != "" {
-		q := req.URL.Query()
-		q.Set("projectID", projectID)
-		req.URL.RawQuery = q.Encode()
 	}
 
 	resp, err := c.httpClient.Do(req)
@@ -976,10 +853,10 @@ func (c *client) GetEventsByProject(
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, &ErrProjectNotFound{
-			ID: projectID,
+			ID: event.ProjectID,
 		}
 	}
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusCreated {
 		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
@@ -988,12 +865,87 @@ func (c *client) GetEventsByProject(
 		return nil, errors.Wrap(err, "error reading response body")
 	}
 
-	events := []Event{}
-	if err := json.Unmarshal(respBodyBytes, &events); err != nil {
+	respStruct := struct {
+		IDs []string `json:"ids"`
+	}{}
+	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
 		return nil, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return events, nil
+	return respStruct.IDs, nil
+}
+
+func (c *client) GetEvents(context.Context) (EventList, error) {
+	eventList := EventList{}
+
+	req, err := c.buildRequest(http.MethodGet, "v2/events", nil)
+	if err != nil {
+		return eventList, errors.Wrap(err, "error creating HTTP request")
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return eventList, errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return eventList, errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return eventList, errors.Wrap(err, "error reading response body")
+	}
+
+	if err := json.Unmarshal(respBodyBytes, &eventList); err != nil {
+		return eventList, errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	return eventList, nil
+}
+
+func (c *client) GetEventsByProject(
+	_ context.Context,
+	projectID string,
+) (EventList, error) {
+	eventList := EventList{}
+
+	req, err := c.buildRequest(http.MethodGet, "v2/events", nil)
+	if err != nil {
+		return eventList, errors.Wrap(err, "error creating HTTP request")
+	}
+	if projectID != "" {
+		q := req.URL.Query()
+		q.Set("projectID", projectID)
+		req.URL.RawQuery = q.Encode()
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return eventList, errors.Wrap(err, "error invoking API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return eventList, &ErrProjectNotFound{
+			ID: projectID,
+		}
+	}
+	if resp.StatusCode != http.StatusOK {
+		return eventList, errors.Errorf("received %d from API server", resp.StatusCode)
+	}
+
+	respBodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return eventList, errors.Wrap(err, "error reading response body")
+	}
+
+	if err := json.Unmarshal(respBodyBytes, &eventList); err != nil {
+		return eventList, errors.Wrap(err, "error unmarshaling response body")
+	}
+
+	return eventList, nil
 }
 
 func (c *client) GetEvent(ctx context.Context, id string) (Event, error) {
@@ -1037,7 +989,7 @@ func (c *client) GetEvent(ctx context.Context, id string) (Event, error) {
 func (c *client) CancelEvent(
 	ctx context.Context,
 	id string,
-	cancelProcessing bool,
+	cancelRunning bool,
 ) (bool, error) {
 	req, err := c.buildRequest(
 		http.MethodPut,
@@ -1048,8 +1000,8 @@ func (c *client) CancelEvent(
 		return false, errors.Wrap(err, "error creating HTTP request")
 	}
 	q := req.URL.Query()
-	if cancelProcessing {
-		q.Set("cancelProcessing", "true")
+	if cancelRunning {
+		q.Set("cancelRunning", "true")
 	}
 	req.URL.RawQuery = q.Encode()
 
@@ -1086,7 +1038,7 @@ func (c *client) CancelEvent(
 func (c *client) CancelEventsByProject(
 	ctx context.Context,
 	projectID string,
-	cancelProcessing bool,
+	cancelRunning bool,
 ) (int64, error) {
 	req, err := c.buildRequest(
 		http.MethodPut,
@@ -1097,8 +1049,8 @@ func (c *client) CancelEventsByProject(
 		return 0, errors.Wrap(err, "error creating HTTP request")
 	}
 	q := req.URL.Query()
-	if cancelProcessing {
-		q.Set("cancelProcessing", "true")
+	if cancelRunning {
+		q.Set("cancelRunning", "true")
 	}
 	req.URL.RawQuery = q.Encode()
 
@@ -1136,7 +1088,7 @@ func (c *client) DeleteEvent(
 	ctx context.Context,
 	id string,
 	deletePending bool,
-	deleteProcessing bool,
+	deleteRunning bool,
 ) (bool, error) {
 	req, err := c.buildRequest(
 		http.MethodDelete,
@@ -1150,8 +1102,8 @@ func (c *client) DeleteEvent(
 	if deletePending {
 		q.Set("deletePending", "true")
 	}
-	if deleteProcessing {
-		q.Set("deleteProcessing", "true")
+	if deleteRunning {
+		q.Set("deleteRunning", "true")
 	}
 	req.URL.RawQuery = q.Encode()
 
@@ -1189,7 +1141,7 @@ func (c *client) DeleteEventsByProject(
 	ctx context.Context,
 	projectID string,
 	deletePending bool,
-	deleteProcessing bool,
+	deleteRunning bool,
 ) (int64, error) {
 	req, err := c.buildRequest(
 		http.MethodDelete,
@@ -1203,8 +1155,8 @@ func (c *client) DeleteEventsByProject(
 	if deletePending {
 		q.Set("deletePending", "true")
 	}
-	if deleteProcessing {
-		q.Set("deleteProcessing", "true")
+	if deleteRunning {
+		q.Set("deleteRunning", "true")
 	}
 	req.URL.RawQuery = q.Encode()
 
@@ -1267,23 +1219,16 @@ func (c *client) buildRequest(
 func (c *client) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	status WorkerStatus,
 ) error {
-	statusBytes, err := json.Marshal(
-		WorkerStatus{
-			Started: status.Started,
-			Ended:   status.Ended,
-			Phase:   status.Phase,
-		},
-	)
+	statusBytes, err := json.Marshal(status)
 	if err != nil {
 		return errors.Wrap(err, "error marshaling status")
 	}
 
 	req, err := c.buildRequest(
 		http.MethodPut,
-		fmt.Sprintf("v2/events/%s/workers/%s/status", eventID, workerName),
+		fmt.Sprintf("v2/events/%s/worker/status", eventID),
 		statusBytes,
 	)
 	if err != nil {
@@ -1297,9 +1242,8 @@ func (c *client) UpdateWorkerStatus(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
+		return &ErrEventNotFound{
+			ID: eventID,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -1309,151 +1253,55 @@ func (c *client) UpdateWorkerStatus(
 	return nil
 }
 
-func (c *client) GetWorker(
-	ctx context.Context,
-	eventID string,
-	workerName string,
-) (Worker, error) {
-	worker := Worker{}
-	req, err := c.buildRequest(
-		http.MethodGet,
-		fmt.Sprintf("v2/events/%s/workers/%s", eventID, workerName),
-		nil,
-	)
-	if err != nil {
-		return worker, errors.Wrap(err, "error creating HTTP request")
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return worker, errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return worker, &ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-		}
-	}
-	if resp.StatusCode != http.StatusOK {
-		return worker, errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return worker, errors.Wrap(err, "error reading response body")
-	}
-
-	if err := json.Unmarshal(respBodyBytes, &worker); err != nil {
-		return worker, errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	return worker, nil
-}
-
-func (c *client) CancelWorker(
-	ctx context.Context,
-	eventID string,
-	workerName string,
-	cancelRunning bool,
-) (bool, error) {
-	req, err := c.buildRequest(
-		http.MethodPut,
-		fmt.Sprintf("v2/events/%s/workers/%s/cancel", eventID, workerName),
-		nil,
-	)
-	if err != nil {
-		return false, errors.Wrap(err, "error creating HTTP request")
-	}
-	q := req.URL.Query()
-	if cancelRunning {
-		q.Set("cancelRunning", "true")
-	}
-	req.URL.RawQuery = q.Encode()
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return false, errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return false, &ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-		}
-	}
-	if resp.StatusCode != http.StatusOK {
-		return false, errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return false, errors.Wrap(err, "error reading response body")
-	}
-
-	respStruct := struct {
-		Canceled bool `json:"canceled"`
-	}{}
-	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
-		return false, errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	return respStruct.Canceled, nil
-}
-
 func (c *client) GetWorkerLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
-) ([]LogEntry, error) {
+) (LogEntryList, error) {
+	logEntryList := LogEntryList{}
 	req, err := c.buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/events/%s/workers/%s/logs", eventID, workerName),
+		fmt.Sprintf("v2/events/%s/worker/logs", eventID),
 		nil,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating HTTP request")
+		return logEntryList, errors.Wrap(err, "error creating HTTP request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error invoking API")
+		return logEntryList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
+		return logEntryList, &ErrEventNotFound{
+			ID: eventID,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+		return logEntryList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
+		return logEntryList, errors.Wrap(err, "error reading response body")
 	}
 
-	logEntries := []LogEntry{}
-	if err := json.Unmarshal(respBodyBytes, &logEntries); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &logEntryList); err != nil {
+		return logEntryList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return logEntries, nil
+	return logEntryList, nil
 }
 
 func (c *client) StreamWorkerLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 ) (<-chan LogEntry, <-chan error, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/events/%s/workers/%s/logs", eventID, workerName),
+		fmt.Sprintf("v2/events/%s/worker/logs", eventID),
 		nil,
 	)
 	if err != nil {
@@ -1469,9 +1317,8 @@ func (c *client) StreamWorkerLogs(
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, nil, &ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
+		return nil, nil, &ErrEventNotFound{
+			ID: eventID,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -1492,15 +1339,15 @@ func (c *client) StreamWorkerLogs(
 func (c *client) GetWorkerInitLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
-) ([]LogEntry, error) {
+) (LogEntryList, error) {
+	logEntryList := LogEntryList{}
 	req, err := c.buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/events/%s/workers/%s/logs", eventID, workerName),
+		fmt.Sprintf("v2/events/%s/worker/logs", eventID),
 		nil,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating HTTP request")
+		return logEntryList, errors.Wrap(err, "error creating HTTP request")
 	}
 	q := req.URL.Query()
 	q.Set("init", "true")
@@ -1508,41 +1355,38 @@ func (c *client) GetWorkerInitLogs(
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error invoking API")
+		return logEntryList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
+		return logEntryList, &ErrEventNotFound{
+			ID: eventID,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+		return logEntryList, errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
+		return logEntryList, errors.Wrap(err, "error reading response body")
 	}
 
-	logEntries := []LogEntry{}
-	if err := json.Unmarshal(respBodyBytes, &logEntries); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &logEntryList); err != nil {
+		return logEntryList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return logEntries, nil
+	return logEntryList, nil
 }
 
 func (c *client) StreamWorkerInitLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 ) (<-chan LogEntry, <-chan error, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
-		fmt.Sprintf("v2/events/%s/workers/%s/logs", eventID, workerName),
+		fmt.Sprintf("v2/events/%s/worker/logs", eventID),
 		nil,
 	)
 	if err != nil {
@@ -1559,9 +1403,8 @@ func (c *client) StreamWorkerInitLogs(
 	}
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, nil, &ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
+		return nil, nil, &ErrEventNotFound{
+			ID: eventID,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -1579,70 +1422,13 @@ func (c *client) StreamWorkerInitLogs(
 	return logCh, errCh, nil
 }
 
-func (c *client) GetJob(
-	ctx context.Context,
-	eventID string,
-	workerName string,
-	jobName string,
-) (Job, error) {
-	job := Job{}
-	req, err := c.buildRequest(
-		http.MethodGet,
-		fmt.Sprintf(
-			"v2/events/%s/workers/%s/jobs/%s",
-			eventID,
-			workerName,
-			jobName,
-		),
-		nil,
-	)
-	if err != nil {
-		return job, errors.Wrap(err, "error creating HTTP request")
-	}
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return job, errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return job, &ErrJobNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-			JobName:    jobName,
-		}
-	}
-	if resp.StatusCode != http.StatusOK {
-		return job, errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return job, errors.Wrap(err, "error reading response body")
-	}
-
-	if err := json.Unmarshal(respBodyBytes, &job); err != nil {
-		return job, errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	return job, nil
-}
-
 func (c *client) UpdateJobStatus(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 	status JobStatus,
 ) error {
-	statusBytes, err := json.Marshal(
-		JobStatus{
-			Started: status.Started,
-			Ended:   status.Ended,
-			Phase:   status.Phase,
-		},
-	)
+	statusBytes, err := json.Marshal(status)
 	if err != nil {
 		return errors.Wrap(err, "error marshaling status")
 	}
@@ -1650,9 +1436,8 @@ func (c *client) UpdateJobStatus(
 	req, err := c.buildRequest(
 		http.MethodPut,
 		fmt.Sprintf(
-			"v2/events/%s/workers/%s/jobs/%s/status",
+			"v2/events/%s/worker/jobs/%s/status",
 			eventID,
-			workerName,
 			jobName,
 		),
 		statusBytes,
@@ -1668,9 +1453,9 @@ func (c *client) UpdateJobStatus(
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return &ErrWorkerNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
+		return &ErrJobNotFound{
+			EventID: eventID,
+			JobName: jobName,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -1683,65 +1468,61 @@ func (c *client) UpdateJobStatus(
 func (c *client) GetJobLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
-) ([]LogEntry, error) {
+) (LogEntryList, error) {
+	logEntryList := LogEntryList{}
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf(
-			"v2/events/%s/workers/%s/jobs/%s/logs",
+			"v2/events/%s/worker/jobs/%s/logs",
 			eventID,
-			workerName,
 			jobName,
 		),
 		nil,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating HTTP request")
+		return logEntryList, errors.Wrap(err, "error creating HTTP request")
 	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error invoking API")
+		return logEntryList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &ErrJobNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-			JobName:    jobName,
+		return logEntryList, &ErrJobNotFound{
+			EventID: eventID,
+			JobName: jobName,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+		return logEntryList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
+		return logEntryList, errors.Wrap(err, "error reading response body")
 	}
 
-	logEntries := []LogEntry{}
-	if err := json.Unmarshal(respBodyBytes, &logEntries); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &logEntryList); err != nil {
+		return logEntryList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return logEntries, nil
+	return logEntryList, nil
 }
 
 func (c *client) StreamJobLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) (<-chan LogEntry, <-chan error, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf(
-			"v2/events/%s/workers/%s/jobs/%s/logs",
+			"v2/events/%s/worker/jobs/%s/logs",
 			eventID,
-			workerName,
 			jobName,
 		),
 		nil,
@@ -1760,9 +1541,8 @@ func (c *client) StreamJobLogs(
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil, &ErrJobNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-			JobName:    jobName,
+			EventID: eventID,
+			JobName: jobName,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
@@ -1783,21 +1563,20 @@ func (c *client) StreamJobLogs(
 func (c *client) GetJobInitLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
-) ([]LogEntry, error) {
+) (LogEntryList, error) {
+	logEntryList := LogEntryList{}
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf(
-			"v2/events/%s/workers/%s/jobs/%s/logs",
+			"v2/events/%s/worker/jobs/%s/logs",
 			eventID,
-			workerName,
 			jobName,
 		),
 		nil,
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating HTTP request")
+		return logEntryList, errors.Wrap(err, "error creating HTTP request")
 	}
 	q := req.URL.Query()
 	q.Set("init", "true")
@@ -1805,46 +1584,43 @@ func (c *client) GetJobInitLogs(
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "error invoking API")
+		return logEntryList, errors.Wrap(err, "error invoking API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, &ErrJobNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-			JobName:    jobName,
+		return logEntryList, &ErrJobNotFound{
+			EventID: eventID,
+			JobName: jobName,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("received %d from API server", resp.StatusCode)
+		return logEntryList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, errors.Wrap(err, "error reading response body")
+		return logEntryList, errors.Wrap(err, "error reading response body")
 	}
 
-	logEntries := []LogEntry{}
-	if err := json.Unmarshal(respBodyBytes, &logEntries); err != nil {
-		return nil, errors.Wrap(err, "error unmarshaling response body")
+	if err := json.Unmarshal(respBodyBytes, &logEntryList); err != nil {
+		return logEntryList, errors.Wrap(err, "error unmarshaling response body")
 	}
 
-	return logEntries, nil
+	return logEntryList, nil
 }
 
 func (c *client) StreamJobInitLogs(
 	ctx context.Context,
 	eventID string,
-	workerName string,
 	jobName string,
 ) (<-chan LogEntry, <-chan error, error) {
 	req, err := c.buildRequest(
 		http.MethodGet,
 		fmt.Sprintf(
-			"v2/events/%s/workers/%s/jobs/%s/logs",
+			"v2/events/%s/worker/jobs/%s/logs",
 			eventID,
-			workerName,
 			jobName,
 		),
 		nil,
@@ -1864,9 +1640,8 @@ func (c *client) StreamJobInitLogs(
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil, &ErrJobNotFound{
-			EventID:    eventID,
-			WorkerName: workerName,
-			JobName:    jobName,
+			EventID: eventID,
+			JobName: jobName,
 		}
 	}
 	if resp.StatusCode != http.StatusOK {

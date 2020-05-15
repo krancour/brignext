@@ -72,31 +72,15 @@ func (e *ErrEventNotFound) Error() string {
 	return fmt.Sprintf("event %q not found", e.ID)
 }
 
-type ErrWorkerNotFound struct {
-	ProjectID  string
-	EventID    string
-	WorkerName string
-}
-
-func (e *ErrWorkerNotFound) Error() string {
-	return fmt.Sprintf(
-		"worker %q not found for event %q",
-		e.WorkerName,
-		e.EventID,
-	)
-}
-
 type ErrJobNotFound struct {
-	EventID    string
-	WorkerName string
-	JobName    string
+	EventID string
+	JobName string
 }
 
 func (e *ErrJobNotFound) Error() string {
 	return fmt.Sprintf(
-		"worker %q job %q not found for event %q",
-		e.WorkerName,
-		e.JobName,
+		"event %q worker job %q not found",
 		e.EventID,
+		e.JobName,
 	)
 }

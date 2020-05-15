@@ -26,7 +26,7 @@ ifneq ($(SKIP_DOCKER),true)
 	# https://github.com/krancour/go-tools
 	# https://hub.docker.com/repository/docker/krancour/go-tools
 	GO_DEV_IMAGE := krancour/go-tools:v0.1.0
-	JS_DEV_IMAGE := node:12.3.1-stretch
+	JS_DEV_IMAGE := node:12.16.2-alpine3.11
 
 	GO_DOCKER_CMD := docker run \
 		-it \
@@ -40,7 +40,7 @@ ifneq ($(SKIP_DOCKER),true)
 		-it \
 		--rm \
 		-e SKIP_DOCKER=true \
-		-v $(PROJECT_ROOT):/src \
+		-v $(PROJECT_ROOT)/internal/worker:/src \
 		-w /src \
 		$(JS_DEV_IMAGE)
 endif
@@ -78,11 +78,11 @@ IMMUTABLE_DOCKER_TAG := $(VERSION)
 
 .PHONY: resolve-go-dependencies
 resolve-go-dependencies:
-	$(GO_DOCKER_CMD) sh -c 'go mod tidy && go vendor'
+	$(GO_DOCKER_CMD) sh -c 'go mod tidy && go mod vendor'
 
 .PHONY: resolve-js-dependencies
 resolve-js-dependencies:
-	$(JS_DOCKER_CMD) sh -c "cd worker && yarn install"
+	$(JS_DOCKER_CMD) yarn install
 
 ################################################################################
 # Tests                                                                        #
@@ -102,11 +102,11 @@ test-unit-go:
 
 .PHONY: verify-vendored-js-code
 verify-vendored-js-code:
-	$(JS_DOCKER_CMD) sh -c "cd brigade-worker && yarn check --integrity && yarn check --verify-tree"
+	$(JS_DOCKER_CMD) sh -c "yarn check --integrity && yarn check --verify-tree"
 
 .PHONY: test-unit-js
 test-unit-js:
-	$(JS_DOCKER_CMD) sh -c "cd brigade-worker && yarn build && yarn test"
+	$(JS_DOCKER_CMD) sh -c "yarn build && yarn test"
 
 ################################################################################
 # Build / Publish                                                              #
@@ -121,7 +121,7 @@ build-images: build-apiserver build-controller build-worker build-logger-linux
 .PHONY: build-apiserver
 build-apiserver:
 	docker build \
-		-f apiserver/Dockerfile \
+		-f internal/apiserver/Dockerfile \
 		-t $(DOCKER_IMAGE_PREFIX)brignext-apiserver:$(IMMUTABLE_DOCKER_TAG) \
 		--build-arg VERSION='$(VERSION)' \
 		--build-arg COMMIT='$(GIT_VERSION)' \
@@ -131,7 +131,7 @@ build-apiserver:
 .PHONY: build-controller
 build-controller:
 	docker build \
-		-f controller/Dockerfile \
+		-f internal/controller/Dockerfile \
 		-t $(DOCKER_IMAGE_PREFIX)brignext-controller:$(IMMUTABLE_DOCKER_TAG) \
 		--build-arg VERSION='$(VERSION)' \
 		--build-arg COMMIT='$(GIT_VERSION)' \
@@ -141,15 +141,14 @@ build-controller:
 .PHONY: build-worker
 build-worker:
 	docker build \
-		-f worker/Dockerfile \
 		-t $(DOCKER_IMAGE_PREFIX)brignext-worker:$(IMMUTABLE_DOCKER_TAG) \
-		.
+		internal/worker/
 	docker tag $(DOCKER_IMAGE_PREFIX)brignext-worker:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-worker:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: build-logger-linux
 build-logger-linux:
 	docker build \
-		-f logger/Dockerfile.linux \
+		-f internal/logger/Dockerfile.linux \
 		-t $(DOCKER_IMAGE_PREFIX)brignext-logger-linux:$(IMMUTABLE_DOCKER_TAG) \
 		.
 	docker tag $(DOCKER_IMAGE_PREFIX)brignext-logger-linux:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-logger-linux:$(MUTABLE_DOCKER_TAG)
@@ -157,7 +156,7 @@ build-logger-linux:
 .PHONY: build-logger-windows
 build-logger-windows:
 	docker build \
-		-f logger/Dockerfile.winserv-2019 \
+		-f internal/logger/Dockerfile.winserv-2019 \
 		-t $(DOCKER_IMAGE_PREFIX)brignext-logger-windows:$(IMMUTABLE_DOCKER_TAG) \
 		.
 	docker tag $(DOCKER_IMAGE_PREFIX)brignext-logger-windows:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-logger-windows:$(MUTABLE_DOCKER_TAG)
@@ -262,9 +261,9 @@ hack-worker: push-worker hack-namespace
 		--install \
 		--namespace brignext \
 		--reuse-values \
-		--set worker.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-logger-linux \
-		--set worker.linux.image.tag=$(IMMUTABLE_DOCKER_TAG) \
-		--set worker.linux.image.pullPolicy=Always
+		--set worker.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-worker \
+		--set worker.image.tag=$(IMMUTABLE_DOCKER_TAG) \
+		--set worker.image.pullPolicy=Always
 
 .PHONY: hack-logger-linux
 hack-logger-linux: push-logger-linux hack-namespace

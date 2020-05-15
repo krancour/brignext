@@ -9,11 +9,11 @@
         "/projects/*.yaml",
         "/projects/*.yml"
       ],
-      "url": "./apiserver/schemas/project.json"
+      "url": "./internal/apiserver/schemas/project.json"
     }
   ],
   "yaml.schemas": {
-    "./apiserver/schemas/project.json": [
+    "./internal/apiserver/schemas/project.json": [
       "/projects/*.yaml",
       "/projects/*.yml"
     ]

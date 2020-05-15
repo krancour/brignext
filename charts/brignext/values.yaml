@@ -34,7 +34,7 @@ apiserver:
     ## Whether to enable OpenID Connect. OpenID Connect (an authentication
     ## protocol built on top of OAuth2) delegates authentication to a trusted
     ## public or private identity provider. This is HIGHLY recommended for any
-    ## installation of Brigade with an anticipated user base of n > 1.
+    ## installation of BrigNext with an anticipated user base of n > 1.
     ##
     ## OpenID Connect support REQUIRES TLS to be enabled.
     enabled: false
@@ -59,7 +59,7 @@ apiserver:
     ## generateSelfSignedCert to true (which is its default) OR provide your own
     ## certificate using the cert and key fields. TLS SHOULD always be enabled,
     ## even when ingress is used because other components within the Kubernetes
-    ## cluster (e.g. Brigade gateways) will interact with the apiserver and will
+    ## cluster (e.g. BrigNext gateways) will interact with the apiserver and will
     ## not go through the ingress controller to do so, but SHOULD still interact
     ## over a secure connection. It is advised that this be disabled ONLY if
     ## utilizing a service mesh to enforce secure connections to the apiserver

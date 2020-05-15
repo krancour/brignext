@@ -1,13 +1,17 @@
 package brignext
 
-import (
-	"time"
-)
+import "time"
+
+type ServiceAccountList struct {
+	TypeMeta `json:",inline"`
+	ListMeta `json:"metadata"`
+	Items    []ServiceAccount `json:"items"`
+}
 
 type ServiceAccount struct {
-	ID          string     `json:"id" bson:"_id"`
+	TypeMeta    `json:",inline" bson:",inline"`
+	ObjectMeta  `json:"metadata" bson:"metadata"`
 	Description string     `json:"description" bson:"description"`
 	HashedToken string     `json:"-" bson:"hashedToken"`
-	Created     *time.Time `json:"created,omitempty" bson:"created"`
-	Locked      *bool      `json:"locked,omitempty" bson:"locked"`
+	Locked      *time.Time `json:"locked,omitempty" bson:"locked"`
 }
