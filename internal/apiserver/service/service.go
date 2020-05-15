@@ -362,7 +362,8 @@ func (s *service) GetServiceAccounts(
 ) (brignext.ServiceAccountList, error) {
 	serviceAccountList, err := s.store.GetServiceAccounts(ctx)
 	if err != nil {
-		return serviceAccountList, errors.Wrap(err, "error retrieving service accounts from store")
+		return serviceAccountList,
+			errors.Wrap(err, "error retrieving service accounts from store")
 	}
 	return serviceAccountList, nil
 }

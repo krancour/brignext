@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	redisMessaging "github.com/krancour/brignext/v2/internal/common/messaging/redis"
+	redisMessaging "github.com/krancour/brignext/v2/internal/common/messaging/redis" // nolint: lll
 )
 
 func (c *controller) defaultManageProjectWorkerQueueConsumers(

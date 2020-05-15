@@ -152,7 +152,8 @@ func (c *client) GetUsers(context.Context) (UserList, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return userList, errors.Errorf("received %d from API server", resp.StatusCode)
+		return userList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
@@ -890,7 +891,8 @@ func (c *client) GetEvents(context.Context) (EventList, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return eventList, errors.Errorf("received %d from API server", resp.StatusCode)
+		return eventList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
@@ -933,7 +935,8 @@ func (c *client) GetEventsByProject(
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return eventList, errors.Errorf("received %d from API server", resp.StatusCode)
+		return eventList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)
@@ -1365,7 +1368,8 @@ func (c *client) GetWorkerInitLogs(
 		}
 	}
 	if resp.StatusCode != http.StatusOK {
-		return logEntryList, errors.Errorf("received %d from API server", resp.StatusCode)
+		return logEntryList,
+			errors.Errorf("received %d from API server", resp.StatusCode)
 	}
 
 	respBodyBytes, err := ioutil.ReadAll(resp.Body)

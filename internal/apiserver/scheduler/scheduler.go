@@ -11,7 +11,7 @@ import (
 	"github.com/krancour/brignext/v2"
 	"github.com/krancour/brignext/v2/internal/apiserver/crypto"
 	"github.com/krancour/brignext/v2/internal/common/messaging"
-	redisMessaging "github.com/krancour/brignext/v2/internal/common/messaging/redis"
+	redisMessaging "github.com/krancour/brignext/v2/internal/common/messaging/redis" // nolint: lll
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"

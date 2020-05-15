@@ -98,10 +98,14 @@ func TestTokenAuthFilterWithAuthenticatedSession(t *testing.T) {
 	const sessionID = "foobar"
 	a := NewTokenAuthFilter(
 		func(context.Context, string) (Session, error) {
+			now := time.Now()
+			expiry := now.Add(time.Minute)
 			return Session{
-				ID:            sessionID,
-				Authenticated: true,
-				Expires:       time.Now().Add(time.Minute),
+				ObjectMeta: brignext.ObjectMeta{
+					ID: sessionID,
+				},
+				Authenticated: &now,
+				Expires:       &expiry,
 			}, nil
 		},
 		func(context.Context, string) (brignext.User, error) {

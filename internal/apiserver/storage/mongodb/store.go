@@ -433,10 +433,12 @@ func (s *store) GetServiceAccounts(
 	findOptions.SetSort(bson.M{"metadata.id": 1})
 	cur, err := s.serviceAccountsCollection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
-		return serviceAccountList, errors.Wrap(err, "error finding service accounts")
+		return serviceAccountList,
+			errors.Wrap(err, "error finding service accounts")
 	}
 	if err := cur.All(ctx, &serviceAccountList.Items); err != nil {
-		return serviceAccountList, errors.Wrap(err, "error decoding service accounts")
+		return serviceAccountList,
+			errors.Wrap(err, "error decoding service accounts")
 	}
 	return serviceAccountList, nil
 }

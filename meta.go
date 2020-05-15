@@ -11,6 +11,7 @@ type TypeMeta struct {
 	APIVersion string `json:"apiVersion" bson:"apiVersion"`
 }
 
+// nolint: lll
 type ObjectMeta struct {
 	ID string `json:"id,omitempty" bson:"id"`
 	// The JSON schema doesn't permit the fields below to be set via the API.
