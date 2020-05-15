@@ -10,7 +10,7 @@ type LogStore interface {
 	GetWorkerLogs(
 		ctx context.Context,
 		eventID string,
-	) ([]brignext.LogEntry, error)
+	) (brignext.LogEntryList, error)
 	StreamWorkerLogs(
 		ctx context.Context,
 		eventID string,
@@ -18,7 +18,7 @@ type LogStore interface {
 	GetWorkerInitLogs(
 		ctx context.Context,
 		eventID string,
-	) ([]brignext.LogEntry, error)
+	) (brignext.LogEntryList, error)
 	StreamWorkerInitLogs(
 		ctx context.Context,
 		eventID string,
@@ -28,7 +28,7 @@ type LogStore interface {
 		ctx context.Context,
 		eventID string,
 		jobName string,
-	) ([]brignext.LogEntry, error)
+	) (brignext.LogEntryList, error)
 	StreamJobLogs(
 		ctx context.Context,
 		eventID string,
@@ -38,7 +38,7 @@ type LogStore interface {
 		ctx context.Context,
 		eventID string,
 		jobName string,
-	) ([]brignext.LogEntry, error)
+	) (brignext.LogEntryList, error)
 	StreamJobInitLogs(
 		ctx context.Context,
 		eventID string,

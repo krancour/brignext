@@ -20,16 +20,16 @@ func logs(c *cli.Context) error {
 	}
 
 	if !follow {
-		var logEntries []brignext.LogEntry
+		var logEntryList brignext.LogEntryList
 		if jobName == "" {
-			logEntries, err = client.GetWorkerLogs(c.Context, eventID)
+			logEntryList, err = client.GetWorkerLogs(c.Context, eventID)
 		} else {
-			logEntries, err = client.GetJobLogs(c.Context, eventID, jobName)
+			logEntryList, err = client.GetJobLogs(c.Context, eventID, jobName)
 		}
 		if err != nil {
 			return err
 		}
-		for _, logEntry := range logEntries {
+		for _, logEntry := range logEntryList.Items {
 			fmt.Println(logEntry.Message)
 		}
 		return nil

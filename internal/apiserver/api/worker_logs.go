@@ -28,15 +28,15 @@ func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !stream {
-		var logEntries []brignext.LogEntry
+		var logEntriesList brignext.LogEntryList
 		var err error
 		if init {
-			logEntries, err = s.service.GetWorkerInitLogs(
+			logEntriesList, err = s.service.GetWorkerInitLogs(
 				r.Context(),
 				eventID,
 			)
 		} else {
-			logEntries, err = s.service.GetWorkerLogs(
+			logEntriesList, err = s.service.GetWorkerLogs(
 				r.Context(),
 				eventID,
 			)
@@ -57,7 +57,7 @@ func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		responseBytes, err := json.Marshal(logEntries)
+		responseBytes, err := json.Marshal(logEntriesList)
 		if err != nil {
 			log.Println(
 				errors.Wrap(err, "error marshaling get worker logs response"),

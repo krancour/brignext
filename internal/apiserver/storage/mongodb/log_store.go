@@ -29,7 +29,7 @@ func NewLogStore(database *mongo.Database) storage.LogStore {
 func (l *logStore) GetWorkerLogs(
 	ctx context.Context,
 	eventID string,
-) ([]brignext.LogEntry, error) {
+) (brignext.LogEntryList, error) {
 	return l.getLogs(
 		ctx,
 		bson.M{
@@ -57,7 +57,7 @@ func (l *logStore) StreamWorkerLogs(
 func (l *logStore) GetWorkerInitLogs(
 	ctx context.Context,
 	eventID string,
-) ([]brignext.LogEntry, error) {
+) (brignext.LogEntryList, error) {
 	return l.getLogs(
 		ctx,
 		bson.M{
@@ -86,7 +86,7 @@ func (l *logStore) GetJobLogs(
 	ctx context.Context,
 	eventID string,
 	jobName string,
-) ([]brignext.LogEntry, error) {
+) (brignext.LogEntryList, error) {
 	return l.getLogs(
 		ctx,
 		bson.M{
@@ -118,7 +118,7 @@ func (l *logStore) GetJobInitLogs(
 	ctx context.Context,
 	eventID string,
 	jobName string,
-) ([]brignext.LogEntry, error) {
+) (brignext.LogEntryList, error) {
 	return l.getLogs(
 		ctx,
 		bson.M{
@@ -149,21 +149,28 @@ func (l *logStore) StreamJobInitLogs(
 func (l *logStore) getLogs(
 	ctx context.Context,
 	criteria bson.M,
-) ([]brignext.LogEntry, error) {
+) (brignext.LogEntryList, error) {
+	logEntryList := brignext.LogEntryList{
+		TypeMeta: brignext.TypeMeta{
+			APIVersion: brignext.APIVersion,
+			Kind:       "LogEntryList",
+		},
+		Items: []brignext.LogEntry{},
+	}
 	cursor, err := l.logsCollection.Find(ctx, criteria)
 	if err != nil {
-		return nil, errors.Wrap(err, "error retrieving log entries")
+		return logEntryList, errors.Wrap(err, "error retrieving log entries")
 	}
-	logEntries := []brignext.LogEntry{}
+	// TODO: Why did I do it this way? Can't I decode them all in one shot?
 	for cursor.Next(ctx) {
 		logEntry := brignext.LogEntry{}
 		err := cursor.Decode(&logEntry)
 		if err != nil {
-			return nil, errors.Wrap(err, "error decoding log entries")
+			return logEntryList, errors.Wrap(err, "error decoding log entries")
 		}
-		logEntries = append(logEntries, logEntry)
+		logEntryList.Items = append(logEntryList.Items, logEntry)
 	}
-	return logEntries, nil
+	return logEntryList, nil
 }
 
 func (l *logStore) streamLogs(

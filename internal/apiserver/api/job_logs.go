@@ -29,16 +29,16 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !stream {
-		var logEntries []brignext.LogEntry
+		var logEntriesList brignext.LogEntryList
 		var err error
 		if init {
-			logEntries, err = s.service.GetJobInitLogs(
+			logEntriesList, err = s.service.GetJobInitLogs(
 				r.Context(),
 				eventID,
 				jobName,
 			)
 		} else {
-			logEntries, err = s.service.GetJobLogs(
+			logEntriesList, err = s.service.GetJobLogs(
 				r.Context(),
 				eventID,
 				jobName,
@@ -64,7 +64,7 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		responseBytes, err := json.Marshal(logEntries)
+		responseBytes, err := json.Marshal(logEntriesList)
 		if err != nil {
 			log.Println(
 				errors.Wrap(err, "error marshaling get job logs response"),

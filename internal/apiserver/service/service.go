@@ -98,7 +98,7 @@ type Service interface {
 	GetWorkerLogs(
 		ctx context.Context,
 		eventID string,
-	) ([]brignext.LogEntry, error)
+	) (brignext.LogEntryList, error)
 	StreamWorkerLogs(
 		ctx context.Context,
 		eventID string,
@@ -106,7 +106,7 @@ type Service interface {
 	GetWorkerInitLogs(
 		ctx context.Context,
 		eventID string,
-	) ([]brignext.LogEntry, error)
+	) (brignext.LogEntryList, error)
 	StreamWorkerInitLogs(
 		ctx context.Context,
 		eventID string,
@@ -122,7 +122,7 @@ type Service interface {
 		ctx context.Context,
 		eventID string,
 		jobName string,
-	) ([]brignext.LogEntry, error)
+	) (brignext.LogEntryList, error)
 	StreamJobLogs(
 		ctx context.Context,
 		eventID string,
@@ -132,7 +132,7 @@ type Service interface {
 		ctx context.Context,
 		eventID string,
 		jobName string,
-	) ([]brignext.LogEntry, error)
+	) (brignext.LogEntryList, error)
 	StreamJobInitLogs(
 		ctx context.Context,
 		eventID string,
@@ -963,7 +963,7 @@ func (s *service) UpdateWorkerStatus(
 func (s *service) GetWorkerLogs(
 	ctx context.Context,
 	eventID string,
-) ([]brignext.LogEntry, error) {
+) (brignext.LogEntryList, error) {
 	return s.logStore.GetWorkerLogs(ctx, eventID)
 }
 
@@ -977,7 +977,7 @@ func (s *service) StreamWorkerLogs(
 func (s *service) GetWorkerInitLogs(
 	ctx context.Context,
 	eventID string,
-) ([]brignext.LogEntry, error) {
+) (brignext.LogEntryList, error) {
 	return s.logStore.GetWorkerInitLogs(ctx, eventID)
 }
 
@@ -1014,7 +1014,7 @@ func (s *service) GetJobLogs(
 	ctx context.Context,
 	eventID string,
 	jobName string,
-) ([]brignext.LogEntry, error) {
+) (brignext.LogEntryList, error) {
 	return s.logStore.GetJobLogs(ctx, eventID, jobName)
 }
 
@@ -1030,7 +1030,7 @@ func (s *service) GetJobInitLogs(
 	ctx context.Context,
 	eventID string,
 	jobName string,
-) ([]brignext.LogEntry, error) {
+) (brignext.LogEntryList, error) {
 	return s.logStore.GetJobInitLogs(ctx, eventID, jobName)
 }
 
