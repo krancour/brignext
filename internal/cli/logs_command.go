@@ -8,6 +8,36 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+var logsCommand = &cli.Command{
+	Name:  "logs",
+	Usage: "View worker or job logs",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:     flagEvent,
+			Aliases:  []string{"e"},
+			Usage:    "View logs from the specified event",
+			Required: true,
+		},
+		&cli.BoolFlag{
+			Name:    flagFollow,
+			Aliases: []string{"f"},
+			Usage:   "If set, will stream logs until interrupted",
+		},
+		&cli.BoolFlag{
+			Name:    flagInit,
+			Aliases: []string{"i"},
+			Usage:   "View logs from the corresponding init container",
+		},
+		&cli.StringFlag{
+			Name:    flagJob,
+			Aliases: []string{"j"},
+			Usage: "View logs from the specified job; if not set, displays " +
+				"worker logs",
+		},
+	},
+	Action: logs,
+}
+
 func logs(c *cli.Context) error {
 	eventID := c.String(flagEvent)
 	follow := c.Bool(flagFollow)

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/krancour/brignext/v2/internal/apiserver/api/auth"
 	"github.com/krancour/brignext/v2/internal/apiserver/crypto"
 	"github.com/pkg/errors"
 )
@@ -90,4 +91,28 @@ func (s *server) sessionCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.writeResponse(w, http.StatusCreated, responseBytes)
+}
+
+func (s *server) sessionDelete(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close() // nolint: errcheck
+
+	sessionID := auth.SessionIDFromContext(r.Context())
+	if sessionID == "" {
+		log.Println(
+			"error: delete session request authenticated, but no session ID found " +
+				"in request context",
+		)
+		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		return
+	}
+
+	if err := s.service.DeleteSession(r.Context(), sessionID); err != nil {
+		log.Println(
+			errors.Wrap(err, "error deleting session"),
+		)
+		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		return
+	}
+
+	s.writeResponse(w, http.StatusOK, responseEmptyJSON)
 }

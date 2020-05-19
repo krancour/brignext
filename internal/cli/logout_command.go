@@ -7,6 +7,12 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+var logoutCommand = &cli.Command{
+	Name:   "logout",
+	Usage:  "Log out of BrigNext",
+	Action: logout,
+}
+
 func logout(c *cli.Context) error {
 	client, err := getClient(c)
 	if err != nil {

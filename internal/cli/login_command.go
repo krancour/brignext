@@ -13,6 +13,40 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+var loginCommand = &cli.Command{
+	Name:  "login",
+	Usage: "Log in to BrigNext",
+	Description: "By default, initiates authentication using OpenID " +
+		"Connect. This may not be supported by all BrigNext API servers.",
+	Flags: []cli.Flag{
+		&cli.StringFlag{
+			Name:    flagServer,
+			Aliases: []string{"s"},
+			Usage: "Log into the API server at the specified address " +
+				"(required)",
+			Required: true,
+		},
+		&cli.BoolFlag{
+			Name:    flagBrowse,
+			Aliases: []string{"b"},
+			Usage: "Use the system's default web browser to complete " +
+				"authentication; not applicable when --root is used",
+		},
+		&cli.StringFlag{
+			Name:    flagPassword,
+			Aliases: []string{"p"},
+			Usage: "Specify the password for non-interactive root user login; " +
+				"only applicable when --root is used",
+		},
+		&cli.BoolFlag{
+			Name:    flagRoot,
+			Aliases: []string{"r"},
+			Usage:   "Log in as the root user; does not use OpenID Connect",
+		},
+	},
+	Action: login,
+}
+
 func login(c *cli.Context) error {
 	address := c.String(flagServer)
 	browseToAuthURL := c.Bool(flagBrowse)
