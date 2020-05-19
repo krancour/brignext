@@ -35,6 +35,52 @@ type EventsClient interface {
 		deletePending bool,
 		deleteRunning bool,
 	) (EventReferenceList, error)
+
+	UpdateWorkerStatus(
+		ctx context.Context,
+		eventID string,
+		status WorkerStatus,
+	) error
+	GetWorkerLogs(ctx context.Context, eventID string) (LogEntryList, error)
+	StreamWorkerLogs(
+		ctx context.Context,
+		eventID string,
+	) (<-chan LogEntry, <-chan error, error)
+	GetWorkerInitLogs(
+		ctx context.Context,
+		eventID string,
+	) (LogEntryList, error)
+	StreamWorkerInitLogs(
+		ctx context.Context,
+		eventID string,
+	) (<-chan LogEntry, <-chan error, error)
+
+	UpdateJobStatus(
+		ctx context.Context,
+		eventID string,
+		jobName string,
+		status JobStatus,
+	) error
+	GetJobLogs(
+		ctx context.Context,
+		eventID string,
+		jobName string,
+	) (LogEntryList, error)
+	StreamJobLogs(
+		ctx context.Context,
+		eventID string,
+		jobName string,
+	) (<-chan LogEntry, <-chan error, error)
+	GetJobInitLogs(
+		ctx context.Context,
+		eventID string,
+		jobName string,
+	) (LogEntryList, error)
+	StreamJobInitLogs(
+		ctx context.Context,
+		eventID string,
+		jobName string,
+	) (<-chan LogEntry, <-chan error, error)
 }
 
 type eventsClient struct {
@@ -234,4 +280,275 @@ func (e *eventsClient) DeleteByProject(
 		},
 	)
 	return eventRefList, err
+}
+
+func (e *eventsClient) UpdateWorkerStatus(
+	ctx context.Context,
+	eventID string,
+	status WorkerStatus,
+) error {
+	return e.doAPIRequest(
+		apiRequest{
+			method:      http.MethodPut,
+			path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			reqBodyObj:  status,
+			successCode: http.StatusOK,
+			errObjs: map[int]error{
+				http.StatusNotFound: &ErrEventNotFound{},
+			},
+		},
+	)
+}
+
+func (e *eventsClient) GetWorkerLogs(
+	ctx context.Context,
+	eventID string,
+) (LogEntryList, error) {
+	logEntryList := LogEntryList{}
+	err := e.doAPIRequest(
+		apiRequest{
+			method:      http.MethodGet,
+			path:        fmt.Sprintf("v2/events/%s/worker/logs", eventID),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			successCode: http.StatusOK,
+			respObj:     &logEntryList,
+			errObjs: map[int]error{
+				http.StatusNotFound: &ErrEventNotFound{},
+			},
+		},
+	)
+	return logEntryList, err
+}
+
+func (e *eventsClient) StreamWorkerLogs(
+	ctx context.Context,
+	eventID string,
+) (<-chan LogEntry, <-chan error, error) {
+	resp, err := e.doAPIRequest2(
+		apiRequest{
+			method:      http.MethodGet,
+			path:        fmt.Sprintf("v2/events/%s/worker/logs", eventID),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			queryParams: map[string]string{
+				"stream": "true",
+			},
+			successCode: http.StatusOK,
+			errObjs: map[int]error{
+				http.StatusNotFound: &ErrJobNotFound{},
+			},
+		},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	logCh := make(chan LogEntry)
+	errCh := make(chan error)
+
+	go e.receiveLogStream(ctx, resp.Body, logCh, errCh)
+
+	return logCh, errCh, nil
+}
+
+func (e *eventsClient) GetWorkerInitLogs(
+	ctx context.Context,
+	eventID string,
+) (LogEntryList, error) {
+	logEntryList := LogEntryList{}
+	err := e.doAPIRequest(
+		apiRequest{
+			method:      http.MethodGet,
+			path:        fmt.Sprintf("v2/events/%s/worker/logs", eventID),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			queryParams: map[string]string{
+				"init": "true",
+			},
+			successCode: http.StatusOK,
+			respObj:     &logEntryList,
+			errObjs: map[int]error{
+				http.StatusNotFound: &ErrEventNotFound{},
+			},
+		},
+	)
+	return logEntryList, err
+}
+
+func (e *eventsClient) StreamWorkerInitLogs(
+	ctx context.Context,
+	eventID string,
+) (<-chan LogEntry, <-chan error, error) {
+	resp, err := e.doAPIRequest2(
+		apiRequest{
+			method:      http.MethodGet,
+			path:        fmt.Sprintf("v2/events/%s/worker/logs", eventID),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			queryParams: map[string]string{
+				"stream": "true",
+				"init":   "true",
+			},
+			successCode: http.StatusOK,
+			errObjs: map[int]error{
+				http.StatusNotFound: &ErrJobNotFound{},
+			},
+		},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	logCh := make(chan LogEntry)
+	errCh := make(chan error)
+
+	go e.receiveLogStream(ctx, resp.Body, logCh, errCh)
+
+	return logCh, errCh, nil
+}
+
+func (e *eventsClient) UpdateJobStatus(
+	ctx context.Context,
+	eventID string,
+	jobName string,
+	status JobStatus,
+) error {
+	return e.doAPIRequest(
+		apiRequest{
+			method: http.MethodPut,
+			path: fmt.Sprintf(
+				"v2/events/%s/worker/jobs/%s/status",
+				eventID,
+				jobName,
+			),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			reqBodyObj:  status,
+			successCode: http.StatusOK,
+			errObjs: map[int]error{
+				http.StatusNotFound: &ErrJobNotFound{},
+			},
+		},
+	)
+}
+
+func (e *eventsClient) GetJobLogs(
+	ctx context.Context,
+	eventID string,
+	jobName string,
+) (LogEntryList, error) {
+	logEntryList := LogEntryList{}
+	err := e.doAPIRequest(
+		apiRequest{
+			method: http.MethodGet,
+			path: fmt.Sprintf(
+				"v2/events/%s/worker/jobs/%s/logs",
+				eventID,
+				jobName,
+			),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			successCode: http.StatusOK,
+			respObj:     &logEntryList,
+			errObjs: map[int]error{
+				http.StatusNotFound: &ErrJobNotFound{},
+			},
+		},
+	)
+	return logEntryList, err
+}
+
+func (e *eventsClient) StreamJobLogs(
+	ctx context.Context,
+	eventID string,
+	jobName string,
+) (<-chan LogEntry, <-chan error, error) {
+	resp, err := e.doAPIRequest2(
+		apiRequest{
+			method: http.MethodGet,
+			path: fmt.Sprintf(
+				"v2/events/%s/worker/jobs/%s/logs",
+				eventID,
+				jobName,
+			),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			queryParams: map[string]string{
+				"stream": "true",
+			},
+			successCode: http.StatusOK,
+			errObjs: map[int]error{
+				http.StatusNotFound: &ErrJobNotFound{},
+			},
+		},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	logCh := make(chan LogEntry)
+	errCh := make(chan error)
+
+	go e.receiveLogStream(ctx, resp.Body, logCh, errCh)
+
+	return logCh, errCh, nil
+}
+
+func (e *eventsClient) GetJobInitLogs(
+	ctx context.Context,
+	eventID string,
+	jobName string,
+) (LogEntryList, error) {
+	logEntryList := LogEntryList{}
+	err := e.doAPIRequest(
+		apiRequest{
+			method: http.MethodGet,
+			path: fmt.Sprintf(
+				"v2/events/%s/worker/jobs/%s/logs",
+				eventID,
+				jobName,
+			),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			queryParams: map[string]string{
+				"init": "true",
+			},
+			successCode: http.StatusOK,
+			respObj:     &logEntryList,
+			errObjs: map[int]error{
+				http.StatusNotFound: &ErrJobNotFound{},
+			},
+		},
+	)
+	return logEntryList, err
+}
+
+func (e *eventsClient) StreamJobInitLogs(
+	ctx context.Context,
+	eventID string,
+	jobName string,
+) (<-chan LogEntry, <-chan error, error) {
+	resp, err := e.doAPIRequest2(
+		apiRequest{
+			method: http.MethodGet,
+			path: fmt.Sprintf(
+				"v2/events/%s/worker/jobs/%s/logs",
+				eventID,
+				jobName,
+			),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			queryParams: map[string]string{
+				"stream": "true",
+				"init":   "true",
+			},
+			successCode: http.StatusOK,
+			errObjs: map[int]error{
+				http.StatusNotFound: &ErrJobNotFound{},
+			},
+		},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	logCh := make(chan LogEntry)
+	errCh := make(chan error)
+
+	go e.receiveLogStream(ctx, resp.Body, logCh, errCh)
+
+	return logCh, errCh, nil
 }

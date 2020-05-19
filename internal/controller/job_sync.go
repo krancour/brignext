@@ -90,7 +90,7 @@ func (c *controller) syncJobPod(obj interface{}) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := c.apiClient.Jobs().UpdateStatus(
+	if err := c.apiClient.Events().UpdateJobStatus(
 		ctx,
 		eventID,
 		jobName,
