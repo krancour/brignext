@@ -6,7 +6,7 @@ import (
 	"github.com/krancour/brignext/v2"
 )
 
-type LogStore interface {
+type LogsStore interface {
 	GetWorkerLogs(
 		ctx context.Context,
 		eventID string,

@@ -20,7 +20,7 @@ type logStore struct {
 	logsCollection *mongo.Collection
 }
 
-func NewLogStore(database *mongo.Database) storage.LogStore {
+func NewLogStore(database *mongo.Database) storage.LogsStore {
 	return &logStore{
 		logsCollection: database.Collection("logs"),
 	}

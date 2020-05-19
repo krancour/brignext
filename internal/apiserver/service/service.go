@@ -149,13 +149,13 @@ type Service interface {
 type service struct {
 	store     storage.Store
 	scheduler scheduler.Scheduler
-	logStore  storage.LogStore
+	logStore  storage.LogsStore
 }
 
 func NewService(
 	store storage.Store,
 	scheduler scheduler.Scheduler,
-	logStore storage.LogStore,
+	logStore storage.LogsStore,
 ) Service {
 	return &service{
 		store:     store,
@@ -165,14 +165,14 @@ func NewService(
 }
 
 func (s *service) CreateUser(ctx context.Context, user brignext.User) error {
-	if err := s.store.CreateUser(ctx, user); err != nil {
+	if err := s.store.Users().Create(ctx, user); err != nil {
 		return errors.Wrapf(err, "error storing new user %q", user.ID)
 	}
 	return nil
 }
 
 func (s *service) GetUsers(ctx context.Context) (brignext.UserList, error) {
-	userList, err := s.store.GetUsers(ctx)
+	userList, err := s.store.Users().List(ctx)
 	if err != nil {
 		return userList, errors.Wrap(err, "error retrieving users from store")
 	}
@@ -183,7 +183,7 @@ func (s *service) GetUser(
 	ctx context.Context,
 	id string,
 ) (brignext.User, error) {
-	user, err := s.store.GetUser(ctx, id)
+	user, err := s.store.Users().Get(ctx, id)
 	if err != nil {
 		return user, errors.Wrapf(
 			err,
@@ -197,10 +197,10 @@ func (s *service) GetUser(
 func (s *service) LockUser(ctx context.Context, id string) error {
 	return s.store.DoTx(ctx, func(ctx context.Context) error {
 		var err error
-		if err = s.store.LockUser(ctx, id); err != nil {
+		if err = s.store.Users().Lock(ctx, id); err != nil {
 			return errors.Wrapf(err, "error locking user %q in store", id)
 		}
-		if _, err := s.store.DeleteSessionsByUser(ctx, id); err != nil {
+		if _, err := s.store.Sessions().DeleteByUser(ctx, id); err != nil {
 			return errors.Wrapf(
 				err,
 				"error removing sessions for user %q from store",
@@ -212,7 +212,7 @@ func (s *service) LockUser(ctx context.Context, id string) error {
 }
 
 func (s *service) UnlockUser(ctx context.Context, id string) error {
-	if err := s.store.UnlockUser(ctx, id); err != nil {
+	if err := s.store.Users().Unlock(ctx, id); err != nil {
 		return errors.Wrapf(err, "error unlocking user %q in store", id)
 	}
 	return nil
@@ -243,7 +243,7 @@ func (s *service) CreateRootSession(
 		Authenticated: &now,
 		Expires:       &expiryTime,
 	}
-	if err := s.store.CreateSession(ctx, session); err != nil {
+	if err := s.store.Sessions().Create(ctx, session); err != nil {
 		return token, errors.Wrapf(
 			err,
 			"error storing new root session %q",
@@ -269,7 +269,7 @@ func (s *service) CreateUserSession(
 		HashedOAuth2State: crypto.ShortSHA("", oauth2State),
 		HashedToken:       crypto.ShortSHA("", token),
 	}
-	if err := s.store.CreateSession(ctx, session); err != nil {
+	if err := s.store.Sessions().Create(ctx, session); err != nil {
 		return "", "", errors.Wrapf(
 			err,
 			"error storing new user session %q",
@@ -283,7 +283,7 @@ func (s *service) GetSessionByOAuth2State(
 	ctx context.Context,
 	oauth2State string,
 ) (auth.Session, error) {
-	session, err := s.store.GetSessionByHashedOAuth2State(
+	session, err := s.store.Sessions().GetByHashedOAuth2State(
 		ctx,
 		crypto.ShortSHA("", oauth2State),
 	)
@@ -300,7 +300,7 @@ func (s *service) GetSessionByToken(
 	ctx context.Context,
 	token string,
 ) (auth.Session, error) {
-	session, err := s.store.GetSessionByHashedToken(
+	session, err := s.store.Sessions().GetByHashedToken(
 		ctx,
 		crypto.ShortSHA("", token),
 	)
@@ -318,7 +318,7 @@ func (s *service) AuthenticateSession(
 	sessionID string,
 	userID string,
 ) error {
-	if err := s.store.AuthenticateSession(
+	if err := s.store.Sessions().Authenticate(
 		ctx,
 		sessionID,
 		userID,
@@ -334,7 +334,7 @@ func (s *service) AuthenticateSession(
 }
 
 func (s *service) DeleteSession(ctx context.Context, id string) error {
-	if err := s.store.DeleteSession(ctx, id); err != nil {
+	if err := s.store.Sessions().Delete(ctx, id); err != nil {
 		return errors.Wrapf(err, "error removing session %q from store", id)
 	}
 	return nil
@@ -344,7 +344,7 @@ func (s *service) DeleteSessionsByUser(
 	ctx context.Context,
 	userID string,
 ) (int64, error) {
-	n, err := s.store.DeleteSessionsByUser(ctx, userID)
+	n, err := s.store.Sessions().DeleteByUser(ctx, userID)
 	if err != nil {
 		return 0, errors.Wrapf(
 			err,
@@ -367,7 +367,7 @@ func (s *service) CreateServiceAccount(
 		Value: crypto.NewToken(256),
 	}
 	serviceAccount.HashedToken = crypto.ShortSHA("", token.Value)
-	if err := s.store.CreateServiceAccount(ctx, serviceAccount); err != nil {
+	if err := s.store.ServiceAccounts().Create(ctx, serviceAccount); err != nil {
 		return token, errors.Wrapf(
 			err,
 			"error storing new service account %q",
@@ -380,7 +380,7 @@ func (s *service) CreateServiceAccount(
 func (s *service) GetServiceAccounts(
 	ctx context.Context,
 ) (brignext.ServiceAccountList, error) {
-	serviceAccountList, err := s.store.GetServiceAccounts(ctx)
+	serviceAccountList, err := s.store.ServiceAccounts().List(ctx)
 	if err != nil {
 		return serviceAccountList,
 			errors.Wrap(err, "error retrieving service accounts from store")
@@ -392,7 +392,7 @@ func (s *service) GetServiceAccount(
 	ctx context.Context,
 	id string,
 ) (brignext.ServiceAccount, error) {
-	serviceAccount, err := s.store.GetServiceAccount(ctx, id)
+	serviceAccount, err := s.store.ServiceAccounts().Get(ctx, id)
 	if err != nil {
 		return serviceAccount, errors.Wrapf(
 			err,
@@ -407,7 +407,7 @@ func (s *service) GetServiceAccountByToken(
 	ctx context.Context,
 	token string,
 ) (brignext.ServiceAccount, error) {
-	serviceAccount, err := s.store.GetServiceAccountByHashedToken(
+	serviceAccount, err := s.store.ServiceAccounts().GetByHashedToken(
 		ctx,
 		crypto.ShortSHA("", token),
 	)
@@ -421,7 +421,7 @@ func (s *service) GetServiceAccountByToken(
 }
 
 func (s *service) LockServiceAccount(ctx context.Context, id string) error {
-	if err := s.store.LockServiceAccount(ctx, id); err != nil {
+	if err := s.store.ServiceAccounts().Lock(ctx, id); err != nil {
 		return errors.Wrapf(
 			err,
 			"error locking service account %q in the store",
@@ -442,7 +442,7 @@ func (s *service) UnlockServiceAccount(
 		},
 		Value: crypto.NewToken(256),
 	}
-	if err := s.store.UnlockServiceAccount(
+	if err := s.store.ServiceAccounts().Unlock(
 		ctx,
 		id,
 		crypto.ShortSHA("", newToken.Value),
@@ -481,7 +481,7 @@ func (s *service) CreateProject(
 			project.ID,
 		)
 	}
-	if err := s.store.CreateProject(ctx, project); err != nil {
+	if err := s.store.Projects().Create(ctx, project); err != nil {
 		// We need to roll this back manually because the scheduler doesn't
 		// automatically roll anything back upon failure.
 		s.scheduler.DeleteProject(ctx, project) // nolint: errcheck
@@ -493,7 +493,7 @@ func (s *service) CreateProject(
 func (s *service) GetProjects(
 	ctx context.Context,
 ) (brignext.ProjectList, error) {
-	projectList, err := s.store.GetProjects(ctx)
+	projectList, err := s.store.Projects().List(ctx)
 	if err != nil {
 		return projectList, errors.Wrap(err, "error retrieving projects from store")
 	}
@@ -504,7 +504,7 @@ func (s *service) GetProject(
 	ctx context.Context,
 	id string,
 ) (brignext.Project, error) {
-	project, err := s.store.GetProject(ctx, id)
+	project, err := s.store.Projects().Get(ctx, id)
 	if err != nil {
 		return project, errors.Wrapf(
 			err,
@@ -520,7 +520,7 @@ func (s *service) UpdateProject(
 	project brignext.Project,
 ) error {
 	// Get the original project in case we need to do a manual rollback
-	oldProject, err := s.store.GetProject(ctx, project.ID)
+	oldProject, err := s.store.Projects().Get(ctx, project.ID)
 	if err != nil {
 		return errors.Wrapf(
 			err,
@@ -541,7 +541,7 @@ func (s *service) UpdateProject(
 			project.ID,
 		)
 	}
-	if err := s.store.UpdateProject(ctx, project); err != nil {
+	if err := s.store.Projects().Update(ctx, project); err != nil {
 		// We need to roll this back manually because the scheduler doesn't
 		// automatically roll anything back upon failure.
 		s.scheduler.UpdateProject(ctx, oldProject) // nolint: errcheck
@@ -555,13 +555,20 @@ func (s *service) UpdateProject(
 }
 
 func (s *service) DeleteProject(ctx context.Context, id string) error {
-	project, err := s.store.GetProject(ctx, id)
+	project, err := s.store.Projects().Get(ctx, id)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving project %q from store", id)
 	}
 	return s.store.DoTx(ctx, func(ctx context.Context) error {
-		if err := s.store.DeleteProject(ctx, id); err != nil {
+		if err := s.store.Projects().Delete(ctx, id); err != nil {
 			return errors.Wrapf(err, "error removing project %q from store", id)
+		}
+		if err := s.store.Events().DeleteByProject(ctx, id); err != nil {
+			return errors.Wrapf(
+				err,
+				"error deleting events for project %q from scheduler",
+				id,
+			)
 		}
 		if err := s.scheduler.DeleteProject(ctx, project); err != nil {
 			return errors.Wrapf(
@@ -579,7 +586,7 @@ func (s *service) GetSecrets(
 	projectID string,
 ) (brignext.SecretList, error) {
 	secretList := brignext.SecretList{}
-	project, err := s.store.GetProject(ctx, projectID)
+	project, err := s.store.Projects().Get(ctx, projectID)
 	if err != nil {
 		return secretList, errors.Wrapf(
 			err,
@@ -602,7 +609,7 @@ func (s *service) SetSecret(
 	projectID string,
 	secret brignext.Secret,
 ) error {
-	project, err := s.store.GetProject(ctx, projectID)
+	project, err := s.store.Projects().Get(ctx, projectID)
 	if err != nil {
 		return errors.Wrapf(
 			err,
@@ -626,7 +633,7 @@ func (s *service) UnsetSecret(
 	projectID string,
 	secretID string,
 ) error {
-	project, err := s.store.GetProject(ctx, projectID)
+	project, err := s.store.Projects().Get(ctx, projectID)
 	if err != nil {
 		return errors.Wrapf(
 			err,
@@ -663,7 +670,7 @@ func (s *service) CreateEvent(
 	// an event for each of these by making a recursive call to this same
 	// function.
 	if event.ProjectID == "" {
-		projectList, err := s.store.GetSubscribedProjects(ctx, event)
+		projectList, err := s.store.Projects().ListSubscribed(ctx, event)
 		if err != nil {
 			return eventRefList, errors.Wrap(
 				err,
@@ -684,7 +691,7 @@ func (s *service) CreateEvent(
 	}
 
 	// Make sure the project exists
-	project, err := s.store.GetProject(ctx, event.ProjectID)
+	project, err := s.store.Projects().Get(ctx, event.ProjectID)
 	if err != nil {
 		return eventRefList, errors.Wrapf(
 			err,
@@ -747,7 +754,7 @@ func (s *service) CreateEvent(
 			event.ID,
 		)
 	}
-	if err := s.store.CreateEvent(ctx, event); err != nil {
+	if err := s.store.Events().Create(ctx, event); err != nil {
 		// We need to roll this back manually because the scheduler doesn't
 		// automatically roll anything back upon failure.
 		s.scheduler.DeleteEvent(ctx, event) // nolint: errcheck
@@ -768,7 +775,7 @@ func (s *service) CreateEvent(
 }
 
 func (s *service) GetEvents(ctx context.Context) (brignext.EventList, error) {
-	eventList, err := s.store.GetEvents(ctx)
+	eventList, err := s.store.Events().List(ctx)
 	if err != nil {
 		return eventList, errors.Wrap(err, "error retrieving events from store")
 	}
@@ -779,11 +786,11 @@ func (s *service) GetEventsByProject(
 	ctx context.Context,
 	projectID string,
 ) (brignext.EventList, error) {
-	if _, err := s.store.GetProject(ctx, projectID); err != nil {
+	if _, err := s.store.Projects().Get(ctx, projectID); err != nil {
 		return brignext.EventList{},
 			errors.Wrapf(err, "error retrieving project %q", projectID)
 	}
-	eventList, err := s.store.GetEventsByProject(ctx, projectID)
+	eventList, err := s.store.Events().ListByProject(ctx, projectID)
 	if err != nil {
 		return eventList, errors.Wrapf(
 			err,
@@ -798,7 +805,7 @@ func (s *service) GetEvent(
 	ctx context.Context,
 	id string,
 ) (brignext.Event, error) {
-	event, err := s.store.GetEvent(ctx, id)
+	event, err := s.store.Events().Get(ctx, id)
 	if err != nil {
 		return event, errors.Wrapf(
 			err,
@@ -830,7 +837,7 @@ func (s *service) CancelEvent(
 		Items:    []brignext.EventReference{},
 	}
 
-	event, err := s.store.GetEvent(ctx, id)
+	event, err := s.store.Events().Get(ctx, id)
 	if err != nil {
 		return eventRefList,
 			errors.Wrapf(err, "error retrieving event %q from store", id)
@@ -838,7 +845,7 @@ func (s *service) CancelEvent(
 
 	err = s.store.DoTx(ctx, func(ctx context.Context) error {
 		var ok bool
-		ok, err = s.store.CancelEvent(
+		ok, err = s.store.Events().Cancel(
 			ctx,
 			id,
 			cancelRunning,
@@ -888,7 +895,7 @@ func (s *service) CancelEventsByProject(
 	// Find all events. We'll iterate over all of them and try to cancel each.
 	// It sounds inefficient and it probably is, but this allows us to cancel
 	// each event in its own transaction.
-	eventList, err := s.store.GetEventsByProject(ctx, projectID)
+	eventList, err := s.store.Events().ListByProject(ctx, projectID)
 	if err != nil {
 		return eventRefList, errors.Wrapf(
 			err,
@@ -899,7 +906,7 @@ func (s *service) CancelEventsByProject(
 
 	for _, event := range eventList.Items {
 		if err := s.store.DoTx(ctx, func(ctx context.Context) error {
-			ok, err := s.store.CancelEvent(ctx, event.ID, cancelRunning)
+			ok, err := s.store.Events().Cancel(ctx, event.ID, cancelRunning)
 			if err != nil {
 				return errors.Wrapf(
 					err,
@@ -950,7 +957,7 @@ func (s *service) DeleteEvent(
 		Items:    []brignext.EventReference{},
 	}
 
-	event, err := s.store.GetEvent(ctx, id)
+	event, err := s.store.Events().Get(ctx, id)
 	if err != nil {
 		return eventRefList,
 			errors.Wrapf(err, "error retrieving event %q from store", id)
@@ -958,7 +965,7 @@ func (s *service) DeleteEvent(
 
 	err = s.store.DoTx(ctx, func(ctx context.Context) error {
 		var ok bool
-		ok, err = s.store.DeleteEvent(
+		ok, err = s.store.Events().Delete(
 			ctx,
 			id,
 			deletePending,
@@ -1009,7 +1016,7 @@ func (s *service) DeleteEventsByProject(
 	// Find all events. We'll iterate over all of them and try to delete each.
 	// It sounds inefficient and it probably is, but this allows us to delete
 	// each event in its own transaction.
-	eventList, err := s.store.GetEventsByProject(ctx, projectID)
+	eventList, err := s.store.Events().ListByProject(ctx, projectID)
 	if err != nil {
 		return eventRefList, errors.Wrapf(
 			err,
@@ -1020,7 +1027,7 @@ func (s *service) DeleteEventsByProject(
 
 	for _, event := range eventList.Items {
 		if err := s.store.DoTx(ctx, func(ctx context.Context) error {
-			ok, err := s.store.DeleteEvent(
+			ok, err := s.store.Events().Delete(
 				ctx,
 				event.ID,
 				deletePending,
@@ -1066,7 +1073,7 @@ func (s *service) UpdateWorkerStatus(
 	eventID string,
 	status brignext.WorkerStatus,
 ) error {
-	if err := s.store.UpdateWorkerStatus(
+	if err := s.store.Events().UpdateWorkerStatus(
 		ctx,
 		eventID,
 		status,
@@ -1114,7 +1121,7 @@ func (s *service) UpdateJobStatus(
 	jobName string,
 	status brignext.JobStatus,
 ) error {
-	if err := s.store.UpdateJobStatus(
+	if err := s.store.Events().UpdateJobStatus(
 		ctx,
 		eventID,
 		jobName,
