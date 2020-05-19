@@ -24,7 +24,7 @@ func secretsList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	secretList, err := client.GetSecrets(c.Context, projectID)
+	secretList, err := client.Secrets().List(c.Context, projectID)
 	if err != nil {
 		return err
 	}

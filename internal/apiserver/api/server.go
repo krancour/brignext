@@ -85,7 +85,7 @@ func NewServer(
 	s.router.HandleFunc(
 		"/v2/users/{id}/lock",
 		tokenAuthFilter.Decorate(s.userLock),
-	).Methods(http.MethodPost)
+	).Methods(http.MethodPut)
 
 	// Unlock user
 	s.router.HandleFunc(
@@ -135,7 +135,7 @@ func NewServer(
 	s.router.HandleFunc(
 		"/v2/service-accounts/{id}/lock",
 		tokenAuthFilter.Decorate(s.serviceAccountLock),
-	).Methods(http.MethodPost)
+	).Methods(http.MethodPut)
 
 	// Unlock service account
 	s.router.HandleFunc(
@@ -181,9 +181,9 @@ func NewServer(
 
 	// Set secret
 	s.router.HandleFunc(
-		"/v2/projects/{projectID}/secrets",
+		"/v2/projects/{projectID}/secrets/{secretID}",
 		tokenAuthFilter.Decorate(s.secretSet),
-	).Methods(http.MethodPost)
+	).Methods(http.MethodPut)
 
 	// Unset secret
 	s.router.HandleFunc(

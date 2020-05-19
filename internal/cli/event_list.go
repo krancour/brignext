@@ -29,9 +29,9 @@ func eventList(c *cli.Context) error {
 
 	var eventList brignext.EventList
 	if projectID == "" {
-		eventList, err = client.GetEvents(c.Context)
+		eventList, err = client.Events().List(c.Context)
 	} else {
-		eventList, err = client.GetEventsByProject(c.Context, projectID)
+		eventList, err = client.Events().ListByProject(c.Context, projectID)
 	}
 	if err != nil {
 		return err

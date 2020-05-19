@@ -24,7 +24,7 @@ func userGet(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	user, err := client.GetUser(c.Context, id)
+	user, err := client.Users().Get(c.Context, id)
 	if err != nil {
 		return err
 	}

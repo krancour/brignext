@@ -20,7 +20,7 @@ func (c *controller) defaultManageProjectWorkerQueueConsumers(
 	defer ticker.Stop()
 
 	for {
-		projectList, err := c.apiClient.GetProjects(ctx)
+		projectList, err := c.apiClient.Projects().List(ctx)
 		if err != nil {
 			select {
 			case c.errCh <- err:

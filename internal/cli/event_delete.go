@@ -29,7 +29,7 @@ func eventDelete(c *cli.Context) error {
 
 	if eventID != "" {
 		var eventRefList brignext.EventReferenceList
-		if eventRefList, err = client.DeleteEvent(
+		if eventRefList, err = client.Events().Delete(
 			c.Context,
 			eventID,
 			deletePending,
@@ -48,7 +48,7 @@ func eventDelete(c *cli.Context) error {
 		)
 	}
 
-	eventRefList, err := client.DeleteEventsByProject(
+	eventRefList, err := client.Events().DeleteByProject(
 		c.Context,
 		projectID,
 		deletePending,

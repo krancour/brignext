@@ -26,7 +26,7 @@ func eventGet(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	event, err := client.GetEvent(c.Context, id)
+	event, err := client.Events().Get(c.Context, id)
 	if err != nil {
 		return err
 	}

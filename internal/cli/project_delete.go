@@ -15,7 +15,7 @@ func projectDelete(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err := client.DeleteProject(c.Context, id); err != nil {
+	if err := client.Projects().Delete(c.Context, id); err != nil {
 		return err
 	}
 

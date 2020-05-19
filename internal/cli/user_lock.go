@@ -15,7 +15,7 @@ func userLock(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err := client.LockUser(c.Context, id); err != nil {
+	if err := client.Users().Lock(c.Context, id); err != nil {
 		return err
 	}
 

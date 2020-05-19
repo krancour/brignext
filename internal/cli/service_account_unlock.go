@@ -15,7 +15,7 @@ func serviceAccountUnlock(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	token, err := client.UnlockServiceAccount(c.Context, id)
+	token, err := client.ServiceAccounts().Unlock(c.Context, id)
 	if err != nil {
 		return err
 	}

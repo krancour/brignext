@@ -30,7 +30,7 @@ func (c *controller) handleProjectWorkerMessage(
 
 	// Use the API to find the worker and check if anything even needs to be
 	// done
-	event, err := c.apiClient.GetEvent(ctx, workerCtx.EventID)
+	event, err := c.apiClient.Events().Get(ctx, workerCtx.EventID)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving event %q", workerCtx.EventID)
 	}
@@ -79,7 +79,7 @@ func (c *controller) handleProjectWorkerMessage(
 	for {
 		select {
 		case <-ticker.C:
-			event, err := c.apiClient.GetEvent(ctx, workerCtx.EventID)
+			event, err := c.apiClient.Events().Get(ctx, workerCtx.EventID)
 			if err != nil {
 				return errors.Wrapf(
 					err,

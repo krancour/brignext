@@ -18,7 +18,7 @@ func serviceAccountCreate(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	token, err := client.CreateServiceAccount(
+	token, err := client.ServiceAccounts().Create(
 		c.Context,
 		brignext.ServiceAccount{
 			TypeMeta: brignext.TypeMeta{

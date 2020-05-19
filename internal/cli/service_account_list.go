@@ -27,7 +27,7 @@ func serviceAccountList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	serviceAccountList, err := client.GetServiceAccounts(c.Context)
+	serviceAccountList, err := client.ServiceAccounts().List(c.Context)
 	if err != nil {
 		return err
 	}

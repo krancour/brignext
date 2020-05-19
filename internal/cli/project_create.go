@@ -37,7 +37,7 @@ func projectCreate(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err := client.CreateProject(c.Context, project); err != nil {
+	if err := client.Projects().Create(c.Context, project); err != nil {
 		return err
 	}
 

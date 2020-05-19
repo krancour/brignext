@@ -42,12 +42,13 @@ func login(c *cli.Context) error {
 		}
 
 		var token brignext.Token
-		if token, err = client.CreateRootSession(c.Context, password); err != nil {
+		if token, err =
+			client.Sessions().CreateRootSession(c.Context, password); err != nil {
 			return err
 		}
 		tokenStr = token.Value
 	} else if authURL, tokenStr, err =
-		client.CreateUserSession(c.Context); err != nil {
+		client.Sessions().CreateUserSession(c.Context); err != nil {
 		return err
 	}
 

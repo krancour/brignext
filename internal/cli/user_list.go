@@ -23,7 +23,7 @@ func userList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	userList, err := client.GetUsers(c.Context)
+	userList, err := client.Users().List(c.Context)
 	if err != nil {
 		return err
 	}

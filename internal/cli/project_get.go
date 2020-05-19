@@ -26,7 +26,7 @@ func projectGet(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	project, err := client.GetProject(c.Context, id)
+	project, err := client.Projects().Get(c.Context, id)
 	if err != nil {
 		return err
 	}

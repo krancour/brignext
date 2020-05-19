@@ -15,7 +15,7 @@ func serviceAccountLock(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err := client.LockServiceAccount(c.Context, id); err != nil {
+	if err := client.ServiceAccounts().Lock(c.Context, id); err != nil {
 		return err
 	}
 

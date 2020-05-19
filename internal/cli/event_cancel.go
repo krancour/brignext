@@ -28,7 +28,7 @@ func eventCancel(c *cli.Context) error {
 
 	if eventID != "" {
 		var eventRefList brignext.EventReferenceList
-		if eventRefList, err = client.CancelEvent(
+		if eventRefList, err = client.Events().Cancel(
 			c.Context,
 			eventID,
 			cancelRunning,
@@ -46,7 +46,7 @@ func eventCancel(c *cli.Context) error {
 		)
 	}
 
-	eventRefList, err := client.CancelEventsByProject(
+	eventRefList, err := client.Events().CancelByProject(
 		c.Context,
 		projectID,
 		cancelRunning,

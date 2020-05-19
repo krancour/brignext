@@ -665,13 +665,12 @@ func (s *store) UpdateProject(
 	res, err := s.projectsCollection.UpdateOne(
 		ctx,
 		bson.M{
-			"metadata.id":          project.ID,
-			"metadata.lastUpdated": time.Now(),
+			"metadata.id": project.ID,
 		},
 		bson.M{
 			"$set": bson.M{
-				"spec":       project.Spec,
-				"kubernetes": project.Kubernetes,
+				"metadata.lastUpdated": time.Now(),
+				"spec":                 project.Spec,
 			},
 		},
 	)

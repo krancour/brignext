@@ -27,7 +27,7 @@ func serviceAccountGet(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	serviceAccount, err := client.GetServiceAccount(c.Context, id)
+	serviceAccount, err := client.ServiceAccounts().Get(c.Context, id)
 	if err != nil {
 		return err
 	}

@@ -27,5 +27,5 @@ func (s *server) userLock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.writeResponse(w, http.StatusCreated, responseEmptyJSON)
+	s.writeResponse(w, http.StatusOK, responseEmptyJSON)
 }

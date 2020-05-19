@@ -16,7 +16,7 @@ func logout(c *cli.Context) error {
 	// We're ignoring any error here because even if the session wasn't found
 	// and deleted server-side, we still want to move on to destroying the local
 	// token.
-	client.DeleteSession(c.Context) // nolint: errcheck
+	client.Sessions().Delete(c.Context) // nolint: errcheck
 
 	if err := deleteConfig(); err != nil {
 		return errors.Wrap(err, "error deleting configuration")

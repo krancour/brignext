@@ -25,7 +25,7 @@ func projectList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	projectList, err := client.GetProjects(c.Context)
+	projectList, err := client.Projects().List(c.Context)
 	if err != nil {
 		return err
 	}

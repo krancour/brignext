@@ -44,7 +44,7 @@ func secretsSet(c *cli.Context) error {
 			},
 			Value: v,
 		}
-		if err := client.SetSecret(
+		if err := client.Secrets().Set(
 			c.Context,
 			projectID,
 			secret,

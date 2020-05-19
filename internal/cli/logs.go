@@ -22,9 +22,9 @@ func logs(c *cli.Context) error {
 	if !follow {
 		var logEntryList brignext.LogEntryList
 		if jobName == "" {
-			logEntryList, err = client.GetWorkerLogs(c.Context, eventID)
+			logEntryList, err = client.Workers().GetLogs(c.Context, eventID)
 		} else {
-			logEntryList, err = client.GetJobLogs(c.Context, eventID, jobName)
+			logEntryList, err = client.Jobs().GetLogs(c.Context, eventID, jobName)
 		}
 		if err != nil {
 			return err
@@ -38,12 +38,12 @@ func logs(c *cli.Context) error {
 	var logEntryCh <-chan brignext.LogEntry
 	var errCh <-chan error
 	if jobName == "" {
-		logEntryCh, errCh, err = client.StreamWorkerLogs(
+		logEntryCh, errCh, err = client.Workers().StreamLogs(
 			c.Context,
 			eventID,
 		)
 	} else {
-		logEntryCh, errCh, err = client.StreamJobLogs(
+		logEntryCh, errCh, err = client.Jobs().StreamLogs(
 			c.Context,
 			eventID,
 			jobName,
