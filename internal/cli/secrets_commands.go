@@ -85,7 +85,7 @@ func secretsList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	secretList, err := client.Secrets().List(c.Context, projectID)
+	secretList, err := client.Projects().ListSecrets(c.Context, projectID)
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func secretsSet(c *cli.Context) error {
 			},
 			Value: v,
 		}
-		if err := client.Secrets().Set(
+		if err := client.Projects().SetSecret(
 			c.Context,
 			projectID,
 			secret,
@@ -184,7 +184,7 @@ func secretsUnset(c *cli.Context) error {
 	// TODO: It would be nicer / more efficient to do a bulk secrets unset, but
 	// what's the right pattern for doing that restfully?
 	for _, secretID := range keys {
-		if err := client.Secrets().Unset(
+		if err := client.Projects().UnsetSecret(
 			c.Context,
 			projectID,
 			secretID,

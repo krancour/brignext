@@ -58,7 +58,7 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := s.service.CreateServiceAccount(r.Context(), serviceAccount)
+	token, err := s.service.ServiceAccounts().Create(r.Context(), serviceAccount)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrServiceAccountIDConflict); ok {
 			s.writeResponse(w, http.StatusConflict, responseEmptyJSON)
@@ -90,7 +90,7 @@ func (s *server) serviceAccountCreate(w http.ResponseWriter, r *http.Request) {
 func (s *server) serviceAccountList(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	serviceAccountList, err := s.service.GetServiceAccounts(r.Context())
+	serviceAccountList, err := s.service.ServiceAccounts().List(r.Context())
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error retrieving all service accounts"),
@@ -116,7 +116,7 @@ func (s *server) serviceAccountGet(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	serviceAccount, err := s.service.GetServiceAccount(r.Context(), id)
+	serviceAccount, err := s.service.ServiceAccounts().Get(r.Context(), id)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrServiceAccountNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
@@ -146,7 +146,7 @@ func (s *server) serviceAccountLock(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	if err := s.service.LockServiceAccount(r.Context(), id); err != nil {
+	if err := s.service.ServiceAccounts().Lock(r.Context(), id); err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrServiceAccountNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 			return
@@ -166,7 +166,7 @@ func (s *server) serviceAccountUnlock(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	token, err := s.service.UnlockServiceAccount(r.Context(), id)
+	token, err := s.service.ServiceAccounts().Unlock(r.Context(), id)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrServiceAccountNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)

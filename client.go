@@ -10,7 +10,6 @@ type Client interface {
 	Users() UsersClient
 	ServiceAccounts() ServiceAccountsClient
 	Projects() ProjectsClient
-	Secrets() SecretsClient
 	Events() EventsClient
 }
 
@@ -20,7 +19,6 @@ type client struct {
 	usersClient           UsersClient
 	serviceAccountsClient ServiceAccountsClient
 	projectsClient        ProjectsClient
-	secretsClient         SecretsClient
 	eventsClient          EventsClient
 }
 
@@ -45,7 +43,6 @@ func NewClient(apiAddress, apiToken string, allowInsecure bool) Client {
 			allowInsecure,
 		),
 		projectsClient: NewProjectsClient(apiAddress, apiToken, allowInsecure),
-		secretsClient:  NewSecretsClient(apiAddress, apiToken, allowInsecure),
 		eventsClient:   NewEventsClient(apiAddress, apiToken, allowInsecure),
 	}
 }
@@ -64,10 +61,6 @@ func (c *client) ServiceAccounts() ServiceAccountsClient {
 
 func (c *client) Projects() ProjectsClient {
 	return c.projectsClient
-}
-
-func (c *client) Secrets() SecretsClient {
-	return c.secretsClient
 }
 
 func (c *client) Events() EventsClient {

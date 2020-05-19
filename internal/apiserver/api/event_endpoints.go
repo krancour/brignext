@@ -54,7 +54,7 @@ func (s *server) eventCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventRefList, err := s.service.CreateEvent(r.Context(), event)
+	eventRefList, err := s.service.Events().Create(r.Context(), event)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
@@ -84,9 +84,9 @@ func (s *server) eventList(w http.ResponseWriter, r *http.Request) {
 	var eventList brignext.EventList
 	var err error
 	if projectID := r.URL.Query().Get("projectID"); projectID != "" {
-		eventList, err = s.service.GetEventsByProject(r.Context(), projectID)
+		eventList, err = s.service.Events().ListByProject(r.Context(), projectID)
 	} else {
-		eventList, err = s.service.GetEvents(r.Context())
+		eventList, err = s.service.Events().List(r.Context())
 	}
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
@@ -115,7 +115,7 @@ func (s *server) eventGet(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	event, err := s.service.GetEvent(r.Context(), id)
+	event, err := s.service.Events().Get(r.Context(), id)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
@@ -154,7 +154,7 @@ func (s *server) eventsCancel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if eventID != "" {
-		eventRefList, err := s.service.CancelEvent(
+		eventRefList, err := s.service.Events().Cancel(
 			r.Context(),
 			eventID,
 			cancelRunning,
@@ -184,7 +184,7 @@ func (s *server) eventsCancel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventRefList, err := s.service.CancelEventsByProject(
+	eventRefList, err := s.service.Events().CancelByProject(
 		r.Context(),
 		projectID,
 		cancelRunning,
@@ -233,7 +233,7 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if eventID != "" {
-		eventRefList, err := s.service.DeleteEvent(
+		eventRefList, err := s.service.Events().Delete(
 			r.Context(),
 			eventID,
 			deletePending,
@@ -264,7 +264,7 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eventRefList, err := s.service.DeleteEventsByProject(
+	eventRefList, err := s.service.Events().DeleteByProject(
 		r.Context(),
 		projectID,
 		deletePending,
@@ -347,7 +347,7 @@ func (s *server) workerUpdateStatus(
 	}
 
 	if err :=
-		s.service.UpdateWorkerStatus(
+		s.service.Events().UpdateWorkerStatus(
 			r.Context(),
 			eventID,
 			status,
@@ -390,12 +390,12 @@ func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 		var logEntriesList brignext.LogEntryList
 		var err error
 		if init {
-			logEntriesList, err = s.service.GetWorkerInitLogs(
+			logEntriesList, err = s.service.Events().GetWorkerInitLogs(
 				r.Context(),
 				eventID,
 			)
 		} else {
-			logEntriesList, err = s.service.GetWorkerLogs(
+			logEntriesList, err = s.service.Events().GetWorkerLogs(
 				r.Context(),
 				eventID,
 			)
@@ -432,12 +432,12 @@ func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 	var logEntryCh <-chan brignext.LogEntry
 	var err error
 	if init {
-		logEntryCh, err = s.service.StreamWorkerInitLogs(
+		logEntryCh, err = s.service.Events().StreamWorkerInitLogs(
 			r.Context(),
 			eventID,
 		)
 	} else {
-		logEntryCh, err = s.service.StreamWorkerLogs(
+		logEntryCh, err = s.service.Events().StreamWorkerLogs(
 			r.Context(),
 			eventID,
 		)
@@ -523,7 +523,7 @@ func (s *server) jobUpdateStatus(
 	}
 
 	if err :=
-		s.service.UpdateJobStatus(
+		s.service.Events().UpdateJobStatus(
 			r.Context(),
 			eventID,
 			jobName,
@@ -569,13 +569,13 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 		var logEntriesList brignext.LogEntryList
 		var err error
 		if init {
-			logEntriesList, err = s.service.GetJobInitLogs(
+			logEntriesList, err = s.service.Events().GetJobInitLogs(
 				r.Context(),
 				eventID,
 				jobName,
 			)
 		} else {
-			logEntriesList, err = s.service.GetJobLogs(
+			logEntriesList, err = s.service.Events().GetJobLogs(
 				r.Context(),
 				eventID,
 				jobName,
@@ -614,7 +614,7 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logEntryCh, err := s.service.StreamJobLogs(
+	logEntryCh, err := s.service.Events().StreamJobLogs(
 		r.Context(),
 		eventID,
 		jobName,

@@ -61,8 +61,8 @@ func NewServer(
 
 	// Most requests are authenticated with a bearer token
 	tokenAuthFilter := auth.NewTokenAuthFilter(
-		service.GetSessionByToken,
-		service.GetUser,
+		service.Sessions().GetByToken,
+		service.Users().Get,
 		apiServerConfig.RootUserEnabled(),
 		apiServerConfig.HashedControllerToken(),
 	)

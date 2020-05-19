@@ -13,7 +13,7 @@ import (
 func (s *server) userList(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	userList, err := s.service.GetUsers(r.Context())
+	userList, err := s.service.Users().List(r.Context())
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error retrieving all users"),
@@ -39,7 +39,7 @@ func (s *server) userGet(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	user, err := s.service.GetUser(r.Context(), id)
+	user, err := s.service.Users().Get(r.Context(), id)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrUserNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
@@ -69,7 +69,7 @@ func (s *server) userLock(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	if err := s.service.LockUser(r.Context(), id); err != nil {
+	if err := s.service.Users().Lock(r.Context(), id); err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrUserNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 			return
@@ -89,7 +89,7 @@ func (s *server) userUnlock(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	if err := s.service.UnlockUser(r.Context(), id); err != nil {
+	if err := s.service.Users().Unlock(r.Context(), id); err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrUserNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 			return

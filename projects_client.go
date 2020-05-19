@@ -13,6 +13,10 @@ type ProjectsClient interface {
 	Get(context.Context, string) (Project, error)
 	Update(context.Context, Project) error
 	Delete(context.Context, string) error
+
+	ListSecrets(ctx context.Context, projectID string) (SecretList, error)
+	SetSecret(ctx context.Context, projectID string, secret Secret) error
+	UnsetSecret(ctx context.Context, projectID string, secretID string) error
 }
 
 type projectsClient struct {
@@ -105,6 +109,71 @@ func (p *projectsClient) Delete(_ context.Context, id string) error {
 		apiRequest{
 			method:      http.MethodDelete,
 			path:        fmt.Sprintf("v2/projects/%s", id),
+			authHeaders: p.bearerTokenAuthHeaders(),
+			successCode: http.StatusOK,
+			errObjs: map[int]error{
+				http.StatusNotFound: &ErrProjectNotFound{},
+			},
+		},
+	)
+}
+
+func (p *projectsClient) ListSecrets(
+	ctx context.Context,
+	projectID string,
+) (SecretList, error) {
+	secretList := SecretList{}
+	err := p.doAPIRequest(
+		apiRequest{
+			method:      http.MethodGet,
+			path:        fmt.Sprintf("v2/projects/%s/secrets", projectID),
+			authHeaders: p.bearerTokenAuthHeaders(),
+			successCode: http.StatusOK,
+			respObj:     &secretList,
+			errObjs: map[int]error{
+				http.StatusNotFound: &ErrProjectNotFound{},
+			},
+		},
+	)
+	return secretList, err
+}
+
+func (p *projectsClient) SetSecret(
+	ctx context.Context,
+	projectID string,
+	secret Secret,
+) error {
+	return p.doAPIRequest(
+		apiRequest{
+			method: http.MethodPut,
+			path: fmt.Sprintf(
+				"v2/projects/%s/secrets/%s",
+				projectID,
+				secret.ID,
+			),
+			authHeaders: p.bearerTokenAuthHeaders(),
+			reqBodyObj:  secret,
+			successCode: http.StatusOK,
+			errObjs: map[int]error{
+				http.StatusNotFound: &ErrProjectNotFound{},
+			},
+		},
+	)
+}
+
+func (p *projectsClient) UnsetSecret(
+	ctx context.Context,
+	projectID string,
+	secretID string,
+) error {
+	return p.doAPIRequest(
+		apiRequest{
+			method: http.MethodDelete,
+			path: fmt.Sprintf(
+				"v2/projects/%s/secrets/%s",
+				projectID,
+				secretID,
+			),
 			authHeaders: p.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
 			errObjs: map[int]error{

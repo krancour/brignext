@@ -5,9 +5,10 @@ import (
 	"net/http"
 
 	"github.com/krancour/brignext/v2"
-
 	"github.com/pkg/errors"
 )
+
+// TODO: Figure out where to move this function to
 
 func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
@@ -24,7 +25,7 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, err := s.service.GetSessionByOAuth2State(
+	session, err := s.service.Sessions().GetByOAuth2State(
 		r.Context(),
 		oauth2State,
 	)
@@ -79,7 +80,7 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := s.service.GetUser(r.Context(), claims.Email)
+	user, err := s.service.Users().Get(r.Context(), claims.Email)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrUserNotFound); ok {
 			user = brignext.User{
@@ -92,7 +93,7 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 				},
 				Name: claims.Name,
 			}
-			if err = s.service.CreateUser(r.Context(), user); err != nil {
+			if err = s.service.Users().Create(r.Context(), user); err != nil {
 				log.Println(
 					errors.Wrapf(err, "error creating new user %q", user.ID),
 				)
@@ -112,7 +113,7 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := s.service.AuthenticateSession(
+	if err := s.service.Sessions().Authenticate(
 		r.Context(),
 		session.ID,
 		user.ID,

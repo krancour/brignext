@@ -52,7 +52,7 @@ func (s *server) projectCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.service.CreateProject(r.Context(), project); err != nil {
+	if err := s.service.Projects().Create(r.Context(), project); err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrProjectIDConflict); ok {
 			s.writeResponse(w, http.StatusConflict, responseEmptyJSON)
 			return
@@ -70,7 +70,7 @@ func (s *server) projectCreate(w http.ResponseWriter, r *http.Request) {
 func (s *server) projectList(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
-	projectList, err := s.service.GetProjects(r.Context())
+	projectList, err := s.service.Projects().List(r.Context())
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error retrieving all projects"),
@@ -96,7 +96,7 @@ func (s *server) projectGet(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	project, err := s.service.GetProject(r.Context(), id)
+	project, err := s.service.Projects().Get(r.Context(), id)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
@@ -167,7 +167,7 @@ func (s *server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.service.UpdateProject(r.Context(), project); err != nil {
+	if err := s.service.Projects().Update(r.Context(), project); err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 			return
@@ -187,7 +187,7 @@ func (s *server) projectDelete(w http.ResponseWriter, r *http.Request) {
 
 	id := mux.Vars(r)["id"]
 
-	if err := s.service.DeleteProject(r.Context(), id); err != nil {
+	if err := s.service.Projects().Delete(r.Context(), id); err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 			return
@@ -207,7 +207,7 @@ func (s *server) secretsList(w http.ResponseWriter, r *http.Request) {
 
 	projectID := mux.Vars(r)["projectID"]
 
-	secretList, err := s.service.GetSecrets(r.Context(), projectID)
+	secretList, err := s.service.Projects().ListSecrets(r.Context(), projectID)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
@@ -272,7 +272,7 @@ func (s *server) secretSet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.service.SetSecret(
+	if err := s.service.Projects().SetSecret(
 		r.Context(),
 		projectID,
 		secret,
@@ -296,8 +296,11 @@ func (s *server) secretUnset(w http.ResponseWriter, r *http.Request) {
 	projectID := mux.Vars(r)["projectID"]
 	secretID := mux.Vars(r)["secretID"]
 
-	if err :=
-		s.service.UnsetSecret(r.Context(), projectID, secretID); err != nil {
+	if err := s.service.Projects().UnsetSecret(
+		r.Context(),
+		projectID,
+		secretID,
+	); err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
 			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
 			return

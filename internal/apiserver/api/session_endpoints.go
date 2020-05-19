@@ -37,7 +37,7 @@ func (s *server) sessionCreate(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		token, err := s.service.CreateRootSession(r.Context())
+		token, err := s.service.Sessions().CreateRootSession(r.Context())
 		if err != nil {
 			log.Println(
 				errors.Wrap(err, "error creating new root session"),
@@ -64,7 +64,7 @@ func (s *server) sessionCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	oauth2State, token, err := s.service.CreateUserSession(r.Context())
+	oauth2State, token, err := s.service.Sessions().CreateUserSession(r.Context())
 	if err != nil {
 		log.Println(
 			errors.Wrap(err, "error creating new session"),
@@ -106,7 +106,7 @@ func (s *server) sessionDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.service.DeleteSession(r.Context(), sessionID); err != nil {
+	if err := s.service.Sessions().Delete(r.Context(), sessionID); err != nil {
 		log.Println(
 			errors.Wrap(err, "error deleting session"),
 		)
