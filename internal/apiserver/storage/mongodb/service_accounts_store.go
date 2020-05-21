@@ -68,9 +68,7 @@ func (s *serviceAccountsStore) Create(
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
-				return &brignext.ErrServiceAccountIDConflict{
-					ID: serviceAccount.ID,
-				}
+				return brignext.NewErrConflict("ServiceAccount", serviceAccount.ID)
 			}
 		}
 		return errors.Wrapf(
@@ -85,13 +83,7 @@ func (s *serviceAccountsStore) Create(
 func (s *serviceAccountsStore) List(
 	ctx context.Context,
 ) (brignext.ServiceAccountList, error) {
-	serviceAccountList := brignext.ServiceAccountList{
-		TypeMeta: brignext.TypeMeta{
-			APIVersion: brignext.APIVersion,
-			Kind:       "ServiceAccountList",
-		},
-		Items: []brignext.ServiceAccount{},
-	}
+	serviceAccountList := brignext.NewServiceAccountList()
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"metadata.id": 1})
 	cur, err := s.collection.Find(ctx, bson.M{}, findOptions)
@@ -113,9 +105,7 @@ func (s *serviceAccountsStore) Get(
 	serviceAccount := brignext.ServiceAccount{}
 	res := s.collection.FindOne(ctx, bson.M{"metadata.id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return serviceAccount, &brignext.ErrServiceAccountNotFound{
-			ID: id,
-		}
+		return serviceAccount, brignext.NewErrNotFound("ServiceAccount", id)
 	}
 	if res.Err() != nil {
 		return serviceAccount, errors.Wrapf(
@@ -142,7 +132,7 @@ func (s *serviceAccountsStore) GetByHashedToken(
 	res :=
 		s.collection.FindOne(ctx, bson.M{"hashedToken": hashedToken})
 	if res.Err() == mongo.ErrNoDocuments {
-		return serviceAccount, &brignext.ErrServiceAccountNotFound{}
+		return serviceAccount, brignext.NewErrNotFound("ServiceAccount", "")
 	}
 	if res.Err() != nil {
 		return serviceAccount, errors.Wrap(
@@ -173,9 +163,7 @@ func (s *serviceAccountsStore) Lock(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error updating service account %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrServiceAccountNotFound{
-			ID: id,
-		}
+		return brignext.NewErrNotFound("ServiceAccount", id)
 	}
 	return nil
 }
@@ -199,9 +187,7 @@ func (s *serviceAccountsStore) Unlock(
 		return errors.Wrapf(err, "error updating service account %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrServiceAccountNotFound{
-			ID: id,
-		}
+		return brignext.NewErrNotFound("ServiceAccount", id)
 	}
 	return nil
 }

@@ -7,5 +7,5 @@ func (s *server) healthCheck(
 	_ *http.Request,
 ) {
 	// TODO: Test that critical connections are healthy?
-	s.writeResponse(w, http.StatusOK, responseEmptyJSON)
+	s.writeResponse(w, http.StatusOK, struct{}{})
 }

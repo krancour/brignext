@@ -113,13 +113,7 @@ func (e *eventsService) Create(
 	ctx context.Context,
 	event brignext.Event,
 ) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.EventReferenceList{
-		TypeMeta: brignext.TypeMeta{
-			APIVersion: brignext.APIVersion,
-			Kind:       "EventReferenceList",
-		},
-		ListMeta: brignext.ListMeta{},
-	}
+	eventRefList := brignext.NewEventReferenceList()
 
 	// If no project ID is specified, we use other criteria to locate projects
 	// that are subscribed to this event. We iterate over all of those and create
@@ -219,13 +213,7 @@ func (e *eventsService) Create(
 	}
 
 	eventRefList.Items = []brignext.EventReference{
-		{
-			TypeMeta: brignext.TypeMeta{
-				APIVersion: brignext.APIVersion,
-				Kind:       "EventReference",
-			},
-			ID: event.ID,
-		},
+		brignext.NewEventReference(event.ID),
 	}
 	return eventRefList, nil
 }
@@ -284,14 +272,7 @@ func (e *eventsService) Cancel(
 	id string,
 	cancelRunning bool,
 ) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.EventReferenceList{
-		TypeMeta: brignext.TypeMeta{
-			APIVersion: brignext.APIVersion,
-			Kind:       "EventReferenceList",
-		},
-		ListMeta: brignext.ListMeta{},
-		Items:    []brignext.EventReference{},
-	}
+	eventRefList := brignext.NewEventReferenceList()
 
 	event, err := e.store.Events().Get(ctx, id)
 	if err != nil {
@@ -317,16 +298,9 @@ func (e *eventsService) Cancel(
 					id,
 				)
 			}
-			eventRefList.Items = append(
-				eventRefList.Items,
-				brignext.EventReference{
-					TypeMeta: brignext.TypeMeta{
-						APIVersion: brignext.APIVersion,
-						Kind:       "EventReference",
-					},
-					ID: event.ID,
-				},
-			)
+			eventRefList.Items = []brignext.EventReference{
+				brignext.NewEventReference(event.ID),
+			}
 		}
 		return nil
 	})
@@ -339,14 +313,7 @@ func (e *eventsService) CancelByProject(
 	projectID string,
 	cancelRunning bool,
 ) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.EventReferenceList{
-		TypeMeta: brignext.TypeMeta{
-			APIVersion: brignext.APIVersion,
-			Kind:       "EventReferenceList",
-		},
-		ListMeta: brignext.ListMeta{},
-		Items:    []brignext.EventReference{},
-	}
+	eventRefList := brignext.NewEventReferenceList()
 
 	// Find all events. We'll iterate over all of them and try to cancel each.
 	// It sounds inefficient and it probably is, but this allows us to cancel
@@ -380,13 +347,7 @@ func (e *eventsService) CancelByProject(
 				}
 				eventRefList.Items = append(
 					eventRefList.Items,
-					brignext.EventReference{
-						TypeMeta: brignext.TypeMeta{
-							APIVersion: brignext.APIVersion,
-							Kind:       "EventReference",
-						},
-						ID: event.ID,
-					},
+					brignext.NewEventReference(event.ID),
 				)
 			}
 			return nil
@@ -404,14 +365,7 @@ func (e *eventsService) Delete(
 	deletePending bool,
 	deleteRunning bool,
 ) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.EventReferenceList{
-		TypeMeta: brignext.TypeMeta{
-			APIVersion: brignext.APIVersion,
-			Kind:       "EventReferenceList",
-		},
-		ListMeta: brignext.ListMeta{},
-		Items:    []brignext.EventReference{},
-	}
+	eventRefList := brignext.NewEventReferenceList()
 
 	event, err := e.store.Events().Get(ctx, id)
 	if err != nil {
@@ -438,16 +392,9 @@ func (e *eventsService) Delete(
 					id,
 				)
 			}
-			eventRefList.Items = append(
-				eventRefList.Items,
-				brignext.EventReference{
-					TypeMeta: brignext.TypeMeta{
-						APIVersion: brignext.APIVersion,
-						Kind:       "EventReference",
-					},
-					ID: event.ID,
-				},
-			)
+			eventRefList.Items = []brignext.EventReference{
+				brignext.NewEventReference(event.ID),
+			}
 		}
 		return nil
 	})
@@ -460,14 +407,7 @@ func (e *eventsService) DeleteByProject(
 	deletePending bool,
 	deleteRunning bool,
 ) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.EventReferenceList{
-		TypeMeta: brignext.TypeMeta{
-			APIVersion: brignext.APIVersion,
-			Kind:       "EventReferenceList",
-		},
-		ListMeta: brignext.ListMeta{},
-		Items:    []brignext.EventReference{},
-	}
+	eventRefList := brignext.NewEventReferenceList()
 
 	// Find all events. We'll iterate over all of them and try to delete each.
 	// It sounds inefficient and it probably is, but this allows us to delete
@@ -506,13 +446,7 @@ func (e *eventsService) DeleteByProject(
 				}
 				eventRefList.Items = append(
 					eventRefList.Items,
-					brignext.EventReference{
-						TypeMeta: brignext.TypeMeta{
-							APIVersion: brignext.APIVersion,
-							Kind:       "EventReference",
-						},
-						ID: event.ID,
-					},
+					brignext.NewEventReference(event.ID),
 				)
 			}
 			return nil

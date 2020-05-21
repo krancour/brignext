@@ -32,13 +32,7 @@ func (s *serviceAccountsService) Create(
 	ctx context.Context,
 	serviceAccount brignext.ServiceAccount,
 ) (brignext.Token, error) {
-	token := brignext.Token{
-		TypeMeta: brignext.TypeMeta{
-			APIVersion: brignext.APIVersion,
-			Kind:       "Token",
-		},
-		Value: crypto.NewToken(256),
-	}
+	token := brignext.NewToken(crypto.NewToken(256))
 	serviceAccount.HashedToken = crypto.ShortSHA("", token.Value)
 	if err := s.store.ServiceAccounts().Create(ctx, serviceAccount); err != nil {
 		return token, errors.Wrapf(
@@ -108,13 +102,7 @@ func (s *serviceAccountsService) Unlock(
 	ctx context.Context,
 	id string,
 ) (brignext.Token, error) {
-	newToken := brignext.Token{
-		TypeMeta: brignext.TypeMeta{
-			APIVersion: brignext.APIVersion,
-			Kind:       "Token",
-		},
-		Value: crypto.NewToken(256),
-	}
+	newToken := brignext.NewToken(crypto.NewToken(256))
 	if err := s.store.ServiceAccounts().Unlock(
 		ctx,
 		id,

@@ -9,7 +9,6 @@ import (
 )
 
 // TODO: Figure out where to move this function to
-
 func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
@@ -30,7 +29,7 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 		oauth2State,
 	)
 	if err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrSessionNotFound); ok {
+		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
 			s.writeResponse(w, http.StatusBadRequest, responseOIDCAuthError)
 			return
 		}
@@ -82,17 +81,8 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 
 	user, err := s.service.Users().Get(r.Context(), claims.Email)
 	if err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrUserNotFound); ok {
-			user = brignext.User{
-				TypeMeta: brignext.TypeMeta{
-					APIVersion: brignext.APIVersion,
-					Kind:       "User",
-				},
-				ObjectMeta: brignext.ObjectMeta{
-					ID: claims.Email,
-				},
-				Name: claims.Name,
-			}
+		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
+			user = brignext.NewUser(claims.Email, claims.Name)
 			if err = s.service.Users().Create(r.Context(), user); err != nil {
 				log.Println(
 					errors.Wrapf(err, "error creating new user %q", user.ID),

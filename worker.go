@@ -66,3 +66,12 @@ type WorkerStatus struct {
 	Ended     *time.Time  `json:"ended" bson:"ended"`
 	Phase     WorkerPhase `json:"phase" bson:"phase"`
 }
+
+func NewWorkerStatus() WorkerStatus {
+	return WorkerStatus{
+		TypeMeta: &TypeMeta{
+			APIVersion: APIVersion,
+			Kind:       "WorkerStatus",
+		},
+	}
+}

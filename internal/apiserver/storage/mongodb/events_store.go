@@ -64,13 +64,7 @@ func (e *eventsStore) Create(ctx context.Context, event brignext.Event) error {
 }
 
 func (e *eventsStore) List(ctx context.Context) (brignext.EventList, error) {
-	eventList := brignext.EventList{
-		TypeMeta: brignext.TypeMeta{
-			APIVersion: brignext.APIVersion,
-			Kind:       "EventList",
-		},
-		Items: []brignext.Event{},
-	}
+	eventList := brignext.NewEventList()
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"metadata.created": -1})
 	cur, err := e.collection.Find(ctx, bson.M{}, findOptions)
@@ -87,13 +81,7 @@ func (e *eventsStore) ListByProject(
 	ctx context.Context,
 	projectID string,
 ) (brignext.EventList, error) {
-	eventList := brignext.EventList{
-		TypeMeta: brignext.TypeMeta{
-			APIVersion: brignext.APIVersion,
-			Kind:       "EventList",
-		},
-		Items: []brignext.Event{},
-	}
+	eventList := brignext.NewEventList()
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"metadata.created": -1})
 	cur, err :=
@@ -122,9 +110,7 @@ func (e *eventsStore) Get(
 	event := brignext.Event{}
 	res := e.collection.FindOne(ctx, bson.M{"metadata.id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return event, &brignext.ErrEventNotFound{
-			ID: id,
-		}
+		return event, brignext.NewErrNotFound("Event", id)
 	}
 	if res.Err() != nil {
 		return event, errors.Wrapf(res.Err(), "error finding event %q", id)
@@ -261,9 +247,7 @@ func (e *eventsStore) UpdateWorkerStatus(
 		)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrEventNotFound{
-			ID: eventID,
-		}
+		return brignext.NewErrNotFound("Event", eventID)
 	}
 	return nil
 }
@@ -294,9 +278,7 @@ func (e *eventsStore) UpdateJobStatus(
 		)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrEventNotFound{
-			ID: eventID,
-		}
+		return brignext.NewErrNotFound("Event", eventID)
 	}
 	return nil
 }

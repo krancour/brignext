@@ -61,9 +61,6 @@ func (c *usersClient) Get(_ context.Context, id string) (User, error) {
 			authHeaders: c.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
 			respObj:     &user,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrUserNotFound{},
-			},
 		},
 	)
 	return user, err
@@ -76,9 +73,6 @@ func (c *usersClient) Lock(_ context.Context, id string) error {
 			path:        fmt.Sprintf("v2/users/%s/lock", id),
 			authHeaders: c.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrUserNotFound{},
-			},
 		},
 	)
 }
@@ -90,9 +84,6 @@ func (c *usersClient) Unlock(_ context.Context, id string) error {
 			path:        fmt.Sprintf("v2/users/%s/lock", id),
 			authHeaders: c.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrUserNotFound{},
-			},
 		},
 	)
 }

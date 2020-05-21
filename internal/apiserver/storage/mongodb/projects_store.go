@@ -70,9 +70,7 @@ func (p *projectsStore) Create(
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
-				return &brignext.ErrProjectIDConflict{
-					ID: project.ID,
-				}
+				return brignext.NewErrConflict("Project", project.ID)
 			}
 		}
 		return errors.Wrapf(err, "error inserting new project %q", project.ID)
@@ -83,13 +81,7 @@ func (p *projectsStore) Create(
 func (p *projectsStore) List(
 	ctx context.Context,
 ) (brignext.ProjectList, error) {
-	projectList := brignext.ProjectList{
-		TypeMeta: brignext.TypeMeta{
-			APIVersion: brignext.APIVersion,
-			Kind:       "ProjectList",
-		},
-		Items: []brignext.Project{},
-	}
+	projectList := brignext.NewProjectList()
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"metadata.id": 1})
 	cur, err := p.collection.Find(ctx, bson.M{}, findOptions)
@@ -106,13 +98,7 @@ func (p *projectsStore) ListSubscribed(
 	ctx context.Context,
 	event brignext.Event,
 ) (brignext.ProjectList, error) {
-	projectList := brignext.ProjectList{
-		TypeMeta: brignext.TypeMeta{
-			APIVersion: brignext.APIVersion,
-			Kind:       "ProjectList",
-		},
-		Items: []brignext.Project{},
-	}
+	projectList := brignext.NewProjectList()
 	subscriptionMatchCriteria := bson.M{
 		"source": event.Source,
 		"types": bson.M{
@@ -162,9 +148,7 @@ func (p *projectsStore) Get(
 	project := brignext.Project{}
 	res := p.collection.FindOne(ctx, bson.M{"metadata.id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return project, &brignext.ErrProjectNotFound{
-			ID: id,
-		}
+		return project, brignext.NewErrNotFound("Project", id)
 	}
 	if res.Err() != nil {
 		return project, errors.Wrapf(res.Err(), "error finding project %q", id)
@@ -194,9 +178,7 @@ func (p *projectsStore) Update(
 		return errors.Wrapf(err, "error replacing project %q", project.ID)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrProjectNotFound{
-			ID: project.ID,
-		}
+		return brignext.NewErrNotFound("Project", project.ID)
 	}
 	return nil
 }
@@ -207,9 +189,7 @@ func (p *projectsStore) Delete(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error deleting project %q", id)
 	}
 	if res.DeletedCount == 0 {
-		return &brignext.ErrProjectNotFound{
-			ID: id,
-		}
+		return brignext.NewErrNotFound("Project", id)
 	}
 	return nil
 }

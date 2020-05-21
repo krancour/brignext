@@ -102,16 +102,7 @@ func serviceAccountCreate(c *cli.Context) error {
 
 	token, err := client.ServiceAccounts().Create(
 		c.Context,
-		brignext.ServiceAccount{
-			TypeMeta: brignext.TypeMeta{
-				APIVersion: brignext.APIVersion,
-				Kind:       "ServiceAccount",
-			},
-			ObjectMeta: brignext.ObjectMeta{
-				ID: id,
-			},
-			Description: description,
-		},
+		brignext.NewServiceAccount(id, description),
 	)
 	if err != nil {
 		return err

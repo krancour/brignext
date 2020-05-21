@@ -47,9 +47,7 @@ func (u *usersStore) Create(ctx context.Context, user brignext.User) error {
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
-				return &brignext.ErrUserIDConflict{
-					ID: user.ID,
-				}
+				return brignext.NewErrConflict("User", user.ID)
 			}
 		}
 		return errors.Wrapf(err, "error inserting new user %q", user.ID)
@@ -58,13 +56,7 @@ func (u *usersStore) Create(ctx context.Context, user brignext.User) error {
 }
 
 func (u *usersStore) List(ctx context.Context) (brignext.UserList, error) {
-	userList := brignext.UserList{
-		TypeMeta: brignext.TypeMeta{
-			APIVersion: brignext.APIVersion,
-			Kind:       "UserList",
-		},
-		Items: []brignext.User{},
-	}
+	userList := brignext.NewUserList()
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"metadata.id": 1})
 	cur, err := u.collection.Find(ctx, bson.M{}, findOptions)
@@ -81,9 +73,7 @@ func (u *usersStore) Get(ctx context.Context, id string) (brignext.User, error) 
 	user := brignext.User{}
 	res := u.collection.FindOne(ctx, bson.M{"metadata.id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return user, &brignext.ErrUserNotFound{
-			ID: id,
-		}
+		return user, brignext.NewErrNotFound("User", id)
 	}
 	if res.Err() != nil {
 		return user, errors.Wrapf(res.Err(), "error finding user %q", id)
@@ -108,9 +98,7 @@ func (u *usersStore) Lock(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error updating user %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrUserNotFound{
-			ID: id,
-		}
+		return brignext.NewErrNotFound("User", id)
 	}
 	return nil
 }
@@ -129,9 +117,7 @@ func (u *usersStore) Unlock(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error updating user %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrUserNotFound{
-			ID: id,
-		}
+		return brignext.NewErrNotFound("User", id)
 	}
 	return nil
 }

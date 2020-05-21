@@ -41,3 +41,12 @@ type JobStatus struct {
 	Ended     *time.Time `json:"ended" bson:"ended"`
 	Phase     JobPhase   `json:"phase" bson:"phase"`
 }
+
+func NewJobStatus() JobStatus {
+	return JobStatus{
+		TypeMeta: &TypeMeta{
+			APIVersion: APIVersion,
+			Kind:       "JobStatus",
+		},
+	}
+}

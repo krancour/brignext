@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -11,380 +10,125 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
-	"github.com/xeipuuv/gojsonschema"
 )
 
 func (s *server) eventCreate(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close() // nolint: errcheck
-
-	bodyBytes, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Println(
-			errors.Wrap(err, "error reading body of create event request"),
-		)
-		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
-		return
-	}
-
-	var validationResult *gojsonschema.Result
-	if validationResult, err = gojsonschema.Validate(
-		s.eventSchemaLoader,
-		gojsonschema.NewBytesLoader(bodyBytes),
-	); err != nil {
-		log.Println(errors.Wrap(err, "error validating create event request"))
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	} else if !validationResult.Valid() {
-		// TODO: Remove this and return validation errors to the client instead
-		fmt.Println("-------------------------------------------------------------")
-		for i, verr := range validationResult.Errors() {
-			fmt.Printf("%d. %s\n", i, verr)
-		}
-		fmt.Println("-------------------------------------------------------------")
-		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
-		return
-	}
-
 	event := brignext.Event{}
-	if err = json.Unmarshal(bodyBytes, &event); err != nil {
-		log.Println(
-			errors.Wrap(err, "error unmarshaling body of create event request"),
-		)
-		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
-		return
-	}
-
-	eventRefList, err := s.service.Events().Create(r.Context(), event)
-	if err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
-			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
-			return
-		}
-		log.Println(errors.Wrap(err, "error creating new event"))
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-
-	responseBytes, err := json.Marshal(eventRefList)
-	if err != nil {
-		log.Println(
-			errors.Wrap(err, "error marshaling create event response"),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-
-	s.writeResponse(w, http.StatusCreated, responseBytes)
-	return
+	s.serveAPIRequest(apiRequest{
+		w:                   w,
+		r:                   r,
+		reqBodySchemaLoader: s.eventSchemaLoader,
+		reqBodyObj:          &event,
+		endpointLogic: func() (interface{}, error) {
+			return s.service.Events().Create(r.Context(), event)
+		},
+		successCode: http.StatusCreated,
+	})
 }
 
 func (s *server) eventList(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close() // nolint: errcheck
-
-	var eventList brignext.EventList
-	var err error
-	if projectID := r.URL.Query().Get("projectID"); projectID != "" {
-		eventList, err = s.service.Events().ListByProject(r.Context(), projectID)
-	} else {
-		eventList, err = s.service.Events().List(r.Context())
-	}
-	if err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
-			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
-			return
-		}
-		log.Println(errors.Wrap(err, "error retrieving events"))
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-
-	responseBytes, err := json.Marshal(eventList)
-	if err != nil {
-		log.Println(
-			errors.Wrap(err, "error marshaling list events response"),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-
-	s.writeResponse(w, http.StatusOK, responseBytes)
+	s.serveAPIRequest(apiRequest{
+		w: w,
+		r: r,
+		endpointLogic: func() (interface{}, error) {
+			if projectID := r.URL.Query().Get("projectID"); projectID != "" {
+				return s.service.Events().ListByProject(r.Context(), projectID)
+			}
+			return s.service.Events().List(r.Context())
+		},
+		successCode: http.StatusOK,
+	})
 }
 
 func (s *server) eventGet(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close() // nolint: errcheck
-
 	id := mux.Vars(r)["id"]
-
-	event, err := s.service.Events().Get(r.Context(), id)
-	if err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
-			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
-			return
-		}
-		log.Println(
-			errors.Wrapf(err, "error retrieving event %q", id),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-
-	responseBytes, err := json.Marshal(event)
-	if err != nil {
-		log.Println(
-			errors.Wrap(err, "error marshaling get event response"),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-
-	s.writeResponse(w, http.StatusOK, responseBytes)
+	s.serveAPIRequest(apiRequest{
+		w: w,
+		r: r,
+		endpointLogic: func() (interface{}, error) {
+			return s.service.Events().Get(r.Context(), id)
+		},
+		successCode: http.StatusOK,
+	})
 }
 
 func (s *server) eventsCancel(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close() // nolint: errcheck
-
 	eventID := mux.Vars(r)["id"]
 	projectID := mux.Vars(r)["projectID"]
-
-	cancelRunningStr := r.URL.Query().Get("cancelRunning")
-	var cancelRunning bool
-	if cancelRunningStr != "" {
-		cancelRunning, _ =
-			strconv.ParseBool(cancelRunningStr) // nolint: errcheck
-	}
-
-	if eventID != "" {
-		eventRefList, err := s.service.Events().Cancel(
-			r.Context(),
-			eventID,
-			cancelRunning,
-		)
-		if err != nil {
-			if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
-				s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
-				return
+	// nolint: errcheck
+	cancelRunning, _ := strconv.ParseBool(r.URL.Query().Get("cancelRunning"))
+	s.serveAPIRequest(apiRequest{
+		w: w,
+		r: r,
+		endpointLogic: func() (interface{}, error) {
+			if eventID != "" {
+				return s.service.Events().Cancel(r.Context(), eventID, cancelRunning)
 			}
-			log.Println(
-				errors.Wrapf(err, "error canceling event %q", eventID),
+			return s.service.Events().CancelByProject(
+				r.Context(),
+				projectID,
+				cancelRunning,
 			)
-			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-			return
-		}
-
-		responseBytes, err := json.Marshal(eventRefList)
-		if err != nil {
-			log.Println(
-				errors.Wrap(err, "error marshaling cancel event response"),
-			)
-			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-			return
-		}
-
-		s.writeResponse(w, http.StatusOK, responseBytes)
-		return
-	}
-
-	eventRefList, err := s.service.Events().CancelByProject(
-		r.Context(),
-		projectID,
-		cancelRunning,
-	)
-	if err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
-			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
-			return
-		}
-		log.Println(
-			errors.Wrapf(err, "error canceling events for project %q", projectID),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-
-	responseBytes, err := json.Marshal(eventRefList)
-	if err != nil {
-		log.Println(
-			errors.Wrap(err, "error marshaling cancel event response"),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-
-	s.writeResponse(w, http.StatusOK, responseBytes)
+		},
+		successCode: http.StatusOK,
+	})
 }
 
 func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close() // nolint: errcheck
-
 	eventID := mux.Vars(r)["id"]
 	projectID := mux.Vars(r)["projectID"]
-
-	deletePendingStr := r.URL.Query().Get("deletePending")
-	var deletePending bool
-	if deletePendingStr != "" {
-		deletePending, _ = strconv.ParseBool(deletePendingStr) // nolint: errcheck
-	}
-
-	deleteRunningStr := r.URL.Query().Get("deleteRunning")
-	var deleteRunning bool
-	if deleteRunningStr != "" {
-		deleteRunning, _ =
-			strconv.ParseBool(deleteRunningStr) // nolint: errcheck
-	}
-
-	if eventID != "" {
-		eventRefList, err := s.service.Events().Delete(
-			r.Context(),
-			eventID,
-			deletePending,
-			deleteRunning,
-		)
-		if err != nil {
-			if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
-				s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
-				return
+	// nolint: errcheck
+	deletePending, _ := strconv.ParseBool(r.URL.Query().Get("deletePending"))
+	// nolint: errcheck
+	deleteRunning, _ := strconv.ParseBool(r.URL.Query().Get("deleteRunning"))
+	s.serveAPIRequest(apiRequest{
+		w: w,
+		r: r,
+		endpointLogic: func() (interface{}, error) {
+			if eventID != "" {
+				return s.service.Events().Delete(
+					r.Context(),
+					eventID,
+					deletePending,
+					deleteRunning,
+				)
 			}
-			log.Println(
-				errors.Wrapf(err, "error deleting event %q", eventID),
+			return s.service.Events().DeleteByProject(
+				r.Context(),
+				projectID,
+				deletePending,
+				deleteRunning,
 			)
-			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-			return
-		}
-
-		responseBytes, err := json.Marshal(eventRefList)
-		if err != nil {
-			log.Println(
-				errors.Wrap(err, "error marshaling delete event response"),
-			)
-			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-			return
-		}
-
-		s.writeResponse(w, http.StatusOK, responseBytes)
-		return
-	}
-
-	eventRefList, err := s.service.Events().DeleteByProject(
-		r.Context(),
-		projectID,
-		deletePending,
-		deleteRunning,
-	)
-	if err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrProjectNotFound); ok {
-			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
-			return
-		}
-		log.Println(
-			errors.Wrapf(err, "error deleting events for project %q", projectID),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-
-	responseBytes, err := json.Marshal(eventRefList)
-	if err != nil {
-		log.Println(
-			errors.Wrap(err, "error marshaling delete event response"),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-
-	s.writeResponse(w, http.StatusOK, responseBytes)
+		},
+		successCode: http.StatusOK,
+	})
 }
 
-func (s *server) workerUpdateStatus(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	defer r.Body.Close() // nolint: errcheck
-
+func (s *server) workerUpdateStatus(w http.ResponseWriter, r *http.Request) {
 	eventID := mux.Vars(r)["eventID"]
-
-	bodyBytes, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Println(
-			errors.Wrap(
-				err,
-				"error reading body of update event worker status request",
-			),
-		)
-		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
-		return
-	}
-
-	if validationResult, err := gojsonschema.Validate(
-		s.workerStatusSchemaLoader,
-		gojsonschema.NewBytesLoader(bodyBytes),
-	); err != nil {
-		log.Println(
-			errors.Wrap(err, "error validating update worker status request"),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	} else if !validationResult.Valid() {
-		// TODO: Remove this and return validation errors to the client instead
-		fmt.Println("-------------------------------------------------------------")
-		for i, verr := range validationResult.Errors() {
-			fmt.Printf("%d. %s\n", i, verr)
-		}
-		fmt.Println("-------------------------------------------------------------")
-		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
-		return
-	}
-
 	status := brignext.WorkerStatus{}
-	if err := json.Unmarshal(bodyBytes, &status); err != nil {
-		log.Println(
-			errors.Wrap(
-				err,
-				"error unmarshaling body of update event worker status request",
-			),
-		)
-		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
-		return
-	}
-
-	if err :=
-		s.service.Events().UpdateWorkerStatus(
-			r.Context(),
-			eventID,
-			status,
-		); err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
-			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
-			return
-		}
-		log.Println(
-			errors.Wrapf(
-				err,
-				"error updating status on event %q worker",
+	s.serveAPIRequest(apiRequest{
+		w:                   w,
+		r:                   r,
+		reqBodySchemaLoader: s.workerStatusSchemaLoader,
+		reqBodyObj:          &status,
+		endpointLogic: func() (interface{}, error) {
+			return nil, s.service.Events().UpdateWorkerStatus(
+				r.Context(),
 				eventID,
-			),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-
-	s.writeResponse(w, http.StatusOK, responseEmptyJSON)
-
+				status,
+			)
+		},
+		successCode: http.StatusOK,
+	})
 }
 
 func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 	eventID := mux.Vars(r)["eventID"]
-
-	streamStr := r.URL.Query().Get("stream")
-	var stream bool
-	if streamStr != "" {
-		stream, _ = strconv.ParseBool(streamStr) // nolint: errcheck
-	}
-
-	initStr := r.URL.Query().Get("init")
-	var init bool
-	if initStr != "" {
-		init, _ = strconv.ParseBool(initStr) // nolint: errcheck
-	}
+	// nolint: errchecks
+	stream, _ := strconv.ParseBool(r.URL.Query().Get("stream"))
+	// nolint: errcheck
+	init, _ := strconv.ParseBool(r.URL.Query().Get("init"))
 
 	if !stream {
 		var logEntriesList brignext.LogEntryList
@@ -401,8 +145,8 @@ func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 			)
 		}
 		if err != nil {
-			if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
-				s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
+			if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
+				s.writeResponse(w, http.StatusNotFound, errors.Cause(err))
 				return
 			}
 			log.Println(
@@ -412,20 +156,15 @@ func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 					eventID,
 				),
 			)
-			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-			return
-		}
-
-		responseBytes, err := json.Marshal(logEntriesList)
-		if err != nil {
-			log.Println(
-				errors.Wrap(err, "error marshaling get worker logs response"),
+			s.writeResponse(
+				w,
+				http.StatusInternalServerError,
+				brignext.NewErrInternalServer(),
 			)
-			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 			return
 		}
 
-		s.writeResponse(w, http.StatusOK, responseBytes)
+		s.writeResponse(w, http.StatusOK, logEntriesList)
 		return
 	}
 
@@ -443,8 +182,8 @@ func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 		)
 	}
 	if err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
-			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
+		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
+			s.writeResponse(w, http.StatusNotFound, errors.Cause(err))
 			return
 		}
 		log.Println(
@@ -454,7 +193,11 @@ func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 				eventID,
 			),
 		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		s.writeResponse(
+			w,
+			http.StatusInternalServerError,
+			brignext.NewErrInternalServer(),
+		)
 		return
 	}
 
@@ -470,100 +213,34 @@ func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *server) jobUpdateStatus(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	defer r.Body.Close() // nolint: errcheck
-
+func (s *server) jobUpdateStatus(w http.ResponseWriter, r *http.Request) {
 	eventID := mux.Vars(r)["eventID"]
-
 	jobName := mux.Vars(r)["jobName"]
-
-	bodyBytes, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Println(
-			errors.Wrap(
-				err,
-				"error reading body of update job status request",
-			),
-		)
-		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
-		return
-	}
-
-	if validationResult, err := gojsonschema.Validate(
-		s.jobStatusSchemaLoader,
-		gojsonschema.NewBytesLoader(bodyBytes),
-	); err != nil {
-		log.Println(errors.Wrap(err, "error validating update job status request"))
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	} else if !validationResult.Valid() {
-		// TODO: Remove this and return validation errors to the client instead
-		fmt.Println("-------------------------------------------------------------")
-		for i, verr := range validationResult.Errors() {
-			fmt.Printf("%d. %s\n", i, verr)
-		}
-		fmt.Println("-------------------------------------------------------------")
-		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
-		return
-	}
-
 	status := brignext.JobStatus{}
-	if err := json.Unmarshal(bodyBytes, &status); err != nil {
-		log.Println(
-			errors.Wrap(
-				err,
-				"error unmarshaling body of update job status request",
-			),
-		)
-		s.writeResponse(w, http.StatusBadRequest, responseEmptyJSON)
-		return
-	}
-
-	if err :=
-		s.service.Events().UpdateJobStatus(
-			r.Context(),
-			eventID,
-			jobName,
-			status,
-		); err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
-			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
-			return
-		}
-		log.Println(
-			errors.Wrapf(
-				err,
-				"error updating status on event %q worker job %q",
+	s.serveAPIRequest(apiRequest{
+		w:                   w,
+		r:                   r,
+		reqBodySchemaLoader: s.jobStatusSchemaLoader,
+		reqBodyObj:          &status,
+		endpointLogic: func() (interface{}, error) {
+			return nil, s.service.Events().UpdateJobStatus(
+				r.Context(),
 				eventID,
 				jobName,
-			),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-		return
-	}
-
-	s.writeResponse(w, http.StatusOK, responseEmptyJSON)
-
+				status,
+			)
+		},
+		successCode: http.StatusOK,
+	})
 }
 
 func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 	eventID := mux.Vars(r)["eventID"]
 	jobName := mux.Vars(r)["jobName"]
-
-	streamStr := r.URL.Query().Get("stream")
-	var stream bool
-	if streamStr != "" {
-		stream, _ = strconv.ParseBool(streamStr) // nolint: errcheck
-	}
-
-	initStr := r.URL.Query().Get("init")
-	var init bool
-	if initStr != "" {
-		init, _ = strconv.ParseBool(initStr) // nolint: errcheck
-	}
+	// nolint: errcheck
+	stream, _ := strconv.ParseBool(r.URL.Query().Get("stream"))
+	// nolint: errcheck
+	init, _ := strconv.ParseBool(r.URL.Query().Get("init"))
 
 	if !stream {
 		var logEntriesList brignext.LogEntryList
@@ -582,11 +259,8 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 			)
 		}
 		if err != nil {
-			if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
-				s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
-				return
-			} else if _, ok := errors.Cause(err).(*brignext.ErrJobNotFound); ok {
-				s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
+			if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
+				s.writeResponse(w, http.StatusNotFound, errors.Cause(err))
 				return
 			}
 			log.Println(
@@ -597,20 +271,15 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 					jobName,
 				),
 			)
-			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
-			return
-		}
-
-		responseBytes, err := json.Marshal(logEntriesList)
-		if err != nil {
-			log.Println(
-				errors.Wrap(err, "error marshaling get job logs response"),
+			s.writeResponse(
+				w,
+				http.StatusInternalServerError,
+				brignext.NewErrInternalServer(),
 			)
-			s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
 			return
 		}
 
-		s.writeResponse(w, http.StatusOK, responseBytes)
+		s.writeResponse(w, http.StatusOK, logEntriesList)
 		return
 	}
 
@@ -620,11 +289,8 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 		jobName,
 	)
 	if err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrEventNotFound); ok {
-			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
-			return
-		} else if _, ok := errors.Cause(err).(*brignext.ErrJobNotFound); ok {
-			s.writeResponse(w, http.StatusNotFound, responseEmptyJSON)
+		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
+			s.writeResponse(w, http.StatusNotFound, errors.Cause(err))
 			return
 		}
 		log.Println(
@@ -635,7 +301,11 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 				jobName,
 			),
 		)
-		s.writeResponse(w, http.StatusInternalServerError, responseEmptyJSON)
+		s.writeResponse(
+			w,
+			http.StatusInternalServerError,
+			brignext.NewErrInternalServer(),
+		)
 		return
 	}
 

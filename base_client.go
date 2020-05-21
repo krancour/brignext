@@ -21,7 +21,6 @@ type apiRequest struct {
 	reqBodyObj  interface{}
 	successCode int
 	respObj     interface{}
-	errObjs     map[int]error
 }
 
 type baseClient struct {
@@ -100,23 +99,34 @@ func (b *baseClient) doAPIRequest2(apiReq apiRequest) (*http.Response, error) {
 
 	if (apiReq.successCode == 0 && resp.StatusCode != http.StatusOK) ||
 		(apiReq.successCode != 0 && resp.StatusCode != apiReq.successCode) {
-		if len(apiReq.errObjs) > 0 {
-			if apiErr, ok := apiReq.errObjs[resp.StatusCode]; ok {
-				respBodyBytes, err := ioutil.ReadAll(resp.Body)
-				if err != nil {
-					return nil, errors.Wrap(err, "error reading response body")
-				}
-				defer resp.Body.Close()
-				if err := json.Unmarshal(respBodyBytes, apiErr); err != nil {
-					return nil,
-						errors.Wrap(err, "error unmarshaling response (error) body")
-				}
-				return nil, apiErr
-			}
+		// HTTP Response code hints at what sort of error might be in the body
+		// of the response
+		var apiErr error
+		switch resp.StatusCode {
+		case http.StatusUnauthorized:
+			apiErr = &ErrAuthentication{}
+		case http.StatusForbidden:
+			apiErr = &ErrAuthorization{}
+		case http.StatusBadRequest:
+			apiErr = &ErrBadRequest{}
+		case http.StatusNotFound:
+			apiErr = &ErrNotFound{}
+		case http.StatusConflict:
+			apiErr = &ErrConflict{}
+		case http.StatusInternalServerError:
+			apiErr = &ErrInternalServer{}
+		default:
 			return nil, errors.Errorf("received %d from API server", resp.StatusCode)
 		}
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, errors.Wrap(err, "error reading error response body")
+		}
+		if err = json.Unmarshal(bodyBytes, apiErr); err != nil {
+			return nil, errors.Wrap(err, "error unmarshaling error response body")
+		}
+		return nil, apiErr
 	}
-
 	return resp, nil
 }
 

@@ -150,13 +150,7 @@ func (l *logStore) getLogs(
 	ctx context.Context,
 	criteria bson.M,
 ) (brignext.LogEntryList, error) {
-	logEntryList := brignext.LogEntryList{
-		TypeMeta: brignext.TypeMeta{
-			APIVersion: brignext.APIVersion,
-			Kind:       "LogEntryList",
-		},
-		Items: []brignext.LogEntry{},
-	}
+	logEntryList := brignext.NewLogEntryList()
 	cursor, err := l.logsCollection.Find(ctx, criteria)
 	if err != nil {
 		return logEntryList, errors.Wrap(err, "error retrieving log entries")

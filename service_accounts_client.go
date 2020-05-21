@@ -52,9 +52,6 @@ func (s *serviceAccountsClient) Create(
 			reqBodyObj:  serviceAccount,
 			successCode: http.StatusCreated,
 			respObj:     &token,
-			errObjs: map[int]error{
-				http.StatusConflict: &ErrServiceAccountIDConflict{},
-			},
 		},
 	)
 	return token, err
@@ -88,9 +85,6 @@ func (s *serviceAccountsClient) Get(
 			authHeaders: s.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
 			respObj:     &serviceAccount,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrServiceAccountNotFound{},
-			},
 		},
 	)
 	return serviceAccount, err
@@ -103,9 +97,6 @@ func (s *serviceAccountsClient) Lock(_ context.Context, id string) error {
 			path:        fmt.Sprintf("v2/service-accounts/%s/lock", id),
 			authHeaders: s.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrServiceAccountNotFound{},
-			},
 		},
 	)
 }
@@ -122,9 +113,6 @@ func (s *serviceAccountsClient) Unlock(
 			authHeaders: s.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
 			respObj:     &token,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrServiceAccountNotFound{},
-			},
 		},
 	)
 	return token, err

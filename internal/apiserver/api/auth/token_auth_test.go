@@ -44,7 +44,7 @@ func TestTokenAuthFilterWithHeaderNotBearer(t *testing.T) {
 func TestTokenAuthFilterWithTokenInvalid(t *testing.T) {
 	a := NewTokenAuthFilter(
 		func(context.Context, string) (Session, error) {
-			return Session{}, &brignext.ErrSessionNotFound{}
+			return Session{}, &brignext.ErrNotFound{}
 		},
 		nil,
 		false,

@@ -120,9 +120,6 @@ func (e *eventsClient) Create(
 			reqBodyObj:  event,
 			successCode: http.StatusCreated,
 			respObj:     &eventRefList,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrProjectNotFound{},
-			},
 		},
 	)
 	return eventRefList, err
@@ -157,9 +154,6 @@ func (e *eventsClient) ListByProject(
 			},
 			successCode: http.StatusOK,
 			respObj:     &eventList,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrProjectNotFound{},
-			},
 		},
 	)
 	return eventList, err
@@ -174,9 +168,6 @@ func (e *eventsClient) Get(ctx context.Context, id string) (Event, error) {
 			authHeaders: e.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
 			respObj:     &event,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrEventNotFound{},
-			},
 		},
 	)
 	return event, err
@@ -198,9 +189,6 @@ func (e *eventsClient) Cancel(
 			},
 			successCode: http.StatusOK,
 			respObj:     &eventRefList,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrEventNotFound{},
-			},
 		},
 	)
 	return eventRefList, err
@@ -222,9 +210,6 @@ func (e *eventsClient) CancelByProject(
 			},
 			successCode: http.StatusOK,
 			respObj:     &eventRefList,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrProjectNotFound{},
-			},
 		},
 	)
 	return eventRefList, err
@@ -248,9 +233,6 @@ func (e *eventsClient) Delete(
 			},
 			successCode: http.StatusOK,
 			respObj:     &eventRefList,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrEventNotFound{},
-			},
 		},
 	)
 	return eventRefList, err
@@ -274,9 +256,6 @@ func (e *eventsClient) DeleteByProject(
 			},
 			successCode: http.StatusOK,
 			respObj:     &eventRefList,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrProjectNotFound{},
-			},
 		},
 	)
 	return eventRefList, err
@@ -294,9 +273,6 @@ func (e *eventsClient) UpdateWorkerStatus(
 			authHeaders: e.bearerTokenAuthHeaders(),
 			reqBodyObj:  status,
 			successCode: http.StatusOK,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrEventNotFound{},
-			},
 		},
 	)
 }
@@ -313,9 +289,6 @@ func (e *eventsClient) GetWorkerLogs(
 			authHeaders: e.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
 			respObj:     &logEntryList,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrEventNotFound{},
-			},
 		},
 	)
 	return logEntryList, err
@@ -334,9 +307,6 @@ func (e *eventsClient) StreamWorkerLogs(
 				"stream": "true",
 			},
 			successCode: http.StatusOK,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrJobNotFound{},
-			},
 		},
 	)
 	if err != nil {
@@ -366,9 +336,6 @@ func (e *eventsClient) GetWorkerInitLogs(
 			},
 			successCode: http.StatusOK,
 			respObj:     &logEntryList,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrEventNotFound{},
-			},
 		},
 	)
 	return logEntryList, err
@@ -388,9 +355,6 @@ func (e *eventsClient) StreamWorkerInitLogs(
 				"init":   "true",
 			},
 			successCode: http.StatusOK,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrJobNotFound{},
-			},
 		},
 	)
 	if err != nil {
@@ -422,9 +386,6 @@ func (e *eventsClient) UpdateJobStatus(
 			authHeaders: e.bearerTokenAuthHeaders(),
 			reqBodyObj:  status,
 			successCode: http.StatusOK,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrJobNotFound{},
-			},
 		},
 	)
 }
@@ -446,9 +407,6 @@ func (e *eventsClient) GetJobLogs(
 			authHeaders: e.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
 			respObj:     &logEntryList,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrJobNotFound{},
-			},
 		},
 	)
 	return logEntryList, err
@@ -472,9 +430,6 @@ func (e *eventsClient) StreamJobLogs(
 				"stream": "true",
 			},
 			successCode: http.StatusOK,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrJobNotFound{},
-			},
 		},
 	)
 	if err != nil {
@@ -509,9 +464,6 @@ func (e *eventsClient) GetJobInitLogs(
 			},
 			successCode: http.StatusOK,
 			respObj:     &logEntryList,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrJobNotFound{},
-			},
 		},
 	)
 	return logEntryList, err
@@ -536,9 +488,6 @@ func (e *eventsClient) StreamJobInitLogs(
 				"init":   "true",
 			},
 			successCode: http.StatusOK,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrJobNotFound{},
-			},
 		},
 	)
 	if err != nil {

@@ -168,16 +168,11 @@ func eventCreate(c *cli.Context) error {
 		payload = string(payloadBytes)
 	}
 
-	event := brignext.Event{
-		TypeMeta: brignext.TypeMeta{
-			APIVersion: brignext.APIVersion,
-			Kind:       "Event",
-		},
-		ProjectID: projectID,
-		Source:    source,
-		Type:      eventType,
-		Payload:   payload,
-	}
+	event := brignext.NewEvent()
+	event.ProjectID = projectID
+	event.Source = source
+	event.Type = eventType
+	event.Payload = payload
 
 	client, err := getClient(c)
 	if err != nil {

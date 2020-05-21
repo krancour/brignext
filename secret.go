@@ -6,6 +6,17 @@ type SecretList struct {
 	Items    []Secret `json:"items"`
 }
 
+func NewSecretList() SecretList {
+	return SecretList{
+		TypeMeta: TypeMeta{
+			APIVersion: APIVersion,
+			Kind:       "SecretList",
+		},
+		ListMeta: ListMeta{},
+		Items:    []Secret{},
+	}
+}
+
 type Secret struct {
 	TypeMeta `json:",inline" bson:",inline"`
 	// TODO: Secret isn't really a sub-resource of a project-- it might not be
@@ -16,4 +27,17 @@ type Secret struct {
 	// Perhaps remove ObjectMeta and add a Key field.
 	ObjectMeta `json:"metadata" bson:"metadata"`
 	Value      string `json:"value" bson:"value"`
+}
+
+func NewSecret(key, value string) Secret {
+	return Secret{
+		TypeMeta: TypeMeta{
+			APIVersion: APIVersion,
+			Kind:       "Secret",
+		},
+		ObjectMeta: ObjectMeta{
+			ID: key,
+		},
+		Value: value,
+	}
 }

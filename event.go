@@ -12,15 +12,46 @@ type EventReferenceList struct {
 	Items    []EventReference `json:"items"`
 }
 
+func NewEventReferenceList() EventReferenceList {
+	return EventReferenceList{
+		TypeMeta: TypeMeta{
+			APIVersion: APIVersion,
+			Kind:       "EventReferenceList",
+		},
+		ListMeta: ListMeta{},
+		Items:    []EventReference{},
+	}
+}
+
 type EventReference struct {
 	TypeMeta `json:",inline"`
 	ID       string `json:"id"`
+}
+
+func NewEventReference(id string) EventReference {
+	return EventReference{
+		TypeMeta: TypeMeta{
+			APIVersion: APIVersion,
+			Kind:       "EventReference",
+		},
+		ID: id,
+	}
 }
 
 type EventList struct {
 	TypeMeta `json:",inline"`
 	ListMeta `json:"metadata"`
 	Items    []Event `json:"items"`
+}
+
+func NewEventList() EventList {
+	return EventList{
+		TypeMeta: TypeMeta{
+			APIVersion: APIVersion,
+			Kind:       "EventList",
+		},
+		Items: []Event{},
+	}
 }
 
 type Event struct {
@@ -39,6 +70,15 @@ type Event struct {
 	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
 	Canceled   *time.Time        `json:"canceled,omitempty" bson:"canceled"`
 	Status     *EventStatus      `json:"status,omitempty" bson:"status"`
+}
+
+func NewEvent() Event {
+	return Event{
+		TypeMeta: TypeMeta{
+			APIVersion: APIVersion,
+			Kind:       "Event",
+		},
+	}
 }
 
 type EventGitConfig struct {

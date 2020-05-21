@@ -148,16 +148,7 @@ func secretsSet(c *cli.Context) error {
 	// TODO: It would be nicer / more efficient to do a bulk secrets set, but
 	// what's the right pattern for doing that restfully?
 	for k, v := range kvPairs {
-		secret := brignext.Secret{
-			TypeMeta: brignext.TypeMeta{
-				APIVersion: brignext.APIVersion,
-				Kind:       "Secret",
-			},
-			ObjectMeta: brignext.ObjectMeta{
-				ID: k,
-			},
-			Value: v,
-		}
+		secret := brignext.NewSecret(k, v)
 		if err := client.Projects().SetSecret(
 			c.Context,
 			projectID,

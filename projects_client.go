@@ -51,9 +51,6 @@ func (p *projectsClient) Create(_ context.Context, project Project) error {
 			authHeaders: p.bearerTokenAuthHeaders(),
 			reqBodyObj:  project,
 			successCode: http.StatusCreated,
-			errObjs: map[int]error{
-				http.StatusConflict: &ErrProjectIDConflict{},
-			},
 		},
 	)
 }
@@ -81,9 +78,6 @@ func (p *projectsClient) Get(_ context.Context, id string) (Project, error) {
 			authHeaders: p.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
 			respObj:     &project,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrProjectNotFound{},
-			},
 		},
 	)
 	return project, err
@@ -97,9 +91,6 @@ func (p *projectsClient) Update(_ context.Context, project Project) error {
 			authHeaders: p.bearerTokenAuthHeaders(),
 			reqBodyObj:  project,
 			successCode: http.StatusOK,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrProjectNotFound{},
-			},
 		},
 	)
 }
@@ -111,9 +102,6 @@ func (p *projectsClient) Delete(_ context.Context, id string) error {
 			path:        fmt.Sprintf("v2/projects/%s", id),
 			authHeaders: p.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrProjectNotFound{},
-			},
 		},
 	)
 }
@@ -130,9 +118,6 @@ func (p *projectsClient) ListSecrets(
 			authHeaders: p.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
 			respObj:     &secretList,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrProjectNotFound{},
-			},
 		},
 	)
 	return secretList, err
@@ -154,9 +139,6 @@ func (p *projectsClient) SetSecret(
 			authHeaders: p.bearerTokenAuthHeaders(),
 			reqBodyObj:  secret,
 			successCode: http.StatusOK,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrProjectNotFound{},
-			},
 		},
 	)
 }
@@ -176,9 +158,6 @@ func (p *projectsClient) UnsetSecret(
 			),
 			authHeaders: p.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
-			errObjs: map[int]error{
-				http.StatusNotFound: &ErrProjectNotFound{},
-			},
 		},
 	)
 }

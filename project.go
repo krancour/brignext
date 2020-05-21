@@ -6,6 +6,16 @@ type ProjectList struct {
 	Items    []Project `json:"items"`
 }
 
+func NewProjectList() ProjectList {
+	return ProjectList{
+		TypeMeta: TypeMeta{
+			APIVersion: APIVersion,
+			Kind:       "ProjectList",
+		},
+		Items: []Project{},
+	}
+}
+
 type Project struct {
 	TypeMeta   `json:",inline" bson:",inline"`
 	ObjectMeta `json:"metadata" bson:"metadata"`

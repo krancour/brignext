@@ -269,13 +269,7 @@ func (p *projectsScheduler) ListSecrets(
 	ctx context.Context,
 	project brignext.Project,
 ) (brignext.SecretList, error) {
-	secretList := brignext.SecretList{
-		TypeMeta: brignext.TypeMeta{
-			APIVersion: brignext.APIVersion,
-			Kind:       "SecretList",
-		},
-		ListMeta: brignext.ListMeta{},
-	}
+	secretList := brignext.NewSecretList()
 
 	k8sSecret, err := p.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
@@ -290,16 +284,7 @@ func (p *projectsScheduler) ListSecrets(
 	secretList.Items = make([]brignext.Secret, len(k8sSecret.Data))
 	var i int
 	for key := range k8sSecret.Data {
-		secretList.Items[i] = brignext.Secret{
-			TypeMeta: brignext.TypeMeta{
-				APIVersion: brignext.APIVersion,
-				Kind:       "Secret",
-			},
-			ObjectMeta: brignext.ObjectMeta{
-				ID: key,
-			},
-			Value: "*** REDACTED ***",
-		}
+		secretList.Items[i] = brignext.NewSecret(key, "*** REDACTED ***")
 		i++
 	}
 	return secretList, nil

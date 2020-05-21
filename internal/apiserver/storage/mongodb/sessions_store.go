@@ -85,7 +85,7 @@ func (s *sessionsStore) GetByHashedOAuth2State(
 		bson.M{"hashedOAuth2State": hashedOAuth2State},
 	)
 	if res.Err() == mongo.ErrNoDocuments {
-		return session, &brignext.ErrSessionNotFound{}
+		return session, brignext.NewErrNotFound("Session", "")
 	}
 	if res.Err() != nil {
 		return session, errors.Wrap(
@@ -106,7 +106,7 @@ func (s *sessionsStore) GetByHashedToken(
 	session := auth.Session{}
 	res := s.collection.FindOne(ctx, bson.M{"hashedToken": hashedToken})
 	if res.Err() == mongo.ErrNoDocuments {
-		return session, &brignext.ErrSessionNotFound{}
+		return session, brignext.NewErrNotFound("Session", "")
 	}
 	if res.Err() != nil {
 		return session, errors.Wrap(
@@ -143,9 +143,7 @@ func (s *sessionsStore) Authenticate(
 		return errors.Wrapf(err, "error updating session %q", sessionID)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrSessionNotFound{
-			ID: sessionID,
-		}
+		return brignext.NewErrNotFound("Session", sessionID)
 	}
 	return nil
 }
@@ -156,9 +154,7 @@ func (s *sessionsStore) Delete(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error deleting session %q", id)
 	}
 	if res.DeletedCount == 0 {
-		return &brignext.ErrSessionNotFound{
-			ID: id,
-		}
+		return brignext.NewErrNotFound("Session", id)
 	}
 	return nil
 }
