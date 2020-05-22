@@ -297,7 +297,7 @@ func eventGet(c *cli.Context) error {
 		fmt.Println(table)
 
 		if len(event.Status.JobStatuses) > 0 {
-			fmt.Printf("\nEvent %q worker jobs:\n\n", event.ID)
+			fmt.Printf("\nEvent %q jobs:\n\n", event.ID)
 			table = uitable.New()
 			table.AddRow("NAME", "STARTED", "ENDED", "PHASE")
 			for jobName, jobStatus := range event.Status.JobStatuses {

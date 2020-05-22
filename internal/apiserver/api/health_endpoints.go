@@ -4,8 +4,15 @@ import "net/http"
 
 func (s *server) healthCheck(
 	w http.ResponseWriter,
-	_ *http.Request,
+	r *http.Request,
 ) {
-	// TODO: Test that critical connections are healthy?
-	s.writeResponse(w, http.StatusOK, struct{}{})
+	s.serveAPIRequest(apiRequest{
+		w: w,
+		r: r,
+		endpointLogic: func() (interface{}, error) {
+			// TODO: Test that critical connections are healthy?
+			return struct{}{}, nil
+		},
+		successCode: http.StatusOK,
+	})
 }

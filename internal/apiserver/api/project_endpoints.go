@@ -55,7 +55,7 @@ func (s *server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 		endpointLogic: func() (interface{}, error) {
 			if id != project.ID {
 				return nil, brignext.NewErrBadRequest(
-					"the project IDs in the URL path and request body do not match",
+					"The project IDs in the URL path and request body do not match.",
 				)
 			}
 			return nil, s.service.Projects().Update(r.Context(), project)

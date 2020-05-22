@@ -18,26 +18,24 @@ func NewErrAuthentication(reason string) *ErrAuthentication {
 }
 
 func (e *ErrAuthentication) Error() string {
-	return fmt.Sprintf("could not authenticate the request: %s", e.Reason)
+	return fmt.Sprintf("Could not authenticate the request: %s", e.Reason)
 }
 
 type ErrAuthorization struct {
 	TypeMeta `json:",inline"`
-	Reason   string `json:"reason"`
 }
 
-func NewErrAuthorization(reason string) *ErrAuthorization {
+func NewErrAuthorization() *ErrAuthorization {
 	return &ErrAuthorization{
 		TypeMeta: TypeMeta{
 			APIVersion: APIVersion,
 			Kind:       "AuthorizationError",
 		},
-		Reason: reason,
 	}
 }
 
 func (e *ErrAuthorization) Error() string {
-	return fmt.Sprintf("could not authorize the request: %s", e.Reason)
+	return "The request is not authorized."
 }
 
 type ErrBadRequest struct {
@@ -59,9 +57,9 @@ func NewErrBadRequest(reason string, details ...string) *ErrBadRequest {
 
 func (e *ErrBadRequest) Error() string {
 	if len(e.Details) == 0 {
-		return fmt.Sprintf("bad request: %s", e.Reason)
+		return fmt.Sprintf("Bad request: %s", e.Reason)
 	}
-	msg := fmt.Sprintf("bad request: %s:", e.Reason)
+	msg := fmt.Sprintf("Bad request: %s:", e.Reason)
 	for i, detail := range e.Details {
 		msg = fmt.Sprintf("%s\n  %d. %s", msg, i, detail)
 	}
@@ -86,7 +84,7 @@ func NewErrNotFound(tipe, id string) *ErrNotFound {
 }
 
 func (e *ErrNotFound) Error() string {
-	return fmt.Sprintf("%s %q not found", e.Type, e.ID)
+	return fmt.Sprintf("%s %q not found.", e.Type, e.ID)
 }
 
 type ErrConflict struct {
@@ -107,7 +105,7 @@ func NewErrConflict(tipe string, id string) *ErrConflict {
 }
 
 func (e *ErrConflict) Error() string {
-	return fmt.Sprintf("a %s with the ID %q already exists", e.Type, e.ID)
+	return fmt.Sprintf("A %s with the ID %q already exists.", e.Type, e.ID)
 }
 
 type ErrInternalServer struct {
@@ -124,5 +122,24 @@ func NewErrInternalServer() *ErrInternalServer {
 }
 
 func (e *ErrInternalServer) Error() string {
-	return "an internal server error occurred"
+	return "An internal server error occurred."
+}
+
+type ErrNotSupported struct {
+	TypeMeta `json:",inline"`
+	Details  string `json:"reason"`
+}
+
+func NewErrNotSupported(details string) *ErrNotSupported {
+	return &ErrNotSupported{
+		TypeMeta: TypeMeta{
+			APIVersion: APIVersion,
+			Kind:       "NotSupportedError",
+		},
+		Details: details,
+	}
+}
+
+func (e *ErrNotSupported) Error() string {
+	return e.Details
 }

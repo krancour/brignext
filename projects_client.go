@@ -9,9 +9,11 @@ import (
 
 type ProjectsClient interface {
 	Create(context.Context, Project) error
+	CreateFromBytes(context.Context, []byte) error
 	List(context.Context) (ProjectList, error)
 	Get(context.Context, string) (Project, error)
 	Update(context.Context, Project) error
+	UpdateFromBytes(context.Context, string, []byte) error
 	Delete(context.Context, string) error
 
 	ListSecrets(ctx context.Context, projectID string) (SecretList, error)
@@ -55,6 +57,21 @@ func (p *projectsClient) Create(_ context.Context, project Project) error {
 	)
 }
 
+func (p *projectsClient) CreateFromBytes(
+	_ context.Context,
+	projectBytes []byte,
+) error {
+	return p.doAPIRequest(
+		apiRequest{
+			method:      http.MethodPost,
+			path:        "v2/projects",
+			authHeaders: p.bearerTokenAuthHeaders(),
+			reqBodyObj:  projectBytes,
+			successCode: http.StatusCreated,
+		},
+	)
+}
+
 func (p *projectsClient) List(context.Context) (ProjectList, error) {
 	projectList := ProjectList{}
 	err := p.doAPIRequest(
@@ -90,6 +107,22 @@ func (p *projectsClient) Update(_ context.Context, project Project) error {
 			path:        fmt.Sprintf("v2/projects/%s", project.ID),
 			authHeaders: p.bearerTokenAuthHeaders(),
 			reqBodyObj:  project,
+			successCode: http.StatusOK,
+		},
+	)
+}
+
+func (p *projectsClient) UpdateFromBytes(
+	_ context.Context,
+	projectID string,
+	projectBytes []byte,
+) error {
+	return p.doAPIRequest(
+		apiRequest{
+			method:      http.MethodPut,
+			path:        fmt.Sprintf("v2/projects/%s", projectID),
+			authHeaders: p.bearerTokenAuthHeaders(),
+			reqBodyObj:  projectBytes,
 			successCode: http.StatusOK,
 		},
 	)

@@ -96,14 +96,20 @@ func projectCreate(c *cli.Context) error {
 		return errors.Wrapf(err, "error reading project file %s", filename)
 	}
 
-	project := brignext.Project{}
 	if strings.HasSuffix(filename, ".yaml") ||
 		strings.HasSuffix(filename, ".yml") {
-		err = yaml.Unmarshal(projectBytes, &project)
-	} else {
-		err = json.Unmarshal(projectBytes, &project)
+		if projectBytes, err = yaml.YAMLToJSON(projectBytes); err != nil {
+			return errors.Wrapf(err, "error converting file %s to JSON", filename)
+		}
 	}
-	if err != nil {
+
+	// We unmarshal just so that we can get the project ID. Otherwise, we wouldn't
+	// need to do this, because we pass raw JSON to the API so that server-side
+	// JSON schema validation is applied to what's in the file and NOT to a
+	// project description that was inadvertently scrubbed of non-permitted fields
+	// during client-side unmarshaling.
+	project := brignext.Project{}
+	if err = json.Unmarshal(projectBytes, &project); err != nil {
 		return errors.Wrapf(err, "error unmarshaling project file %s", filename)
 	}
 
@@ -112,7 +118,8 @@ func projectCreate(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err := client.Projects().Create(c.Context, project); err != nil {
+	if err :=
+		client.Projects().CreateFromBytes(c.Context, projectBytes); err != nil {
 		return err
 	}
 
@@ -250,15 +257,28 @@ func projectUpdate(c *cli.Context) error {
 		return errors.Wrapf(err, "error reading project file %s", filename)
 	}
 
-	project := brignext.Project{}
 	if strings.HasSuffix(filename, ".yaml") ||
 		strings.HasSuffix(filename, ".yml") {
-		err = yaml.Unmarshal(projectBytes, &project)
-	} else {
-		err = json.Unmarshal(projectBytes, &project)
+		if projectBytes, err = yaml.YAMLToJSON(projectBytes); err != nil {
+			return errors.Wrapf(err, "error converting file %s to JSON", filename)
+		}
 	}
-	if err != nil {
+
+	// We unmarshal just so that we can get the project ID. Otherwise, we wouldn't
+	// need to do this, because we pass raw JSON to the API so that server-side
+	// JSON schema validation is applied to what's in the file and NOT to a
+	// project description that was inadvertently scrubbed of non-permitted fields
+	// during client-side unmarshaling.
+	project := brignext.Project{}
+	if err = json.Unmarshal(projectBytes, &project); err != nil {
 		return errors.Wrapf(err, "error unmarshaling project file %s", filename)
+	}
+
+	// If the project ID is missing, we can go no further. All other validation
+	// occurs server-side, but without an ID, we cannot even construct the URL
+	// that we need to PUT to.
+	if project.ID == "" {
+		return errors.New("project definition does not specify an ID")
 	}
 
 	client, err := getClient(c)
@@ -266,7 +286,11 @@ func projectUpdate(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err := client.Projects().Update(c.Context, project); err != nil {
+	if err = client.Projects().UpdateFromBytes(
+		c.Context,
+		project.ID,
+		projectBytes,
+	); err != nil {
 		return err
 	}
 

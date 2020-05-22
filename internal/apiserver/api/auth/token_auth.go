@@ -49,7 +49,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			t.writeResponse(
 				w,
 				http.StatusUnauthorized,
-				brignext.NewErrAuthentication("\"Authorization\" header is missing"),
+				brignext.NewErrAuthentication("\"Authorization\" header is missing."),
 			)
 			return
 		}
@@ -62,7 +62,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			t.writeResponse(
 				w,
 				http.StatusUnauthorized,
-				brignext.NewErrAuthentication("\"Authorization\" header is malformed"),
+				brignext.NewErrAuthentication("\"Authorization\" header is malformed."),
 			)
 			return
 		}
@@ -81,20 +81,53 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 
 		session, err := t.findSession(r.Context(), token)
 		if err != nil {
+			if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
+				t.writeResponse(
+					w,
+					http.StatusUnauthorized,
+					brignext.NewErrAuthentication(
+						"Session not found. Please log in again.",
+					),
+				)
+				return
+			}
+			log.Println(err)
 			t.writeResponse(
 				w,
-				http.StatusUnauthorized,
-				brignext.NewErrAuthentication("session not found"),
+				http.StatusInternalServerError,
+				brignext.NewErrInternalServer(),
 			)
 			return
 		}
-		if (session.Root && !t.rootUserEnabled) ||
-			session.Authenticated == nil ||
-			(session.Expires != nil && time.Now().After(*session.Expires)) {
+		if session.Root && !t.rootUserEnabled {
 			t.writeResponse(
 				w,
 				http.StatusUnauthorized,
-				brignext.NewErrAuthentication("session not found"),
+				brignext.NewErrAuthentication(
+					"Supplied token was for an established root session, but "+
+						"authentication using root credentials is no longer supported "+
+						"by this server.",
+				),
+			)
+			return
+		}
+		if session.Authenticated == nil {
+			t.writeResponse(
+				w,
+				http.StatusUnauthorized,
+				brignext.NewErrAuthentication(
+					"Supplied token has not been authenticated. Please log in again.",
+				),
+			)
+			return
+		}
+		if session.Expires != nil && time.Now().After(*session.Expires) {
+			t.writeResponse(
+				w,
+				http.StatusUnauthorized,
+				brignext.NewErrAuthentication(
+					"Supplied token has expired. Please log in again.",
+				),
 			)
 			return
 		}
@@ -104,10 +137,13 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 		} else {
 			user, err := t.findUser(r.Context(), session.UserID)
 			if err != nil {
+				log.Println(err)
+				// There should never be an authenticated session for a user that
+				// doesn't exist.
 				t.writeResponse(
 					w,
-					http.StatusUnauthorized,
-					brignext.NewErrAuthentication("user not found"),
+					http.StatusInternalServerError,
+					brignext.NewErrInternalServer(),
 				)
 				return
 			}

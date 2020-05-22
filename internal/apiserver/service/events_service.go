@@ -532,6 +532,18 @@ func (e *eventsService) GetJobLogs(
 	eventID string,
 	jobName string,
 ) (brignext.LogEntryList, error) {
+	logEntryList := brignext.LogEntryList{}
+	event, err := e.store.Events().Get(ctx, eventID)
+	if err != nil {
+		return logEntryList, errors.Wrapf(
+			err,
+			"error retrieving event %q from store",
+			eventID,
+		)
+	}
+	if _, ok := event.Status.JobStatuses[jobName]; !ok {
+		return logEntryList, brignext.NewErrNotFound("Job", jobName)
+	}
 	return e.logStore.GetJobLogs(ctx, eventID, jobName)
 }
 
@@ -540,6 +552,17 @@ func (e *eventsService) StreamJobLogs(
 	eventID string,
 	jobName string,
 ) (<-chan brignext.LogEntry, error) {
+	event, err := e.store.Events().Get(ctx, eventID)
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"error retrieving event %q from store",
+			eventID,
+		)
+	}
+	if _, ok := event.Status.JobStatuses[jobName]; !ok {
+		return nil, brignext.NewErrNotFound("Job", jobName)
+	}
 	return e.logStore.StreamJobLogs(ctx, eventID, jobName)
 }
 
@@ -548,6 +571,18 @@ func (e *eventsService) GetJobInitLogs(
 	eventID string,
 	jobName string,
 ) (brignext.LogEntryList, error) {
+	logEntryList := brignext.LogEntryList{}
+	event, err := e.store.Events().Get(ctx, eventID)
+	if err != nil {
+		return logEntryList, errors.Wrapf(
+			err,
+			"error retrieving event %q from store",
+			eventID,
+		)
+	}
+	if _, ok := event.Status.JobStatuses[jobName]; !ok {
+		return logEntryList, brignext.NewErrNotFound("Job", jobName)
+	}
 	return e.logStore.GetJobInitLogs(ctx, eventID, jobName)
 }
 
@@ -556,5 +591,16 @@ func (e *eventsService) StreamJobInitLogs(
 	eventID string,
 	jobName string,
 ) (<-chan brignext.LogEntry, error) {
+	event, err := e.store.Events().Get(ctx, eventID)
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"error retrieving event %q from store",
+			eventID,
+		)
+	}
+	if _, ok := event.Status.JobStatuses[jobName]; !ok {
+		return nil, brignext.NewErrNotFound("Job", jobName)
+	}
 	return e.logStore.StreamJobInitLogs(ctx, eventID, jobName)
 }

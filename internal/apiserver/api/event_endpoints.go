@@ -131,40 +131,17 @@ func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 	init, _ := strconv.ParseBool(r.URL.Query().Get("init"))
 
 	if !stream {
-		var logEntriesList brignext.LogEntryList
-		var err error
-		if init {
-			logEntriesList, err = s.service.Events().GetWorkerInitLogs(
-				r.Context(),
-				eventID,
-			)
-		} else {
-			logEntriesList, err = s.service.Events().GetWorkerLogs(
-				r.Context(),
-				eventID,
-			)
-		}
-		if err != nil {
-			if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
-				s.writeResponse(w, http.StatusNotFound, errors.Cause(err))
-				return
-			}
-			log.Println(
-				errors.Wrapf(
-					err,
-					"error retrieving event %q worker logs",
-					eventID,
-				),
-			)
-			s.writeResponse(
-				w,
-				http.StatusInternalServerError,
-				brignext.NewErrInternalServer(),
-			)
-			return
-		}
-
-		s.writeResponse(w, http.StatusOK, logEntriesList)
+		s.serveAPIRequest(apiRequest{
+			w: w,
+			r: r,
+			endpointLogic: func() (interface{}, error) {
+				if init {
+					return s.service.Events().GetWorkerInitLogs(r.Context(), eventID)
+				}
+				return s.service.Events().GetWorkerLogs(r.Context(), eventID)
+			},
+			successCode: http.StatusOK,
+		})
 		return
 	}
 
@@ -183,7 +160,7 @@ func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
-			s.writeResponse(w, http.StatusNotFound, errors.Cause(err))
+			s.writeAPIResponse(w, http.StatusNotFound, errors.Cause(err))
 			return
 		}
 		log.Println(
@@ -193,7 +170,7 @@ func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 				eventID,
 			),
 		)
-		s.writeResponse(
+		s.writeAPIResponse(
 			w,
 			http.StatusInternalServerError,
 			brignext.NewErrInternalServer(),
@@ -243,43 +220,25 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 	init, _ := strconv.ParseBool(r.URL.Query().Get("init"))
 
 	if !stream {
-		var logEntriesList brignext.LogEntryList
-		var err error
-		if init {
-			logEntriesList, err = s.service.Events().GetJobInitLogs(
-				r.Context(),
-				eventID,
-				jobName,
-			)
-		} else {
-			logEntriesList, err = s.service.Events().GetJobLogs(
-				r.Context(),
-				eventID,
-				jobName,
-			)
-		}
-		if err != nil {
-			if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
-				s.writeResponse(w, http.StatusNotFound, errors.Cause(err))
-				return
-			}
-			log.Println(
-				errors.Wrapf(
-					err,
-					"error retrieving event %q worker job %q logs",
+		s.serveAPIRequest(apiRequest{
+			w: w,
+			r: r,
+			endpointLogic: func() (interface{}, error) {
+				if init {
+					return s.service.Events().GetJobInitLogs(
+						r.Context(),
+						eventID,
+						jobName,
+					)
+				}
+				return s.service.Events().GetJobLogs(
+					r.Context(),
 					eventID,
 					jobName,
-				),
-			)
-			s.writeResponse(
-				w,
-				http.StatusInternalServerError,
-				brignext.NewErrInternalServer(),
-			)
-			return
-		}
-
-		s.writeResponse(w, http.StatusOK, logEntriesList)
+				)
+			},
+			successCode: http.StatusOK,
+		})
 		return
 	}
 
@@ -290,18 +249,18 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
-			s.writeResponse(w, http.StatusNotFound, errors.Cause(err))
+			s.writeAPIResponse(w, http.StatusNotFound, errors.Cause(err))
 			return
 		}
 		log.Println(
 			errors.Wrapf(
 				err,
-				"error retrieving log stream for event %q worker job %q",
+				"error retrieving log stream for event %q job %q",
 				eventID,
 				jobName,
 			),
 		)
-		s.writeResponse(
+		s.writeAPIResponse(
 			w,
 			http.StatusInternalServerError,
 			brignext.NewErrInternalServer(),

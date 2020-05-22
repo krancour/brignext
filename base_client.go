@@ -58,11 +58,16 @@ func (b *baseClient) doAPIRequest(apiReq apiRequest) error {
 func (b *baseClient) doAPIRequest2(apiReq apiRequest) (*http.Response, error) {
 	var reqBodyReader io.Reader
 	if apiReq.reqBodyObj != nil {
-		reqBodyBytes, err := json.Marshal(apiReq.reqBodyObj)
-		if err != nil {
-			return nil, errors.Wrap(err, "error marshaling request body")
+		switch rb := apiReq.reqBodyObj.(type) {
+		case []byte:
+			reqBodyReader = bytes.NewBuffer(rb)
+		default:
+			reqBodyBytes, err := json.Marshal(apiReq.reqBodyObj)
+			if err != nil {
+				return nil, errors.Wrap(err, "error marshaling request body")
+			}
+			reqBodyReader = bytes.NewBuffer(reqBodyBytes)
 		}
-		reqBodyReader = bytes.NewBuffer(reqBodyBytes)
 	}
 
 	req, err := http.NewRequest(

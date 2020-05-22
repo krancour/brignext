@@ -1,7 +1,6 @@
 package api
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/krancour/brignext/v2"
@@ -13,115 +12,72 @@ func (s *server) oidcAuthComplete(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
 	oauth2State := r.URL.Query().Get("state")
-	if oauth2State == "" {
-		s.writeResponse(w, http.StatusBadRequest, responseOIDCAuthError)
-		return
-	}
-
 	oidcCode := r.URL.Query().Get("code")
-	if oidcCode == "" {
-		s.writeResponse(w, http.StatusBadRequest, responseOIDCAuthError)
-		return
-	}
 
-	session, err := s.service.Sessions().GetByOAuth2State(
-		r.Context(),
-		oauth2State,
-	)
-	if err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
-			s.writeResponse(w, http.StatusBadRequest, responseOIDCAuthError)
-			return
-		}
-		log.Println(
-			errors.Wrap(err, "error retrieving session by OAuth2 state [REDACTED]"),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
-		return
-	}
-
-	oauth2Token, err := s.oauth2Config.Exchange(r.Context(), oidcCode)
-	if err != nil {
-		log.Println(
-			errors.Wrap(err, "error exchanging authorization code for OAuth2 token"),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
-		return
-	}
-
-	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
-	if !ok {
-		log.Println(
-			"OAuth2 token, did not include and OpenID Connect identity token",
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
-		return
-	}
-
-	idToken, err := s.oidcTokenVerifier.Verify(r.Context(), rawIDToken)
-	if err != nil {
-		log.Println(
-			errors.Wrap(err, "error verifying OpenID Connect identity token"),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
-		return
-	}
-
-	claims := struct {
-		Name  string `json:"name"`
-		Email string `json:"email"`
-	}{}
-	if err = idToken.Claims(&claims); err != nil {
-		log.Println(
-			errors.Wrap(err, "error decoding OpenID Connect identity token claims"),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
-		return
-	}
-
-	user, err := s.service.Users().Get(r.Context(), claims.Email)
-	if err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
-			user = brignext.NewUser(claims.Email, claims.Name)
-			if err = s.service.Users().Create(r.Context(), user); err != nil {
-				log.Println(
-					errors.Wrapf(err, "error creating new user %q", user.ID),
+	s.serveHumanRequest(humanRequest{
+		w: w,
+		endpointLogic: func() (interface{}, error) {
+			if oauth2State == "" || oidcCode == "" {
+				return nil, brignext.NewErrBadRequest(
+					"The OpenID Connect authentication completion request lacked one " +
+						"or both of the \"oauth2State\" and \"oidcCode\" query parameters.",
 				)
-				s.writeResponse(
-					w,
-					http.StatusInternalServerError,
-					responseOIDCAuthError,
-				)
-				return
 			}
-		} else {
-			log.Println(
-				errors.Wrapf(err, "error searching for existing user %q", claims.Email),
+			session, err := s.service.Sessions().GetByOAuth2State(
+				r.Context(),
+				oauth2State,
 			)
-			s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
-			return
-		}
-	}
-
-	if err := s.service.Sessions().Authenticate(
-		r.Context(),
-		session.ID,
-		user.ID,
-	); err != nil {
-		log.Println(
-			errors.Wrapf(err, "error authenticating session %q", session.ID),
-		)
-		s.writeResponse(w, http.StatusInternalServerError, responseOIDCAuthError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(
-		[]byte("You're now authenticated. You may resume using the CLI."),
-	); err != nil {
-		log.Println(
-			errors.Wrap(err, "api server error: error writing response"),
-		)
-	}
+			if err != nil {
+				return nil, err
+			}
+			oauth2Token, err := s.oauth2Config.Exchange(r.Context(), oidcCode)
+			if err != nil {
+				return nil, err
+			}
+			rawIDToken, ok := oauth2Token.Extra("id_token").(string)
+			if !ok {
+				return nil, errors.New(
+					"OAuth2 token, did not include an OpenID Connect identity token",
+				)
+			}
+			idToken, err := s.oidcTokenVerifier.Verify(r.Context(), rawIDToken)
+			if err != nil {
+				return nil,
+					errors.Wrap(err, "error verifying OpenID Connect identity token")
+			}
+			claims := struct {
+				Name  string `json:"name"`
+				Email string `json:"email"`
+			}{}
+			if err = idToken.Claims(&claims); err != nil {
+				return nil, errors.Wrap(
+					err,
+					"error decoding OpenID Connect identity token claims",
+				)
+			}
+			user, err := s.service.Users().Get(r.Context(), claims.Email)
+			if err != nil {
+				if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
+					// User wasn't found. That's ok. We'll create one.
+					user = brignext.NewUser(claims.Email, claims.Name)
+					if err = s.service.Users().Create(r.Context(), user); err != nil {
+						return nil, err
+					}
+				} else {
+					// It was something else that went wrong when searching for the user.
+					return nil, err
+				}
+			}
+			if err = s.service.Sessions().Authenticate(
+				r.Context(),
+				session.ID,
+				user.ID,
+			); err != nil {
+				return nil, err
+			}
+			return []byte("You're now authenticated. You may resume using the CLI."),
+				nil
+		},
+		successCode: http.StatusOK,
+	})
 }
