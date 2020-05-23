@@ -5,12 +5,38 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/coreos/go-oidc"
+	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2"
 	"github.com/krancour/brignext/v2/internal/apiserver/api/auth"
 	"github.com/krancour/brignext/v2/internal/apiserver/crypto"
+	"github.com/krancour/brignext/v2/internal/apiserver/service"
+	"golang.org/x/oauth2"
 )
 
-func (s *server) sessionCreate(w http.ResponseWriter, r *http.Request) {
+type sessionEndpoints struct {
+	*baseEndpoints
+	apiServerConfig   Config
+	oauth2Config      *oauth2.Config
+	oidcTokenVerifier *oidc.IDTokenVerifier
+	service           service.SessionsService
+}
+
+func (s *sessionEndpoints) register(router *mux.Router) {
+	// Create session
+	router.HandleFunc(
+		"/v2/sessions",
+		s.create, // No filters applied to this request
+	).Methods(http.MethodPost)
+
+	// Delete session
+	router.HandleFunc(
+		"/v2/session",
+		s.tokenAuthFilter.Decorate(s.delete),
+	).Methods(http.MethodDelete)
+}
+
+func (s *sessionEndpoints) create(w http.ResponseWriter, r *http.Request) {
 	// nolint: errcheck
 	rootSessionRequest, _ := strconv.ParseBool(r.URL.Query().Get("root"))
 
@@ -39,7 +65,7 @@ func (s *server) sessionCreate(w http.ResponseWriter, r *http.Request) {
 						"Could not authenticate request using the supplied credentials.",
 					)
 				}
-				return s.service.Sessions().CreateRootSession(r.Context())
+				return s.service.CreateRootSession(r.Context())
 			},
 			successCode: http.StatusCreated,
 		})
@@ -57,7 +83,7 @@ func (s *server) sessionCreate(w http.ResponseWriter, r *http.Request) {
 				)
 			}
 			oauth2State, token, err :=
-				s.service.Sessions().CreateUserSession(r.Context())
+				s.service.CreateUserSession(r.Context())
 			if err != nil {
 				return nil, err
 			}
@@ -74,7 +100,7 @@ func (s *server) sessionCreate(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *server) sessionDelete(w http.ResponseWriter, r *http.Request) {
+func (s *sessionEndpoints) delete(w http.ResponseWriter, r *http.Request) {
 	s.serveAPIRequest(apiRequest{
 		w: w,
 		r: r,
@@ -86,7 +112,7 @@ func (s *server) sessionDelete(w http.ResponseWriter, r *http.Request) {
 						"found in request context",
 				)
 			}
-			return nil, s.service.Sessions().Delete(r.Context(), sessionID)
+			return nil, s.service.Delete(r.Context(), sessionID)
 		},
 		successCode: http.StatusOK,
 	})

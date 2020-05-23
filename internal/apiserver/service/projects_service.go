@@ -16,7 +16,10 @@ type ProjectsService interface {
 	Update(context.Context, brignext.Project) error
 	Delete(context.Context, string) error
 
-	ListSecrets(ctx context.Context, projectID string) (brignext.SecretList, error)
+	ListSecrets(
+		ctx context.Context,
+		projectID string,
+	) (brignext.SecretList, error)
 	SetSecret(
 		ctx context.Context,
 		projectID string,

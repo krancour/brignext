@@ -24,17 +24,8 @@ type Server interface {
 }
 
 type server struct {
-	apiServerConfig            Config
-	oauth2Config               *oauth2.Config
-	oidcTokenVerifier          *oidc.IDTokenVerifier
-	service                    service.Service
-	router                     *mux.Router
-	serviceAccountSchemaLoader gojsonschema.JSONLoader
-	projectSchemaLoader        gojsonschema.JSONLoader
-	secretSchemaLoader         gojsonschema.JSONLoader
-	eventSchemaLoader          gojsonschema.JSONLoader
-	workerStatusSchemaLoader   gojsonschema.JSONLoader
-	jobStatusSchemaLoader      gojsonschema.JSONLoader
+	apiServerConfig Config
+	router          *mux.Router
 }
 
 // NewServer returns an HTTP router
@@ -44,226 +35,73 @@ func NewServer(
 	oidcTokenVerifier *oidc.IDTokenVerifier,
 	service service.Service,
 ) Server {
-	// nolint: lll
-	s := &server{
-		apiServerConfig:            apiServerConfig,
-		oauth2Config:               oauth2Config,
-		oidcTokenVerifier:          oidcTokenVerifier,
-		service:                    service,
-		router:                     mux.NewRouter(),
-		serviceAccountSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/service-account.json"),
-		projectSchemaLoader:        gojsonschema.NewReferenceLoader("file:///brignext/schemas/project.json"),
-		secretSchemaLoader:         gojsonschema.NewReferenceLoader("file:///brignext/schemas/secret.json"),
-		eventSchemaLoader:          gojsonschema.NewReferenceLoader("file:///brignext/schemas/event.json"),
-		workerStatusSchemaLoader:   gojsonschema.NewReferenceLoader("file:///brignext/schemas/worker-status.json"),
-		jobStatusSchemaLoader:      gojsonschema.NewReferenceLoader("file:///brignext/schemas/job-status.json"),
+
+	router := mux.NewRouter()
+	router.StrictSlash(true)
+
+	baseEndpoints := &baseEndpoints{
+		tokenAuthFilter: auth.NewTokenAuthFilter(
+			service.Sessions().GetByToken,
+			service.Users().Get,
+			apiServerConfig.RootUserEnabled(),
+			apiServerConfig.HashedControllerToken(),
+		),
 	}
 
-	// Most requests are authenticated with a bearer token
-	tokenAuthFilter := auth.NewTokenAuthFilter(
-		service.Sessions().GetByToken,
-		service.Users().Get,
-		apiServerConfig.RootUserEnabled(),
-		apiServerConfig.HashedControllerToken(),
-	)
+	// nolint: lll
+	(&serviceAccountEndpoints{
+		baseEndpoints:              baseEndpoints,
+		serviceAccountSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/service-account.json"),
+		service:                    service.ServiceAccounts(),
+	}).register(router)
 
-	s.router.StrictSlash(true)
+	// nolint: lll
+	(&eventEndpoints{
+		baseEndpoints:            baseEndpoints,
+		eventSchemaLoader:        gojsonschema.NewReferenceLoader("file:///brignext/schemas/event.json"),
+		workerStatusSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/worker-status.json"),
+		jobStatusSchemaLoader:    gojsonschema.NewReferenceLoader("file:///brignext/schemas/job-status.json"),
+		service:                  service.Events(),
+	}).register(router)
 
-	// List users
-	s.router.HandleFunc(
-		"/v2/users",
-		tokenAuthFilter.Decorate(s.userList),
-	).Methods(http.MethodGet)
+	(&userEndpoints{
+		baseEndpoints: baseEndpoints,
+		service:       service.Users(),
+	}).register(router)
 
-	// Get user
-	s.router.HandleFunc(
-		"/v2/users/{id}",
-		tokenAuthFilter.Decorate(s.userGet),
-	).Methods(http.MethodGet)
+	(&sessionEndpoints{
+		baseEndpoints:     baseEndpoints,
+		apiServerConfig:   apiServerConfig,
+		oauth2Config:      oauth2Config,
+		oidcTokenVerifier: oidcTokenVerifier,
+		service:           service.Sessions(),
+	}).register(router)
 
-	// Lock user
-	s.router.HandleFunc(
-		"/v2/users/{id}/lock",
-		tokenAuthFilter.Decorate(s.userLock),
-	).Methods(http.MethodPut)
+	// nolint: lll
+	(&projectEndpoints{
+		baseEndpoints:       baseEndpoints,
+		projectSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/project.json"),
+		secretSchemaLoader:  gojsonschema.NewReferenceLoader("file:///brignext/schemas/secret.json"),
+		service:             service.Projects(),
+	}).register(router)
 
-	// Unlock user
-	s.router.HandleFunc(
-		"/v2/users/{id}/lock",
-		tokenAuthFilter.Decorate(s.userUnlock),
-	).Methods(http.MethodDelete)
-
-	// Create session
-	s.router.HandleFunc(
-		"/v2/sessions",
-		s.sessionCreate, // No filters applied to this request
-	).Methods(http.MethodPost)
+	(&healthEndpoints{
+		baseEndpoints: baseEndpoints,
+	}).register(router)
 
 	if oauth2Config != nil && oidcTokenVerifier != nil {
-		// OIDC callback
-		s.router.HandleFunc(
-			"/auth/oidc/callback",
-			s.oidcAuthComplete, // No filters applied to this request
-		).Methods(http.MethodGet)
+		(&oidcEndpoints{
+			baseEndpoints:     baseEndpoints,
+			oauth2Config:      oauth2Config,
+			oidcTokenVerifier: oidcTokenVerifier,
+			service:           service,
+		}).register(router)
 	}
 
-	// Delete session
-	s.router.HandleFunc(
-		"/v2/session",
-		tokenAuthFilter.Decorate(s.sessionDelete),
-	).Methods(http.MethodDelete)
-
-	// Create service account
-	s.router.HandleFunc(
-		"/v2/service-accounts",
-		tokenAuthFilter.Decorate(s.serviceAccountCreate),
-	).Methods(http.MethodPost)
-
-	// List service accounts
-	s.router.HandleFunc(
-		"/v2/service-accounts",
-		tokenAuthFilter.Decorate(s.serviceAccountList),
-	).Methods(http.MethodGet)
-
-	// Get service account
-	s.router.HandleFunc(
-		"/v2/service-accounts/{id}",
-		tokenAuthFilter.Decorate(s.serviceAccountGet),
-	).Methods(http.MethodGet)
-
-	// Lock service account
-	s.router.HandleFunc(
-		"/v2/service-accounts/{id}/lock",
-		tokenAuthFilter.Decorate(s.serviceAccountLock),
-	).Methods(http.MethodPut)
-
-	// Unlock service account
-	s.router.HandleFunc(
-		"/v2/service-accounts/{id}/lock",
-		tokenAuthFilter.Decorate(s.serviceAccountUnlock),
-	).Methods(http.MethodDelete)
-
-	// Create project
-	s.router.HandleFunc(
-		"/v2/projects",
-		tokenAuthFilter.Decorate(s.projectCreate),
-	).Methods(http.MethodPost)
-
-	// List projects
-	s.router.HandleFunc(
-		"/v2/projects",
-		tokenAuthFilter.Decorate(s.projectList),
-	).Methods(http.MethodGet)
-
-	// Get project
-	s.router.HandleFunc(
-		"/v2/projects/{id}",
-		tokenAuthFilter.Decorate(s.projectGet),
-	).Methods(http.MethodGet)
-
-	// Update project
-	s.router.HandleFunc(
-		"/v2/projects/{id}",
-		tokenAuthFilter.Decorate(s.projectUpdate),
-	).Methods(http.MethodPut)
-
-	// Delete project
-	s.router.HandleFunc(
-		"/v2/projects/{id}",
-		tokenAuthFilter.Decorate(s.projectDelete),
-	).Methods(http.MethodDelete)
-
-	// List secrets
-	s.router.HandleFunc(
-		"/v2/projects/{projectID}/secrets",
-		tokenAuthFilter.Decorate(s.secretsList),
-	).Methods(http.MethodGet)
-
-	// Set secret
-	s.router.HandleFunc(
-		"/v2/projects/{projectID}/secrets/{secretID}",
-		tokenAuthFilter.Decorate(s.secretSet),
-	).Methods(http.MethodPut)
-
-	// Unset secret
-	s.router.HandleFunc(
-		"/v2/projects/{projectID}/secrets/{secretID}",
-		tokenAuthFilter.Decorate(s.secretUnset),
-	).Methods(http.MethodDelete)
-
-	// Create event
-	s.router.HandleFunc(
-		"/v2/events",
-		tokenAuthFilter.Decorate(s.eventCreate),
-	).Methods(http.MethodPost)
-
-	// List events
-	s.router.HandleFunc(
-		"/v2/events",
-		tokenAuthFilter.Decorate(s.eventList),
-	).Methods(http.MethodGet)
-
-	// Get event
-	s.router.HandleFunc(
-		"/v2/events/{id}",
-		tokenAuthFilter.Decorate(s.eventGet),
-	).Methods(http.MethodGet)
-
-	// Cancel event
-	s.router.HandleFunc(
-		"/v2/events/{id}/cancel",
-		tokenAuthFilter.Decorate(s.eventsCancel),
-	).Methods(http.MethodPut)
-
-	// Cancel events by project
-	s.router.HandleFunc(
-		"/v2/projects/{projectID}/events/cancel",
-		tokenAuthFilter.Decorate(s.eventsCancel),
-	).Methods(http.MethodPut)
-
-	// Delete event
-	s.router.HandleFunc(
-		"/v2/events/{id}",
-		tokenAuthFilter.Decorate(s.eventsDelete),
-	).Methods(http.MethodDelete)
-
-	// Delete events by project
-	s.router.HandleFunc(
-		"/v2/projects/{projectID}/events",
-		tokenAuthFilter.Decorate(s.eventsDelete),
-	).Methods(http.MethodDelete)
-
-	// Update worker status
-	s.router.HandleFunc(
-		"/v2/events/{eventID}/worker/status",
-		tokenAuthFilter.Decorate(s.workerUpdateStatus),
-	).Methods(http.MethodPut)
-
-	// Get/stream worker logs
-	s.router.HandleFunc(
-		"/v2/events/{eventID}/worker/logs",
-		tokenAuthFilter.Decorate(s.workerLogs),
-	).Methods(http.MethodGet)
-
-	// Update job status
-	s.router.HandleFunc(
-		"/v2/events/{eventID}/worker/jobs/{jobName}/status",
-		tokenAuthFilter.Decorate(s.jobUpdateStatus),
-	).Methods(http.MethodPut)
-
-	// Get/stream job logs
-	s.router.HandleFunc(
-		"/v2/events/{eventID}/worker/jobs/{jobName}/logs",
-		tokenAuthFilter.Decorate(s.jobLogs),
-	).Methods(http.MethodGet)
-
-	// Health check
-	s.router.HandleFunc(
-		"/healthz",
-		s.healthCheck, // No filters applied to this request
-	).Methods(http.MethodGet)
-
-	return s
+	return &server{
+		apiServerConfig: apiServerConfig,
+		router:          router,
+	}
 }
 
 func (s *server) ListenAndServe() error {

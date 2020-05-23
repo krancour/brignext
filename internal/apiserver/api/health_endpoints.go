@@ -1,12 +1,28 @@
 package api
 
-import "net/http"
+import (
+	"net/http"
 
-func (s *server) healthCheck(
+	"github.com/gorilla/mux"
+)
+
+type healthEndpoints struct {
+	*baseEndpoints
+}
+
+func (h *healthEndpoints) register(router *mux.Router) {
+	// Health check
+	router.HandleFunc(
+		"/healthz",
+		h.check, // No filters applied to this request
+	).Methods(http.MethodGet)
+}
+
+func (h *healthEndpoints) check(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	s.serveAPIRequest(apiRequest{
+	h.serveAPIRequest(apiRequest{
 		w: w,
 		r: r,
 		endpointLogic: func() (interface{}, error) {

@@ -481,6 +481,15 @@ func (e *eventsService) GetWorkerLogs(
 	ctx context.Context,
 	eventID string,
 ) (brignext.LogEntryList, error) {
+	logEntryList := brignext.LogEntryList{}
+	_, err := e.store.Events().Get(ctx, eventID)
+	if err != nil {
+		return logEntryList, errors.Wrapf(
+			err,
+			"error retrieving event %q from store",
+			eventID,
+		)
+	}
 	return e.logStore.GetWorkerLogs(ctx, eventID)
 }
 
@@ -488,6 +497,14 @@ func (e *eventsService) StreamWorkerLogs(
 	ctx context.Context,
 	eventID string,
 ) (<-chan brignext.LogEntry, error) {
+	_, err := e.store.Events().Get(ctx, eventID)
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"error retrieving event %q from store",
+			eventID,
+		)
+	}
 	return e.logStore.StreamWorkerLogs(ctx, eventID)
 }
 
@@ -495,6 +512,15 @@ func (e *eventsService) GetWorkerInitLogs(
 	ctx context.Context,
 	eventID string,
 ) (brignext.LogEntryList, error) {
+	logEntryList := brignext.LogEntryList{}
+	_, err := e.store.Events().Get(ctx, eventID)
+	if err != nil {
+		return logEntryList, errors.Wrapf(
+			err,
+			"error retrieving event %q from store",
+			eventID,
+		)
+	}
 	return e.logStore.GetWorkerInitLogs(ctx, eventID)
 }
 
@@ -502,6 +528,14 @@ func (e *eventsService) StreamWorkerInitLogs(
 	ctx context.Context,
 	eventID string,
 ) (<-chan brignext.LogEntry, error) {
+	_, err := e.store.Events().Get(ctx, eventID)
+	if err != nil {
+		return nil, errors.Wrapf(
+			err,
+			"error retrieving event %q from store",
+			eventID,
+		)
+	}
 	return e.logStore.StreamWorkerInitLogs(ctx, eventID)
 }
 

@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/krancour/brignext/v2"
+	"github.com/krancour/brignext/v2/internal/apiserver/api/auth"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -21,7 +22,11 @@ type apiRequest struct {
 	successCode         int
 }
 
-func (s *server) readAndValidateAPIRequestBody(
+type baseEndpoints struct {
+	tokenAuthFilter auth.Filter
+}
+
+func (b *baseEndpoints) readAndValidateAPIRequestBody(
 	w http.ResponseWriter,
 	r *http.Request,
 	bodySchemaLoader gojsonschema.JSONLoader,
@@ -34,7 +39,7 @@ func (s *server) readAndValidateAPIRequestBody(
 		log.Println(errors.Wrap(err, "error reading request body"))
 		// But we're going to assume this is because the request body is missing, so
 		// we'll treat it as a bad request.
-		s.writeAPIResponse(
+		b.writeAPIResponse(
 			w,
 			http.StatusBadRequest,
 			brignext.NewErrBadRequest("Could not read request body."),
@@ -42,7 +47,8 @@ func (s *server) readAndValidateAPIRequestBody(
 		return false
 	}
 	if bodySchemaLoader != nil {
-		validationResult, err := gojsonschema.Validate(
+		var validationResult *gojsonschema.Result
+		validationResult, err = gojsonschema.Validate(
 			bodySchemaLoader,
 			gojsonschema.NewBytesLoader(bodyBytes),
 		)
@@ -52,7 +58,7 @@ func (s *server) readAndValidateAPIRequestBody(
 			// But as long as the schema itself was valid, the most likely scenario
 			// here is that the request body wasn't valid JSON, so we'll treat this as
 			// a bad request.
-			s.writeAPIResponse(
+			b.writeAPIResponse(
 				w,
 				http.StatusBadRequest,
 				brignext.NewErrBadRequest("Could not validate request body."),
@@ -65,7 +71,7 @@ func (s *server) readAndValidateAPIRequestBody(
 			for i, verr := range validationResult.Errors() {
 				verrStrs[i] = verr.String()
 			}
-			s.writeAPIResponse(
+			b.writeAPIResponse(
 				w,
 				http.StatusBadRequest,
 				brignext.NewErrBadRequest(
@@ -82,7 +88,7 @@ func (s *server) readAndValidateAPIRequestBody(
 			// We were already able to validate the request body, which means it was
 			// valid JSON. If something went wrong with marshaling, it's NOT because
 			// of a bad request-- it's a real, internal problem.
-			s.writeAPIResponse(
+			b.writeAPIResponse(
 				w,
 				http.StatusInternalServerError,
 				brignext.NewErrInternalServer(),
@@ -93,9 +99,9 @@ func (s *server) readAndValidateAPIRequestBody(
 	return true
 }
 
-func (s *server) serveAPIRequest(apiReq apiRequest) {
+func (b *baseEndpoints) serveAPIRequest(apiReq apiRequest) {
 	if apiReq.reqBodySchemaLoader != nil || apiReq.reqBodyObj != nil {
-		if !s.readAndValidateAPIRequestBody(
+		if !b.readAndValidateAPIRequestBody(
 			apiReq.w,
 			apiReq.r,
 			apiReq.reqBodySchemaLoader,
@@ -108,22 +114,22 @@ func (s *server) serveAPIRequest(apiReq apiRequest) {
 	if err != nil {
 		switch e := errors.Cause(err).(type) {
 		case *brignext.ErrAuthentication:
-			s.writeAPIResponse(apiReq.w, http.StatusUnauthorized, e)
+			b.writeAPIResponse(apiReq.w, http.StatusUnauthorized, e)
 		case *brignext.ErrAuthorization:
-			s.writeAPIResponse(apiReq.w, http.StatusForbidden, e)
+			b.writeAPIResponse(apiReq.w, http.StatusForbidden, e)
 		case *brignext.ErrBadRequest:
-			s.writeAPIResponse(apiReq.w, http.StatusBadRequest, e)
+			b.writeAPIResponse(apiReq.w, http.StatusBadRequest, e)
 		case *brignext.ErrNotFound:
-			s.writeAPIResponse(apiReq.w, http.StatusNotFound, e)
+			b.writeAPIResponse(apiReq.w, http.StatusNotFound, e)
 		case *brignext.ErrConflict:
-			s.writeAPIResponse(apiReq.w, http.StatusConflict, e)
+			b.writeAPIResponse(apiReq.w, http.StatusConflict, e)
 		case *brignext.ErrNotSupported:
-			s.writeAPIResponse(apiReq.w, http.StatusNotImplemented, e)
+			b.writeAPIResponse(apiReq.w, http.StatusNotImplemented, e)
 		case *brignext.ErrInternalServer:
-			s.writeAPIResponse(apiReq.w, http.StatusInternalServerError, e)
+			b.writeAPIResponse(apiReq.w, http.StatusInternalServerError, e)
 		default:
 			log.Println(err)
-			s.writeAPIResponse(
+			b.writeAPIResponse(
 				apiReq.w,
 				http.StatusInternalServerError,
 				brignext.NewErrInternalServer(),
@@ -131,10 +137,10 @@ func (s *server) serveAPIRequest(apiReq apiRequest) {
 		}
 		return
 	}
-	s.writeAPIResponse(apiReq.w, apiReq.successCode, respBodyObj)
+	b.writeAPIResponse(apiReq.w, apiReq.successCode, respBodyObj)
 }
 
-func (s *server) writeAPIResponse(
+func (b *baseEndpoints) writeAPIResponse(
 	w http.ResponseWriter,
 	statusCode int,
 	response interface{},
@@ -159,7 +165,7 @@ type humanRequest struct {
 	successCode   int
 }
 
-func (s *server) serveHumanRequest(humanReq humanRequest) {
+func (b *baseEndpoints) serveHumanRequest(humanReq humanRequest) {
 	respBodyObj, err := humanReq.endpointLogic()
 	if err != nil {
 		switch e := errors.Cause(err).(type) {

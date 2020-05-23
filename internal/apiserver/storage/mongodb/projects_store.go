@@ -24,7 +24,7 @@ func NewProjectsStore(database *mongo.Database) (storage.ProjectsStore, error) {
 	if _, err := collection.Indexes().CreateMany(
 		ctx,
 		[]mongo.IndexModel{
-			mongo.IndexModel{
+			{
 				Keys: bson.M{
 					"metadata.id": 1,
 				},

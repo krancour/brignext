@@ -69,7 +69,10 @@ func (u *usersStore) List(ctx context.Context) (brignext.UserList, error) {
 	return userList, nil
 }
 
-func (u *usersStore) Get(ctx context.Context, id string) (brignext.User, error) {
+func (u *usersStore) Get(
+	ctx context.Context,
+	id string,
+) (brignext.User, error) {
 	user := brignext.User{}
 	res := u.collection.FindOne(ctx, bson.M{"metadata.id": id})
 	if res.Err() == mongo.ErrNoDocuments {

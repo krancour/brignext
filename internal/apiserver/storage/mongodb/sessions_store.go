@@ -25,7 +25,7 @@ func NewSessionsStore(database *mongo.Database) (storage.SessionsStore, error) {
 	if _, err := collection.Indexes().CreateMany(
 		ctx,
 		[]mongo.IndexModel{
-			mongo.IndexModel{
+			{
 				Keys: bson.M{
 					"metadata.id": 1,
 				},

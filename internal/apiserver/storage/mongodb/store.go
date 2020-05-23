@@ -15,7 +15,6 @@ type store struct {
 	serviceAccountsStore storage.ServiceAccountsStore
 	projectsStore        storage.ProjectsStore
 	eventsStore          storage.EventsStore
-	logsStore            storage.LogsStore
 }
 
 func NewStore(database *mongo.Database) (storage.Store, error) {

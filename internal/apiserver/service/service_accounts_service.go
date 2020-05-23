@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type ServiceAccountsService interface {
+type ServiceAccountsService interface { // nolint: golint
 	Create(context.Context, brignext.ServiceAccount) (brignext.Token, error)
 	List(context.Context) (brignext.ServiceAccountList, error)
 	Get(context.Context, string) (brignext.ServiceAccount, error)

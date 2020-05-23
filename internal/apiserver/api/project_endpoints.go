@@ -5,52 +5,111 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2"
+	"github.com/krancour/brignext/v2/internal/apiserver/service"
+	"github.com/xeipuuv/gojsonschema"
 )
 
-func (s *server) projectCreate(w http.ResponseWriter, r *http.Request) {
+type projectEndpoints struct {
+	*baseEndpoints
+	projectSchemaLoader gojsonschema.JSONLoader
+	secretSchemaLoader  gojsonschema.JSONLoader
+	service             service.ProjectsService
+}
+
+func (p *projectEndpoints) register(router *mux.Router) {
+	// Create project
+	router.HandleFunc(
+		"/v2/projects",
+		p.tokenAuthFilter.Decorate(p.create),
+	).Methods(http.MethodPost)
+
+	// List projects
+	router.HandleFunc(
+		"/v2/projects",
+		p.tokenAuthFilter.Decorate(p.list),
+	).Methods(http.MethodGet)
+
+	// Get project
+	router.HandleFunc(
+		"/v2/projects/{id}",
+		p.tokenAuthFilter.Decorate(p.get),
+	).Methods(http.MethodGet)
+
+	// Update project
+	router.HandleFunc(
+		"/v2/projects/{id}",
+		p.tokenAuthFilter.Decorate(p.update),
+	).Methods(http.MethodPut)
+
+	// Delete project
+	router.HandleFunc(
+		"/v2/projects/{id}",
+		p.tokenAuthFilter.Decorate(p.delete),
+	).Methods(http.MethodDelete)
+
+	// List secrets
+	router.HandleFunc(
+		"/v2/projects/{projectID}/secrets",
+		p.tokenAuthFilter.Decorate(p.listSecrets),
+	).Methods(http.MethodGet)
+
+	// Set secret
+	router.HandleFunc(
+		"/v2/projects/{projectID}/secrets/{secretID}",
+		p.tokenAuthFilter.Decorate(p.setSecret),
+	).Methods(http.MethodPut)
+
+	// Unset secret
+	router.HandleFunc(
+		"/v2/projects/{projectID}/secrets/{secretID}",
+		p.tokenAuthFilter.Decorate(p.unsetSecret),
+	).Methods(http.MethodDelete)
+}
+
+func (p *projectEndpoints) create(w http.ResponseWriter, r *http.Request) {
 	project := brignext.Project{}
-	s.serveAPIRequest(apiRequest{
+	p.serveAPIRequest(apiRequest{
 		w:                   w,
 		r:                   r,
-		reqBodySchemaLoader: s.projectSchemaLoader,
+		reqBodySchemaLoader: p.projectSchemaLoader,
 		reqBodyObj:          &project,
 		endpointLogic: func() (interface{}, error) {
-			return nil, s.service.Projects().Create(r.Context(), project)
+			return nil, p.service.Create(r.Context(), project)
 		},
 		successCode: http.StatusCreated,
 	})
 }
 
-func (s *server) projectList(w http.ResponseWriter, r *http.Request) {
-	s.serveAPIRequest(apiRequest{
+func (p *projectEndpoints) list(w http.ResponseWriter, r *http.Request) {
+	p.serveAPIRequest(apiRequest{
 		w: w,
 		r: r,
 		endpointLogic: func() (interface{}, error) {
-			return s.service.Projects().List(r.Context())
+			return p.service.List(r.Context())
 		},
 		successCode: http.StatusOK,
 	})
 }
 
-func (s *server) projectGet(w http.ResponseWriter, r *http.Request) {
+func (p *projectEndpoints) get(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	s.serveAPIRequest(apiRequest{
+	p.serveAPIRequest(apiRequest{
 		w: w,
 		r: r,
 		endpointLogic: func() (interface{}, error) {
-			return s.service.Projects().Get(r.Context(), id)
+			return p.service.Get(r.Context(), id)
 		},
 		successCode: http.StatusOK,
 	})
 }
 
-func (s *server) projectUpdate(w http.ResponseWriter, r *http.Request) {
+func (p *projectEndpoints) update(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	project := brignext.Project{}
-	s.serveAPIRequest(apiRequest{
+	p.serveAPIRequest(apiRequest{
 		w:                   w,
 		r:                   r,
-		reqBodySchemaLoader: s.projectSchemaLoader,
+		reqBodySchemaLoader: p.projectSchemaLoader,
 		reqBodyObj:          &project,
 		endpointLogic: func() (interface{}, error) {
 			if id != project.ID {
@@ -58,46 +117,46 @@ func (s *server) projectUpdate(w http.ResponseWriter, r *http.Request) {
 					"The project IDs in the URL path and request body do not match.",
 				)
 			}
-			return nil, s.service.Projects().Update(r.Context(), project)
+			return nil, p.service.Update(r.Context(), project)
 		},
 		successCode: http.StatusOK,
 	})
 }
 
-func (s *server) projectDelete(w http.ResponseWriter, r *http.Request) {
+func (p *projectEndpoints) delete(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	s.serveAPIRequest(apiRequest{
+	p.serveAPIRequest(apiRequest{
 		w: w,
 		r: r,
 		endpointLogic: func() (interface{}, error) {
-			return nil, s.service.Projects().Delete(r.Context(), id)
+			return nil, p.service.Delete(r.Context(), id)
 		},
 		successCode: http.StatusOK,
 	})
 }
 
-func (s *server) secretsList(w http.ResponseWriter, r *http.Request) {
+func (p *projectEndpoints) listSecrets(w http.ResponseWriter, r *http.Request) {
 	projectID := mux.Vars(r)["projectID"]
-	s.serveAPIRequest(apiRequest{
+	p.serveAPIRequest(apiRequest{
 		w: w,
 		r: r,
 		endpointLogic: func() (interface{}, error) {
-			return s.service.Projects().ListSecrets(r.Context(), projectID)
+			return p.service.ListSecrets(r.Context(), projectID)
 		},
 		successCode: http.StatusOK,
 	})
 }
 
-func (s *server) secretSet(w http.ResponseWriter, r *http.Request) {
+func (p *projectEndpoints) setSecret(w http.ResponseWriter, r *http.Request) {
 	projectID := mux.Vars(r)["projectID"]
 	secret := brignext.Secret{}
-	s.serveAPIRequest(apiRequest{
+	p.serveAPIRequest(apiRequest{
 		w:                   w,
 		r:                   r,
-		reqBodySchemaLoader: s.secretSchemaLoader,
+		reqBodySchemaLoader: p.secretSchemaLoader,
 		reqBodyObj:          &secret,
 		endpointLogic: func() (interface{}, error) {
-			return nil, s.service.Projects().SetSecret(
+			return nil, p.service.SetSecret(
 				r.Context(),
 				projectID,
 				secret,
@@ -107,14 +166,14 @@ func (s *server) secretSet(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *server) secretUnset(w http.ResponseWriter, r *http.Request) {
+func (p *projectEndpoints) unsetSecret(w http.ResponseWriter, r *http.Request) {
 	projectID := mux.Vars(r)["projectID"]
 	secretID := mux.Vars(r)["secretID"]
-	s.serveAPIRequest(apiRequest{
+	p.serveAPIRequest(apiRequest{
 		w: w,
 		r: r,
 		endpointLogic: func() (interface{}, error) {
-			return nil, s.service.Projects().UnsetSecret(
+			return nil, p.service.UnsetSecret(
 				r.Context(),
 				projectID,
 				secretID,

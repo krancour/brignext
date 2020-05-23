@@ -9,62 +9,140 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2"
+	"github.com/krancour/brignext/v2/internal/apiserver/service"
 	"github.com/pkg/errors"
+	"github.com/xeipuuv/gojsonschema"
 )
 
-func (s *server) eventCreate(w http.ResponseWriter, r *http.Request) {
+type eventEndpoints struct {
+	*baseEndpoints
+	service                  service.EventsService
+	eventSchemaLoader        gojsonschema.JSONLoader
+	workerStatusSchemaLoader gojsonschema.JSONLoader
+	jobStatusSchemaLoader    gojsonschema.JSONLoader
+}
+
+func (e *eventEndpoints) register(router *mux.Router) {
+	// Create event
+	router.HandleFunc(
+		"/v2/events",
+		e.tokenAuthFilter.Decorate(e.create),
+	).Methods(http.MethodPost)
+
+	// List events
+	router.HandleFunc(
+		"/v2/events",
+		e.tokenAuthFilter.Decorate(e.list),
+	).Methods(http.MethodGet)
+
+	// Get event
+	router.HandleFunc(
+		"/v2/events/{id}",
+		e.tokenAuthFilter.Decorate(e.get),
+	).Methods(http.MethodGet)
+
+	// Cancel event
+	router.HandleFunc(
+		"/v2/events/{id}/cancel",
+		e.tokenAuthFilter.Decorate(e.cancel),
+	).Methods(http.MethodPut)
+
+	// Cancel events by project
+	router.HandleFunc(
+		"/v2/projects/{projectID}/events/cancel",
+		e.tokenAuthFilter.Decorate(e.cancel),
+	).Methods(http.MethodPut)
+
+	// Delete event
+	router.HandleFunc(
+		"/v2/events/{id}",
+		e.tokenAuthFilter.Decorate(e.delete),
+	).Methods(http.MethodDelete)
+
+	// Delete events by project
+	router.HandleFunc(
+		"/v2/projects/{projectID}/events",
+		e.tokenAuthFilter.Decorate(e.delete),
+	).Methods(http.MethodDelete)
+
+	// Update worker status
+	router.HandleFunc(
+		"/v2/events/{eventID}/worker/status",
+		e.tokenAuthFilter.Decorate(e.updateWorkerStatus),
+	).Methods(http.MethodPut)
+
+	// Get/stream worker logs
+	router.HandleFunc(
+		"/v2/events/{eventID}/worker/logs",
+		e.tokenAuthFilter.Decorate(e.getOrStreamWorkerLogs),
+	).Methods(http.MethodGet)
+
+	// Update job status
+	router.HandleFunc(
+		"/v2/events/{eventID}/worker/jobs/{jobName}/status",
+		e.tokenAuthFilter.Decorate(e.updateJobStatus),
+	).Methods(http.MethodPut)
+
+	// Get/stream job logs
+	router.HandleFunc(
+		"/v2/events/{eventID}/worker/jobs/{jobName}/logs",
+		e.tokenAuthFilter.Decorate(e.getOrStreamJobLogs),
+	).Methods(http.MethodGet)
+}
+
+func (e *eventEndpoints) create(w http.ResponseWriter, r *http.Request) {
 	event := brignext.Event{}
-	s.serveAPIRequest(apiRequest{
+	e.serveAPIRequest(apiRequest{
 		w:                   w,
 		r:                   r,
-		reqBodySchemaLoader: s.eventSchemaLoader,
+		reqBodySchemaLoader: e.eventSchemaLoader,
 		reqBodyObj:          &event,
 		endpointLogic: func() (interface{}, error) {
-			return s.service.Events().Create(r.Context(), event)
+			return e.service.Create(r.Context(), event)
 		},
 		successCode: http.StatusCreated,
 	})
 }
 
-func (s *server) eventList(w http.ResponseWriter, r *http.Request) {
-	s.serveAPIRequest(apiRequest{
+func (e *eventEndpoints) list(w http.ResponseWriter, r *http.Request) {
+	e.serveAPIRequest(apiRequest{
 		w: w,
 		r: r,
 		endpointLogic: func() (interface{}, error) {
 			if projectID := r.URL.Query().Get("projectID"); projectID != "" {
-				return s.service.Events().ListByProject(r.Context(), projectID)
+				return e.service.ListByProject(r.Context(), projectID)
 			}
-			return s.service.Events().List(r.Context())
+			return e.service.List(r.Context())
 		},
 		successCode: http.StatusOK,
 	})
 }
 
-func (s *server) eventGet(w http.ResponseWriter, r *http.Request) {
+func (e *eventEndpoints) get(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
-	s.serveAPIRequest(apiRequest{
+	e.serveAPIRequest(apiRequest{
 		w: w,
 		r: r,
 		endpointLogic: func() (interface{}, error) {
-			return s.service.Events().Get(r.Context(), id)
+			return e.service.Get(r.Context(), id)
 		},
 		successCode: http.StatusOK,
 	})
 }
 
-func (s *server) eventsCancel(w http.ResponseWriter, r *http.Request) {
+func (e *eventEndpoints) cancel(w http.ResponseWriter, r *http.Request) {
 	eventID := mux.Vars(r)["id"]
 	projectID := mux.Vars(r)["projectID"]
 	// nolint: errcheck
 	cancelRunning, _ := strconv.ParseBool(r.URL.Query().Get("cancelRunning"))
-	s.serveAPIRequest(apiRequest{
+	e.serveAPIRequest(apiRequest{
 		w: w,
 		r: r,
 		endpointLogic: func() (interface{}, error) {
 			if eventID != "" {
-				return s.service.Events().Cancel(r.Context(), eventID, cancelRunning)
+				return e.service.Cancel(r.Context(), eventID, cancelRunning)
 			}
-			return s.service.Events().CancelByProject(
+			return e.service.CancelByProject(
 				r.Context(),
 				projectID,
 				cancelRunning,
@@ -74,26 +152,26 @@ func (s *server) eventsCancel(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
+func (e *eventEndpoints) delete(w http.ResponseWriter, r *http.Request) {
 	eventID := mux.Vars(r)["id"]
 	projectID := mux.Vars(r)["projectID"]
 	// nolint: errcheck
 	deletePending, _ := strconv.ParseBool(r.URL.Query().Get("deletePending"))
 	// nolint: errcheck
 	deleteRunning, _ := strconv.ParseBool(r.URL.Query().Get("deleteRunning"))
-	s.serveAPIRequest(apiRequest{
+	e.serveAPIRequest(apiRequest{
 		w: w,
 		r: r,
 		endpointLogic: func() (interface{}, error) {
 			if eventID != "" {
-				return s.service.Events().Delete(
+				return e.service.Delete(
 					r.Context(),
 					eventID,
 					deletePending,
 					deleteRunning,
 				)
 			}
-			return s.service.Events().DeleteByProject(
+			return e.service.DeleteByProject(
 				r.Context(),
 				projectID,
 				deletePending,
@@ -104,16 +182,19 @@ func (s *server) eventsDelete(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *server) workerUpdateStatus(w http.ResponseWriter, r *http.Request) {
+func (e *eventEndpoints) updateWorkerStatus(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	eventID := mux.Vars(r)["eventID"]
 	status := brignext.WorkerStatus{}
-	s.serveAPIRequest(apiRequest{
+	e.serveAPIRequest(apiRequest{
 		w:                   w,
 		r:                   r,
-		reqBodySchemaLoader: s.workerStatusSchemaLoader,
+		reqBodySchemaLoader: e.workerStatusSchemaLoader,
 		reqBodyObj:          &status,
 		endpointLogic: func() (interface{}, error) {
-			return nil, s.service.Events().UpdateWorkerStatus(
+			return nil, e.service.UpdateWorkerStatus(
 				r.Context(),
 				eventID,
 				status,
@@ -123,7 +204,10 @@ func (s *server) workerUpdateStatus(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
+func (e *eventEndpoints) getOrStreamWorkerLogs(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	eventID := mux.Vars(r)["eventID"]
 	// nolint: errchecks
 	stream, _ := strconv.ParseBool(r.URL.Query().Get("stream"))
@@ -131,14 +215,14 @@ func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 	init, _ := strconv.ParseBool(r.URL.Query().Get("init"))
 
 	if !stream {
-		s.serveAPIRequest(apiRequest{
+		e.serveAPIRequest(apiRequest{
 			w: w,
 			r: r,
 			endpointLogic: func() (interface{}, error) {
 				if init {
-					return s.service.Events().GetWorkerInitLogs(r.Context(), eventID)
+					return e.service.GetWorkerInitLogs(r.Context(), eventID)
 				}
-				return s.service.Events().GetWorkerLogs(r.Context(), eventID)
+				return e.service.GetWorkerLogs(r.Context(), eventID)
 			},
 			successCode: http.StatusOK,
 		})
@@ -148,19 +232,19 @@ func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 	var logEntryCh <-chan brignext.LogEntry
 	var err error
 	if init {
-		logEntryCh, err = s.service.Events().StreamWorkerInitLogs(
+		logEntryCh, err = e.service.StreamWorkerInitLogs(
 			r.Context(),
 			eventID,
 		)
 	} else {
-		logEntryCh, err = s.service.Events().StreamWorkerLogs(
+		logEntryCh, err = e.service.StreamWorkerLogs(
 			r.Context(),
 			eventID,
 		)
 	}
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
-			s.writeAPIResponse(w, http.StatusNotFound, errors.Cause(err))
+			e.writeAPIResponse(w, http.StatusNotFound, errors.Cause(err))
 			return
 		}
 		log.Println(
@@ -170,7 +254,7 @@ func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 				eventID,
 			),
 		)
-		s.writeAPIResponse(
+		e.writeAPIResponse(
 			w,
 			http.StatusInternalServerError,
 			brignext.NewErrInternalServer(),
@@ -190,17 +274,20 @@ func (s *server) workerLogs(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *server) jobUpdateStatus(w http.ResponseWriter, r *http.Request) {
+func (e *eventEndpoints) updateJobStatus(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	eventID := mux.Vars(r)["eventID"]
 	jobName := mux.Vars(r)["jobName"]
 	status := brignext.JobStatus{}
-	s.serveAPIRequest(apiRequest{
+	e.serveAPIRequest(apiRequest{
 		w:                   w,
 		r:                   r,
-		reqBodySchemaLoader: s.jobStatusSchemaLoader,
+		reqBodySchemaLoader: e.jobStatusSchemaLoader,
 		reqBodyObj:          &status,
 		endpointLogic: func() (interface{}, error) {
-			return nil, s.service.Events().UpdateJobStatus(
+			return nil, e.service.UpdateJobStatus(
 				r.Context(),
 				eventID,
 				jobName,
@@ -211,7 +298,10 @@ func (s *server) jobUpdateStatus(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
+func (e *eventEndpoints) getOrStreamJobLogs(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	eventID := mux.Vars(r)["eventID"]
 	jobName := mux.Vars(r)["jobName"]
 	// nolint: errcheck
@@ -220,18 +310,18 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 	init, _ := strconv.ParseBool(r.URL.Query().Get("init"))
 
 	if !stream {
-		s.serveAPIRequest(apiRequest{
+		e.serveAPIRequest(apiRequest{
 			w: w,
 			r: r,
 			endpointLogic: func() (interface{}, error) {
 				if init {
-					return s.service.Events().GetJobInitLogs(
+					return e.service.GetJobInitLogs(
 						r.Context(),
 						eventID,
 						jobName,
 					)
 				}
-				return s.service.Events().GetJobLogs(
+				return e.service.GetJobLogs(
 					r.Context(),
 					eventID,
 					jobName,
@@ -242,14 +332,14 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logEntryCh, err := s.service.Events().StreamJobLogs(
+	logEntryCh, err := e.service.StreamJobLogs(
 		r.Context(),
 		eventID,
 		jobName,
 	)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
-			s.writeAPIResponse(w, http.StatusNotFound, errors.Cause(err))
+			e.writeAPIResponse(w, http.StatusNotFound, errors.Cause(err))
 			return
 		}
 		log.Println(
@@ -260,7 +350,7 @@ func (s *server) jobLogs(w http.ResponseWriter, r *http.Request) {
 				jobName,
 			),
 		)
-		s.writeAPIResponse(
+		e.writeAPIResponse(
 			w,
 			http.StatusInternalServerError,
 			brignext.NewErrInternalServer(),
