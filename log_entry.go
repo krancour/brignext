@@ -23,3 +23,12 @@ type LogEntry struct {
 	Time     time.Time `json:"time" bson:"time"`
 	Message  string    `json:"message" bson:"log"`
 }
+
+func NewLogEntry() LogEntry {
+	return LogEntry{
+		TypeMeta: TypeMeta{
+			APIVersion: APIVersion,
+			Kind:       "LogEntry",
+		},
+	}
+}

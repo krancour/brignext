@@ -157,8 +157,7 @@ func (l *logStore) getLogs(
 	}
 	// TODO: Why did I do it this way? Can't I decode them all in one shot?
 	for cursor.Next(ctx) {
-		logEntry := brignext.LogEntry{}
-		// TODO: The populated logEntry is surely missing some metadata. Add it.
+		logEntry := brignext.NewLogEntry()
 		err := cursor.Decode(&logEntry)
 		if err != nil {
 			return logEntryList, errors.Wrap(err, "error decoding log entries")
@@ -217,8 +216,7 @@ func (l *logStore) streamLogs(
 					return
 				}
 			}
-			logEntry := brignext.LogEntry{}
-			// TODO: The populated logEntry is surely missing some metadata. Add it.
+			logEntry := brignext.NewLogEntry()
 			err = cursor.Decode(&logEntry)
 			if err != nil {
 				log.Println(
