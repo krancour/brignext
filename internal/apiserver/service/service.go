@@ -6,19 +6,19 @@ import (
 )
 
 type Service interface {
+	Events() EventsService
+	Projects() ProjectsService
+	ServiceAccounts() ServiceAccountsService
 	Sessions() SessionsService
 	Users() UsersService
-	ServiceAccounts() ServiceAccountsService
-	Projects() ProjectsService
-	Events() EventsService
 }
 
 type service struct {
+	eventsService          EventsService
+	projectsService        ProjectsService
+	serviceAccountsService ServiceAccountsService
 	sessionsService        SessionsService
 	usersService           UsersService
-	serviceAccountsService ServiceAccountsService
-	projectsService        ProjectsService
-	eventsService          EventsService
 }
 
 func NewService(
@@ -27,12 +27,24 @@ func NewService(
 	logStore storage.LogsStore,
 ) Service {
 	return &service{
-		sessionsService:        NewSessionsService(store),
-		usersService:           NewUsersService(store),
-		serviceAccountsService: NewServiceAccountsService(store),
-		projectsService:        NewProjectsService(store, scheduler),
 		eventsService:          NewEventsService(store, scheduler, logStore),
+		projectsService:        NewProjectsService(store, scheduler),
+		serviceAccountsService: NewServiceAccountsService(store.ServiceAccounts()),
+		sessionsService:        NewSessionsService(store.Sessions()),
+		usersService:           NewUsersService(store),
 	}
+}
+
+func (s *service) Events() EventsService {
+	return s.eventsService
+}
+
+func (s *service) Projects() ProjectsService {
+	return s.projectsService
+}
+
+func (s *service) ServiceAccounts() ServiceAccountsService {
+	return s.serviceAccountsService
 }
 
 func (s *service) Sessions() SessionsService {
@@ -41,16 +53,4 @@ func (s *service) Sessions() SessionsService {
 
 func (s *service) Users() UsersService {
 	return s.usersService
-}
-
-func (s *service) ServiceAccounts() ServiceAccountsService {
-	return s.serviceAccountsService
-}
-
-func (s *service) Projects() ProjectsService {
-	return s.projectsService
-}
-
-func (s *service) Events() EventsService {
-	return s.eventsService
 }

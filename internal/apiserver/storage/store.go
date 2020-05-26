@@ -5,11 +5,11 @@ import (
 )
 
 type Store interface {
+	Events() EventsStore
+	Projects() ProjectsStore
+	ServiceAccounts() ServiceAccountsStore
 	Sessions() SessionsStore
 	Users() UsersStore
-	ServiceAccounts() ServiceAccountsStore
-	Projects() ProjectsStore
-	Events() EventsStore
 
 	DoTx(context.Context, func(context.Context) error) error
 }

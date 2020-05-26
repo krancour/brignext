@@ -11,7 +11,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// TODO: Figure out where to move all of this to
 type oidcEndpoints struct {
 	*baseEndpoints
 	oauth2Config      *oauth2.Config

@@ -122,7 +122,7 @@ func (s *sessionsClient) CreateUserSession(
 }
 
 func (s *sessionsClient) Delete(context.Context) error {
-	return s.doAPIRequest(
+	return s.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodDelete,
 			path:        "v2/session",

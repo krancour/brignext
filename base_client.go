@@ -35,9 +35,8 @@ func (b *baseClient) bearerTokenAuthHeaders() map[string]string {
 	}
 }
 
-// TODO: This needs a better name
-func (b *baseClient) doAPIRequest(apiReq apiRequest) error {
-	resp, err := b.doAPIRequest2(apiReq)
+func (b *baseClient) executeAPIRequest(apiReq apiRequest) error {
+	resp, err := b.submitAPIRequest(apiReq)
 	if err != nil {
 		return err
 	}
@@ -54,8 +53,7 @@ func (b *baseClient) doAPIRequest(apiReq apiRequest) error {
 	return nil
 }
 
-// TODO: This needs a better name
-func (b *baseClient) doAPIRequest2(apiReq apiRequest) (*http.Response, error) {
+func (b *baseClient) submitAPIRequest(apiReq apiRequest) (*http.Response, error) {
 	var reqBodyReader io.Reader
 	if apiReq.reqBodyObj != nil {
 		switch rb := apiReq.reqBodyObj.(type) {

@@ -112,7 +112,7 @@ func (e *eventsClient) Create(
 	event Event,
 ) (EventReferenceList, error) {
 	eventRefList := EventReferenceList{}
-	err := e.doAPIRequest(
+	err := e.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodPost,
 			path:        "v2/events",
@@ -127,7 +127,7 @@ func (e *eventsClient) Create(
 
 func (e *eventsClient) List(context.Context) (EventList, error) {
 	eventList := EventList{}
-	err := e.doAPIRequest(
+	err := e.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        "v2/events",
@@ -144,7 +144,7 @@ func (e *eventsClient) ListByProject(
 	projectID string,
 ) (EventList, error) {
 	eventList := EventList{}
-	err := e.doAPIRequest(
+	err := e.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        "v2/events",
@@ -161,7 +161,7 @@ func (e *eventsClient) ListByProject(
 
 func (e *eventsClient) Get(ctx context.Context, id string) (Event, error) {
 	event := Event{}
-	err := e.doAPIRequest(
+	err := e.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/events/%s", id),
@@ -179,7 +179,7 @@ func (e *eventsClient) Cancel(
 	cancelRunning bool,
 ) (EventReferenceList, error) {
 	eventRefList := EventReferenceList{}
-	err := e.doAPIRequest(
+	err := e.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodPut,
 			path:        fmt.Sprintf("v2/events/%s/cancel", id),
@@ -200,7 +200,7 @@ func (e *eventsClient) CancelByProject(
 	cancelRunning bool,
 ) (EventReferenceList, error) {
 	eventRefList := EventReferenceList{}
-	err := e.doAPIRequest(
+	err := e.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodPut,
 			path:        fmt.Sprintf("v2/projects/%s/events/cancel", projectID),
@@ -222,7 +222,7 @@ func (e *eventsClient) Delete(
 	deleteRunning bool,
 ) (EventReferenceList, error) {
 	eventRefList := EventReferenceList{}
-	err := e.doAPIRequest(
+	err := e.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodDelete,
 			path:        fmt.Sprintf("v2/events/%s", id),
@@ -245,7 +245,7 @@ func (e *eventsClient) DeleteByProject(
 	deleteRunning bool,
 ) (EventReferenceList, error) {
 	eventRefList := EventReferenceList{}
-	err := e.doAPIRequest(
+	err := e.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodDelete,
 			path:        fmt.Sprintf("v2/projects/%s/events", projectID),
@@ -266,7 +266,7 @@ func (e *eventsClient) UpdateWorkerStatus(
 	eventID string,
 	status WorkerStatus,
 ) error {
-	return e.doAPIRequest(
+	return e.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodPut,
 			path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
@@ -282,7 +282,7 @@ func (e *eventsClient) GetWorkerLogs(
 	eventID string,
 ) (LogEntryList, error) {
 	logEntryList := LogEntryList{}
-	err := e.doAPIRequest(
+	err := e.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/events/%s/worker/logs", eventID),
@@ -298,7 +298,7 @@ func (e *eventsClient) StreamWorkerLogs(
 	ctx context.Context,
 	eventID string,
 ) (<-chan LogEntry, <-chan error, error) {
-	resp, err := e.doAPIRequest2(
+	resp, err := e.submitAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/events/%s/worker/logs", eventID),
@@ -326,7 +326,7 @@ func (e *eventsClient) GetWorkerInitLogs(
 	eventID string,
 ) (LogEntryList, error) {
 	logEntryList := LogEntryList{}
-	err := e.doAPIRequest(
+	err := e.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/events/%s/worker/logs", eventID),
@@ -345,7 +345,7 @@ func (e *eventsClient) StreamWorkerInitLogs(
 	ctx context.Context,
 	eventID string,
 ) (<-chan LogEntry, <-chan error, error) {
-	resp, err := e.doAPIRequest2(
+	resp, err := e.submitAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/events/%s/worker/logs", eventID),
@@ -375,7 +375,7 @@ func (e *eventsClient) UpdateJobStatus(
 	jobName string,
 	status JobStatus,
 ) error {
-	return e.doAPIRequest(
+	return e.executeAPIRequest(
 		apiRequest{
 			method: http.MethodPut,
 			path: fmt.Sprintf(
@@ -396,7 +396,7 @@ func (e *eventsClient) GetJobLogs(
 	jobName string,
 ) (LogEntryList, error) {
 	logEntryList := LogEntryList{}
-	err := e.doAPIRequest(
+	err := e.executeAPIRequest(
 		apiRequest{
 			method: http.MethodGet,
 			path: fmt.Sprintf(
@@ -417,7 +417,7 @@ func (e *eventsClient) StreamJobLogs(
 	eventID string,
 	jobName string,
 ) (<-chan LogEntry, <-chan error, error) {
-	resp, err := e.doAPIRequest2(
+	resp, err := e.submitAPIRequest(
 		apiRequest{
 			method: http.MethodGet,
 			path: fmt.Sprintf(
@@ -450,7 +450,7 @@ func (e *eventsClient) GetJobInitLogs(
 	jobName string,
 ) (LogEntryList, error) {
 	logEntryList := LogEntryList{}
-	err := e.doAPIRequest(
+	err := e.executeAPIRequest(
 		apiRequest{
 			method: http.MethodGet,
 			path: fmt.Sprintf(
@@ -474,7 +474,7 @@ func (e *eventsClient) StreamJobInitLogs(
 	eventID string,
 	jobName string,
 ) (<-chan LogEntry, <-chan error, error) {
-	resp, err := e.doAPIRequest2(
+	resp, err := e.submitAPIRequest(
 		apiRequest{
 			method: http.MethodGet,
 			path: fmt.Sprintf(

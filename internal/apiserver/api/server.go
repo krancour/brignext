@@ -49,44 +49,12 @@ func NewServer(
 	}
 
 	// nolint: lll
-	(&serviceAccountEndpoints{
-		baseEndpoints:              baseEndpoints,
-		serviceAccountSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/service-account.json"),
-		service:                    service.ServiceAccounts(),
-	}).register(router)
-
-	// nolint: lll
 	(&eventEndpoints{
 		baseEndpoints:            baseEndpoints,
 		eventSchemaLoader:        gojsonschema.NewReferenceLoader("file:///brignext/schemas/event.json"),
-		workerStatusSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/worker-status.json"),
 		jobStatusSchemaLoader:    gojsonschema.NewReferenceLoader("file:///brignext/schemas/job-status.json"),
+		workerStatusSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/worker-status.json"),
 		service:                  service.Events(),
-	}).register(router)
-
-	(&userEndpoints{
-		baseEndpoints: baseEndpoints,
-		service:       service.Users(),
-	}).register(router)
-
-	(&sessionEndpoints{
-		baseEndpoints:     baseEndpoints,
-		apiServerConfig:   apiServerConfig,
-		oauth2Config:      oauth2Config,
-		oidcTokenVerifier: oidcTokenVerifier,
-		service:           service.Sessions(),
-	}).register(router)
-
-	// nolint: lll
-	(&projectEndpoints{
-		baseEndpoints:       baseEndpoints,
-		projectSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/project.json"),
-		secretSchemaLoader:  gojsonschema.NewReferenceLoader("file:///brignext/schemas/secret.json"),
-		service:             service.Projects(),
-	}).register(router)
-
-	(&healthEndpoints{
-		baseEndpoints: baseEndpoints,
 	}).register(router)
 
 	if oauth2Config != nil && oidcTokenVerifier != nil {
@@ -97,6 +65,38 @@ func NewServer(
 			service:           service,
 		}).register(router)
 	}
+
+	// nolint: lll
+	(&projectEndpoints{
+		baseEndpoints:       baseEndpoints,
+		projectSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/project.json"),
+		secretSchemaLoader:  gojsonschema.NewReferenceLoader("file:///brignext/schemas/secret.json"),
+		service:             service.Projects(),
+	}).register(router)
+
+	// nolint: lll
+	(&serviceAccountEndpoints{
+		baseEndpoints:              baseEndpoints,
+		serviceAccountSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/service-account.json"),
+		service:                    service.ServiceAccounts(),
+	}).register(router)
+
+	(&sessionEndpoints{
+		baseEndpoints:     baseEndpoints,
+		apiServerConfig:   apiServerConfig,
+		oauth2Config:      oauth2Config,
+		oidcTokenVerifier: oidcTokenVerifier,
+		service:           service.Sessions(),
+	}).register(router)
+
+	(&userEndpoints{
+		baseEndpoints: baseEndpoints,
+		service:       service.Users(),
+	}).register(router)
+
+	(&healthEndpoints{
+		baseEndpoints: baseEndpoints,
+	}).register(router)
 
 	return &server{
 		apiServerConfig: apiServerConfig,

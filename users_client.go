@@ -40,7 +40,7 @@ func NewUsersClient(
 
 func (c *usersClient) List(context.Context) (UserList, error) {
 	userList := UserList{}
-	err := c.doAPIRequest(
+	err := c.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        "v2/users",
@@ -54,7 +54,7 @@ func (c *usersClient) List(context.Context) (UserList, error) {
 
 func (c *usersClient) Get(_ context.Context, id string) (User, error) {
 	user := User{}
-	err := c.doAPIRequest(
+	err := c.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/users/%s", id),
@@ -67,7 +67,7 @@ func (c *usersClient) Get(_ context.Context, id string) (User, error) {
 }
 
 func (c *usersClient) Lock(_ context.Context, id string) error {
-	return c.doAPIRequest(
+	return c.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodPut,
 			path:        fmt.Sprintf("v2/users/%s/lock", id),
@@ -78,7 +78,7 @@ func (c *usersClient) Lock(_ context.Context, id string) error {
 }
 
 func (c *usersClient) Unlock(_ context.Context, id string) error {
-	return c.doAPIRequest(
+	return c.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodDelete,
 			path:        fmt.Sprintf("v2/users/%s/lock", id),

@@ -308,7 +308,7 @@ func (p *projectsScheduler) SetSecret(
 	if k8sSecret.Data == nil {
 		k8sSecret.Data = map[string][]byte{}
 	}
-	k8sSecret.Data[secret.ID] = []byte(secret.Value)
+	k8sSecret.Data[secret.Key] = []byte(secret.Value)
 	// TODO: Can we do this more efficiently (and avoid race conditions) with a
 	// patch?
 	if _, err := p.kubeClient.CoreV1().Secrets(

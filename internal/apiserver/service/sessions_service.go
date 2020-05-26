@@ -26,10 +26,10 @@ type SessionsService interface {
 }
 
 type sessionsService struct {
-	store storage.Store
+	store storage.SessionsStore
 }
 
-func NewSessionsService(store storage.Store) SessionsService {
+func NewSessionsService(store storage.SessionsStore) SessionsService {
 	return &sessionsService{
 		store: store,
 	}
@@ -40,7 +40,7 @@ func (s *sessionsService) CreateRootSession(
 ) (brignext.Token, error) {
 	token := brignext.NewToken(crypto.NewToken(256))
 	session := auth.NewRootSession(token.Value)
-	if err := s.store.Sessions().Create(ctx, session); err != nil {
+	if err := s.store.Create(ctx, session); err != nil {
 		return token, errors.Wrapf(
 			err,
 			"error storing new root session %q",
@@ -56,7 +56,7 @@ func (s *sessionsService) CreateUserSession(
 	oauth2State := crypto.NewToken(30)
 	token := crypto.NewToken(256)
 	session := auth.NewUserSession(oauth2State, token)
-	if err := s.store.Sessions().Create(ctx, session); err != nil {
+	if err := s.store.Create(ctx, session); err != nil {
 		return "", "", errors.Wrapf(
 			err,
 			"error storing new user session %q",
@@ -70,7 +70,7 @@ func (s *sessionsService) GetByOAuth2State(
 	ctx context.Context,
 	oauth2State string,
 ) (auth.Session, error) {
-	session, err := s.store.Sessions().GetByHashedOAuth2State(
+	session, err := s.store.GetByHashedOAuth2State(
 		ctx,
 		crypto.ShortSHA("", oauth2State),
 	)
@@ -87,7 +87,7 @@ func (s *sessionsService) GetByToken(
 	ctx context.Context,
 	token string,
 ) (auth.Session, error) {
-	session, err := s.store.Sessions().GetByHashedToken(
+	session, err := s.store.GetByHashedToken(
 		ctx,
 		crypto.ShortSHA("", token),
 	)
@@ -105,7 +105,7 @@ func (s *sessionsService) Authenticate(
 	sessionID string,
 	userID string,
 ) error {
-	if err := s.store.Sessions().Authenticate(
+	if err := s.store.Authenticate(
 		ctx,
 		sessionID,
 		userID,
@@ -121,7 +121,7 @@ func (s *sessionsService) Authenticate(
 }
 
 func (s *sessionsService) Delete(ctx context.Context, id string) error {
-	if err := s.store.Sessions().Delete(ctx, id); err != nil {
+	if err := s.store.Delete(ctx, id); err != nil {
 		return errors.Wrapf(err, "error removing session %q from store", id)
 	}
 	return nil
@@ -131,7 +131,7 @@ func (s *sessionsService) DeleteByUser(
 	ctx context.Context,
 	userID string,
 ) (int64, error) {
-	n, err := s.store.Sessions().DeleteByUser(ctx, userID)
+	n, err := s.store.DeleteByUser(ctx, userID)
 	if err != nil {
 		return 0, errors.Wrapf(
 			err,

@@ -10,11 +10,11 @@ import (
 
 type store struct {
 	database             *mongo.Database
+	eventsStore          storage.EventsStore
+	projectsStore        storage.ProjectsStore
+	serviceAccountsStore storage.ServiceAccountsStore
 	sessionsStore        storage.SessionsStore
 	usersStore           storage.UsersStore
-	serviceAccountsStore storage.ServiceAccountsStore
-	projectsStore        storage.ProjectsStore
-	eventsStore          storage.EventsStore
 }
 
 func NewStore(database *mongo.Database) (storage.Store, error) {
@@ -41,12 +41,24 @@ func NewStore(database *mongo.Database) (storage.Store, error) {
 
 	return &store{
 		database:             database,
+		eventsStore:          eventsStore,
+		projectsStore:        projectsStore,
+		serviceAccountsStore: serviceAccountsStore,
 		sessionsStore:        sessionsStore,
 		usersStore:           usersStore,
-		serviceAccountsStore: serviceAccountsStore,
-		projectsStore:        projectsStore,
-		eventsStore:          eventsStore,
 	}, nil
+}
+
+func (s *store) Events() storage.EventsStore {
+	return s.eventsStore
+}
+
+func (s *store) Projects() storage.ProjectsStore {
+	return s.projectsStore
+}
+
+func (s *store) ServiceAccounts() storage.ServiceAccountsStore {
+	return s.serviceAccountsStore
 }
 
 func (s *store) Sessions() storage.SessionsStore {
@@ -55,18 +67,6 @@ func (s *store) Sessions() storage.SessionsStore {
 
 func (s *store) Users() storage.UsersStore {
 	return s.usersStore
-}
-
-func (s *store) ServiceAccounts() storage.ServiceAccountsStore {
-	return s.serviceAccountsStore
-}
-
-func (s *store) Projects() storage.ProjectsStore {
-	return s.projectsStore
-}
-
-func (s *store) Events() storage.EventsStore {
-	return s.eventsStore
 }
 
 func (s *store) DoTx(

@@ -24,7 +24,6 @@ type EventsScheduler interface {
 		project brignext.Project,
 		event brignext.Event,
 	) (brignext.Event, error)
-	Get(ctx context.Context, event brignext.Event) (brignext.Event, error)
 	Cancel(ctx context.Context, event brignext.Event) error
 	Delete(ctx context.Context, event brignext.Event) error
 }
@@ -209,43 +208,6 @@ func (e *eventsScheduler) Create(
 		)
 	}
 
-	return event, nil
-}
-
-func (e *eventsScheduler) Get(
-	ctx context.Context,
-	event brignext.Event,
-) (brignext.Event, error) {
-	eventSecret, err := e.kubeClient.CoreV1().Secrets(
-		event.Kubernetes.Namespace,
-	).Get(
-		ctx,
-		fmt.Sprintf("event-%s", event.ID),
-		metav1.GetOptions{},
-	)
-	if err != nil {
-		return event, errors.Wrapf(
-			err,
-			"error finding secret %q in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
-		)
-	}
-	eventStruct := struct {
-		Payload string `json:"payload"`
-	}{}
-	if err := json.Unmarshal(
-		eventSecret.Data["event.json"],
-		&eventStruct,
-	); err != nil {
-		return event, errors.Wrapf(
-			err,
-			"error unmarshaling event from secret %q in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
-		)
-	}
-	event.Payload = eventStruct.Payload
 	return event, nil
 }
 

@@ -16,10 +16,10 @@ import (
 
 type eventEndpoints struct {
 	*baseEndpoints
-	service                  service.EventsService
 	eventSchemaLoader        gojsonschema.JSONLoader
-	workerStatusSchemaLoader gojsonschema.JSONLoader
 	jobStatusSchemaLoader    gojsonschema.JSONLoader
+	workerStatusSchemaLoader gojsonschema.JSONLoader
+	service                  service.EventsService
 }
 
 func (e *eventEndpoints) register(router *mux.Router) {

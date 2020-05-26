@@ -64,7 +64,7 @@ type Event struct {
 	ShortTitle string         `json:"shortTitle" bson:"shortTitle"`
 	LongTitle  string         `json:"longTitle" bson:"longTitle"`
 	Git        EventGitConfig `json:"git" bson:"git"`
-	Payload    string         `json:"payload" bson:"-"`
+	Payload    string         `json:"payload" bson:"payload"`
 	// The JSON schema doesn't permit the fields below to be set via the API.
 	Worker     *WorkerSpec       `json:"worker,omitempty" bson:"worker"`
 	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`

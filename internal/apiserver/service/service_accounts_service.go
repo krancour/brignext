@@ -19,10 +19,12 @@ type ServiceAccountsService interface { // nolint: golint
 }
 
 type serviceAccountsService struct {
-	store storage.Store
+	store storage.ServiceAccountsStore
 }
 
-func NewServiceAccountsService(store storage.Store) ServiceAccountsService {
+func NewServiceAccountsService(
+	store storage.ServiceAccountsStore,
+) ServiceAccountsService {
 	return &serviceAccountsService{
 		store: store,
 	}
@@ -34,7 +36,7 @@ func (s *serviceAccountsService) Create(
 ) (brignext.Token, error) {
 	token := brignext.NewToken(crypto.NewToken(256))
 	serviceAccount.HashedToken = crypto.ShortSHA("", token.Value)
-	if err := s.store.ServiceAccounts().Create(ctx, serviceAccount); err != nil {
+	if err := s.store.Create(ctx, serviceAccount); err != nil {
 		return token, errors.Wrapf(
 			err,
 			"error storing new service account %q",
@@ -47,7 +49,7 @@ func (s *serviceAccountsService) Create(
 func (s *serviceAccountsService) List(
 	ctx context.Context,
 ) (brignext.ServiceAccountList, error) {
-	serviceAccountList, err := s.store.ServiceAccounts().List(ctx)
+	serviceAccountList, err := s.store.List(ctx)
 	if err != nil {
 		return serviceAccountList,
 			errors.Wrap(err, "error retrieving service accounts from store")
@@ -59,7 +61,7 @@ func (s *serviceAccountsService) Get(
 	ctx context.Context,
 	id string,
 ) (brignext.ServiceAccount, error) {
-	serviceAccount, err := s.store.ServiceAccounts().Get(ctx, id)
+	serviceAccount, err := s.store.Get(ctx, id)
 	if err != nil {
 		return serviceAccount, errors.Wrapf(
 			err,
@@ -74,7 +76,7 @@ func (s *serviceAccountsService) GetByToken(
 	ctx context.Context,
 	token string,
 ) (brignext.ServiceAccount, error) {
-	serviceAccount, err := s.store.ServiceAccounts().GetByHashedToken(
+	serviceAccount, err := s.store.GetByHashedToken(
 		ctx,
 		crypto.ShortSHA("", token),
 	)
@@ -88,7 +90,7 @@ func (s *serviceAccountsService) GetByToken(
 }
 
 func (s *serviceAccountsService) Lock(ctx context.Context, id string) error {
-	if err := s.store.ServiceAccounts().Lock(ctx, id); err != nil {
+	if err := s.store.Lock(ctx, id); err != nil {
 		return errors.Wrapf(
 			err,
 			"error locking service account %q in the store",
@@ -103,7 +105,7 @@ func (s *serviceAccountsService) Unlock(
 	id string,
 ) (brignext.Token, error) {
 	newToken := brignext.NewToken(crypto.NewToken(256))
-	if err := s.store.ServiceAccounts().Unlock(
+	if err := s.store.Unlock(
 		ctx,
 		id,
 		crypto.ShortSHA("", newToken.Value),

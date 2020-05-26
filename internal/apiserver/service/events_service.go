@@ -257,13 +257,6 @@ func (e *eventsService) Get(
 			id,
 		)
 	}
-	if event, err = e.scheduler.Events().Get(ctx, event); err != nil {
-		return event, errors.Wrapf(
-			err,
-			"error retrieving event %q from scheduler",
-			id,
-		)
-	}
 	return event, nil
 }
 
@@ -314,6 +307,16 @@ func (e *eventsService) CancelByProject(
 	cancelRunning bool,
 ) (brignext.EventReferenceList, error) {
 	eventRefList := brignext.NewEventReferenceList()
+
+	// Make sure the project exists
+	_, err := e.store.Projects().Get(ctx, projectID)
+	if err != nil {
+		return eventRefList, errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			projectID,
+		)
+	}
 
 	// Find all events. We'll iterate over all of them and try to cancel each.
 	// It sounds inefficient and it probably is, but this allows us to cancel
@@ -408,6 +411,16 @@ func (e *eventsService) DeleteByProject(
 	deleteRunning bool,
 ) (brignext.EventReferenceList, error) {
 	eventRefList := brignext.NewEventReferenceList()
+
+	// Make sure the project exists
+	_, err := e.store.Projects().Get(ctx, projectID)
+	if err != nil {
+		return eventRefList, errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			projectID,
+		)
+	}
 
 	// Find all events. We'll iterate over all of them and try to delete each.
 	// It sounds inefficient and it probably is, but this allows us to delete

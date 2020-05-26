@@ -95,7 +95,7 @@ func secretsList(c *cli.Context) error {
 		table := uitable.New()
 		table.AddRow("KEY", "VALUE")
 		for _, secret := range secretList.Items {
-			table.AddRow(secret.ID, secret.Value)
+			table.AddRow(secret.Key, secret.Value)
 		}
 		fmt.Println(table)
 

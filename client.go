@@ -6,20 +6,20 @@ import (
 )
 
 type Client interface {
+	Events() EventsClient
+	Projects() ProjectsClient
+	ServiceAccounts() ServiceAccountsClient
 	Sessions() SessionsClient
 	Users() UsersClient
-	ServiceAccounts() ServiceAccountsClient
-	Projects() ProjectsClient
-	Events() EventsClient
 }
 
 type client struct {
 	*baseClient
+	eventsClient          EventsClient
+	projectsClient        ProjectsClient
+	serviceAccountsClient ServiceAccountsClient
 	sessionsClient        SessionsClient
 	usersClient           UsersClient
-	serviceAccountsClient ServiceAccountsClient
-	projectsClient        ProjectsClient
-	eventsClient          EventsClient
 }
 
 func NewClient(apiAddress, apiToken string, allowInsecure bool) Client {
@@ -47,22 +47,22 @@ func NewClient(apiAddress, apiToken string, allowInsecure bool) Client {
 	}
 }
 
-func (c *client) Sessions() SessionsClient {
-	return c.sessionsClient
-}
-
-func (c *client) Users() UsersClient {
-	return c.usersClient
-}
-
-func (c *client) ServiceAccounts() ServiceAccountsClient {
-	return c.serviceAccountsClient
+func (c *client) Events() EventsClient {
+	return c.eventsClient
 }
 
 func (c *client) Projects() ProjectsClient {
 	return c.projectsClient
 }
 
-func (c *client) Events() EventsClient {
-	return c.eventsClient
+func (c *client) ServiceAccounts() ServiceAccountsClient {
+	return c.serviceAccountsClient
+}
+
+func (c *client) Sessions() SessionsClient {
+	return c.sessionsClient
+}
+
+func (c *client) Users() UsersClient {
+	return c.usersClient
 }
