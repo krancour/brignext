@@ -74,7 +74,7 @@ func (p *projectsClient) CreateFromBytes(
 
 func (p *projectsClient) List(context.Context) (ProjectList, error) {
 	projectList := ProjectList{}
-	err := p.executeAPIRequest(
+	return projectList, p.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        "v2/projects",
@@ -83,12 +83,11 @@ func (p *projectsClient) List(context.Context) (ProjectList, error) {
 			respObj:     &projectList,
 		},
 	)
-	return projectList, err
 }
 
 func (p *projectsClient) Get(_ context.Context, id string) (Project, error) {
 	project := Project{}
-	err := p.executeAPIRequest(
+	return project, p.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/projects/%s", id),
@@ -97,7 +96,6 @@ func (p *projectsClient) Get(_ context.Context, id string) (Project, error) {
 			respObj:     &project,
 		},
 	)
-	return project, err
 }
 
 func (p *projectsClient) Update(_ context.Context, project Project) error {
@@ -144,7 +142,7 @@ func (p *projectsClient) ListSecrets(
 	projectID string,
 ) (SecretList, error) {
 	secretList := SecretList{}
-	err := p.executeAPIRequest(
+	return secretList, p.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/projects/%s/secrets", projectID),
@@ -153,7 +151,6 @@ func (p *projectsClient) ListSecrets(
 			respObj:     &secretList,
 		},
 	)
-	return secretList, err
 }
 
 func (p *projectsClient) SetSecret(

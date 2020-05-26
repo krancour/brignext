@@ -13,7 +13,7 @@ import (
 
 type SessionsService interface {
 	CreateRootSession(context.Context) (brignext.Token, error)
-	CreateUserSession(context.Context) (string, string, error)
+	CreateUserSession(context.Context) (brignext.UserSessionAuthDetails, error)
 	GetByOAuth2State(context.Context, string) (auth.Session, error)
 	GetByToken(context.Context, string) (auth.Session, error)
 	Authenticate(
@@ -52,18 +52,23 @@ func (s *sessionsService) CreateRootSession(
 
 func (s *sessionsService) CreateUserSession(
 	ctx context.Context,
-) (string, string, error) {
-	oauth2State := crypto.NewToken(30)
-	token := crypto.NewToken(256)
-	session := auth.NewUserSession(oauth2State, token)
+) (brignext.UserSessionAuthDetails, error) {
+	userSessionAuthDetails := brignext.NewUserSessionAuthDetails(
+		crypto.NewToken(30),
+		crypto.NewToken(256),
+	)
+	session := auth.NewUserSession(
+		userSessionAuthDetails.OAuth2State,
+		userSessionAuthDetails.Token,
+	)
 	if err := s.store.Create(ctx, session); err != nil {
-		return "", "", errors.Wrapf(
+		return userSessionAuthDetails, errors.Wrapf(
 			err,
 			"error storing new user session %q",
 			session.ID,
 		)
 	}
-	return oauth2State, token, nil
+	return userSessionAuthDetails, nil
 }
 
 func (s *sessionsService) GetByOAuth2State(

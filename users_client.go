@@ -40,7 +40,7 @@ func NewUsersClient(
 
 func (c *usersClient) List(context.Context) (UserList, error) {
 	userList := UserList{}
-	err := c.executeAPIRequest(
+	return userList, c.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        "v2/users",
@@ -49,12 +49,11 @@ func (c *usersClient) List(context.Context) (UserList, error) {
 			respObj:     &userList,
 		},
 	)
-	return userList, err
 }
 
 func (c *usersClient) Get(_ context.Context, id string) (User, error) {
 	user := User{}
-	err := c.executeAPIRequest(
+	return user, c.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/users/%s", id),
@@ -63,7 +62,6 @@ func (c *usersClient) Get(_ context.Context, id string) (User, error) {
 			respObj:     &user,
 		},
 	)
-	return user, err
 }
 
 func (c *usersClient) Lock(_ context.Context, id string) error {

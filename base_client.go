@@ -3,6 +3,7 @@ package brignext
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,6 +28,20 @@ type baseClient struct {
 	apiAddress string
 	apiToken   string
 	httpClient *http.Client
+}
+
+func (b *baseClient) basicAuthHeaders(
+	username string,
+	password string,
+) map[string]string {
+	return map[string]string{
+		"Authorization": fmt.Sprintf(
+			"Basic %s",
+			base64.StdEncoding.EncodeToString(
+				[]byte(fmt.Sprintf("%s:%s", username, password)),
+			),
+		),
+	}
 }
 
 func (b *baseClient) bearerTokenAuthHeaders() map[string]string {

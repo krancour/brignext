@@ -3,17 +3,12 @@ package brignext
 import (
 	"context"
 	"crypto/tls"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"net/http"
-
-	"github.com/pkg/errors"
 )
 
 type SessionsClient interface {
 	CreateRootSession(ctx context.Context, password string) (Token, error)
-	CreateUserSession(context.Context) (string, string, error)
+	CreateUserSession(context.Context) (UserSessionAuthDetails, error)
 	Delete(context.Context) error
 }
 
@@ -46,79 +41,32 @@ func (s *sessionsClient) CreateRootSession(
 	password string,
 ) (Token, error) {
 	token := Token{}
-
-	req, err := http.NewRequest(
-		http.MethodPost,
-		fmt.Sprintf("%s/v2/sessions", s.apiAddress),
-		nil,
+	return token, s.executeAPIRequest(
+		apiRequest{
+			method:      http.MethodPost,
+			path:        "v2/sessions",
+			authHeaders: s.basicAuthHeaders("root", password),
+			queryParams: map[string]string{
+				"root": "true",
+			},
+			successCode: http.StatusCreated,
+			respObj:     &token,
+		},
 	)
-	if err != nil {
-		return token, errors.Wrap(err, "error creating HTTP request")
-	}
-	q := req.URL.Query()
-	q.Set("root", "true")
-	req.URL.RawQuery = q.Encode()
-	req.SetBasicAuth("root", password)
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return token, errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated {
-		return token, errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return token, errors.Wrap(err, "error reading response body")
-	}
-
-	if err := json.Unmarshal(respBodyBytes, &token); err != nil {
-		return token, errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	return token, nil
 }
 
 func (s *sessionsClient) CreateUserSession(
 	context.Context,
-) (string, string, error) {
-	req, err := http.NewRequest(
-		http.MethodPost,
-		fmt.Sprintf("%s/v2/sessions", s.apiAddress),
-		nil,
+) (UserSessionAuthDetails, error) {
+	userSessionAuthDetails := UserSessionAuthDetails{}
+	return userSessionAuthDetails, s.executeAPIRequest(
+		apiRequest{
+			method:      http.MethodPost,
+			path:        "v2/sessions",
+			successCode: http.StatusCreated,
+			respObj:     &userSessionAuthDetails,
+		},
 	)
-	if err != nil {
-		return "", "", errors.Wrap(err, "error creating HTTP request")
-	}
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		return "", "", errors.Wrap(err, "error invoking API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated {
-		return "", "", errors.Errorf("received %d from API server", resp.StatusCode)
-	}
-
-	respBodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return "", "", errors.Wrap(err, "error reading response body")
-	}
-
-	// TODO: This should be a more formalized object
-	respStruct := struct {
-		Token   string `json:"token"`
-		AuthURL string `json:"authURL"`
-	}{}
-	if err := json.Unmarshal(respBodyBytes, &respStruct); err != nil {
-		return "", "", errors.Wrap(err, "error unmarshaling response body")
-	}
-
-	return respStruct.AuthURL, respStruct.Token, nil
 }
 
 func (s *sessionsClient) Delete(context.Context) error {

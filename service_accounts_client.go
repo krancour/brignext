@@ -44,7 +44,7 @@ func (s *serviceAccountsClient) Create(
 	serviceAccount ServiceAccount,
 ) (Token, error) {
 	token := Token{}
-	err := s.executeAPIRequest(
+	return token, s.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodPost,
 			path:        "v2/service-accounts",
@@ -54,14 +54,13 @@ func (s *serviceAccountsClient) Create(
 			respObj:     &token,
 		},
 	)
-	return token, err
 }
 
 func (s *serviceAccountsClient) List(
 	context.Context,
 ) (ServiceAccountList, error) {
 	serviceAccountList := ServiceAccountList{}
-	err := s.executeAPIRequest(
+	return serviceAccountList, s.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        "v2/service-accounts",
@@ -70,7 +69,6 @@ func (s *serviceAccountsClient) List(
 			respObj:     &serviceAccountList,
 		},
 	)
-	return serviceAccountList, err
 }
 
 func (s *serviceAccountsClient) Get(
@@ -78,7 +76,7 @@ func (s *serviceAccountsClient) Get(
 	id string,
 ) (ServiceAccount, error) {
 	serviceAccount := ServiceAccount{}
-	err := s.executeAPIRequest(
+	return serviceAccount, s.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/service-accounts/%s", id),
@@ -87,7 +85,6 @@ func (s *serviceAccountsClient) Get(
 			respObj:     &serviceAccount,
 		},
 	)
-	return serviceAccount, err
 }
 
 func (s *serviceAccountsClient) Lock(_ context.Context, id string) error {
@@ -106,7 +103,7 @@ func (s *serviceAccountsClient) Unlock(
 	id string,
 ) (Token, error) {
 	token := Token{}
-	err := s.executeAPIRequest(
+	return token, s.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodDelete,
 			path:        fmt.Sprintf("v2/service-accounts/%s/lock", id),
@@ -115,5 +112,4 @@ func (s *serviceAccountsClient) Unlock(
 			respObj:     &token,
 		},
 	)
-	return token, err
 }

@@ -75,15 +75,18 @@ func login(c *cli.Context) error {
 			}
 		}
 
-		var token brignext.Token
-		if token, err =
-			client.Sessions().CreateRootSession(c.Context, password); err != nil {
+		token, err := client.Sessions().CreateRootSession(c.Context, password)
+		if err != nil {
 			return err
 		}
 		tokenStr = token.Value
-	} else if authURL, tokenStr, err =
-		client.Sessions().CreateUserSession(c.Context); err != nil {
-		return err
+	} else {
+		userSessionAuthDetails, err := client.Sessions().CreateUserSession(c.Context)
+		if err != nil {
+			return err
+		}
+		authURL = userSessionAuthDetails.AuthURL
+		tokenStr = userSessionAuthDetails.Token
 	}
 
 	if err := saveConfig(

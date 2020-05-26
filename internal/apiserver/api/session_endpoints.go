@@ -82,19 +82,14 @@ func (s *sessionEndpoints) create(w http.ResponseWriter, r *http.Request) {
 						"server.",
 				)
 			}
-			oauth2State, token, err :=
-				s.service.CreateUserSession(r.Context())
+			userSessionAuthDetails, err := s.service.CreateUserSession(r.Context())
 			if err != nil {
 				return nil, err
 			}
-			// TODO: This should be a more formalized type... but what to call it...
-			return struct {
-				Token   string `json:"token"`
-				AuthURL string `json:"authURL"`
-			}{
-				Token:   token,
-				AuthURL: s.oauth2Config.AuthCodeURL(oauth2State),
-			}, nil
+			userSessionAuthDetails.AuthURL = s.oauth2Config.AuthCodeURL(
+				userSessionAuthDetails.OAuth2State,
+			)
+			return userSessionAuthDetails, nil
 		},
 		successCode: http.StatusCreated,
 	})
