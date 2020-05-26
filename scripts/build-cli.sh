@@ -2,13 +2,11 @@
 
 set -euo pipefail
 
-# TODO: Uncomment this
-# oses="linux darwin windows"
-oses="darwin"
-archs="amd64"
+: ${OSES="linux darwin windows"}
+: ${ARCHS="amd64"}
 
-for os in $oses; do
-  for arch in $archs; do 
+for os in $OSES; do
+  for arch in $ARCHS; do 
     echo "building $os-$arch"
     GOOS=$os GOARCH=$arch CGO_ENABLED=0 \
       go build \

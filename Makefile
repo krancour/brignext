@@ -11,13 +11,6 @@ SHELL ?= /bin/bash
 GIT_VERSION = $(shell git describe --always --abbrev=7 --dirty --match=NeVeRmAtCh)
 
 ################################################################################
-# Go build details                                                             #
-################################################################################
-
-CLIENT_PLATFORM ?= $(shell go env GOOS)
-CLIENT_ARCH ?= $(shell go env GOARCH)
-
-################################################################################
 # Containerized development environment-- or lack thereof                      #
 ################################################################################
 
@@ -113,7 +106,7 @@ test-unit-js:
 ################################################################################
 
 .PHONY: build
-build: build-images build-cli
+build: build-images xbuild-cli
 
 .PHONY: build-images
 build-images: build-apiserver build-controller build-worker build-logger-linux
@@ -163,6 +156,10 @@ build-logger-windows:
 
 .PHONTY: build-cli
 build-cli:
+	$(GO_DOCKER_CMD) bash -c "OSES=$(shell go env GOOS) ARCHS=$(shell go env GOARCH) VERSION=\"$(VERSION)\" COMMIT=\"$(GIT_VERSION)\" scripts/build-cli.sh"
+
+.PHONTY: xbuild-cli
+xbuild-cli:
 	$(GO_DOCKER_CMD) bash -c "VERSION=\"$(VERSION)\" COMMIT=\"$(GIT_VERSION)\" scripts/build-cli.sh"
 
 .PHONY: push-images
