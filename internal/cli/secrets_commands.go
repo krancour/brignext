@@ -145,8 +145,10 @@ func secretsSet(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	// TODO: It would be nicer / more efficient to do a bulk secrets set, but
-	// what's the right pattern for doing that restfully?
+	// Note: The pattern for setting multiple secrets RESTfully in one shot isn't
+	// clear, so for now we settle for iterating over the secrets and making an
+	// API call for each one. This can be revisited in the future if someone is
+	// aware of or discovers the right pattern for this.
 	for k, v := range kvPairs {
 		secret := brignext.NewSecret(k, v)
 		if err := client.Projects().SetSecret(
@@ -172,8 +174,10 @@ func secretsUnset(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	// TODO: It would be nicer / more efficient to do a bulk secrets unset, but
-	// what's the right pattern for doing that restfully?
+	// Note: The pattern for deleting multiple secrets RESTfully in one shot isn't
+	// clear, so for now we settle for iterating over the secrets and making an
+	// API call for each one. This can be revisited in the future if someone is
+	// aware of or discovers the right pattern for this.
 	for _, key := range keys {
 		if err := client.Projects().UnsetSecret(
 			c.Context,

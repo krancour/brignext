@@ -149,6 +149,7 @@ func (p *projectEndpoints) listSecrets(w http.ResponseWriter, r *http.Request) {
 
 func (p *projectEndpoints) setSecret(w http.ResponseWriter, r *http.Request) {
 	projectID := mux.Vars(r)["projectID"]
+	key := mux.Vars(r)["key"]
 	secret := brignext.Secret{}
 	p.serveAPIRequest(apiRequest{
 		w:                   w,
@@ -156,6 +157,11 @@ func (p *projectEndpoints) setSecret(w http.ResponseWriter, r *http.Request) {
 		reqBodySchemaLoader: p.secretSchemaLoader,
 		reqBodyObj:          &secret,
 		endpointLogic: func() (interface{}, error) {
+			if key != secret.Key {
+				return nil, brignext.NewErrBadRequest(
+					"The secret key in the URL path and request body do not match.",
+				)
+			}
 			return nil, p.service.SetSecret(
 				r.Context(),
 				projectID,
