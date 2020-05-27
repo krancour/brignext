@@ -301,7 +301,15 @@ func (p *projectsScheduler) SetSecret(
 			secret.Key: base64.StdEncoding.EncodeToString([]byte(secret.Value)),
 		},
 	}
-	patchBytes, _ := json.Marshal(patch)
+	patchBytes, err := json.Marshal(patch)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error marshaling patch for project %q secret in namespace %q",
+			project.ID,
+			project.Kubernetes.Namespace,
+		)
+	}
 	if _, err := p.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
 	).Patch(
@@ -313,7 +321,7 @@ func (p *projectsScheduler) SetSecret(
 	); err != nil {
 		return errors.Wrapf(
 			err,
-			"error patching project secret %q in namespace %q",
+			"error patching project %q secret in namespace %q",
 			project.ID,
 			project.Kubernetes.Namespace,
 		)
@@ -335,7 +343,15 @@ func (p *projectsScheduler) UnsetSecret(
 			Path: fmt.Sprintf("/data/%s", key),
 		},
 	}
-	patchBytes, _ := json.Marshal(patch)
+	patchBytes, err := json.Marshal(patch)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error marshaling patch for project %q secret in namespace %q",
+			project.ID,
+			project.Kubernetes.Namespace,
+		)
+	}
 	if _, err := p.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
 	).Patch(
@@ -347,7 +363,7 @@ func (p *projectsScheduler) UnsetSecret(
 	); err != nil {
 		return errors.Wrapf(
 			err,
-			"error patching project secret %q in namespace %q",
+			"error patching project %q secret in namespace %q",
 			project.ID,
 			project.Kubernetes.Namespace,
 		)

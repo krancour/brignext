@@ -68,7 +68,9 @@ func (b *baseClient) executeAPIRequest(apiReq apiRequest) error {
 	return nil
 }
 
-func (b *baseClient) submitAPIRequest(apiReq apiRequest) (*http.Response, error) {
+func (b *baseClient) submitAPIRequest(
+	apiReq apiRequest,
+) (*http.Response, error) {
 	var reqBodyReader io.Reader
 	if apiReq.reqBodyObj != nil {
 		switch rb := apiReq.reqBodyObj.(type) {

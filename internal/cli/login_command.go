@@ -81,7 +81,8 @@ func login(c *cli.Context) error {
 		}
 		tokenStr = token.Value
 	} else {
-		userSessionAuthDetails, err := client.Sessions().CreateUserSession(c.Context)
+		userSessionAuthDetails, err :=
+			client.Sessions().CreateUserSession(c.Context)
 		if err != nil {
 			return err
 		}
