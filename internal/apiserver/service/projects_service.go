@@ -25,11 +25,7 @@ type ProjectsService interface {
 		projectID string,
 		secret brignext.Secret,
 	) error
-	UnsetSecret(
-		ctx context.Context,
-		projectID string,
-		secretID string,
-	) error
+	UnsetSecret(ctx context.Context, projectID string, key string) error
 }
 
 type projectsService struct {
@@ -198,7 +194,7 @@ func (p *projectsService) SetSecret(
 func (p *projectsService) UnsetSecret(
 	ctx context.Context,
 	projectID string,
-	secretID string,
+	key string,
 ) error {
 	project, err := p.store.Projects().Get(ctx, projectID)
 	if err != nil {
@@ -211,7 +207,7 @@ func (p *projectsService) UnsetSecret(
 	// Secrets aren't stored in the database. We only have to remove them from the
 	// scheduler.
 	if err :=
-		p.scheduler.Projects().UnsetSecret(ctx, project, secretID); err != nil {
+		p.scheduler.Projects().UnsetSecret(ctx, project, key); err != nil {
 		return errors.Wrapf(
 			err,
 			"error unsetting secrets for project %q worker in scheduler",

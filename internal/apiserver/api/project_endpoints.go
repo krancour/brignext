@@ -55,13 +55,13 @@ func (p *projectEndpoints) register(router *mux.Router) {
 
 	// Set secret
 	router.HandleFunc(
-		"/v2/projects/{projectID}/secrets/{secretID}",
+		"/v2/projects/{projectID}/secrets/{key}",
 		p.tokenAuthFilter.Decorate(p.setSecret),
 	).Methods(http.MethodPut)
 
 	// Unset secret
 	router.HandleFunc(
-		"/v2/projects/{projectID}/secrets/{secretID}",
+		"/v2/projects/{projectID}/secrets/{key}",
 		p.tokenAuthFilter.Decorate(p.unsetSecret),
 	).Methods(http.MethodDelete)
 }
@@ -168,7 +168,7 @@ func (p *projectEndpoints) setSecret(w http.ResponseWriter, r *http.Request) {
 
 func (p *projectEndpoints) unsetSecret(w http.ResponseWriter, r *http.Request) {
 	projectID := mux.Vars(r)["projectID"]
-	secretID := mux.Vars(r)["secretID"]
+	key := mux.Vars(r)["key"]
 	p.serveAPIRequest(apiRequest{
 		w: w,
 		r: r,
@@ -176,7 +176,7 @@ func (p *projectEndpoints) unsetSecret(w http.ResponseWriter, r *http.Request) {
 			return nil, p.service.UnsetSecret(
 				r.Context(),
 				projectID,
-				secretID,
+				key,
 			)
 		},
 		successCode: http.StatusOK,

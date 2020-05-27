@@ -18,7 +18,7 @@ type ProjectsClient interface {
 
 	ListSecrets(ctx context.Context, projectID string) (SecretList, error)
 	SetSecret(ctx context.Context, projectID string, secret Secret) error
-	UnsetSecret(ctx context.Context, projectID string, secretID string) error
+	UnsetSecret(ctx context.Context, projectID string, key string) error
 }
 
 type projectsClient struct {
@@ -176,7 +176,7 @@ func (p *projectsClient) SetSecret(
 func (p *projectsClient) UnsetSecret(
 	ctx context.Context,
 	projectID string,
-	secretID string,
+	key string,
 ) error {
 	return p.executeAPIRequest(
 		apiRequest{
@@ -184,7 +184,7 @@ func (p *projectsClient) UnsetSecret(
 			path: fmt.Sprintf(
 				"v2/projects/%s/secrets/%s",
 				projectID,
-				secretID,
+				key,
 			),
 			authHeaders: p.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,

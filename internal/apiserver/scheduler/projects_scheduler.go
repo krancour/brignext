@@ -2,6 +2,8 @@ package scheduler
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -11,6 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -32,11 +35,7 @@ type ProjectsScheduler interface {
 		project brignext.Project,
 		secret brignext.Secret,
 	) error
-	UnsetSecret(
-		ctx context.Context,
-		project brignext.Project,
-		secretID string,
-	) error
+	UnsetSecret(ctx context.Context, project brignext.Project, key string) error
 }
 
 type projectsScheduler struct {
@@ -295,28 +294,26 @@ func (p *projectsScheduler) SetSecret(
 	project brignext.Project,
 	secret brignext.Secret,
 ) error {
-	k8sSecret, err := p.kubeClient.CoreV1().Secrets(
-		project.Kubernetes.Namespace,
-	).Get(ctx, "project-secrets", metav1.GetOptions{})
-	if err != nil {
-		return errors.Wrapf(
-			err,
-			"error retrieving secret \"project-secrets\" in namespace %q",
-			project.Kubernetes.Namespace,
-		)
+	patch := struct {
+		Data map[string]string `json:"data"`
+	}{
+		Data: map[string]string{
+			secret.Key: base64.StdEncoding.EncodeToString([]byte(secret.Value)),
+		},
 	}
-	if k8sSecret.Data == nil {
-		k8sSecret.Data = map[string][]byte{}
-	}
-	k8sSecret.Data[secret.Key] = []byte(secret.Value)
-	// TODO: Can we do this more efficiently (and avoid race conditions) with a
-	// patch?
+	patchBytes, _ := json.Marshal(patch)
 	if _, err := p.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
-	).Update(ctx, k8sSecret, metav1.UpdateOptions{}); err != nil {
+	).Patch(
+		ctx,
+		"project-secrets",
+		types.StrategicMergePatchType,
+		patchBytes,
+		metav1.PatchOptions{},
+	); err != nil {
 		return errors.Wrapf(
 			err,
-			"error updating project secret %q in namespace %q",
+			"error patching project secret %q in namespace %q",
 			project.ID,
 			project.Kubernetes.Namespace,
 		)
@@ -327,27 +324,30 @@ func (p *projectsScheduler) SetSecret(
 func (p *projectsScheduler) UnsetSecret(
 	ctx context.Context,
 	project brignext.Project,
-	secretID string,
+	key string,
 ) error {
-	k8sSecret, err := p.kubeClient.CoreV1().Secrets(
-		project.Kubernetes.Namespace,
-	).Get(ctx, "project-secrets", metav1.GetOptions{})
-	if err != nil {
-		return errors.Wrapf(
-			err,
-			"error retrieving secret \"project-secrets\" in namespace %q",
-			project.Kubernetes.Namespace,
-		)
+	patch := []struct {
+		Op   string `json:"op"`
+		Path string `json:"path"`
+	}{
+		{
+			Op:   "remove",
+			Path: fmt.Sprintf("/data/%s", key),
+		},
 	}
-	delete(k8sSecret.Data, secretID)
-	// TODO: Can we do this more efficiently (and avoid race conditions) with a
-	// patch?
+	patchBytes, _ := json.Marshal(patch)
 	if _, err := p.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
-	).Update(ctx, k8sSecret, metav1.UpdateOptions{}); err != nil {
+	).Patch(
+		ctx,
+		"project-secrets",
+		types.JSONPatchType,
+		patchBytes,
+		metav1.PatchOptions{},
+	); err != nil {
 		return errors.Wrapf(
 			err,
-			"error updating project secret %q in namespace %q",
+			"error patching project secret %q in namespace %q",
 			project.ID,
 			project.Kubernetes.Namespace,
 		)
