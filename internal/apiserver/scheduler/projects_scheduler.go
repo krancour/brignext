@@ -334,6 +334,24 @@ func (p *projectsScheduler) UnsetSecret(
 	project brignext.Project,
 	key string,
 ) error {
+	// Note: If we blindly try to patch the k8s secret to remove the specified
+	// key, we'll get an error if that key isn't in the map, so we retrieve the
+	// k8s secret and have a peek first. If that key is undefined, we bail early
+	// and return no error.
+	k8sSecret, err := p.kubeClient.CoreV1().Secrets(
+		project.Kubernetes.Namespace,
+	).Get(ctx, "project-secrets", metav1.GetOptions{})
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving project %q secret in namespace %q",
+			project.ID,
+			project.Kubernetes.Namespace,
+		)
+	}
+	if _, ok := k8sSecret.Data[key]; !ok {
+		return nil
+	}
 	patch := []struct {
 		Op   string `json:"op"`
 		Path string `json:"path"`
