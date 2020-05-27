@@ -4,10 +4,12 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/krancour/brignext/v2/internal/apiserver/service"
 )
 
 type healthEndpoints struct {
 	*baseEndpoints
+	service service.Service
 }
 
 func (h *healthEndpoints) register(router *mux.Router) {
@@ -26,7 +28,9 @@ func (h *healthEndpoints) check(
 		w: w,
 		r: r,
 		endpointLogic: func() (interface{}, error) {
-			// TODO: Test that critical connections are healthy?
+			if err := h.service.CheckHealth(r.Context()); err != nil {
+				return nil, err
+			}
 			return struct{}{}, nil
 		},
 		successCode: http.StatusOK,

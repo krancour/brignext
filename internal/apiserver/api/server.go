@@ -96,6 +96,7 @@ func NewServer(
 
 	(&healthEndpoints{
 		baseEndpoints: baseEndpoints,
+		service:       service,
 	}).register(router)
 
 	return &server{

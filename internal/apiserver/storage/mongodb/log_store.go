@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 var mongodbTimeout = 5 * time.Second
@@ -234,4 +235,16 @@ func (l *logStore) streamLogs(
 	}()
 
 	return logEntryCh, nil
+}
+
+func (l *logStore) CheckHealth(ctx context.Context) error {
+	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	if err := l.logsCollection.Database().Client().Ping(
+		pingCtx,
+		readpref.Primary(),
+	); err != nil {
+		return errors.Wrap(err, "error pinging mongo")
+	}
+	return nil
 }

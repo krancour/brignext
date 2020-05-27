@@ -44,4 +44,6 @@ type LogsStore interface {
 		eventID string,
 		jobName string,
 	) (<-chan brignext.LogEntry, error)
+
+	CheckHealth(context.Context) error
 }

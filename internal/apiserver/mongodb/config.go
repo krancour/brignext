@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 const envconfigPrefix = "MONGODB"
@@ -56,15 +55,5 @@ func Database() (*mongo.Database, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "error connecting to mongo")
 	}
-
-	// Test connection
-	pingCtx, pingCancel :=
-		context.WithTimeout(context.Background(), 2*time.Second)
-	defer pingCancel()
-	err = client.Ping(pingCtx, readpref.Primary())
-	if err != nil {
-		return nil, errors.Wrap(err, "error pinging mongo")
-	}
-
 	return client.Database(c.Database), nil
 }

@@ -12,4 +12,5 @@ type Store interface {
 	Users() UsersStore
 
 	DoTx(context.Context, func(context.Context) error) error
+	CheckHealth(context.Context) error
 }

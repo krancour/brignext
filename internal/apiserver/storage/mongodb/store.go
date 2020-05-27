@@ -2,10 +2,12 @@ package mongodb
 
 import (
 	"context"
+	"time"
 
 	"github.com/krancour/brignext/v2/internal/apiserver/storage"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 type store struct {
@@ -89,6 +91,15 @@ func (s *store) DoTx(
 		},
 	); err != nil {
 		return err
+	}
+	return nil
+}
+
+func (s *store) CheckHealth(ctx context.Context) error {
+	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	if err := s.database.Client().Ping(pingCtx, readpref.Primary()); err != nil {
+		return errors.Wrap(err, "error pinging mongo")
 	}
 	return nil
 }

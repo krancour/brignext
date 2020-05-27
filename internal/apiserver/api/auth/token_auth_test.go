@@ -90,10 +90,6 @@ func TestTokenAuthFilterWithUnauthenticatedSession(t *testing.T) {
 	require.False(t, handlerCalled)
 }
 
-// TODO: Test expired token
-
-// TODO: Test token for a root session when root sessions are not allowed
-
 func TestTokenAuthFilterWithAuthenticatedSession(t *testing.T) {
 	const sessionID = "foobar"
 	a := NewTokenAuthFilter(
