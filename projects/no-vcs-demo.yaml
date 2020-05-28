@@ -20,12 +20,12 @@ spec:
 
         events.on("github.com/krancour/brignext/cli:exec", (e, w) => {
           let fooJob = new Job("foo", "debian:latest", ["echo $FOO"]);
-          fooJob.env = {
+          fooJob.primaryContainer.env = {
             "FOO": w.secrets.foo
           };
           
           let barJob = new Job("bar", "debian:latest", ["echo $BAR"]);
-          barJob.env = {
+          barJob.primaryContainer.env = {
             "BAR": w.secrets.bar
           };
 

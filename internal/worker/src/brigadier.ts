@@ -49,22 +49,26 @@ export class Job extends jobs.Job {
 
   async run(): Promise<jobs.Result> {
     try {
-      let jobSecret = this.newJobSecret()
-      if (jobSecret) {
-        try {
-          await this.client.createNamespacedSecret(
-            currentEvent.kubernetes.namespace,
-            jobSecret,
-          )
-        }
-        catch(err) {
-          // This specifically handles errors from creating the secret,
-          // unpacks it, and rethrows.
-          throw new Error(err.response.body.message)
+      let containers = [this.primaryContainer]
+      containers.push(...this.sidecarContainers)
+      for (let c of containers) {
+        let containerSecret = this.newContainerSecret(c)
+        if (containerSecret) {
+          try {
+            await this.client.createNamespacedSecret(
+              currentEvent.kubernetes.namespace,
+              containerSecret,
+            )
+          }
+          catch(err) {
+            // This specifically handles errors from creating the secret,
+            // unpacks it, and rethrows.
+            throw new Error(err.response.body.message)
+          }
         }
       }
       this.logger.log("Creating pod " + this.podName)
-      let jobPod = this.newJobPod(jobSecret)
+      let jobPod = this.newJobPod()
       try {
         await this.client.createNamespacedPod(
           currentEvent.kubernetes.namespace,
@@ -86,15 +90,15 @@ export class Job extends jobs.Job {
     }
   }
 
-  private generateScript(): string | null {
-    if (this.tasks.length == 0) {
+  private generateScript(container: jobs.Container): string | null {
+    if (container.tasks.length == 0) {
       return null
     }
-    let newCmd = "#!" + this.shell + "\n\n"
+    let newCmd = "#!" + container.shell + "\n\n"
 
     // if shells that support the `set` command are selected, let's add some
     // sane defaults
-    switch (this.shell) {
+    switch (container.shell) {
       case "/bin/sh":
         // The -e option will cause a bash script to exit immediately when a
         // command fails
@@ -113,37 +117,36 @@ export class Job extends jobs.Job {
     }
 
     // Join the tasks to make a new command:
-    if (this.tasks) {
-      newCmd += this.tasks.join("\n") 
+    if (container.tasks) {
+      newCmd += container.tasks.join("\n") 
     }
     return newCmd
   }
 
-  private newJobSecret(): kubernetes.V1Secret {
-    let script = this.generateScript()
+  private newContainerSecret(container: jobs.Container): kubernetes.V1Secret {
+    let script = this.generateScript(container)
     let secret = new kubernetes.V1Secret()
     secret.metadata = new kubernetes.V1ObjectMeta()
-    secret.metadata.name = this.podName
+    secret.metadata.name = `container-${currentEvent.id}-${this.name}-${container.name}`
     secret.metadata.labels = {
-      "brignext.io/component": "job",
+      "brignext.io/component": "container",
       "brignext.io/project": currentEvent.projectID,
       "brignext.io/event": currentEvent.id,
-      "brignext.io/job": this.name
+      "brignext.io/job": this.name,
+      "brignext.io/container": container.name
     }
-    secret.type = "brignext.io/job"
+    secret.type = "brignext.io/container"
     secret.stringData = {}
     if (script) {
       secret.stringData["main.sh"] = script
     }
-    for (let key in this.env) {
-      secret.stringData[key] = this.env[key]
+    for (let key in container.env) {
+      secret.stringData[key] = container.env[key]
     }
     return secret
   }
 
-  private newJobPod(
-    jobSecret: kubernetes.V1Secret
-  ): kubernetes.V1Pod {
+  private newJobPod(): kubernetes.V1Pod {
     let pod = new kubernetes.V1Pod()
     pod.metadata = new kubernetes.V1ObjectMeta()
     pod.metadata.name = this.podName
@@ -155,19 +158,42 @@ export class Job extends jobs.Job {
       "brignext.io/job": this.name
     }
 
+    // This is all the containers, primary first, followed by sidecars...
+    let containers = [this.primaryContainer]
+    containers.push(...this.sidecarContainers)
+
     pod.spec = new kubernetes.V1PodSpec()
+    pod.spec.containers = []
     pod.spec.volumes = []
 
-    let container = new kubernetes.V1Container()
-    container.volumeMounts = []
+    let useSource = false
+    let useDockerSocket = false
+    if (currentWorker.git.cloneURL) {
+      // If ANY container uses source...
+      for (let c of containers) {
+        if (c.useSource) {
+          useSource = true
+        }
+        if (c.docker.enabled) {
+          useDockerSocket = true
+        }
+      }
+    }
 
-    // Conditionally describe the vcs init container
-    if (this.useSource && currentWorker.git.cloneURL != "") {
-      let vcsInitContainer = new kubernetes.V1Container()
-      vcsInitContainer.name = "vcs"
-      vcsInitContainer.image = "brigadecore/git-sidecar:v1.4.0"
-      vcsInitContainer.imagePullPolicy = "Always"
-      vcsInitContainer.env = [
+    // If ANY container needs access to source code, define a volume for the
+    // source code and an init container to populate it.
+    if (useSource) {
+      // The volume for source code:
+      pod.spec.volumes.push(
+        { name: "vcs", emptyDir: {} }
+      )
+
+      // A VCS init container to populate the volume:
+      let container = new kubernetes.V1Container()
+      container.name = "vcs"
+      container.image = "brigadecore/git-sidecar:v1.4.0"
+      container.imagePullPolicy = "IfNotPresent"
+      container.env = [
         { name: "BRIGADE_REMOTE_URL", value: currentWorker.git.cloneURL },
         { name: "BRIGADE_COMMIT_ID", value: currentWorker.git.commit },
         { name: "BRIGADE_COMMIT_REF", value: currentWorker.git.ref },
@@ -195,97 +221,91 @@ export class Job extends jobs.Job {
         },
         { name: "BRIGADE_WORKSPACE", value: "/var/vcs" }
       ]
+      let volumeMount = new kubernetes.V1VolumeMount()
+      volumeMount.name = "vcs"
+      volumeMount.mountPath = "/var/vcs"
+      container.volumeMounts = [volumeMount]
 
-      let vcsVolumeMount = new kubernetes.V1VolumeMount()
-      vcsVolumeMount.name = "vcs"
-      vcsVolumeMount.mountPath = "/var/vcs"
-
-      // Init container volume mount
-      vcsInitContainer.volumeMounts = [vcsVolumeMount]
-
-      pod.spec.initContainers = [vcsInitContainer]
-
-      // The main job container needs a similar volume mount
-      container.volumeMounts.push(vcsVolumeMount)
-
-      // Also add the volume shared by both containers to the pod spec
-      pod.spec.volumes.push(
-        { name: "vcs", emptyDir: {} }
-      )
+      pod.spec.initContainers = [container]
     }
 
-    // Describe the main job container
-    container.name = this.name
-    container.image = this.image
-    container.imagePullPolicy = this.imageForcePull ? "Always" : "IfNotPresent"
-    if (jobSecret.stringData["main.sh"]) {
-      let jobShell = this.shell
-      if (jobShell == "") {
-        jobShell = "/bin/sh"
-      }
-      container.command = [jobShell, "/var/job/main.sh"]
-
-      container.volumeMounts.push({
-        name: "job",
-        mountPath: "/var/job"
-      })
-
+    // If ANY container wants access to the host's Docker socket AND project
+    // configuration permits that, prepare a volume.
+    if (useDockerSocket && currentWorker.jobs.allowDockerSocketMount) {
       pod.spec.volumes.push({
-        name: "job",
-        secret: {
-          secretName: jobSecret.metadata.name
+        name: "docker-socket",
+        hostPath: {
+          path: "/var/run/docker.sock"
         }
-      })
+      })      
     }
-    if (this.args.length > 0) {
-      container.args = this.args
-    }
-    if (jobSecret) {
+
+    // Create the primary container AND any sidecars...
+    for (let c of containers) {
+      let container = new kubernetes.V1Container()
+      container.volumeMounts = []
+      container.name = c.name
+      container.image = c.image
+      container.imagePullPolicy = c.imageForcePull ? "Always" : "IfNotPresent"
+
+      // If necessary, mount the main.sh script from a volume and execute
+      // that as the container's command...
+      if (c.tasks.length > 0) {
+        pod.spec.volumes.push({
+          name: c.name,
+          secret: {
+            secretName: `container-${currentEvent.id}-${this.name}-${container.name}`
+          }
+        })
+        let jobShell = this.primaryContainer.shell ? this.primaryContainer.shell : "/bin/sh"
+        container.command = [jobShell, "/var/container/main.sh"]
+        container.volumeMounts.push({
+          name: c.name,
+          mountPath: "/var/container"
+        })
+      }
+      if (c.args.length > 0) {
+        container.args = c.args
+      }
+
+      // Add environment variables. These will ALL be secrets because some of
+      // them might be secrets sourced from the project's own secrets. We don't
+      // know.
       container.env = []
-      // Add environment variables
-      for (let key in jobSecret.stringData) {
+      for (let key in c.env) {
         container.env.push(
           {
             name: key,
             valueFrom: {
               secretKeyRef: {
-                name: jobSecret.metadata.name,
+                name: `container-${currentEvent.id}-${this.name}-${container.name}`,
                 key: key
               }
             }
           }
         )
       }
+
+      // If the container requests access to the host's Docker daemon AND it's
+      // allowed, mount it...
+      if (c.docker.enabled && currentWorker.jobs.allowDockerSocketMount) {
+        container.volumeMounts.push({
+          name: "docker-socket",
+          mountPath: "/var/run/docker.sock"
+        })
+      }
+
+      // If the job requests a privileged security context and it's allowed,
+      // enable it...
+      if (c.privileged && currentWorker.jobs.allowPrivileged) {
+        container.securityContext = {
+          privileged: true
+        }
+      }
+
+      // Finally add the container to the pod spec
+      pod.spec.containers.push(container)
     }
-
-    // If the job requests access to the host's Docker daemon AND it's
-    // allowed...
-    if (this.docker.enabled && currentWorker.jobs.allowDockerSocketMount) {
-      const dockerSocketVolumeName = "docker-socket"
-      const dockerSocketPath = "/var/run/docker.sock"
-
-      let dockerSocketVolumeSource = new kubernetes.V1HostPathVolumeSource()
-      dockerSocketVolumeSource.path = dockerSocketPath
-      let dockerSocketVolume = new kubernetes.V1Volume()
-      dockerSocketVolume.name = dockerSocketVolumeName
-      dockerSocketVolume.hostPath = dockerSocketVolumeSource
-      pod.spec.volumes.push(dockerSocketVolume)
-
-      let dockerSocketVolumeMount = new kubernetes.V1VolumeMount()
-      dockerSocketVolumeMount.name = dockerSocketVolumeName
-      dockerSocketVolumeMount.mountPath = dockerSocketPath
-      container.volumeMounts.push(dockerSocketVolumeMount)
-    }
-
-    // If the job requests a privileged security context and it's allowed,
-    // enable it...
-    if (this.privileged && currentWorker.jobs.allowPrivileged) {
-      container.securityContext = new kubernetes.V1SecurityContext()
-      container.securityContext.privileged = true
-    }
-
-    // Finally add the main container to the pod spec
-    pod.spec.containers = [container]
 
     // Jobs run once and succeed or fail. They don't restart.
     pod.spec.restartPolicy = "Never"
@@ -314,11 +334,7 @@ export class Job extends jobs.Job {
         "beta.kubernetes.io/os": this.host.os
       }
     }
-    // TODO: This looks like something we probably shouldn't expose
-    if (this.host.name) {
-      pod.spec.nodeName = this.host.name
-    }
-    // TODO: Also something that we perhaps ought not expose
+    
     if (this.host.nodeSelector && this.host.nodeSelector.size > 0) {
       if (!pod.spec.nodeSelector) {
         pod.spec.nodeSelector = {}
