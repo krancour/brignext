@@ -54,33 +54,31 @@ func (c *controller) syncJobPod(obj interface{}) {
 		return
 	}
 
-	// Use the API to update job phase so it corresponds to job pod phase
+	// Use the API to update job phase so it corresponds to the status of the
+	// primary container
 	eventID := jobPod.Labels["brignext.io/event"]
 	jobName := jobPod.Labels["brignext.io/job"]
-
 	status := brignext.NewJobStatus()
-	switch jobPod.Status.Phase {
-	case corev1.PodPending:
-		// This pod is on its way up. For BrigNext's purposes, this counts as
-		// running.
-		status.Phase = brignext.JobPhaseRunning
-	case corev1.PodRunning:
-		status.Phase = brignext.JobPhaseRunning
-	case corev1.PodSucceeded:
-		status.Phase = brignext.JobPhaseSucceeded
-	case corev1.PodFailed:
-		status.Phase = brignext.JobPhaseFailed
-	case corev1.PodUnknown:
-		status.Phase = brignext.JobPhaseUnknown
-	}
+	// If the pod exists, we consider the job running unless we discover the
+	// primary container has completed.
+	status.Phase = brignext.JobPhaseRunning
 
 	if jobPod.Status.StartTime != nil {
 		status.Started = &jobPod.Status.StartTime.Time
 	}
-	if len(jobPod.Status.ContainerStatuses) > 0 &&
-		jobPod.Status.ContainerStatuses[0].State.Terminated != nil {
-		status.Ended =
-			&jobPod.Status.ContainerStatuses[0].State.Terminated.FinishedAt.Time
+
+	for _, containerStatus := range jobPod.Status.ContainerStatuses {
+		if containerStatus.Name == jobPod.Spec.Containers[0].Name {
+			if containerStatus.State.Terminated != nil {
+				if containerStatus.State.Terminated.Reason == "Completed" {
+					status.Phase = brignext.JobPhaseSucceeded
+				} else {
+					status.Phase = brignext.JobPhaseFailed
+				}
+				status.Ended = &containerStatus.State.Terminated.FinishedAt.Time
+			}
+			break
+		}
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

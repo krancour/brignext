@@ -1,0 +1,47 @@
+apiVersion: github.com/krancour/brignext/v2
+kind: Project
+metadata:
+  id: sidecar-demo
+spec:
+  description: A project that demonstrates BrigNext jobs that utilize a sidecar container
+  eventSubscriptions:
+  - source: github.com/krancour/brignext-github-app
+    types:
+    - pull_request:opened
+    - pull_request:synchronize
+    - pull_request:reopened
+    - push
+    labels:
+      repo: krancour/brignext-demo
+  worker:
+    defaultConfigFiles:
+      brignext.js: |-
+        const { events, Job, Group, Container} = require("brigadier");
+
+        events.on("github.com/krancour/brignext/cli:exec", (e, w) => {
+          let fooJob = new Job("foo", "debian:latest", ["echo $FOO"]);
+          fooJob.primaryContainer.env = {
+            "FOO": w.secrets.foo
+          };
+          fooJob.sidecarContainers.push(
+            new Container("sidecar", "debian:latest", ["sleep 10000"])
+          );
+          
+          let barJob = new Job("bar", "debian:latest", ["echo $BAR"]);
+          barJob.primaryContainer.env = {
+            "BAR": w.secrets.bar
+          };
+          barJob.sidecarContainers.push(
+            new Container("sidecar", "debian:latest", ["sleep 10000"])
+          );
+
+          fooJob.run()
+          .then(result => {
+            return barJob.run();
+          })
+          .then(result => {
+            console.log("done");
+          }).catch(e => {
+            console.error(e);
+          });
+        });

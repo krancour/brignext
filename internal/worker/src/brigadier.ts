@@ -566,3 +566,7 @@ export class Job extends jobs.Job {
 export class Group extends groups.Group {
   // This seems to be how you expose an existing class as an export.
 }
+
+export class Container extends jobs.Container {
+  // This seems to be how you expose an existing class as an export.
+}
