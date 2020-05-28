@@ -390,38 +390,40 @@ export class Job extends jobs.Job {
           return
         }
 
-        let phase = this.pod.status.phase
-        if (phase == "Succeeded") {
-          clearTimers()
-          resolve()
-        }
-        // make sure Pod is running before we start following its logs
-        else if (phase == "Running") {
-          // do that only if we haven't hooked up the follow request before
-          if (followLogsRequest == null && this.streamLogs) {
-            followLogsRequest = followLogs(
-              currentEvent.kubernetes.namespace,
-              this.podName
-            )
-          }
-        } else if (phase == "Failed") {
-          clearTimers()
-          reject(new Error(`Pod ${name} failed to run to completion`))
-        } else if (phase == "Pending") {
-          // Trap image pull errors and consider them fatal.
-          let cs = this.pod.status.containerStatuses
+        for (let containerStatus of this.pod.status.containerStatuses) {
+          // Trap image pull errors for any container and count it as fatal
           if (
-            cs &&
-            cs.length > 0 &&
-            cs[0].state.waiting &&
-            cs[0].state.waiting.reason == "ErrImagePull"
-          ) {
+            containerStatus.state.waiting && 
+            containerStatus.state.waiting.reason == "ErrImagePull"
+           ) {
             this.client.deleteNamespacedPod(
               name,
               ns
             ).catch(e => this.logger.error(e.body.message))
             clearTimers()
-            reject(new Error(cs[0].state.waiting.message))
+            reject(new Error(containerStatus.state.waiting.message))
+          }
+          // If we're looking at the state of the primary container, try to
+          // determine if we're running, succeeded, or failed...
+          if (containerStatus.name == this.pod.spec.containers[0].name) {
+            if (containerStatus.state.terminated) {
+              if (containerStatus.state.terminated.reason == "Completed") {
+                clearTimers()
+                resolve()
+              } else {
+                clearTimers()
+                reject(new Error(`Pod ${name} primary container failed to run to completion`))
+              }
+            } else if (
+              this.pod.status.phase == "Running" &&
+              followLogsRequest == null &&
+              this.streamLogs
+            ) {
+                followLogsRequest = followLogs(
+                  currentEvent.kubernetes.namespace,
+                  this.podName
+                )
+            }
           }
         }
         if (!this.streamLogs || (this.streamLogs && this.pod.status.phase != "Running")) {
@@ -551,7 +553,8 @@ export class Job extends jobs.Job {
     try {
       let result = await this.client.readNamespacedPodLog(
         this.podName,
-        currentEvent.kubernetes.namespace
+        currentEvent.kubernetes.namespace,
+        this.primaryContainer.name,
       )
       return result.body
     }
