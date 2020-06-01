@@ -2,6 +2,7 @@ export interface Worker {
   git: GitConfig
   jobs: JobsSpec
   configFilesDirectory: string
+  defaultConfigFiles: { [key: string]: string }
 }
 
 export interface GitConfig {

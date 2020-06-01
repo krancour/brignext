@@ -189,14 +189,6 @@ func (c *controller) createWorkerPod(
 			},
 		},
 		{
-			Name: "worker",
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: fmt.Sprintf("worker-%s", event.ID),
-				},
-			},
-		},
-		{
 			Name: "workspace",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
@@ -210,11 +202,6 @@ func (c *controller) createWorkerPod(
 		{
 			Name:      "event",
 			MountPath: "/var/event",
-			ReadOnly:  true,
-		},
-		{
-			Name:      "worker",
-			MountPath: "/var/worker",
 			ReadOnly:  true,
 		},
 		{

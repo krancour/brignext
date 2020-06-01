@@ -18,15 +18,15 @@ spec:
       brignext.js: |-
         const { events, Job, Group} = require("brigadier");
 
-        events.on("github.com/krancour/brignext/cli:exec", (e, w) => {
+        events.on("github.com/krancour/brignext/cli:exec", (e) => {
           let fooJob = new Job("foo", "debian:latest", ["echo $FOO"]);
           fooJob.primaryContainer.env = {
-            "FOO": w.secrets.foo
+            "FOO": e.worker.secrets.foo
           };
           
           let barJob = new Job("bar", "debian:latest", ["echo $BAR"]);
           barJob.primaryContainer.env = {
-            "BAR": w.secrets.bar
+            "BAR": e.worker.secrets.bar
           };
 
           fooJob.run()

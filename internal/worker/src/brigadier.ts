@@ -9,18 +9,16 @@ import * as byline from "byline"
 import * as k8s from "./k8s"
 
 let currentEvent: Event
-let currentWorker: Worker
 
 // events is the main event registry
 export let events = new EventRegistry()
 
 let fired: boolean = false
-export function fire(event: Event, worker: Worker) {
+export function fire(event: Event) {
   if (!fired) {
     fired = true
     currentEvent = event
-    currentWorker = worker
-    events.fire(event, worker)
+    events.fire(event)
   }
 }
 
@@ -168,7 +166,7 @@ export class Job extends jobs.Job {
 
     let useSource = false
     let useDockerSocket = false
-    if (currentWorker.git.cloneURL) {
+    if (currentEvent.worker.git.cloneURL) {
       // If ANY container uses source...
       for (let c of containers) {
         if (c.useSource) {
@@ -194,9 +192,9 @@ export class Job extends jobs.Job {
       container.image = "brigadecore/git-sidecar:v1.4.0"
       container.imagePullPolicy = "IfNotPresent"
       container.env = [
-        { name: "BRIGADE_REMOTE_URL", value: currentWorker.git.cloneURL },
-        { name: "BRIGADE_COMMIT_ID", value: currentWorker.git.commit },
-        { name: "BRIGADE_COMMIT_REF", value: currentWorker.git.ref },
+        { name: "BRIGADE_REMOTE_URL", value: currentEvent.worker.git.cloneURL },
+        { name: "BRIGADE_COMMIT_ID", value: currentEvent.worker.git.commit },
+        { name: "BRIGADE_COMMIT_REF", value: currentEvent.worker.git.ref },
         {
           name: "BRIGADE_REPO_KEY",
           valueFrom: {
@@ -217,7 +215,7 @@ export class Job extends jobs.Job {
         },
         {
           name: "BRIGADE_SUBMODULES",
-          value: currentWorker.git.initSubmodules.toString()
+          value: currentEvent.worker.git.initSubmodules.toString()
         },
         { name: "BRIGADE_WORKSPACE", value: "/var/vcs" }
       ]
@@ -231,7 +229,7 @@ export class Job extends jobs.Job {
 
     // If ANY container wants access to the host's Docker socket AND project
     // configuration permits that, prepare a volume.
-    if (useDockerSocket && currentWorker.jobs.allowDockerSocketMount) {
+    if (useDockerSocket && currentEvent.worker.jobs.allowDockerSocketMount) {
       pod.spec.volumes.push({
         name: "docker-socket",
         hostPath: {
@@ -288,7 +286,7 @@ export class Job extends jobs.Job {
 
       // If the container requests access to the host's Docker daemon AND it's
       // allowed, mount it...
-      if (c.docker.enabled && currentWorker.jobs.allowDockerSocketMount) {
+      if (c.docker.enabled && currentEvent.worker.jobs.allowDockerSocketMount) {
         container.volumeMounts.push({
           name: "docker-socket",
           mountPath: "/var/run/docker.sock"
@@ -297,7 +295,7 @@ export class Job extends jobs.Job {
 
       // If the job requests a privileged security context and it's allowed,
       // enable it...
-      if (c.privileged && currentWorker.jobs.allowPrivileged) {
+      if (c.privileged && currentEvent.worker.jobs.allowPrivileged) {
         container.securityContext = {
           privileged: true
         }
@@ -317,9 +315,9 @@ export class Job extends jobs.Job {
     // project.
     pod.spec.serviceAccountName = "jobs"
 
-    if (currentWorker.jobs.kubernetes.imagePullSecrets) { 
+    if (currentEvent.worker.jobs.kubernetes.imagePullSecrets) { 
       pod.spec.imagePullSecrets = []
-      for (let imagePullSecret of currentWorker.jobs.kubernetes.imagePullSecrets) {
+      for (let imagePullSecret of currentEvent.worker.jobs.kubernetes.imagePullSecrets) {
         pod.spec.imagePullSecrets.push(
           { name: imagePullSecret }
         )

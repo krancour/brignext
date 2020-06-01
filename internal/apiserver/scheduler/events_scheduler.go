@@ -52,61 +52,6 @@ func (e *eventsScheduler) Create(
 	event.Kubernetes = project.Kubernetes
 	event.Worker.Kubernetes = project.Spec.Worker.Kubernetes
 
-	// Create a secret with event details
-	eventJSON, err := json.MarshalIndent(
-		struct {
-			ID         string                    `json:"id"`
-			ProjectID  string                    `json:"projectID"`
-			Source     string                    `json:"source"`
-			Type       string                    `json:"type"`
-			ShortTitle string                    `json:"shortTitle"`
-			LongTitle  string                    `json:"longTitle"`
-			Kubernetes brignext.KubernetesConfig `json:"kubernetes"`
-			Payload    string                    `json:"payload"`
-		}{
-			ID:         event.ID,
-			ProjectID:  event.ProjectID,
-			Source:     event.Source,
-			Type:       event.Type,
-			ShortTitle: event.ShortTitle,
-			LongTitle:  event.LongTitle,
-			Kubernetes: *event.Kubernetes,
-			Payload:    event.Payload,
-		},
-		"",
-		"  ",
-	)
-	if err != nil {
-		return event, errors.Wrapf(err, "error marshaling event %q", event.ID)
-	}
-	if _, err = e.kubeClient.CoreV1().Secrets(
-		event.Kubernetes.Namespace,
-	).Create(
-		ctx,
-		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: fmt.Sprintf("event-%s", event.ID),
-				Labels: map[string]string{
-					componentLabel: "event",
-					projectLabel:   event.ProjectID,
-					eventLabel:     event.ID,
-				},
-			},
-			Type: corev1.SecretType("brignext.io/event"),
-			StringData: map[string]string{
-				"event.json": string(eventJSON),
-			},
-		},
-		metav1.CreateOptions{},
-	); err != nil {
-		return event, errors.Wrapf(
-			err,
-			"error creating config map %q in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
-		)
-	}
-
 	// Get the project's secrets
 	projectSecretsSecret, err := e.kubeClient.CoreV1().Secrets(
 		event.Kubernetes.Namespace,
@@ -123,51 +68,71 @@ func (e *eventsScheduler) Create(
 		secrets[key] = string(value)
 	}
 
-	workerJSON, err := json.MarshalIndent(
+	type worker struct {
+		Git                  brignext.WorkerGitConfig `json:"git"`
+		Jobs                 brignext.JobsSpec        `json:"jobs"`
+		LogLevel             brignext.LogLevel        `json:"logLevel"`
+		Secrets              map[string]string        `json:"secrets"`
+		ConfigFilesDirectory string                   `json:"configFilesDirectory"`
+		DefaultConfigFiles   map[string]string        `json:"defaultConfigFiles" bson:"defaultConfigFiles"` // nolint: lll
+	}
+
+	// Create a secret with event details
+	eventJSON, err := json.MarshalIndent(
 		struct {
-			Git                  brignext.WorkerGitConfig `json:"git"`
-			Jobs                 brignext.JobsSpec        `json:"jobs"`
-			LogLevel             brignext.LogLevel        `json:"logLevel"`
-			Secrets              map[string]string        `json:"secrets"`
-			ConfigFilesDirectory string                   `json:"configFilesDirectory"` // nolint: lll
+			ID         string                    `json:"id"`
+			ProjectID  string                    `json:"projectID"`
+			Source     string                    `json:"source"`
+			Type       string                    `json:"type"`
+			ShortTitle string                    `json:"shortTitle"`
+			LongTitle  string                    `json:"longTitle"`
+			Kubernetes brignext.KubernetesConfig `json:"kubernetes"`
+			Payload    string                    `json:"payload"`
+			Worker     worker                    `json:"worker"`
 		}{
-			Git:                  event.Worker.Git,
-			Jobs:                 event.Worker.Jobs,
-			LogLevel:             event.Worker.LogLevel,
-			Secrets:              secrets,
-			ConfigFilesDirectory: event.Worker.ConfigFilesDirectory,
+			ID:         event.ID,
+			ProjectID:  event.ProjectID,
+			Source:     event.Source,
+			Type:       event.Type,
+			ShortTitle: event.ShortTitle,
+			LongTitle:  event.LongTitle,
+			Kubernetes: *event.Kubernetes,
+			Payload:    event.Payload,
+			Worker: worker{
+				Git:                  event.Worker.Git,
+				Jobs:                 event.Worker.Jobs,
+				LogLevel:             event.Worker.LogLevel,
+				Secrets:              secrets,
+				ConfigFilesDirectory: event.Worker.ConfigFilesDirectory,
+				DefaultConfigFiles:   event.Worker.DefaultConfigFiles,
+			},
 		},
 		"",
 		"  ",
 	)
 	if err != nil {
-		return event, errors.Wrapf(
-			err,
-			"error marshaling worker for event %q to create a worker secret",
-			event.ID,
-		)
+		return event, errors.Wrapf(err, "error marshaling event %q", event.ID)
 	}
+
 	data := map[string][]byte{}
-	for filename, contents := range event.Worker.DefaultConfigFiles {
-		data[filename] = []byte(contents)
-	}
-	data["worker.json"] = workerJSON
+	data["event.json"] = eventJSON
 	data["gitSSHKey"] = projectSecretsSecret.Data["gitSSHKey"]
 	data["gitSSHCert"] = projectSecretsSecret.Data["gitSSHCert"]
+
 	if _, err = e.kubeClient.CoreV1().Secrets(
 		event.Kubernetes.Namespace,
 	).Create(
 		ctx,
 		&corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: fmt.Sprintf("worker-%s", event.ID),
+				Name: fmt.Sprintf("event-%s", event.ID),
 				Labels: map[string]string{
-					componentLabel: "worker",
+					componentLabel: "event",
 					projectLabel:   event.ProjectID,
 					eventLabel:     event.ID,
 				},
 			},
-			Type: corev1.SecretType("brignext.io/worker"),
+			Type: corev1.SecretType("brignext.io/event"),
 			Data: data,
 		},
 		metav1.CreateOptions{},
@@ -175,7 +140,7 @@ func (e *eventsScheduler) Create(
 		return event, errors.Wrapf(
 			err,
 			"error creating secret %q in namespace %q",
-			fmt.Sprintf("worker-%s", event.ID),
+			event.ID,
 			event.Kubernetes.Namespace,
 		)
 	}

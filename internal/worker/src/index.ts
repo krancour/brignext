@@ -1,10 +1,10 @@
 import * as fs from "fs"
 import * as moduleAlias from "module-alias"
 import * as path from "path"
+import * as requireFromString from "require-from-string"
 
 import { Logger } from "./brigadier/logger"
 import { Event } from "./brigadier/events"
-import { Worker } from "./brigadier/workers"
 import * as brigadier from "./brigadier"
 
 const logger = new Logger([])
@@ -12,18 +12,13 @@ const version = require("../package.json").version
 logger.log(`brignext-worker version: ${version}`)
 
 const event: Event = require("/var/event/event.json")
-const worker: Worker = require("/var/worker/worker.json")
-
-const scriptLocations = [
-  path.join("/var/vcs", worker.configFilesDirectory, "brignext.js"),
-  "/var/worker/brignext.js"
-]
 
 let script = ""
-for (let scriptFileLocation of scriptLocations) {
-  if (fs.existsSync(scriptFileLocation)) {
-    script = scriptFileLocation
-  }
+let scriptPath = path.join("/var/vcs", event.worker.configFilesDirectory, "brignext.js")
+if (fs.existsSync(scriptPath)) {
+  script = fs.readFileSync(scriptPath, "utf8")
+} else {
+  script = event.worker.defaultConfigFiles["brignext.js"]
 }
 
 if (script) {
@@ -39,30 +34,8 @@ if (script) {
   // script and any local dependencies.
   module.paths.forEach(moduleAlias.addPath)
 
-  const realScriptPath = fs.realpathSync(script);
-  // NOTE: `as any` is needed because @types/module-alias is at 2.0.0, while
-  // module-alias is now at 2.2.0.
-  (moduleAlias as any).addAlias(".", (fromPath: string) => {
-    // A custom handler for local dependencies to handle cases where the entry
-    // script is outside `/var/vcs`.
-
-    // For entry scripts outside /var/vcs only, rewrite dot-slash-prefixed
-    // requires to be rooted at `/var/vcs`.
-    if (!fromPath.startsWith("/var/vcs") && fromPath === realScriptPath) {
-      return "/var/vcs"
-    }
-
-    // For all other dot-slash-prefixed requires, resolve as usual.
-    // NOTE: module-alias will not allow us to just return "." here, because
-    // it uses path.join under the hood, which collapses "./foo" down to just
-    // "foo", for which the module resolution semantics are different.  So,
-    // return the directory of the requiring module, which gives the same result
-    // as ".".
-    return path.dirname(fromPath)
-  })
-
   moduleAlias()
-  require(script)
+  requireFromString(script)
 }
 
 let exitCode: number = 0
@@ -78,5 +51,4 @@ process.on("exit", code => {
   }
 })
 
-brigadier.fire(event, worker)
-
+brigadier.fire(event)

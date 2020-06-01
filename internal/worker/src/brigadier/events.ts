@@ -11,6 +11,7 @@ export interface Event {
   longTitle?: string
   kubernetes: EventKubernetesConfig
   payload?: string
+  worker: Worker
 }
 
 export interface EventKubernetesConfig {
@@ -25,8 +26,8 @@ export class EventRegistry extends EventEmitter {
     return super.on(eventName, eventHandler)
   }
 
-  public fire(event: Event, worker: Worker) {
-    this.emit(`${event.source}:${event.type}`, event, worker)
+  public fire(event: Event) {
+    this.emit(`${event.source}:${event.type}`, event)
   }
 
 }

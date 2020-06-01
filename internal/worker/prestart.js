@@ -3,17 +3,16 @@ const fs = require("fs");
 const { execFileSync } = require("child_process");
 const path = require('path');
 
-const worker = require("/var/worker/worker.json");
+const event = require("/var/event/event.json");
 
-const configFileLocations = [
-  path.join("/var/vcs", worker.configFilesDirectory, "brignext.json"),
-  "/var/worker/brignext.json"
-];
-
-let configFile = "";
-for (let configFileLocation of configFileLocations) {
-  if (fs.existsSync(configFileLocation)) {
-    configFile = configFileLocation;
+let deps;
+let configFilePath = path.join("/var/vcs", event.worker.configFilesDirectory, "brignext.json");
+if (fs.existsSync(configFilePath)) {
+  deps = require(configFilePath).dependencies || {};
+} else {
+  let configFileContents = event.worker.defaultConfigFiles["brignext.json"]
+  if (configFileContents) {
+    deps = JSON.parse(configFileContents).dependencies;
   }
 }
 
@@ -22,14 +21,10 @@ if (require.main === module)  {
 }
 
 function addDeps() {
-  if (!configFile) {
+  if (!deps) {
     console.log("prestart: no dependencies file found")
     return
   }
-
-  // Parse the config file
-  // Currently, we only look for dependencies
-  const deps = require(configFile).dependencies || {}
 
   const packages = buildPackageList(deps)
   if (packages.length == 0) {
