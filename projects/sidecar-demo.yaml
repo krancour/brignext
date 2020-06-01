@@ -18,10 +18,10 @@ spec:
       brignext.js: |-
         const { events, Job, Group, Container} = require("brigadier");
 
-        events.on("github.com/krancour/brignext/cli:exec", (e, w) => {
+        events.on("github.com/krancour/brignext/cli:exec", (e) => {
           let fooJob = new Job("foo", "debian:latest", ["echo $FOO"]);
           fooJob.primaryContainer.env = {
-            "FOO": w.secrets.foo
+            "FOO": e.project.secrets.foo
           };
           fooJob.sidecarContainers.push(
             new Container("sidecar", "debian:latest", ["sleep 10000"])
@@ -29,7 +29,7 @@ spec:
           
           let barJob = new Job("bar", "debian:latest", ["echo $BAR"]);
           barJob.primaryContainer.env = {
-            "BAR": w.secrets.bar
+            "BAR": e.project.secrets.bar
           };
           barJob.sidecarContainers.push(
             new Container("sidecar", "debian:latest", ["sleep 10000"])

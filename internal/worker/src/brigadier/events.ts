@@ -1,21 +1,16 @@
 import { Worker } from "./workers"
-
+import { Project } from "./projects"
 import { EventEmitter } from "events"
 
 export interface Event {
   id: string
-  projectID: string
+  project: Project
   source: string
   type: string
   shortTitle?: string
   longTitle?: string
-  kubernetes: EventKubernetesConfig
   payload?: string
   worker: Worker
-}
-
-export interface EventKubernetesConfig {
-  namespace: string
 }
 
 export type EventHandler = (event: Event) => void

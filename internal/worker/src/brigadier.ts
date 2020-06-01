@@ -54,7 +54,7 @@ export class Job extends jobs.Job {
         if (containerSecret) {
           try {
             await this.client.createNamespacedSecret(
-              currentEvent.kubernetes.namespace,
+              currentEvent.project.kubernetes.namespace,
               containerSecret,
             )
           }
@@ -69,7 +69,7 @@ export class Job extends jobs.Job {
       let jobPod = this.newJobPod()
       try {
         await this.client.createNamespacedPod(
-          currentEvent.kubernetes.namespace,
+          currentEvent.project.kubernetes.namespace,
           jobPod
         )
       }
@@ -128,7 +128,7 @@ export class Job extends jobs.Job {
     secret.metadata.name = `container-${currentEvent.id}-${this.name}-${container.name}`
     secret.metadata.labels = {
       "brignext.io/component": "container",
-      "brignext.io/project": currentEvent.projectID,
+      "brignext.io/project": currentEvent.project.id,
       "brignext.io/event": currentEvent.id,
       "brignext.io/job": this.name,
       "brignext.io/container": container.name
@@ -148,10 +148,10 @@ export class Job extends jobs.Job {
     let pod = new kubernetes.V1Pod()
     pod.metadata = new kubernetes.V1ObjectMeta()
     pod.metadata.name = this.podName
-    pod.metadata.namespace = currentEvent.kubernetes.namespace
+    pod.metadata.namespace = currentEvent.project.kubernetes.namespace
     pod.metadata.labels = {
       "brignext.io/component": "job",
-      "brignext.io/project": currentEvent.projectID,
+      "brignext.io/project": currentEvent.project.id,
       "brignext.io/event": currentEvent.id,
       "brignext.io/job": this.name
     }
@@ -199,7 +199,7 @@ export class Job extends jobs.Job {
           name: "BRIGADE_REPO_KEY",
           valueFrom: {
             secretKeyRef: {
-              name: "worker-" + currentEvent.id,
+              name: "event-" + currentEvent.id,
               key: "gitSSHKey",
             }
           }
@@ -208,7 +208,7 @@ export class Job extends jobs.Job {
           name: "BRIGADE_REPO_SSH_CERT",
           valueFrom: {
             secretKeyRef: {
-              name: "worker-" + currentEvent.id,
+              name: "event-" + currentEvent.id,
               key: "gitSSHCert",
             }
           }
@@ -418,7 +418,7 @@ export class Job extends jobs.Job {
               this.streamLogs
             ) {
                 followLogsRequest = followLogs(
-                  currentEvent.kubernetes.namespace,
+                  currentEvent.project.kubernetes.namespace,
                   this.podName
                 )
             }
@@ -427,7 +427,7 @@ export class Job extends jobs.Job {
         if (!this.streamLogs || (this.streamLogs && this.pod.status.phase != "Running")) {
           // don't display "Running" when we're asked to display job Pod logs
           this.logger.log(
-            `${currentEvent.kubernetes.namespace}/${this.podName} phase ${this.pod.status.phase}`
+            `${currentEvent.project.kubernetes.namespace}/${this.podName} phase ${this.pod.status.phase}`
           )
         }
         // In all other cases we fall through and let the fn be run again.
@@ -439,7 +439,7 @@ export class Job extends jobs.Job {
           clearTimeout(waiter)
           return
         }
-        pollOnce(name, currentEvent.kubernetes.namespace, interval)
+        pollOnce(name, currentEvent.project.kubernetes.namespace, interval)
       }, 2000)
       let clearTimers = () => {
         podUpdater.abort()
@@ -474,7 +474,7 @@ export class Job extends jobs.Job {
               logs = data
             }
             this.logger.log(
-              `${currentEvent.kubernetes.namespace}/${this.podName} logs ${logs}`
+              `${currentEvent.project.kubernetes.namespace}/${this.podName} logs ${logs}`
             )
           } catch (e) { } //let it stay connected.
         })
@@ -504,7 +504,7 @@ export class Job extends jobs.Job {
   }
 
   private startUpdatingPod(): request.Request {
-    const url = `${k8s.config.getCurrentCluster().server}/api/v1/namespaces/${currentEvent.kubernetes.namespace}/pods`
+    const url = `${k8s.config.getCurrentCluster().server}/api/v1/namespaces/${currentEvent.project.kubernetes.namespace}/pods`
     const requestOptions = {
       qs: {
         watch: true,
@@ -551,7 +551,7 @@ export class Job extends jobs.Job {
     try {
       let result = await this.client.readNamespacedPodLog(
         this.podName,
-        currentEvent.kubernetes.namespace,
+        currentEvent.project.kubernetes.namespace,
         this.primaryContainer.name,
       )
       return result.body

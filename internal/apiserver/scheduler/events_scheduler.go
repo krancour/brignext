@@ -45,12 +45,12 @@ func NewEventsScheduler(
 
 func (e *eventsScheduler) Create(
 	ctx context.Context,
-	project brignext.Project,
+	proj brignext.Project,
 	event brignext.Event,
 ) (brignext.Event, error) {
 	// Fill in scheduler-specific details
-	event.Kubernetes = project.Kubernetes
-	event.Worker.Kubernetes = project.Spec.Worker.Kubernetes
+	event.Kubernetes = proj.Kubernetes
+	event.Worker.Kubernetes = proj.Spec.Worker.Kubernetes
 
 	// Get the project's secrets
 	projectSecretsSecret, err := e.kubeClient.CoreV1().Secrets(
@@ -68,11 +68,16 @@ func (e *eventsScheduler) Create(
 		secrets[key] = string(value)
 	}
 
+	type project struct {
+		ID         string                    `json:"id"`
+		Kubernetes brignext.KubernetesConfig `json:"kubernetes"`
+		Secrets    map[string]string         `json:"secrets"`
+	}
+
 	type worker struct {
 		Git                  brignext.WorkerGitConfig `json:"git"`
 		Jobs                 brignext.JobsSpec        `json:"jobs"`
 		LogLevel             brignext.LogLevel        `json:"logLevel"`
-		Secrets              map[string]string        `json:"secrets"`
 		ConfigFilesDirectory string                   `json:"configFilesDirectory"`
 		DefaultConfigFiles   map[string]string        `json:"defaultConfigFiles" bson:"defaultConfigFiles"` // nolint: lll
 	}
@@ -80,29 +85,30 @@ func (e *eventsScheduler) Create(
 	// Create a secret with event details
 	eventJSON, err := json.MarshalIndent(
 		struct {
-			ID         string                    `json:"id"`
-			ProjectID  string                    `json:"projectID"`
-			Source     string                    `json:"source"`
-			Type       string                    `json:"type"`
-			ShortTitle string                    `json:"shortTitle"`
-			LongTitle  string                    `json:"longTitle"`
-			Kubernetes brignext.KubernetesConfig `json:"kubernetes"`
-			Payload    string                    `json:"payload"`
-			Worker     worker                    `json:"worker"`
+			ID         string  `json:"id"`
+			Project    project `json:"project"`
+			Source     string  `json:"source"`
+			Type       string  `json:"type"`
+			ShortTitle string  `json:"shortTitle"`
+			LongTitle  string  `json:"longTitle"`
+			Payload    string  `json:"payload"`
+			Worker     worker  `json:"worker"`
 		}{
-			ID:         event.ID,
-			ProjectID:  event.ProjectID,
+			ID: event.ID,
+			Project: project{
+				ID:         event.ProjectID,
+				Kubernetes: *event.Kubernetes,
+				Secrets:    secrets,
+			},
 			Source:     event.Source,
 			Type:       event.Type,
 			ShortTitle: event.ShortTitle,
 			LongTitle:  event.LongTitle,
-			Kubernetes: *event.Kubernetes,
 			Payload:    event.Payload,
 			Worker: worker{
 				Git:                  event.Worker.Git,
 				Jobs:                 event.Worker.Jobs,
 				LogLevel:             event.Worker.LogLevel,
-				Secrets:              secrets,
 				ConfigFilesDirectory: event.Worker.ConfigFilesDirectory,
 				DefaultConfigFiles:   event.Worker.DefaultConfigFiles,
 			},
