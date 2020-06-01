@@ -257,7 +257,7 @@ func (c *controller) createWorkerPod(
 						ValueFrom: &corev1.EnvVarSource{
 							SecretKeyRef: &corev1.SecretKeySelector{
 								LocalObjectReference: corev1.LocalObjectReference{
-									Name: fmt.Sprintf("worker-%s", event.ID),
+									Name: fmt.Sprintf("event-%s", event.ID),
 								},
 								Key: "gitSSHKey",
 							},
@@ -268,7 +268,7 @@ func (c *controller) createWorkerPod(
 						ValueFrom: &corev1.EnvVarSource{
 							SecretKeyRef: &corev1.SecretKeySelector{
 								LocalObjectReference: corev1.LocalObjectReference{
-									Name: fmt.Sprintf("worker-%s", event.ID),
+									Name: fmt.Sprintf("event-%s", event.ID),
 								},
 								Key: "gitSSHCert",
 							},
