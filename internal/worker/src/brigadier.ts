@@ -329,6 +329,15 @@ export class Job extends jobs.Job {
     // Misc. node selection settings
 
     // If host os is set, specify it.
+    // TODO: Most BrigNext components are Linux-based, which means if a cluster
+    // CAN accommodate scheduling a job to a Windows node, it MUST be a mixed
+    // node cluster. In that case, there is almost certainly a taint on the
+    // Windows nodes that is repelling most workloads. Therefore, there is
+    // probably a toleration that needs to also be added to a Windows-based
+    // job pod. Unfortunately, I don't think there's a universal approach for
+    // tainting Windows nodes, so we either need to work out some specific,
+    // reasonable, and well documented strategy OR we need to make the
+    // toleration configurable.
     if (this.host.os) {
       pod.spec.nodeSelector = {
         "beta.kubernetes.io/os": this.host.os
