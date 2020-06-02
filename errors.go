@@ -91,21 +91,23 @@ type ErrConflict struct {
 	TypeMeta `json:",inline"`
 	Type     string `json:"type"`
 	ID       string `json:"id"`
+	Reason   string `json:"reason"`
 }
 
-func NewErrConflict(tipe string, id string) *ErrConflict {
+func NewErrConflict(tipe string, id string, reason string) *ErrConflict {
 	return &ErrConflict{
 		TypeMeta: TypeMeta{
 			APIVersion: APIVersion,
-			Kind:       "IDConflictError",
+			Kind:       "ConflictError",
 		},
-		Type: tipe,
-		ID:   id,
+		Type:   tipe,
+		ID:     id,
+		Reason: reason,
 	}
 }
 
 func (e *ErrConflict) Error() string {
-	return fmt.Sprintf("A %s with the ID %q already exists.", e.Type, e.ID)
+	return e.Reason
 }
 
 type ErrInternalServer struct {

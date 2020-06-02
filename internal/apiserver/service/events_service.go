@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log"
 
 	"github.com/krancour/brignext/v2"
 	"github.com/krancour/brignext/v2/internal/apiserver/scheduler"
@@ -18,15 +19,10 @@ type EventsService interface {
 	List(context.Context) (brignext.EventList, error)
 	ListByProject(context.Context, string) (brignext.EventList, error)
 	Get(context.Context, string) (brignext.Event, error)
-	Cancel(
-		ctx context.Context,
-		id string,
-		cancelRunning bool,
-	) (brignext.EventReferenceList, error)
-	CancelByProject(
-		ctx context.Context,
-		projectID string,
-		cancelingRunning bool,
+	Cancel(context.Context, string) error
+	CancelCollection(
+		context.Context,
+		brignext.EventListOptions,
 	) (brignext.EventReferenceList, error)
 	Delete(
 		ctx context.Context,
@@ -207,13 +203,16 @@ func (e *eventsService) Create(
 	if err := e.store.Events().Create(ctx, event); err != nil {
 		// We need to roll this back manually because the scheduler doesn't
 		// automatically roll anything back upon failure.
-		e.scheduler.Delete(ctx, event) // nolint: errcheck
+		e.scheduler.Delete(
+			ctx,
+			brignext.EventReference{},
+		) // nolint: errcheck
 		return eventRefList,
 			errors.Wrapf(err, "error storing new event %q", event.ID)
 	}
 
 	eventRefList.Items = []brignext.EventReference{
-		brignext.NewEventReference(event.ID),
+		brignext.NewEventReference(event),
 	}
 	return eventRefList, nil
 }
@@ -260,104 +259,74 @@ func (e *eventsService) Get(
 	return event, nil
 }
 
-func (e *eventsService) Cancel(
-	ctx context.Context,
-	id string,
-	cancelRunning bool,
-) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.NewEventReferenceList()
-
+func (e *eventsService) Cancel(ctx context.Context, id string) error {
+	// Make sure the event exists
 	event, err := e.store.Events().Get(ctx, id)
 	if err != nil {
-		return eventRefList,
-			errors.Wrapf(err, "error retrieving event %q from store", id)
+		return errors.Wrapf(
+			err,
+			"error retrieving event %q from store",
+			id,
+		)
+	}
+	if err = e.store.Events().Cancel(ctx, id); err != nil {
+		return errors.Wrapf(err, "error canceling event %q in store", id)
 	}
 
-	err = e.store.DoTx(ctx, func(ctx context.Context) error {
-		var ok bool
-		ok, err = e.store.Events().Cancel(
+	go func() {
+		if err = e.scheduler.Delete(
 			ctx,
-			id,
-			cancelRunning,
-		)
-		if err != nil {
-			return errors.Wrapf(err, "error updating event %q in store", id)
-		}
-		if ok {
-			if err = e.scheduler.Cancel(ctx, event); err != nil {
-				return errors.Wrapf(
+			brignext.NewEventReference(event),
+		); err != nil {
+			log.Println(
+				errors.Wrapf(
 					err,
 					"error canceling event %q in scheduler",
 					id,
-				)
-			}
-			eventRefList.Items = []brignext.EventReference{
-				brignext.NewEventReference(event.ID),
-			}
+				),
+			)
 		}
-		return nil
-	})
+	}()
 
-	return eventRefList, err
+	return nil
 }
 
-func (e *eventsService) CancelByProject(
+func (e *eventsService) CancelCollection(
 	ctx context.Context,
-	projectID string,
-	cancelRunning bool,
+	opts brignext.EventListOptions,
 ) (brignext.EventReferenceList, error) {
 	eventRefList := brignext.NewEventReferenceList()
 
-	// Make sure the project exists
-	_, err := e.store.Projects().Get(ctx, projectID)
-	if err != nil {
-		return eventRefList, errors.Wrapf(
-			err,
-			"error retrieving project %q from store",
-			projectID,
-		)
-	}
-
-	// Find all events. We'll iterate over all of them and try to cancel each.
-	// It sounds inefficient and it probably is, but this allows us to cancel
-	// each event in its own transaction.
-	eventList, err := e.store.Events().ListByProject(ctx, projectID)
-	if err != nil {
-		return eventRefList, errors.Wrapf(
-			err,
-			"error retrieving events for project %q",
-			projectID,
-		)
-	}
-
-	for _, event := range eventList.Items {
-		if err := e.store.DoTx(ctx, func(ctx context.Context) error {
-			ok, err := e.store.Events().Cancel(ctx, event.ID, cancelRunning)
-			if err != nil {
-				return errors.Wrapf(
-					err,
-					"error canceling event %q in store",
-					event.ID,
-				)
-			}
-			if ok {
-				if err := e.scheduler.Delete(ctx, event); err != nil {
-					return errors.Wrapf(
-						err,
-						"error deleting event %q from scheduler",
-						event.ID,
-					)
-				}
-				eventRefList.Items = append(
-					eventRefList.Items,
-					brignext.NewEventReference(event.ID),
-				)
-			}
-			return nil
-		}); err != nil {
-			return eventRefList, err
+	if opts.ProjectID != "" {
+		// Make sure the project exists
+		_, err := e.store.Projects().Get(ctx, opts.ProjectID)
+		if err != nil {
+			return eventRefList, errors.Wrapf(
+				err,
+				"error retrieving project %q from store",
+				opts.ProjectID,
+			)
 		}
 	}
+
+	eventRefList, err := e.store.Events().CancelCollection(ctx, opts)
+	if err != nil {
+		return eventRefList, errors.Wrap(err, "error canceling events in store")
+	}
+
+	go func() {
+		for _, eventRef := range eventRefList.Items {
+			if err := e.scheduler.Delete(ctx, eventRef); err != nil {
+				log.Println(
+					errors.Wrapf(
+						err,
+						"error deleting event %q from scheduler",
+						eventRef.ID,
+					),
+				)
+			}
+		}
+	}()
 
 	return eventRefList, nil
 }
@@ -388,7 +357,8 @@ func (e *eventsService) Delete(
 			return errors.Wrapf(err, "error removing event %q from store", id)
 		}
 		if ok {
-			if err = e.scheduler.Delete(ctx, event); err != nil {
+			eventRef := brignext.NewEventReference(event)
+			if err = e.scheduler.Delete(ctx, eventRef); err != nil {
 				return errors.Wrapf(
 					err,
 					"error deleting event %q from scheduler",
@@ -396,7 +366,7 @@ func (e *eventsService) Delete(
 				)
 			}
 			eventRefList.Items = []brignext.EventReference{
-				brignext.NewEventReference(event.ID),
+				eventRef,
 			}
 		}
 		return nil
@@ -450,7 +420,8 @@ func (e *eventsService) DeleteByProject(
 				)
 			}
 			if ok {
-				if err := e.scheduler.Delete(ctx, event); err != nil {
+				eventRef := brignext.NewEventReference(event)
+				if err := e.scheduler.Delete(ctx, eventRef); err != nil {
 					return errors.Wrapf(
 						err,
 						"error deleting event %q from scheduler",
@@ -459,7 +430,7 @@ func (e *eventsService) DeleteByProject(
 				}
 				eventRefList.Items = append(
 					eventRefList.Items,
-					brignext.NewEventReference(event.ID),
+					eventRef,
 				)
 			}
 			return nil

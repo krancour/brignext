@@ -24,8 +24,7 @@ type EventsScheduler interface {
 		project brignext.Project,
 		event brignext.Event,
 	) (brignext.Event, error)
-	Cancel(ctx context.Context, event brignext.Event) error
-	Delete(ctx context.Context, event brignext.Event) error
+	Delete(context.Context, brignext.EventReference) error
 }
 
 type eventsScheduler struct {
@@ -182,96 +181,14 @@ func (e *eventsScheduler) Create(
 	return event, nil
 }
 
-func (e *eventsScheduler) Cancel(
-	ctx context.Context,
-	event brignext.Event,
-) error {
-	matchesEvent, _ := labels.NewRequirement(
-		eventLabel,
-		selection.Equals,
-		[]string{event.ID},
-	)
-	labelSelector := labels.NewSelector()
-	labelSelector = labelSelector.Add(*matchesEvent)
-
-	// Delete all pods related to this event
-	if err := e.deletePodsByLabelSelector(
-		ctx,
-		event.Kubernetes.Namespace,
-		labelSelector,
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error deleting event %q pods in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
-		)
-	}
-
-	// Delete all persistent volume claims related this this event
-	if err := e.deletePersistentVolumeClaimsByLabelSelector(
-		ctx,
-		event.Kubernetes.Namespace,
-		labelSelector,
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error deleting event %q persistent volume claims in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
-		)
-	}
-
-	// Delete all config maps related to this event. BrigNext itself doesn't
-	// create any, but we're not discounting the possibility that a worker or job
-	// might create some. We are, of course, assuming that anything created by a
-	// worker or job is labeled appropriately.
-	if err := e.deleteConfigMapsByLabelSelector(
-		ctx,
-		event.Kubernetes.Namespace,
-		labelSelector,
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error deleting event %q config maps in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
-		)
-	}
-
-	// Delete most secrets related to the event, being careful not to delete the
-	// secret that contains the event's payload. As long as the event exists,
-	// we'll want this to stick around.
-	isntEventSecret, _ := labels.NewRequirement(
-		componentLabel,
-		selection.NotEquals,
-		[]string{"event"},
-	)
-	labelSelector = labelSelector.Add(*isntEventSecret)
-	if err := e.deleteSecretsByLabelSelector(
-		ctx,
-		event.Kubernetes.Namespace,
-		labelSelector,
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error deleting event %q secrets in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
-		)
-	}
-
-	return nil
-}
-
 func (e *eventsScheduler) Delete(
 	ctx context.Context,
-	event brignext.Event,
+	eventRef brignext.EventReference,
 ) error {
 	matchesEvent, _ := labels.NewRequirement(
 		eventLabel,
 		selection.Equals,
-		[]string{event.ID},
+		[]string{eventRef.ID},
 	)
 	labelSelector := labels.NewSelector()
 	labelSelector = labelSelector.Add(*matchesEvent)
@@ -279,28 +196,28 @@ func (e *eventsScheduler) Delete(
 	// Delete all pods related to this event
 	if err := e.deletePodsByLabelSelector(
 		ctx,
-		event.Kubernetes.Namespace,
+		eventRef.Kubernetes.Namespace,
 		labelSelector,
 	); err != nil {
 		return errors.Wrapf(
 			err,
 			"error deleting event %q pods in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
+			eventRef.ID,
+			eventRef.Kubernetes.Namespace,
 		)
 	}
 
 	// Delete all persistent volume claims related to this event
 	if err := e.deletePersistentVolumeClaimsByLabelSelector(
 		ctx,
-		event.Kubernetes.Namespace,
+		eventRef.Kubernetes.Namespace,
 		labelSelector,
 	); err != nil {
 		return errors.Wrapf(
 			err,
 			"error deleting event %q persistent volume claims in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
+			eventRef.ID,
+			eventRef.Kubernetes.Namespace,
 		)
 	}
 
@@ -310,28 +227,28 @@ func (e *eventsScheduler) Delete(
 	// worker or job is labeled appropriately.
 	if err := e.deleteConfigMapsByLabelSelector(
 		ctx,
-		event.Kubernetes.Namespace,
+		eventRef.Kubernetes.Namespace,
 		labelSelector,
 	); err != nil {
 		return errors.Wrapf(
 			err,
 			"error deleting event %q config maps in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
+			eventRef.ID,
+			eventRef.Kubernetes.Namespace,
 		)
 	}
 
 	// Delete all secrets related to this event
 	if err := e.deleteSecretsByLabelSelector(
 		ctx,
-		event.Kubernetes.Namespace,
+		eventRef.Kubernetes.Namespace,
 		labelSelector,
 	); err != nil {
 		return errors.Wrapf(
 			err,
 			"error deleting event %q secrets in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
+			eventRef.ID,
+			eventRef.Kubernetes.Namespace,
 		)
 	}
 

@@ -345,16 +345,14 @@ func eventGet(c *cli.Context) error {
 }
 
 func eventCancel(c *cli.Context) error {
-	eventID := c.String(flagID)
+	id := c.String(flagID)
 	projectID := c.String(flagProject)
 	cancelRunning := c.Bool(flagRunning)
 
-	if eventID == "" && projectID == "" {
-		return errors.New("one of --id or --project must be set")
-	}
-
-	if eventID != "" && projectID != "" {
-		return errors.New("--id and --project are mutually exclusive")
+	if id != "" && (projectID != "" || cancelRunning) {
+		return errors.New(
+			"neither --project nor --cancelRunning may be used in with --id",
+		)
 	}
 
 	client, err := getClient(c)
@@ -362,39 +360,27 @@ func eventCancel(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if eventID != "" {
-		var eventRefList brignext.EventReferenceList
-		if eventRefList, err = client.Events().Cancel(
-			c.Context,
-			eventID,
-			cancelRunning,
-		); err != nil {
+	if id != "" {
+		if err = client.Events().Cancel(c.Context, id); err != nil {
 			return err
 		}
-		if len(eventRefList.Items) != 0 {
-			fmt.Printf("Event %q canceled.\n", eventID)
-			return nil
-		}
-		return errors.Errorf(
-			"event %q was not canceled because specified conditions were not "+
-				"satisfied",
-			eventID,
-		)
+		fmt.Printf("Event %q canceled.\n", id)
+		return nil
 	}
 
-	eventRefList, err := client.Events().CancelByProject(
-		c.Context,
-		projectID,
-		cancelRunning,
-	)
+	opts := brignext.EventListOptions{
+		ProjectID:    projectID,
+		WorkerPhases: []brignext.WorkerPhase{brignext.WorkerPhasePending},
+	}
+	if cancelRunning {
+		opts.WorkerPhases = append(opts.WorkerPhases, brignext.WorkerPhaseRunning)
+	}
+
+	eventRefList, err := client.Events().CancelCollection(c.Context, opts)
 	if err != nil {
 		return err
 	}
-	fmt.Printf(
-		"Canceled %d events for project %q.\n",
-		len(eventRefList.Items),
-		projectID,
-	)
+	fmt.Printf("Canceled %d events.\n", len(eventRefList.Items))
 
 	return nil
 }

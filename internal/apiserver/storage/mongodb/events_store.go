@@ -121,11 +121,7 @@ func (e *eventsStore) Get(
 	return event, nil
 }
 
-func (e *eventsStore) Cancel(
-	ctx context.Context,
-	id string,
-	cancelRunning bool,
-) (bool, error) {
+func (e *eventsStore) Cancel(ctx context.Context, id string) error {
 	res, err := e.collection.UpdateOne(
 		ctx,
 		bson.M{
@@ -140,18 +136,10 @@ func (e *eventsStore) Cancel(
 		},
 	)
 	if err != nil {
-		return false, errors.Wrapf(
-			err,
-			"error updating status of event %q worker",
-			id,
-		)
+		return errors.Wrapf(err, "error updating status of event %q worker", id)
 	}
 	if res.MatchedCount == 1 {
-		return true, nil
-	}
-
-	if !cancelRunning {
-		return false, nil
+		return nil
 	}
 
 	res, err = e.collection.UpdateOne(
@@ -168,13 +156,110 @@ func (e *eventsStore) Cancel(
 		},
 	)
 	if err != nil {
-		return false, errors.Wrapf(
-			err,
-			"error updating status of event %q worker",
+		return errors.Wrapf(err, "error updating status of event %q worker", id)
+	}
+
+	if res.MatchedCount == 0 {
+		return brignext.NewErrConflict(
+			"Event",
 			id,
+			fmt.Sprintf(
+				"Event %q was not canceled because it was already in a terminal state.",
+				id,
+			),
 		)
 	}
-	return res.MatchedCount == 1, nil
+
+	return nil
+}
+
+func (e *eventsStore) CancelCollection(
+	ctx context.Context,
+	opts brignext.EventListOptions,
+) (brignext.EventReferenceList, error) {
+	eventRefList := brignext.NewEventReferenceList()
+
+	// For some reason, the MongoDB driver for Go doesn't implement the expose the
+	// findAndModify() method. As a workaround, we'll do a straight updateMany()
+	// and then we'll do a separate find() for all events that have the precise
+	// moment of cancellation that we set in the updateMany() operation.
+
+	var cancelPending bool
+	var cancelRunning bool
+	for _, workerPhase := range opts.WorkerPhases {
+		if workerPhase == brignext.WorkerPhasePending {
+			cancelPending = true
+		}
+		if workerPhase == brignext.WorkerPhaseRunning {
+			cancelRunning = true
+		}
+	}
+
+	if !cancelPending && !cancelRunning {
+		return eventRefList, nil
+	}
+
+	cancellationTime := time.Now()
+
+	if cancelPending {
+		criteria := bson.M{
+			"status.workerStatus.phase": brignext.WorkerPhasePending,
+		}
+		if opts.ProjectID != "" {
+			criteria["projectID"] = opts.ProjectID
+		}
+		if _, err := e.collection.UpdateMany(
+			ctx,
+			criteria,
+			bson.M{
+				"$set": bson.M{
+					"canceled":                  cancellationTime,
+					"status.workerStatus.phase": brignext.WorkerPhaseCanceled,
+				},
+			},
+		); err != nil {
+			return eventRefList, errors.Wrap(err, "error updating events")
+		}
+	}
+
+	if cancelRunning {
+		criteria := bson.M{
+			"status.workerStatus.phase": brignext.WorkerPhaseRunning,
+		}
+		if opts.ProjectID != "" {
+			criteria["projectID"] = opts.ProjectID
+		}
+		if _, err := e.collection.UpdateMany(
+			ctx,
+			criteria,
+			bson.M{
+				"$set": bson.M{
+					"canceled":                  cancellationTime,
+					"status.workerStatus.phase": brignext.WorkerPhaseAborted,
+				},
+			},
+		); err != nil {
+			return eventRefList, errors.Wrap(err, "error updating events")
+		}
+	}
+
+	criteria := bson.M{
+		"canceled": cancellationTime,
+	}
+	if opts.ProjectID != "" {
+		criteria["projectID"] = opts.ProjectID
+	}
+	findOptions := options.Find()
+	findOptions.SetSort(bson.M{"metadata.created": -1})
+	cur, err := e.collection.Find(ctx, criteria, findOptions)
+	if err != nil {
+		return eventRefList, errors.Wrapf(err, "error finding canceled events")
+	}
+	if err := cur.All(ctx, &eventRefList.Items); err != nil {
+		return eventRefList, errors.Wrap(err, "error decoding canceled events")
+	}
+
+	return eventRefList, nil
 }
 
 func (e *eventsStore) Delete(

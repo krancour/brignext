@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2"
@@ -43,15 +44,15 @@ func (e *eventEndpoints) register(router *mux.Router) {
 
 	// Cancel event
 	router.HandleFunc(
-		"/v2/events/{id}/cancel",
+		"/v2/events/{id}/cancellation",
 		e.tokenAuthFilter.Decorate(e.cancel),
 	).Methods(http.MethodPut)
 
-	// Cancel events by project
+	// Cancel a collection of events
 	router.HandleFunc(
-		"/v2/projects/{projectID}/events/cancel",
-		e.tokenAuthFilter.Decorate(e.cancel),
-	).Methods(http.MethodPut)
+		"/v2/events/cancellations",
+		e.tokenAuthFilter.Decorate(e.cancelCollection),
+	).Methods(http.MethodPost)
 
 	// Delete event
 	router.HandleFunc(
@@ -131,22 +132,37 @@ func (e *eventEndpoints) get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *eventEndpoints) cancel(w http.ResponseWriter, r *http.Request) {
-	eventID := mux.Vars(r)["id"]
-	projectID := mux.Vars(r)["projectID"]
-	// nolint: errcheck
-	cancelRunning, _ := strconv.ParseBool(r.URL.Query().Get("cancelRunning"))
+	id := mux.Vars(r)["id"]
 	e.serveAPIRequest(apiRequest{
 		w: w,
 		r: r,
 		endpointLogic: func() (interface{}, error) {
-			if eventID != "" {
-				return e.service.Cancel(r.Context(), eventID, cancelRunning)
-			}
-			return e.service.CancelByProject(
-				r.Context(),
-				projectID,
-				cancelRunning,
-			)
+			return nil, e.service.Cancel(r.Context(), id)
+		},
+		successCode: http.StatusOK,
+	})
+}
+
+func (e *eventEndpoints) cancelCollection(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	opts := brignext.EventListOptions{
+		ProjectID: r.URL.Query().Get("projectID"),
+	}
+	workerPhasesStr := r.URL.Query().Get("workerPhases")
+	if workerPhasesStr != "" {
+		workerPhaseStrs := strings.Split(workerPhasesStr, ",")
+		opts.WorkerPhases = make([]brignext.WorkerPhase, len(workerPhaseStrs))
+		for i, workerPhaseStr := range workerPhaseStrs {
+			opts.WorkerPhases[i] = brignext.WorkerPhase(workerPhaseStr)
+		}
+	}
+	e.serveAPIRequest(apiRequest{
+		w: w,
+		r: r,
+		endpointLogic: func() (interface{}, error) {
+			return e.service.CancelCollection(r.Context(), opts)
 		},
 		successCode: http.StatusOK,
 	})

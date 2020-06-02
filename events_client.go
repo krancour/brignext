@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type EventsClient interface {
@@ -13,15 +14,10 @@ type EventsClient interface {
 	List(context.Context) (EventList, error)
 	ListByProject(context.Context, string) (EventList, error)
 	Get(context.Context, string) (Event, error)
-	Cancel(
-		ctx context.Context,
-		id string,
-		cancelRunning bool,
-	) (EventReferenceList, error)
-	CancelByProject(
-		ctx context.Context,
-		projectID string,
-		cancelRunning bool,
+	Cancel(context.Context, string) error
+	CancelCollection(
+		context.Context,
+		EventListOptions,
 	) (EventReferenceList, error)
 	Delete(
 		ctx context.Context,
@@ -172,37 +168,39 @@ func (e *eventsClient) Get(ctx context.Context, id string) (Event, error) {
 func (e *eventsClient) Cancel(
 	ctx context.Context,
 	id string,
-	cancelRunning bool,
-) (EventReferenceList, error) {
-	eventRefList := EventReferenceList{}
-	return eventRefList, e.executeAPIRequest(
+) error {
+	return e.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodPut,
-			path:        fmt.Sprintf("v2/events/%s/cancel", id),
+			path:        fmt.Sprintf("v2/events/%s/cancellation", id),
 			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: map[string]string{
-				"cancelRunning": strconv.FormatBool(cancelRunning),
-			},
 			successCode: http.StatusOK,
-			respObj:     &eventRefList,
 		},
 	)
 }
 
-func (e *eventsClient) CancelByProject(
+func (e *eventsClient) CancelCollection(
 	ctx context.Context,
-	projectID string,
-	cancelRunning bool,
+	opts EventListOptions,
 ) (EventReferenceList, error) {
+	queryParams := map[string]string{}
+	if opts.ProjectID != "" {
+		queryParams["projectID"] = opts.ProjectID
+	}
+	if len(opts.WorkerPhases) > 0 {
+		workerPhaseStrs := make([]string, len(opts.WorkerPhases))
+		for i, workerPhase := range opts.WorkerPhases {
+			workerPhaseStrs[i] = string(workerPhase)
+		}
+		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
+	}
 	eventRefList := EventReferenceList{}
 	return eventRefList, e.executeAPIRequest(
 		apiRequest{
-			method:      http.MethodPut,
-			path:        fmt.Sprintf("v2/projects/%s/events/cancel", projectID),
+			method:      http.MethodPost,
+			path:        "v2/events/cancellations",
 			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: map[string]string{
-				"cancelRunning": strconv.FormatBool(cancelRunning),
-			},
+			queryParams: queryParams,
 			successCode: http.StatusOK,
 			respObj:     &eventRefList,
 		},

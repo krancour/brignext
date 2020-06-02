@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/krancour/brignext/v2"
@@ -47,7 +48,11 @@ func (u *usersStore) Create(ctx context.Context, user brignext.User) error {
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
-				return brignext.NewErrConflict("User", user.ID)
+				return brignext.NewErrConflict(
+					"User",
+					user.ID,
+					fmt.Sprintf("A user with the ID %q already exists.", user.ID),
+				)
 			}
 		}
 		return errors.Wrapf(err, "error inserting new user %q", user.ID)

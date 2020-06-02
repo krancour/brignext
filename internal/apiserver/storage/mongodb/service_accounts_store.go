@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/krancour/brignext/v2"
@@ -68,7 +69,14 @@ func (s *serviceAccountsStore) Create(
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
-				return brignext.NewErrConflict("ServiceAccount", serviceAccount.ID)
+				return brignext.NewErrConflict(
+					"ServiceAccount",
+					serviceAccount.ID,
+					fmt.Sprintf(
+						"A service account with the ID %q already exists.",
+						serviceAccount.ID,
+					),
+				)
 			}
 		}
 		return errors.Wrapf(

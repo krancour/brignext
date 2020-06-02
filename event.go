@@ -24,18 +24,25 @@ func NewEventReferenceList() EventReferenceList {
 }
 
 type EventReference struct {
-	TypeMeta `json:",inline"`
-	ID       string `json:"id"`
+	TypeMeta   `json:",inline"`
+	ID         string           `json:"id", bson:"id"`
+	ProjectID  string           `json:"projectID", bson:"projectID"`
+	Kubernetes KubernetesConfig `json:"-" bson:"kubernetes"`
 }
 
-func NewEventReference(id string) EventReference {
-	return EventReference{
+func NewEventReference(event Event) EventReference {
+	eventRef := EventReference{
 		TypeMeta: TypeMeta{
 			APIVersion: APIVersion,
 			Kind:       "EventReference",
 		},
-		ID: id,
+		ID:        event.ID,
+		ProjectID: event.ProjectID,
 	}
+	if event.Kubernetes != nil {
+		eventRef.Kubernetes = *event.Kubernetes
+	}
+	return eventRef
 }
 
 type EventList struct {
@@ -108,4 +115,14 @@ func (e *Event) UnmarshalBSON(bytes []byte) error {
 			EventAlias: (*EventAlias)(e),
 		},
 	)
+}
+
+type EventListOptions struct {
+	ProjectID    string
+	WorkerPhases []WorkerPhase
+}
+
+type EventLogOptions struct {
+	Job       string
+	Container string
 }

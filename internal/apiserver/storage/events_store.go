@@ -14,8 +14,11 @@ type EventsStore interface {
 	Cancel(
 		ctx context.Context,
 		id string,
-		cancelRunning bool,
-	) (bool, error)
+	) error
+	CancelCollection(
+		ctx context.Context,
+		opts brignext.EventListOptions,
+	) (brignext.EventReferenceList, error)
 	Delete(
 		ctx context.Context,
 		id string,

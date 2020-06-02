@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/krancour/brignext/v2"
@@ -70,7 +71,11 @@ func (p *projectsStore) Create(
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
-				return brignext.NewErrConflict("Project", project.ID)
+				return brignext.NewErrConflict(
+					"Project",
+					project.ID,
+					fmt.Sprintf("A project with the ID %q already exists.", project.ID),
+				)
 			}
 		}
 		return errors.Wrapf(err, "error inserting new project %q", project.ID)
