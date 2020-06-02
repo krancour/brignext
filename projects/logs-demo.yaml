@@ -1,9 +1,9 @@
 apiVersion: github.com/krancour/brignext/v2
 kind: Project
 metadata:
-  id: pipeline-demo
+  id: logs-demo
 spec:
-  description: A project that demonstrates a simple pipeline
+  description: A project that demonstrates outputting logs from a job
   worker:
     defaultConfigFiles:
       brignext.js: |-
@@ -11,10 +11,8 @@ spec:
 
         events.on("github.com/krancour/brignext/cli:exec", (e) => {
           new Job("foo", "debian:latest", ["echo foo"]).run()
-          .then(() => {
-            return new Job("bar", "debian:latest", ["echo bar"]).run();
-          })
-          .then(() => {
+          .then(result => {
+            console.log(result.toString());
             console.log("done");
           }).catch(e => {
             console.error(e);

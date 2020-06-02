@@ -63,7 +63,6 @@ export abstract class Job {
   public sidecarContainers: Container[] = []
   public timeout: number = defaultTimeout
   public host: JobHost = new JobHost()
-  public streamLogs: boolean = false
 
   constructor(
     name: string,

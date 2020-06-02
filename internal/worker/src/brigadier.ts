@@ -2,7 +2,6 @@ import * as kubernetes from "@kubernetes/client-node"
 import * as jobs from "./brigadier/jobs"
 import * as groups from "./brigadier/groups"
 import { Event, EventRegistry } from "./brigadier/events"
-import { Worker } from "./brigadier/workers"
 import { Logger } from "./brigadier/logger"
 import * as request from "request"
 import * as byline from "byline"
@@ -355,9 +354,6 @@ export class Job extends jobs.Job {
 
     // This is a handle to clear the setTimeout when the promise is fulfilled.
     let waiter
-    // Handle to abort the request on completion and only to ensure that we hook
-    // the 'follow logs' events only once
-    let followLogsRequest: request.Request = null
 
     this.logger.log(`Timeout set at ${timeout} milliseconds`)
 
@@ -415,24 +411,12 @@ export class Job extends jobs.Job {
                 clearTimers()
                 reject(new Error(`Pod ${name} primary container failed to run to completion`))
               }
-            } else if (
-              this.pod.status.phase == "Running" &&
-              followLogsRequest == null &&
-              this.streamLogs
-            ) {
-                followLogsRequest = followLogs(
-                  currentEvent.project.kubernetes.namespace,
-                  this.podName
-                )
             }
           }
         }
-        if (!this.streamLogs || (this.streamLogs && this.pod.status.phase != "Running")) {
-          // don't display "Running" when we're asked to display job Pod logs
-          this.logger.log(
-            `${currentEvent.project.kubernetes.namespace}/${this.podName} phase ${this.pod.status.phase}`
-          )
-        }
+        this.logger.log(
+          `${currentEvent.project.kubernetes.namespace}/${this.podName} phase ${this.pod.status.phase}`
+        )
         // In all other cases we fall through and let the fn be run again.
       }
       let interval = setInterval(() => {
@@ -448,49 +432,6 @@ export class Job extends jobs.Job {
         podUpdater.abort()
         clearInterval(interval)
         clearTimeout(waiter)
-        if (followLogsRequest != null) {
-          followLogsRequest.abort()
-        }
-      }
-
-      // follows logs for the specified namespace/Pod combination
-      let followLogs = (namespace: string, podName: string): request.Request => {
-        const url = `${k8s.config.getCurrentCluster().server}/api/v1/namespaces/${namespace}/pods/${podName}/log`
-        // https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.13/#pod-v1-core
-        const requestOptions = {
-          qs: {
-            follow: true,
-            timeoutSeconds: 200,
-          },
-          method: "GET",
-          uri: url,
-          useQuerystring: true
-        }
-        k8s.config.applyToRequest(requestOptions)
-        const stream = new byline.LineStream()
-        stream.on("data", data => {
-          let logs = null
-          try {
-            if (data instanceof Buffer) {
-              logs = data.toString()
-            } else {
-              logs = data
-            }
-            this.logger.log(
-              `${currentEvent.project.kubernetes.namespace}/${this.podName} logs ${logs}`
-            )
-          } catch (e) { } //let it stay connected.
-        })
-        const req = request(requestOptions, (error, response, body) => {
-          if (error) {
-            if (error.body) {
-              this.logger.error(error.body.message)
-            }
-            this.reconnect = true //reconnect unless aborted
-          }
-        })
-        req.pipe(stream)
-        return req
       }
 
     })
