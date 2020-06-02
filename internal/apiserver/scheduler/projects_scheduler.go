@@ -22,6 +22,10 @@ type ProjectsScheduler interface {
 		ctx context.Context,
 		project brignext.Project,
 	) (brignext.Project, error)
+	Update(
+		ctx context.Context,
+		project brignext.Project,
+	) (brignext.Project, error)
 	Delete(
 		ctx context.Context,
 		project brignext.Project,
@@ -59,7 +63,9 @@ func (p *projectsScheduler) Create(
 		),
 	}
 
-	// Create a the project's namespace
+	project = projectWithDefaults(project)
+
+	// Create the project's namespace
 	if _, err := p.kubeClient.CoreV1().Namespaces().Create(
 		ctx,
 		&corev1.Namespace{
@@ -246,6 +252,13 @@ func (p *projectsScheduler) Create(
 	return project, nil
 }
 
+func (p *projectsScheduler) Update(
+	ctx context.Context,
+	project brignext.Project,
+) (brignext.Project, error) {
+	return projectWithDefaults(project), nil
+}
+
 func (p *projectsScheduler) Delete(
 	ctx context.Context,
 	project brignext.Project,
@@ -387,4 +400,16 @@ func (p *projectsScheduler) UnsetSecret(
 		)
 	}
 	return nil
+}
+
+func projectWithDefaults(project brignext.Project) brignext.Project {
+	if project.Spec.Worker.Kubernetes.ImagePullSecrets == nil {
+		project.Spec.Worker.Kubernetes.ImagePullSecrets = []string{}
+	}
+
+	if project.Spec.Worker.Jobs.Kubernetes.ImagePullSecrets == nil {
+		project.Spec.Worker.Jobs.Kubernetes.ImagePullSecrets = []string{}
+	}
+
+	return project
 }

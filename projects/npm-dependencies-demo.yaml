@@ -1,0 +1,27 @@
+apiVersion: github.com/krancour/brignext/v2
+kind: Project
+metadata:
+  id: npm-dependencies-demo
+spec:
+  description: A project that demonstrates installing pre-requisite npm packages
+  worker:
+    defaultConfigFiles:
+      brignext.json: |-
+        {
+          "dependencies": {
+              "unique-names-generator": "4.0.0"
+          }
+        }
+      brignext.js: |-
+        const { events } = require("brigadier");
+        const { uniqueNamesGenerator, adjectives, animals } = require("unique-names-generator");
+
+        randomName = uniqueNamesGenerator({
+          dictionaries: [adjectives, animals],
+          length: 2,
+          separator: '-'
+        });
+
+        events.on("github.com/krancour/brignext/cli:exec", (e) => {
+          console.log(`Hello, ${randomName}!`);
+        });

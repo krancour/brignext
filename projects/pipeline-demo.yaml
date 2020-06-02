@@ -1,0 +1,22 @@
+apiVersion: github.com/krancour/brignext/v2
+kind: Project
+metadata:
+  id: pipeline-demo
+spec:
+  description: A project that demonstrates a simple pipeline
+  worker:
+    defaultConfigFiles:
+      brignext.js: |-
+        const { events, Job } = require("brigadier");
+
+        events.on("github.com/krancour/brignext/cli:exec", (e) => {
+          new Job("foo", "debian:latest", ["echo foo"]).run()
+          .then(result => {
+            return new Job("bar", "debian:latest", ["echo bar"]).run();
+          })
+          .then(result => {
+            console.log("done");
+          }).catch(e => {
+            console.error(e);
+          });
+        });

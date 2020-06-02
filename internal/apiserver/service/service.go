@@ -34,11 +34,15 @@ func NewService(
 	logStore storage.LogsStore,
 ) Service {
 	return &service{
-		store:                  store,
-		scheduler:              scheduler,
-		logStore:               logStore,
-		eventsService:          NewEventsService(store, scheduler, logStore),
-		projectsService:        NewProjectsService(store, scheduler),
+		store:     store,
+		scheduler: scheduler,
+		logStore:  logStore,
+		eventsService: NewEventsService(
+			store,
+			scheduler.Events(),
+			logStore,
+		),
+		projectsService:        NewProjectsService(store, scheduler.Projects()),
 		serviceAccountsService: NewServiceAccountsService(store.ServiceAccounts()),
 		sessionsService:        NewSessionsService(store.Sessions()),
 		usersService:           NewUsersService(store),

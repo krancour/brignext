@@ -1,0 +1,14 @@
+apiVersion: github.com/krancour/brignext/v2
+kind: Project
+metadata:
+  id: hello-world
+spec:
+  description: The simplest possible demonstration
+  worker:
+    defaultConfigFiles:
+      brignext.js: |-
+        const { events } = require("brigadier");
+
+        events.on("github.com/krancour/brignext/cli:exec", (e) => {
+          console.log("Hello, World!");
+        });

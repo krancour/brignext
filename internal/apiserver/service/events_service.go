@@ -93,13 +93,13 @@ type EventsService interface {
 
 type eventsService struct {
 	store     storage.Store
-	scheduler scheduler.Scheduler
+	scheduler scheduler.EventsScheduler
 	logStore  storage.LogsStore
 }
 
 func NewEventsService(
 	store storage.Store,
-	scheduler scheduler.Scheduler,
+	scheduler scheduler.EventsScheduler,
 	logStore storage.LogsStore,
 ) EventsService {
 	return &eventsService{
@@ -175,6 +175,10 @@ func (e *eventsService) Create(
 		event.Worker.Git.Ref = "master"
 	}
 
+	if event.Worker.LogLevel == "" {
+		event.Worker.LogLevel = brignext.LogLevelInfo
+	}
+
 	if event.Worker.ConfigFilesDirectory == "" {
 		event.Worker.ConfigFilesDirectory = "."
 	}
@@ -188,11 +192,7 @@ func (e *eventsService) Create(
 
 	// We send this to the scheduler first because we expect the scheduler will
 	// will add some scheduler-specific details that we will want to persist.
-	// This is in contrast to most of our functions wherein we start a transaction
-	// in the store and make modifications to the store first with expectations
-	// that the transaction will roll the change back if subsequent changes made
-	// via the scheduler fail.
-	event, err = e.scheduler.Events().Create(
+	event, err = e.scheduler.Create(
 		ctx,
 		project,
 		event,
@@ -207,7 +207,7 @@ func (e *eventsService) Create(
 	if err := e.store.Events().Create(ctx, event); err != nil {
 		// We need to roll this back manually because the scheduler doesn't
 		// automatically roll anything back upon failure.
-		e.scheduler.Events().Delete(ctx, event) // nolint: errcheck
+		e.scheduler.Delete(ctx, event) // nolint: errcheck
 		return eventRefList,
 			errors.Wrapf(err, "error storing new event %q", event.ID)
 	}
@@ -284,7 +284,7 @@ func (e *eventsService) Cancel(
 			return errors.Wrapf(err, "error updating event %q in store", id)
 		}
 		if ok {
-			if err = e.scheduler.Events().Cancel(ctx, event); err != nil {
+			if err = e.scheduler.Cancel(ctx, event); err != nil {
 				return errors.Wrapf(
 					err,
 					"error canceling event %q in scheduler",
@@ -341,7 +341,7 @@ func (e *eventsService) CancelByProject(
 				)
 			}
 			if ok {
-				if err := e.scheduler.Events().Delete(ctx, event); err != nil {
+				if err := e.scheduler.Delete(ctx, event); err != nil {
 					return errors.Wrapf(
 						err,
 						"error deleting event %q from scheduler",
@@ -388,7 +388,7 @@ func (e *eventsService) Delete(
 			return errors.Wrapf(err, "error removing event %q from store", id)
 		}
 		if ok {
-			if err = e.scheduler.Events().Delete(ctx, event); err != nil {
+			if err = e.scheduler.Delete(ctx, event); err != nil {
 				return errors.Wrapf(
 					err,
 					"error deleting event %q from scheduler",
@@ -450,7 +450,7 @@ func (e *eventsService) DeleteByProject(
 				)
 			}
 			if ok {
-				if err := e.scheduler.Events().Delete(ctx, event); err != nil {
+				if err := e.scheduler.Delete(ctx, event); err != nil {
 					return errors.Wrapf(
 						err,
 						"error deleting event %q from scheduler",

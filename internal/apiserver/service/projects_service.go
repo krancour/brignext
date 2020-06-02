@@ -30,12 +30,12 @@ type ProjectsService interface {
 
 type projectsService struct {
 	store     storage.Store
-	scheduler scheduler.Scheduler
+	scheduler scheduler.ProjectsScheduler
 }
 
 func NewProjectsService(
 	store storage.Store,
-	scheduler scheduler.Scheduler,
+	scheduler scheduler.ProjectsScheduler,
 ) ProjectsService {
 	return &projectsService{
 		store:     store,
@@ -47,20 +47,12 @@ func (p *projectsService) Create(
 	ctx context.Context,
 	project brignext.Project,
 ) error {
-	// TODO: Move where we set this to where we set the other defaults-- i.e.
-	// set it at the time an event is created-- not when the project is created.
-	if project.Spec.Worker.LogLevel == "" {
-		project.Spec.Worker.LogLevel = brignext.LogLevelInfo
-	}
+	project = projectWithDefaults(project)
 
 	// We send this to the scheduler first because we expect the scheduler will
 	// will add some scheduler-specific details that we will want to persist.
-	// This is in contrast to most of our functions wherein we start a transaction
-	// in the store and make modifications to the store first with expectations
-	// that the transaction will roll the change back if subsequent changes made
-	// via the scheduler fail.
 	var err error
-	project, err = p.scheduler.Projects().Create(ctx, project)
+	project, err = p.scheduler.Create(ctx, project)
 	if err != nil {
 		return errors.Wrapf(
 			err,
@@ -71,7 +63,7 @@ func (p *projectsService) Create(
 	if err := p.store.Projects().Create(ctx, project); err != nil {
 		// We need to roll this back manually because the scheduler doesn't
 		// automatically roll anything back upon failure.
-		p.scheduler.Projects().Delete(ctx, project) // nolint: errcheck
+		p.scheduler.Delete(ctx, project) // nolint: errcheck
 		return errors.Wrapf(err, "error storing new project %q", project.ID)
 	}
 	return nil
@@ -106,6 +98,20 @@ func (p *projectsService) Update(
 	ctx context.Context,
 	project brignext.Project,
 ) error {
+	project = projectWithDefaults(project)
+
+	// We send this to the scheduler first because we expect the scheduler will
+	// will add some scheduler-specific details that we will want to persist.
+	var err error
+	project, err = p.scheduler.Update(ctx, project)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating project %q in the scheduler",
+			project.ID,
+		)
+	}
+
 	if err := p.store.Projects().Update(ctx, project); err != nil {
 		return errors.Wrapf(
 			err,
@@ -132,7 +138,7 @@ func (p *projectsService) Delete(ctx context.Context, id string) error {
 				id,
 			)
 		}
-		if err := p.scheduler.Projects().Delete(ctx, project); err != nil {
+		if err := p.scheduler.Delete(ctx, project); err != nil {
 			return errors.Wrapf(
 				err,
 				"error deleting project %q from scheduler",
@@ -157,7 +163,7 @@ func (p *projectsService) ListSecrets(
 		)
 	}
 	if secretList, err =
-		p.scheduler.Projects().ListSecrets(ctx, project); err != nil {
+		p.scheduler.ListSecrets(ctx, project); err != nil {
 		return secretList, errors.Wrapf(
 			err,
 			"error getting worker secrets for project %q from scheduler",
@@ -181,7 +187,7 @@ func (p *projectsService) SetSecret(
 		)
 	}
 	// Secrets aren't stored in the database. We only pass them to the scheduler.
-	if err := p.scheduler.Projects().SetSecret(ctx, project, secret); err != nil {
+	if err := p.scheduler.SetSecret(ctx, project, secret); err != nil {
 		return errors.Wrapf(
 			err,
 			"error setting secret for project %q worker in scheduler",
@@ -207,7 +213,7 @@ func (p *projectsService) UnsetSecret(
 	// Secrets aren't stored in the database. We only have to remove them from the
 	// scheduler.
 	if err :=
-		p.scheduler.Projects().UnsetSecret(ctx, project, key); err != nil {
+		p.scheduler.UnsetSecret(ctx, project, key); err != nil {
 		return errors.Wrapf(
 			err,
 			"error unsetting secrets for project %q worker in scheduler",
@@ -215,4 +221,20 @@ func (p *projectsService) UnsetSecret(
 		)
 	}
 	return nil
+}
+
+func projectWithDefaults(project brignext.Project) brignext.Project {
+	if project.Spec.EventSubscriptions == nil {
+		project.Spec.EventSubscriptions = []brignext.EventSubscription{}
+	}
+
+	if project.Spec.Worker.Container.Environment == nil {
+		project.Spec.Worker.Container.Environment = map[string]string{}
+	}
+
+	if project.Spec.Worker.DefaultConfigFiles == nil {
+		project.Spec.Worker.DefaultConfigFiles = map[string]string{}
+	}
+
+	return project
 }

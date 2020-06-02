@@ -125,6 +125,9 @@ export class Job extends jobs.Job {
     let script = this.generateScript(container)
     let secret = new kubernetes.V1Secret()
     secret.metadata = new kubernetes.V1ObjectMeta()
+    // TODO: This naming scheme can have conflicts, so it needs to be fixed. For
+    // instance, job "foo" + container "bar-bat" would have the same name as
+    // job "foo-bar" + container "bat".
     secret.metadata.name = `container-${currentEvent.id}-${this.name}-${container.name}`
     secret.metadata.labels = {
       "brignext.io/component": "container",
