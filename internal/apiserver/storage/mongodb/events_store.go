@@ -63,42 +63,32 @@ func (e *eventsStore) Create(ctx context.Context, event brignext.Event) error {
 	return nil
 }
 
-func (e *eventsStore) List(ctx context.Context) (brignext.EventList, error) {
+func (e *eventsStore) List(
+	ctx context.Context,
+	opts brignext.EventListOptions,
+) (brignext.EventList, error) {
 	eventList := brignext.NewEventList()
+
+	criteria := bson.M{
+		"status.workerStatus.phase": bson.M{
+			"$in": opts.WorkerPhases,
+		},
+		"deleted": bson.M{
+			"$exists": false, // Don't grab logically deleted events
+		},
+	}
+	if opts.ProjectID != "" {
+		criteria["projectID"] = opts.ProjectID
+	}
+
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"metadata.created": -1})
-	cur, err := e.collection.Find(ctx, bson.M{}, findOptions)
+	cur, err := e.collection.Find(ctx, criteria, findOptions)
 	if err != nil {
 		return eventList, errors.Wrap(err, "error finding events")
 	}
 	if err := cur.All(ctx, &eventList.Items); err != nil {
 		return eventList, errors.Wrap(err, "error decoding events")
-	}
-	return eventList, nil
-}
-
-func (e *eventsStore) ListByProject(
-	ctx context.Context,
-	projectID string,
-) (brignext.EventList, error) {
-	eventList := brignext.NewEventList()
-	findOptions := options.Find()
-	findOptions.SetSort(bson.M{"metadata.created": -1})
-	cur, err :=
-		e.collection.Find(ctx, bson.M{"projectID": projectID}, findOptions)
-	if err != nil {
-		return eventList, errors.Wrapf(
-			err,
-			"error finding events for project %q",
-			projectID,
-		)
-	}
-	if err := cur.All(ctx, &eventList.Items); err != nil {
-		return eventList, errors.Wrapf(
-			err,
-			"error decoding events for project %q",
-			projectID,
-		)
 	}
 	return eventList, nil
 }
@@ -181,12 +171,6 @@ func (e *eventsStore) CancelCollection(
 	opts brignext.EventListOptions,
 ) (brignext.EventReferenceList, error) {
 	eventRefList := brignext.NewEventReferenceList()
-
-	// If no worker phases are specified, then there's nothing to do
-	if len(opts.WorkerPhases) == 0 {
-		return eventRefList, nil
-	}
-
 	// It only makes sense to cancel events that are in a pending or running
 	// state. We can ignore anything else.
 	var cancelPending bool
@@ -211,9 +195,8 @@ func (e *eventsStore) CancelCollection(
 
 	cancellationTime := time.Now()
 
-	criteria := bson.M{}
-	if opts.ProjectID != "" {
-		criteria["projectID"] = opts.ProjectID
+	criteria := bson.M{
+		"projectID": opts.ProjectID,
 	}
 
 	if cancelPending {
@@ -285,11 +268,6 @@ func (e *eventsStore) DeleteCollection(
 ) (brignext.EventReferenceList, error) {
 	eventRefList := brignext.NewEventReferenceList()
 
-	// If no worker phases are specified, then there's nothing to do
-	if len(opts.WorkerPhases) == 0 {
-		return eventRefList, nil
-	}
-
 	// The MongoDB driver for Go doesn't expose findAndModify(), which could be
 	// used to select events and delete them at the same time. As a workaround,
 	// we'll perform a logical delete first, select the logically deleted events,
@@ -301,15 +279,13 @@ func (e *eventsStore) DeleteCollection(
 
 	// Logical delete...
 	criteria := bson.M{
+		"projectID": opts.ProjectID,
 		"status.workerStatus.phase": bson.M{
 			"$in": opts.WorkerPhases,
 		},
 		"deleted": bson.M{
 			"$exists": false,
 		},
-	}
-	if opts.ProjectID != "" {
-		criteria["projectID"] = opts.ProjectID
 	}
 	if _, err := e.collection.UpdateMany(
 		ctx,

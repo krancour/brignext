@@ -10,8 +10,7 @@ import (
 
 type EventsClient interface {
 	Create(context.Context, Event) (EventReferenceList, error)
-	List(context.Context) (EventList, error)
-	ListByProject(context.Context, string) (EventList, error)
+	List(context.Context, EventListOptions) (EventList, error)
 	Get(context.Context, string) (Event, error)
 	Cancel(context.Context, string) error
 	CancelCollection(
@@ -29,6 +28,14 @@ type EventsClient interface {
 		eventID string,
 		status WorkerStatus,
 	) error
+
+	UpdateJobStatus(
+		ctx context.Context,
+		eventID string,
+		jobName string,
+		status JobStatus,
+	) error
+
 	GetWorkerLogs(ctx context.Context, eventID string) (LogEntryList, error)
 	StreamWorkerLogs(
 		ctx context.Context,
@@ -43,12 +50,6 @@ type EventsClient interface {
 		eventID string,
 	) (<-chan LogEntry, <-chan error, error)
 
-	UpdateJobStatus(
-		ctx context.Context,
-		eventID string,
-		jobName string,
-		status JobStatus,
-	) error
 	GetJobLogs(
 		ctx context.Context,
 		eventID string,
@@ -112,32 +113,28 @@ func (e *eventsClient) Create(
 	)
 }
 
-func (e *eventsClient) List(context.Context) (EventList, error) {
-	eventList := EventList{}
-	return eventList, e.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodGet,
-			path:        "v2/events",
-			authHeaders: e.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-			respObj:     &eventList,
-		},
-	)
-}
-
-func (e *eventsClient) ListByProject(
+func (e *eventsClient) List(
 	_ context.Context,
-	projectID string,
+	opts EventListOptions,
 ) (EventList, error) {
+	queryParams := map[string]string{}
+	if opts.ProjectID != "" {
+		queryParams["projectID"] = opts.ProjectID
+	}
+	if len(opts.WorkerPhases) > 0 {
+		workerPhaseStrs := make([]string, len(opts.WorkerPhases))
+		for i, workerPhase := range opts.WorkerPhases {
+			workerPhaseStrs[i] = string(workerPhase)
+		}
+		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
+	}
 	eventList := EventList{}
 	return eventList, e.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodGet,
 			path:        "v2/events",
 			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: map[string]string{
-				"projectID": projectID,
-			},
+			queryParams: queryParams,
 			successCode: http.StatusOK,
 			respObj:     &eventList,
 		},

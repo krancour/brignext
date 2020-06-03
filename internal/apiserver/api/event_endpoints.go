@@ -106,14 +106,22 @@ func (e *eventEndpoints) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *eventEndpoints) list(w http.ResponseWriter, r *http.Request) {
+	opts := brignext.EventListOptions{
+		ProjectID: r.URL.Query().Get("projectID"),
+	}
+	workerPhasesStr := r.URL.Query().Get("workerPhases")
+	if workerPhasesStr != "" {
+		workerPhaseStrs := strings.Split(workerPhasesStr, ",")
+		opts.WorkerPhases = make([]brignext.WorkerPhase, len(workerPhaseStrs))
+		for i, workerPhaseStr := range workerPhaseStrs {
+			opts.WorkerPhases[i] = brignext.WorkerPhase(workerPhaseStr)
+		}
+	}
 	e.serveAPIRequest(apiRequest{
 		w: w,
 		r: r,
 		endpointLogic: func() (interface{}, error) {
-			if projectID := r.URL.Query().Get("projectID"); projectID != "" {
-				return e.service.ListByProject(r.Context(), projectID)
-			}
-			return e.service.List(r.Context())
+			return e.service.List(r.Context(), opts)
 		},
 		successCode: http.StatusOK,
 	})
@@ -147,6 +155,7 @@ func (e *eventEndpoints) cancelCollection(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
+	// TODO: Reject requests that don't specify project and worker phase filters
 	opts := brignext.EventListOptions{
 		ProjectID: r.URL.Query().Get("projectID"),
 	}
@@ -184,6 +193,7 @@ func (e *eventEndpoints) deleteCollection(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
+	// TODO: Reject requests that don't specify project and worker phase filters
 	opts := brignext.EventListOptions{
 		ProjectID: r.URL.Query().Get("projectID"),
 	}

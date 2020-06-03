@@ -63,6 +63,14 @@ func WorkerPhasesTerminal() []WorkerPhase {
 	}
 }
 
+func WorkerPhasesNonTerminal() []WorkerPhase {
+	return []WorkerPhase{
+		WorkerPhasePending,
+		WorkerPhaseRunning,
+		WorkerPhaseUnknown,
+	}
+}
+
 // nolint: lll
 type WorkerSpec struct {
 	Container            ContainerSpec          `json:"container" bson:"container"`

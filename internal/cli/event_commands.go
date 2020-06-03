@@ -177,10 +177,64 @@ var eventCommand = &cli.Command{
 			Usage: "Retrieve many events",
 			Flags: []cli.Flag{
 				cliFlagOutput,
+				&cli.BoolFlag{
+					Name: flagAborted,
+					Usage: "If set, will retrieve events with their worker in an ABORTED " +
+						"state; mutually exclusive with --terminal and --non-terminal",
+				},
+				&cli.BoolFlag{
+					Name: flagCanceled,
+					Usage: "If set, will retrieve events with their worker in a CANCELED " +
+						"state; mutually exclusive with --terminal and --non-terminal",
+				},
+				&cli.BoolFlag{
+					Name: flagFailed,
+					Usage: "If set, will retrieve events with their worker in a FAILED " +
+						"state; mutually exclusive with  --terminal and --non-terminal",
+				},
+				&cli.BoolFlag{
+					Name: flagNonTerminal,
+					Usage: "If set, will retrieve events with their worker in any " +
+						"non-terminal state; mutually exclusive with all other state flags",
+				},
+				&cli.BoolFlag{
+					Name: flagPending,
+					Usage: "If set, will retrieve events with their worker in a PENDING " +
+						"state; mutually exclusive with --terminal and --non-terminal",
+				},
 				&cli.StringFlag{
-					Name:    flagProject,
-					Aliases: []string{"p"},
-					Usage:   "Retrieve events only for the specified project",
+					Name:     flagProject,
+					Aliases:  []string{"p"},
+					Usage:    "Retrieve events only for the specified project (required)",
+					Required: true,
+				},
+				&cli.BoolFlag{
+					Name: flagRunning,
+					Usage: "If set, will retrieve events with their worker in RUNNING " +
+						"state; mutually exclusive with --terminal and --non-terminal",
+				},
+				&cli.BoolFlag{
+					Name: flagSucceeded,
+					Usage: "If set, will retrieve events with their worker in a " +
+						"SUCCEEDED state; mutually exclusive with --terminal and " +
+						"--non-terminal",
+				},
+				&cli.BoolFlag{
+					Name: flagTerminal,
+					Usage: "If set, will retrieve events with their worker in any " +
+						"terminal state; mutually exclusive with all other state flags",
+				},
+				&cli.BoolFlag{
+					Name: flagTimedOut,
+					Usage: "If set, will retrieve events with their worker in a " +
+						"TIMED_OUT state; mutually exclusive with --terminal and " +
+						"--non-terminal",
+				},
+				&cli.BoolFlag{
+					Name: flagUnknown,
+					Usage: "If set, will retrieve events with their worker in an " +
+						"UNKNOWN state; mutually exclusive with --terminal and " +
+						"--non-terminal",
 				},
 			},
 			Action: eventList,
@@ -235,12 +289,63 @@ func eventCreate(c *cli.Context) error {
 	return nil
 }
 
+// TODO: Require the --project flag to avoid unnecessarily gigantic results
 func eventList(c *cli.Context) error {
 	output := c.String(flagOutput)
 	projectID := c.String(flagProject)
 
+	workerPhases := []brignext.WorkerPhase{}
+
+	if c.Bool(flagAborted) {
+		workerPhases = append(workerPhases, brignext.WorkerPhaseAborted)
+	}
+	if c.Bool(flagCanceled) {
+		workerPhases = append(workerPhases, brignext.WorkerPhaseCanceled)
+	}
+	if c.Bool(flagFailed) {
+		workerPhases = append(workerPhases, brignext.WorkerPhaseFailed)
+	}
+	if c.Bool(flagPending) {
+		workerPhases = append(workerPhases, brignext.WorkerPhasePending)
+	}
+	if c.Bool(flagRunning) {
+		workerPhases = append(workerPhases, brignext.WorkerPhaseRunning)
+	}
+	if c.Bool(flagSucceeded) {
+		workerPhases = append(workerPhases, brignext.WorkerPhaseSucceeded)
+	}
+	if c.Bool(flagTimedOut) {
+		workerPhases = append(workerPhases, brignext.WorkerPhaseTimedOut)
+	}
+	if c.Bool(flagUnknown) {
+		workerPhases = append(workerPhases, brignext.WorkerPhaseUnknown)
+	}
+
+	if c.Bool(flagTerminal) {
+		if len(workerPhases) > 0 {
+			return errors.New(
+				"--terminal is mutually exclusive with all other state flags",
+			)
+		}
+		workerPhases = brignext.WorkerPhasesTerminal()
+	}
+
+	if c.Bool(flagNonTerminal) {
+		if len(workerPhases) > 0 {
+			return errors.New(
+				"--non-terminal is mutually exclusive with all other state flags",
+			)
+		}
+		workerPhases = brignext.WorkerPhasesNonTerminal()
+	}
+
 	if err := validateOutputFormat(output); err != nil {
 		return err
+	}
+
+	opts := brignext.EventListOptions{
+		ProjectID:    projectID,
+		WorkerPhases: workerPhases,
 	}
 
 	client, err := getClient(c)
@@ -248,12 +353,7 @@ func eventList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	var eventList brignext.EventList
-	if projectID == "" {
-		eventList, err = client.Events().List(c.Context)
-	} else {
-		eventList, err = client.Events().ListByProject(c.Context, projectID)
-	}
+	eventList, err := client.Events().List(c.Context, opts)
 	if err != nil {
 		return err
 	}
@@ -391,6 +491,8 @@ func eventGet(c *cli.Context) error {
 	return nil
 }
 
+// TODO: Require the --id or --project flag to avoid accidental broad
+// cancellations
 func eventCancel(c *cli.Context) error {
 	id := c.String(flagID)
 	projectID := c.String(flagProject)
@@ -430,6 +532,7 @@ func eventCancel(c *cli.Context) error {
 	return nil
 }
 
+// TODO: Require the --id or --project flag to avoid accidental broad deletes
 func eventDelete(c *cli.Context) error {
 	id := c.String(flagID)
 	projectID := c.String(flagProject)

@@ -22,6 +22,7 @@ const (
 	flagPayloadFile = "payload-file"
 	flagPending     = "pending"
 	flagProject     = "project"
+	flagNonTerminal = "non-terminal"
 	flagRoot        = "root"
 	flagRunning     = "running"
 	flagServer      = "server"

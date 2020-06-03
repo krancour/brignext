@@ -16,8 +16,7 @@ type EventsService interface {
 		brignext.EventReferenceList,
 		error,
 	)
-	List(context.Context) (brignext.EventList, error)
-	ListByProject(context.Context, string) (brignext.EventList, error)
+	List(context.Context, brignext.EventListOptions) (brignext.EventList, error)
 	Get(context.Context, string) (brignext.Event, error)
 	Cancel(context.Context, string) error
 	CancelCollection(
@@ -35,6 +34,14 @@ type EventsService interface {
 		eventID string,
 		status brignext.WorkerStatus,
 	) error
+
+	UpdateJobStatus(
+		ctx context.Context,
+		eventID string,
+		jobName string,
+		status brignext.JobStatus,
+	) error
+
 	GetWorkerLogs(
 		ctx context.Context,
 		eventID string,
@@ -52,12 +59,6 @@ type EventsService interface {
 		eventID string,
 	) (<-chan brignext.LogEntry, error)
 
-	UpdateJobStatus(
-		ctx context.Context,
-		eventID string,
-		jobName string,
-		status brignext.JobStatus,
-	) error
 	GetJobLogs(
 		ctx context.Context,
 		eventID string,
@@ -208,29 +209,25 @@ func (e *eventsService) Create(
 	return eventRefList, nil
 }
 
-func (e *eventsService) List(ctx context.Context) (brignext.EventList, error) {
-	eventList, err := e.store.Events().List(ctx)
+func (e *eventsService) List(
+	ctx context.Context,
+	opts brignext.EventListOptions,
+) (brignext.EventList, error) {
+	eventList := brignext.NewEventList()
+
+	// If project isn't identified, then there's nothing to do
+	if opts.ProjectID == "" {
+		return eventList, nil
+	}
+
+	// If no worker phase filters were applied, retrieve all phases
+	if len(opts.WorkerPhases) == 0 {
+		opts.WorkerPhases = brignext.WorkerPhasesAll()
+	}
+
+	eventList, err := e.store.Events().List(ctx, opts)
 	if err != nil {
 		return eventList, errors.Wrap(err, "error retrieving events from store")
-	}
-	return eventList, nil
-}
-
-func (e *eventsService) ListByProject(
-	ctx context.Context,
-	projectID string,
-) (brignext.EventList, error) {
-	if _, err := e.store.Projects().Get(ctx, projectID); err != nil {
-		return brignext.EventList{},
-			errors.Wrapf(err, "error retrieving project %q", projectID)
-	}
-	eventList, err := e.store.Events().ListByProject(ctx, projectID)
-	if err != nil {
-		return eventList, errors.Wrapf(
-			err,
-			"error retrieving events for project %q from store",
-			projectID,
-		)
 	}
 	return eventList, nil
 }
@@ -283,6 +280,12 @@ func (e *eventsService) CancelCollection(
 	opts brignext.EventListOptions,
 ) (brignext.EventReferenceList, error) {
 	eventRefList := brignext.NewEventReferenceList()
+
+	// If project isn't identified or no worker phases are specified, then there's
+	// nothing to do
+	if opts.ProjectID == "" || len(opts.WorkerPhases) == 0 {
+		return eventRefList, nil
+	}
 
 	if opts.ProjectID != "" {
 		// Make sure the project exists
@@ -355,6 +358,12 @@ func (e *eventsService) DeleteCollection(
 ) (brignext.EventReferenceList, error) {
 	eventRefList := brignext.NewEventReferenceList()
 
+	// If project isn't identified or no worker phases are specified, then there's
+	// nothing to do
+	if opts.ProjectID == "" || len(opts.WorkerPhases) == 0 {
+		return eventRefList, nil
+	}
+
 	if opts.ProjectID != "" {
 		// Make sure the project exists
 		_, err := e.store.Projects().Get(ctx, opts.ProjectID)
@@ -406,6 +415,28 @@ func (e *eventsService) UpdateWorkerStatus(
 			err,
 			"error updating status of event %q worker in store",
 			eventID,
+		)
+	}
+	return nil
+}
+
+func (e *eventsService) UpdateJobStatus(
+	ctx context.Context,
+	eventID string,
+	jobName string,
+	status brignext.JobStatus,
+) error {
+	if err := e.store.Events().UpdateJobStatus(
+		ctx,
+		eventID,
+		jobName,
+		status,
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating status of event %q worker job %q in store",
+			eventID,
+			jobName,
 		)
 	}
 	return nil
@@ -471,28 +502,6 @@ func (e *eventsService) StreamWorkerInitLogs(
 		)
 	}
 	return e.logStore.StreamWorkerInitLogs(ctx, eventID)
-}
-
-func (e *eventsService) UpdateJobStatus(
-	ctx context.Context,
-	eventID string,
-	jobName string,
-	status brignext.JobStatus,
-) error {
-	if err := e.store.Events().UpdateJobStatus(
-		ctx,
-		eventID,
-		jobName,
-		status,
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error updating status of event %q worker job %q in store",
-			eventID,
-			jobName,
-		)
-	}
-	return nil
 }
 
 func (e *eventsService) GetJobLogs(
