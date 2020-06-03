@@ -22,26 +22,27 @@ var eventCommand = &cli.Command{
 	Subcommands: []*cli.Command{
 		{
 			Name:  "cancel",
-			Usage: "Cancel event(s) without deleting them",
-			Description: "By default, only cancels event(s) with their worker " +
-				"in a PENDING state.",
+			Usage: "Cancel events without deleting them",
+			Description: "Use the --id flag to unconditionally cancel a single " +
+				"event in a non-terminal state or use other flags to describe " +
+				"criteria for conditionally canceling multiple events",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:    flagID,
 					Aliases: []string{"i"},
-					Usage: "Cancel the specified event; mutually exclusive with " +
-						"--project",
+					Usage: "Cancel (and abort if applicable) the specified event only; " +
+						"mutually exclusive with all other flags",
 				},
 				&cli.BoolFlag{
 					Name:    flagRunning,
 					Aliases: []string{"r"},
-					Usage: "If set, will also abort event(s) with their worker in a" +
-						"RUNNING state",
+					Usage: "If set, will abort events with their worker in a RUNNING " +
+						"state; mutually exclusive with --id",
 				},
 				&cli.StringFlag{
 					Name:    flagProject,
 					Aliases: []string{"p"},
-					Usage: "Cancel events for the specified project; mutually " +
+					Usage: "Cancel events for the specified project only; mutually " +
 						"exclusive with --id",
 				},
 			},
@@ -82,31 +83,77 @@ var eventCommand = &cli.Command{
 		},
 		{
 			Name:  "delete",
-			Usage: "Delete event(s)",
-			Description: "By default, only deletes event(s) with their worker " +
-				"in a terminal state (neither PENDING nor RUNNING).",
+			Usage: "Delete events",
+			Description: "Use the --id flag to unconditionally delete a single " +
+				"event or use other flags to describe criteria for conditionally " +
+				"deleting multiple events",
 			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name: flagAborted,
+					Usage: "If set, will delete events with their worker in an ABORTED " +
+						"state; mutually exclusive with --id, --any-state, and --terminal",
+				},
+				&cli.BoolFlag{
+					Name: flagAnyState,
+					Usage: "If set, will delete events with their worker in any state; " +
+						"mutually exclusive with --id, --terminal, and all other state " +
+						"flags",
+				},
+				&cli.BoolFlag{
+					Name: flagCanceled,
+					Usage: "If set, will delete events with their worker in a CANCELED " +
+						"state; mutually exclusive with --id, --any-state, and --terminal",
+				},
+				&cli.BoolFlag{
+					Name: flagFailed,
+					Usage: "If set, will delete events with their worker in a FAILED " +
+						"state; mutually exclusive with --id, --any-state, and --terminal",
+				},
 				&cli.StringFlag{
 					Name:    flagID,
 					Aliases: []string{"i"},
-					Usage: "Delete the specified event; mutually exclusive with " +
-						" --project",
+					Usage: "Delete the specified event only; mutually exclusive with " +
+						"all other flags",
 				},
 				&cli.BoolFlag{
 					Name: flagPending,
-					Usage: "If set, will also delete event(s) with their worker " +
-						"in a PENDING state",
-				},
-				&cli.BoolFlag{
-					Name: flagRunning,
-					Usage: "If set, will also abort and delete event(s) with their " +
-						"worker in a RUNNING state",
+					Usage: "If set, will delete events with their worker in a PENDING " +
+						"state; mutually exclusive with --id, --any-state, and --terminal",
 				},
 				&cli.StringFlag{
 					Name:    flagProject,
 					Aliases: []string{"p"},
-					Usage: "Delete events for the specified project; mutually " +
+					Usage: "Delete events for the specified project only; mutually " +
 						"exclusive with --id",
+				},
+				&cli.BoolFlag{
+					Name: flagRunning,
+					Usage: "If set, will abort and delete events with their worker in " +
+						"a RUNNING state; mutually exclusive with --id, --any-state, and " +
+						"--terminal",
+				},
+				&cli.BoolFlag{
+					Name: flagSucceeded,
+					Usage: "If set, will delete events with their worker in a " +
+						"SUCCEEDED state; mutually exclusive with --id, --any-state, " +
+						"and --terminal",
+				},
+				&cli.BoolFlag{
+					Name: flagTerminal,
+					Usage: "If set, will delete events with their worker in any " +
+						"terminal state; mutually exclusive with --id, --any-state, and " +
+						"all other state flags",
+				},
+				&cli.BoolFlag{
+					Name: flagTimedOut,
+					Usage: "If set, will delete events with their worker in a " +
+						"TIMED_OUT state; mutually exclusive with --id, --any-state, and " +
+						"--terminal",
+				},
+				&cli.BoolFlag{
+					Name: flagUnknown,
+					Usage: "If set, will delete events with their worker in an UNKNOWN " +
+						"state; mutually exclusive with --id, --any-state, and --terminal",
 				},
 			},
 			Action: eventDelete,
@@ -350,9 +397,7 @@ func eventCancel(c *cli.Context) error {
 	cancelRunning := c.Bool(flagRunning)
 
 	if id != "" && (projectID != "" || cancelRunning) {
-		return errors.New(
-			"neither --project nor --cancelRunning may be used in with --id",
-		)
+		return errors.New("--id is mutually exclusive with all other flags")
 	}
 
 	client, err := getClient(c)
@@ -386,17 +431,56 @@ func eventCancel(c *cli.Context) error {
 }
 
 func eventDelete(c *cli.Context) error {
-	eventID := c.String(flagID)
-	deletePending := c.Bool(flagPending)
+	id := c.String(flagID)
 	projectID := c.String(flagProject)
-	deleteRunning := c.Bool(flagRunning)
 
-	if eventID == "" && projectID == "" {
-		return errors.New("one of --id or --project must be set")
+	workerPhases := []brignext.WorkerPhase{}
+
+	if c.Bool(flagAborted) {
+		workerPhases = append(workerPhases, brignext.WorkerPhaseAborted)
+	}
+	if c.Bool(flagCanceled) {
+		workerPhases = append(workerPhases, brignext.WorkerPhaseCanceled)
+	}
+	if c.Bool(flagFailed) {
+		workerPhases = append(workerPhases, brignext.WorkerPhaseFailed)
+	}
+	if c.Bool(flagPending) {
+		workerPhases = append(workerPhases, brignext.WorkerPhasePending)
+	}
+	if c.Bool(flagRunning) {
+		workerPhases = append(workerPhases, brignext.WorkerPhaseRunning)
+	}
+	if c.Bool(flagSucceeded) {
+		workerPhases = append(workerPhases, brignext.WorkerPhaseSucceeded)
+	}
+	if c.Bool(flagTimedOut) {
+		workerPhases = append(workerPhases, brignext.WorkerPhaseTimedOut)
+	}
+	if c.Bool(flagUnknown) {
+		workerPhases = append(workerPhases, brignext.WorkerPhaseUnknown)
 	}
 
-	if eventID != "" && projectID != "" {
-		return errors.New("--id and --project are mutually exclusive")
+	if c.Bool(flagAnyState) {
+		if len(workerPhases) > 0 {
+			return errors.New(
+				"--any-state is mutually exclusive with all other state flags",
+			)
+		}
+		workerPhases = brignext.WorkerPhasesAll()
+	}
+
+	if c.Bool(flagTerminal) {
+		if len(workerPhases) > 0 {
+			return errors.New(
+				"--terminal is mutually exclusive with all other state flags",
+			)
+		}
+		workerPhases = brignext.WorkerPhasesTerminal()
+	}
+
+	if id != "" && (projectID != "" || len(workerPhases) > 0) {
+		return errors.New("--id is mutually exclusive with all other flags")
 	}
 
 	client, err := getClient(c)
@@ -404,41 +488,24 @@ func eventDelete(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if eventID != "" {
-		var eventRefList brignext.EventReferenceList
-		if eventRefList, err = client.Events().Delete(
-			c.Context,
-			eventID,
-			deletePending,
-			deleteRunning,
-		); err != nil {
+	if id != "" {
+		if err = client.Events().Delete(c.Context, id); err != nil {
 			return err
 		}
-		if len(eventRefList.Items) != 0 {
-			fmt.Printf("Event %q deleted.\n", eventID)
-			return nil
-		}
-		return errors.Errorf(
-			"event %q was not deleted because specified conditions were not "+
-				"satisfied",
-			eventID,
-		)
+		fmt.Printf("Event %q deleted.\n", id)
+		return nil
 	}
 
-	eventRefList, err := client.Events().DeleteByProject(
-		c.Context,
-		projectID,
-		deletePending,
-		deleteRunning,
-	)
+	opts := brignext.EventListOptions{
+		ProjectID:    projectID,
+		WorkerPhases: workerPhases,
+	}
+
+	eventRefList, err := client.Events().DeleteCollection(c.Context, opts)
 	if err != nil {
 		return err
 	}
-	fmt.Printf(
-		"Deleted %d events for project %q.\n",
-		len(eventRefList.Items),
-		projectID,
-	)
+	fmt.Printf("Deleted %d events.\n", len(eventRefList.Items))
 
 	return nil
 }

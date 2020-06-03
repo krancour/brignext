@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 )
 
@@ -19,17 +18,10 @@ type EventsClient interface {
 		context.Context,
 		EventListOptions,
 	) (EventReferenceList, error)
-	Delete(
-		ctx context.Context,
-		id string,
-		deletePending bool,
-		deleteRunning bool,
-	) (EventReferenceList, error)
-	DeleteByProject(
-		ctx context.Context,
-		projectID string,
-		deletePending bool,
-		deleteRunning bool,
+	Delete(context.Context, string) error
+	DeleteCollection(
+		context.Context,
+		EventListOptions,
 	) (EventReferenceList, error)
 
 	UpdateWorkerStatus(
@@ -152,7 +144,7 @@ func (e *eventsClient) ListByProject(
 	)
 }
 
-func (e *eventsClient) Get(ctx context.Context, id string) (Event, error) {
+func (e *eventsClient) Get(_ context.Context, id string) (Event, error) {
 	event := Event{}
 	return event, e.executeAPIRequest(
 		apiRequest{
@@ -165,10 +157,7 @@ func (e *eventsClient) Get(ctx context.Context, id string) (Event, error) {
 	)
 }
 
-func (e *eventsClient) Cancel(
-	ctx context.Context,
-	id string,
-) error {
+func (e *eventsClient) Cancel(_ context.Context, id string) error {
 	return e.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodPut,
@@ -180,7 +169,7 @@ func (e *eventsClient) Cancel(
 }
 
 func (e *eventsClient) CancelCollection(
-	ctx context.Context,
+	_ context.Context,
 	opts EventListOptions,
 ) (EventReferenceList, error) {
 	queryParams := map[string]string{}
@@ -207,44 +196,39 @@ func (e *eventsClient) CancelCollection(
 	)
 }
 
-func (e *eventsClient) Delete(
-	ctx context.Context,
-	id string,
-	deletePending bool,
-	deleteRunning bool,
-) (EventReferenceList, error) {
-	eventRefList := EventReferenceList{}
-	return eventRefList, e.executeAPIRequest(
+func (e *eventsClient) Delete(_ context.Context, id string) error {
+	return e.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodDelete,
 			path:        fmt.Sprintf("v2/events/%s", id),
 			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: map[string]string{
-				"deletePending": strconv.FormatBool(deletePending),
-				"deleteRunning": strconv.FormatBool(deleteRunning),
-			},
 			successCode: http.StatusOK,
-			respObj:     &eventRefList,
 		},
 	)
 }
 
-func (e *eventsClient) DeleteByProject(
-	ctx context.Context,
-	projectID string,
-	deletePending bool,
-	deleteRunning bool,
+func (e *eventsClient) DeleteCollection(
+	_ context.Context,
+	opts EventListOptions,
 ) (EventReferenceList, error) {
+	queryParams := map[string]string{}
+	if opts.ProjectID != "" {
+		queryParams["projectID"] = opts.ProjectID
+	}
+	if len(opts.WorkerPhases) > 0 {
+		workerPhaseStrs := make([]string, len(opts.WorkerPhases))
+		for i, workerPhase := range opts.WorkerPhases {
+			workerPhaseStrs[i] = string(workerPhase)
+		}
+		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
+	}
 	eventRefList := EventReferenceList{}
 	return eventRefList, e.executeAPIRequest(
 		apiRequest{
 			method:      http.MethodDelete,
-			path:        fmt.Sprintf("v2/projects/%s/events", projectID),
+			path:        "v2/events",
 			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: map[string]string{
-				"deletePending": strconv.FormatBool(deletePending),
-				"deleteRunning": strconv.FormatBool(deleteRunning),
-			},
+			queryParams: queryParams,
 			successCode: http.StatusOK,
 			respObj:     &eventRefList,
 		},
@@ -252,7 +236,7 @@ func (e *eventsClient) DeleteByProject(
 }
 
 func (e *eventsClient) UpdateWorkerStatus(
-	ctx context.Context,
+	_ context.Context,
 	eventID string,
 	status WorkerStatus,
 ) error {
@@ -268,7 +252,7 @@ func (e *eventsClient) UpdateWorkerStatus(
 }
 
 func (e *eventsClient) GetWorkerLogs(
-	ctx context.Context,
+	_ context.Context,
 	eventID string,
 ) (LogEntryList, error) {
 	logEntryList := LogEntryList{}
@@ -311,7 +295,7 @@ func (e *eventsClient) StreamWorkerLogs(
 }
 
 func (e *eventsClient) GetWorkerInitLogs(
-	ctx context.Context,
+	_ context.Context,
 	eventID string,
 ) (LogEntryList, error) {
 	logEntryList := LogEntryList{}
@@ -358,7 +342,7 @@ func (e *eventsClient) StreamWorkerInitLogs(
 }
 
 func (e *eventsClient) UpdateJobStatus(
-	ctx context.Context,
+	_ context.Context,
 	eventID string,
 	jobName string,
 	status JobStatus,
@@ -379,7 +363,7 @@ func (e *eventsClient) UpdateJobStatus(
 }
 
 func (e *eventsClient) GetJobLogs(
-	ctx context.Context,
+	_ context.Context,
 	eventID string,
 	jobName string,
 ) (LogEntryList, error) {
@@ -432,7 +416,7 @@ func (e *eventsClient) StreamJobLogs(
 }
 
 func (e *eventsClient) GetJobInitLogs(
-	ctx context.Context,
+	_ context.Context,
 	eventID string,
 	jobName string,
 ) (LogEntryList, error) {

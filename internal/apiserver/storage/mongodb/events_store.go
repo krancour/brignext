@@ -122,6 +122,9 @@ func (e *eventsStore) Get(
 }
 
 func (e *eventsStore) Cancel(ctx context.Context, id string) error {
+	if _, err := e.Get(ctx, id); err != nil {
+		return err
+	}
 	res, err := e.collection.UpdateOne(
 		ctx,
 		bson.M{
@@ -179,11 +182,13 @@ func (e *eventsStore) CancelCollection(
 ) (brignext.EventReferenceList, error) {
 	eventRefList := brignext.NewEventReferenceList()
 
-	// For some reason, the MongoDB driver for Go doesn't implement the expose the
-	// findAndModify() method. As a workaround, we'll do a straight updateMany()
-	// and then we'll do a separate find() for all events that have the precise
-	// moment of cancellation that we set in the updateMany() operation.
+	// If no worker phases are specified, then there's nothing to do
+	if len(opts.WorkerPhases) == 0 {
+		return eventRefList, nil
+	}
 
+	// It only makes sense to cancel events that are in a pending or running
+	// state. We can ignore anything else.
 	var cancelPending bool
 	var cancelRunning bool
 	for _, workerPhase := range opts.WorkerPhases {
@@ -195,19 +200,24 @@ func (e *eventsStore) CancelCollection(
 		}
 	}
 
+	// Bail if we're not canceling pending or running events
 	if !cancelPending && !cancelRunning {
 		return eventRefList, nil
 	}
 
+	// The MongoDB driver for Go doesn't expose findAndModify(), which could be
+	// used to select events and cancel them at the same time. As a workaround,
+	// we'll cancel first, then select events based on cancellation time.
+
 	cancellationTime := time.Now()
 
+	criteria := bson.M{}
+	if opts.ProjectID != "" {
+		criteria["projectID"] = opts.ProjectID
+	}
+
 	if cancelPending {
-		criteria := bson.M{
-			"status.workerStatus.phase": brignext.WorkerPhasePending,
-		}
-		if opts.ProjectID != "" {
-			criteria["projectID"] = opts.ProjectID
-		}
+		criteria["status.workerStatus.phase"] = brignext.WorkerPhasePending
 		if _, err := e.collection.UpdateMany(
 			ctx,
 			criteria,
@@ -223,12 +233,7 @@ func (e *eventsStore) CancelCollection(
 	}
 
 	if cancelRunning {
-		criteria := bson.M{
-			"status.workerStatus.phase": brignext.WorkerPhaseRunning,
-		}
-		if opts.ProjectID != "" {
-			criteria["projectID"] = opts.ProjectID
-		}
+		criteria["status.workerStatus.phase"] = brignext.WorkerPhaseRunning
 		if _, err := e.collection.UpdateMany(
 			ctx,
 			criteria,
@@ -243,12 +248,8 @@ func (e *eventsStore) CancelCollection(
 		}
 	}
 
-	criteria := bson.M{
-		"canceled": cancellationTime,
-	}
-	if opts.ProjectID != "" {
-		criteria["projectID"] = opts.ProjectID
-	}
+	delete(criteria, "status.workerStatus.phase")
+	criteria["canceled"] = cancellationTime
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"metadata.created": -1})
 	cur, err := e.collection.Find(ctx, criteria, findOptions)
@@ -262,52 +263,87 @@ func (e *eventsStore) CancelCollection(
 	return eventRefList, nil
 }
 
-func (e *eventsStore) Delete(
-	ctx context.Context,
-	id string,
-	deletePending bool,
-	deleteRunning bool,
-) (bool, error) {
-	if _, err := e.Get(ctx, id); err != nil {
-		return false, err
-	}
-	phasesToDelete := []brignext.WorkerPhase{
-		brignext.WorkerPhaseCanceled,
-		brignext.WorkerPhaseAborted,
-		brignext.WorkerPhaseSucceeded,
-		brignext.WorkerPhaseFailed,
-		brignext.WorkerPhaseTimedOut,
-	}
-	if deletePending {
-		phasesToDelete = append(phasesToDelete, brignext.WorkerPhasePending)
-	}
-	if deleteRunning {
-		phasesToDelete = append(phasesToDelete, brignext.WorkerPhaseRunning)
-	}
+func (e *eventsStore) Delete(ctx context.Context, id string) error {
 	res, err := e.collection.DeleteOne(
 		ctx,
 		bson.M{
-			"metadata.id":               id,
-			"status.workerStatus.phase": bson.M{"$in": phasesToDelete},
+			"metadata.id": id,
 		},
 	)
 	if err != nil {
-		return false, errors.Wrapf(err, "error deleting event %q", id)
+		return errors.Wrapf(err, "error deleting event %q", id)
 	}
-	return res.DeletedCount == 1, nil
-}
-
-func (e *eventsStore) DeleteByProject(
-	ctx context.Context,
-	projectID string,
-) error {
-	if _, err := e.collection.DeleteMany(
-		ctx,
-		bson.M{"projectID": projectID},
-	); err != nil {
-		return errors.Wrapf(err, "error deleting events for project %q", projectID)
+	if res.DeletedCount != 1 {
+		return brignext.NewErrNotFound("Event", id)
 	}
 	return nil
+}
+
+func (e *eventsStore) DeleteCollection(
+	ctx context.Context,
+	opts brignext.EventListOptions,
+) (brignext.EventReferenceList, error) {
+	eventRefList := brignext.NewEventReferenceList()
+
+	// If no worker phases are specified, then there's nothing to do
+	if len(opts.WorkerPhases) == 0 {
+		return eventRefList, nil
+	}
+
+	// The MongoDB driver for Go doesn't expose findAndModify(), which could be
+	// used to select events and delete them at the same time. As a workaround,
+	// we'll perform a logical delete first, select the logically deleted events,
+	// and then perform a real delete.
+
+	// TODO: We should probably do all of this inside a transaction
+
+	deletedTime := time.Now()
+
+	// Logical delete...
+	criteria := bson.M{
+		"status.workerStatus.phase": bson.M{
+			"$in": opts.WorkerPhases,
+		},
+		"deleted": bson.M{
+			"$exists": false,
+		},
+	}
+	if opts.ProjectID != "" {
+		criteria["projectID"] = opts.ProjectID
+	}
+	if _, err := e.collection.UpdateMany(
+		ctx,
+		criteria,
+		bson.M{
+			"$set": bson.M{
+				"deleted": deletedTime,
+			},
+		},
+	); err != nil {
+		return eventRefList, errors.Wrap(err, "error logically deleting events")
+	}
+
+	// Select the logically deleted documents...
+	criteria["deleted"] = deletedTime
+	findOptions := options.Find()
+	findOptions.SetSort(bson.M{"metadata.created": -1})
+	cur, err := e.collection.Find(ctx, criteria, findOptions)
+	if err != nil {
+		return eventRefList,
+			errors.Wrapf(err, "error finding logically deleted events")
+	}
+	if err := cur.All(ctx, &eventRefList.Items); err != nil {
+		return eventRefList,
+			errors.Wrap(err, "error decoding logically deleted events")
+	}
+
+	// Final deletion
+	if _, err := e.collection.DeleteMany(ctx, criteria); err != nil {
+		return eventRefList,
+			errors.Wrap(err, "error deleting events")
+	}
+
+	return eventRefList, nil
 }
 
 func (e *eventsStore) UpdateWorkerStatus(

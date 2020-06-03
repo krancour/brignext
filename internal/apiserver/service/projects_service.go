@@ -131,7 +131,13 @@ func (p *projectsService) Delete(ctx context.Context, id string) error {
 		if err := p.store.Projects().Delete(ctx, id); err != nil {
 			return errors.Wrapf(err, "error removing project %q from store", id)
 		}
-		if err := p.store.Events().DeleteByProject(ctx, id); err != nil {
+		if _, err := p.store.Events().DeleteCollection(
+			ctx,
+			brignext.EventListOptions{
+				ProjectID:    id,
+				WorkerPhases: brignext.WorkerPhasesAll(),
+			},
+		); err != nil {
 			return errors.Wrapf(
 				err,
 				"error deleting events for project %q from scheduler",

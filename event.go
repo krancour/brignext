@@ -24,10 +24,10 @@ func NewEventReferenceList() EventReferenceList {
 }
 
 type EventReference struct {
-	TypeMeta   `json:",inline"`
-	ID         string           `json:"id", bson:"id"`
-	ProjectID  string           `json:"projectID", bson:"projectID"`
-	Kubernetes KubernetesConfig `json:"-" bson:"kubernetes"`
+	TypeMeta            `json:",inline"`
+	ObjectReferenceMeta `json:"metadata" bson:"metadata"`
+	ProjectID           string           `json:"projectID" bson:"projectID"`
+	Kubernetes          KubernetesConfig `json:"-" bson:"kubernetes"`
 }
 
 func NewEventReference(event Event) EventReference {
@@ -36,7 +36,9 @@ func NewEventReference(event Event) EventReference {
 			APIVersion: APIVersion,
 			Kind:       "EventReference",
 		},
-		ID:        event.ID,
+		ObjectReferenceMeta: ObjectReferenceMeta{
+			ID: event.ID,
+		},
 		ProjectID: event.ProjectID,
 	}
 	if event.Kubernetes != nil {

@@ -60,10 +60,10 @@ func (e *eventEndpoints) register(router *mux.Router) {
 		e.tokenAuthFilter.Decorate(e.delete),
 	).Methods(http.MethodDelete)
 
-	// Delete events by project
+	// Delete a collection of events
 	router.HandleFunc(
-		"/v2/projects/{projectID}/events",
-		e.tokenAuthFilter.Decorate(e.delete),
+		"/v2/events",
+		e.tokenAuthFilter.Decorate(e.deleteCollection),
 	).Methods(http.MethodDelete)
 
 	// Update worker status
@@ -169,30 +169,37 @@ func (e *eventEndpoints) cancelCollection(
 }
 
 func (e *eventEndpoints) delete(w http.ResponseWriter, r *http.Request) {
-	eventID := mux.Vars(r)["id"]
-	projectID := mux.Vars(r)["projectID"]
-	// nolint: errcheck
-	deletePending, _ := strconv.ParseBool(r.URL.Query().Get("deletePending"))
-	// nolint: errcheck
-	deleteRunning, _ := strconv.ParseBool(r.URL.Query().Get("deleteRunning"))
+	id := mux.Vars(r)["id"]
 	e.serveAPIRequest(apiRequest{
 		w: w,
 		r: r,
 		endpointLogic: func() (interface{}, error) {
-			if eventID != "" {
-				return e.service.Delete(
-					r.Context(),
-					eventID,
-					deletePending,
-					deleteRunning,
-				)
-			}
-			return e.service.DeleteByProject(
-				r.Context(),
-				projectID,
-				deletePending,
-				deleteRunning,
-			)
+			return nil, e.service.Delete(r.Context(), id)
+		},
+		successCode: http.StatusOK,
+	})
+}
+
+func (e *eventEndpoints) deleteCollection(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	opts := brignext.EventListOptions{
+		ProjectID: r.URL.Query().Get("projectID"),
+	}
+	workerPhasesStr := r.URL.Query().Get("workerPhases")
+	if workerPhasesStr != "" {
+		workerPhaseStrs := strings.Split(workerPhasesStr, ",")
+		opts.WorkerPhases = make([]brignext.WorkerPhase, len(workerPhaseStrs))
+		for i, workerPhaseStr := range workerPhaseStrs {
+			opts.WorkerPhases[i] = brignext.WorkerPhase(workerPhaseStr)
+		}
+	}
+	e.serveAPIRequest(apiRequest{
+		w: w,
+		r: r,
+		endpointLogic: func() (interface{}, error) {
+			return e.service.DeleteCollection(r.Context(), opts)
 		},
 		successCode: http.StatusOK,
 	})

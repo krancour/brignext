@@ -5,18 +5,18 @@ import "time"
 type JobPhase string
 
 const (
-	// JobPhaseRunning represents the state wherein a job is currently
-	// being executed.
-	JobPhaseRunning JobPhase = "RUNNING"
 	// JobPhaseAborted represents the state wherein a job was forcefully
 	// stopped during execution.
 	JobPhaseAborted JobPhase = "ABORTED"
-	// JobPhaseSucceeded represents the state where a job has run to
-	// completion without error.
-	JobPhaseSucceeded JobPhase = "SUCCEEDED"
 	// JobPhaseFailed represents the state wherein a job has run to
 	// completion but experienced errors.
 	JobPhaseFailed JobPhase = "FAILED"
+	// JobPhaseRunning represents the state wherein a job is currently
+	// being executed.
+	JobPhaseRunning JobPhase = "RUNNING"
+	// JobPhaseSucceeded represents the state where a job has run to
+	// completion without error.
+	JobPhaseSucceeded JobPhase = "SUCCEEDED"
 	// JobPhaseTimedOut represents the state wherein a job has has not completed
 	// within a designated timeframe.
 	JobPhaseTimedOut JobPhase = "TIMED_OUT"

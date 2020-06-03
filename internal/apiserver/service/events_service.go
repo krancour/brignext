@@ -24,17 +24,10 @@ type EventsService interface {
 		context.Context,
 		brignext.EventListOptions,
 	) (brignext.EventReferenceList, error)
-	Delete(
-		ctx context.Context,
-		id string,
-		deletePending bool,
-		deleteRunning bool,
-	) (brignext.EventReferenceList, error)
-	DeleteByProject(
-		ctx context.Context,
-		projectID string,
-		deletePending bool,
-		deleteRunning bool,
+	Delete(context.Context, string) error
+	DeleteCollection(
+		context.Context,
+		brignext.EventListOptions,
 	) (brignext.EventReferenceList, error)
 
 	UpdateWorkerStatus(
@@ -203,10 +196,8 @@ func (e *eventsService) Create(
 	if err := e.store.Events().Create(ctx, event); err != nil {
 		// We need to roll this back manually because the scheduler doesn't
 		// automatically roll anything back upon failure.
-		e.scheduler.Delete(
-			ctx,
-			brignext.EventReference{},
-		) // nolint: errcheck
+		// nolint: errcheck
+		e.scheduler.Delete(ctx, brignext.EventReference{})
 		return eventRefList,
 			errors.Wrapf(err, "error storing new event %q", event.ID)
 	}
@@ -260,28 +251,24 @@ func (e *eventsService) Get(
 }
 
 func (e *eventsService) Cancel(ctx context.Context, id string) error {
-	// Make sure the event exists
 	event, err := e.store.Events().Get(ctx, id)
 	if err != nil {
-		return errors.Wrapf(
-			err,
-			"error retrieving event %q from store",
-			id,
-		)
+		return errors.Wrapf(err, "error retrieving event %q from store", id)
 	}
+
 	if err = e.store.Events().Cancel(ctx, id); err != nil {
 		return errors.Wrapf(err, "error canceling event %q in store", id)
 	}
 
 	go func() {
 		if err = e.scheduler.Delete(
-			ctx,
+			context.Background(), // Deliberately not using request context
 			brignext.NewEventReference(event),
 		); err != nil {
 			log.Println(
 				errors.Wrapf(
 					err,
-					"error canceling event %q in scheduler",
+					"error deleting event %q from scheduler",
 					id,
 				),
 			)
@@ -316,7 +303,10 @@ func (e *eventsService) CancelCollection(
 
 	go func() {
 		for _, eventRef := range eventRefList.Items {
-			if err := e.scheduler.Delete(ctx, eventRef); err != nil {
+			if err := e.scheduler.Delete(
+				context.Background(), // Deliberately not using request context
+				eventRef,
+			); err != nil {
 				log.Println(
 					errors.Wrapf(
 						err,
@@ -331,113 +321,73 @@ func (e *eventsService) CancelCollection(
 	return eventRefList, nil
 }
 
-func (e *eventsService) Delete(
-	ctx context.Context,
-	id string,
-	deletePending bool,
-	deleteRunning bool,
-) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.NewEventReferenceList()
-
+func (e *eventsService) Delete(ctx context.Context, id string) error {
 	event, err := e.store.Events().Get(ctx, id)
 	if err != nil {
-		return eventRefList,
-			errors.Wrapf(err, "error retrieving event %q from store", id)
+		return errors.Wrapf(err, "error retrieving event %q from store", id)
 	}
 
-	err = e.store.DoTx(ctx, func(ctx context.Context) error {
-		var ok bool
-		ok, err = e.store.Events().Delete(
-			ctx,
-			id,
-			deletePending,
-			deleteRunning,
-		)
-		if err != nil {
-			return errors.Wrapf(err, "error removing event %q from store", id)
-		}
-		if ok {
-			eventRef := brignext.NewEventReference(event)
-			if err = e.scheduler.Delete(ctx, eventRef); err != nil {
-				return errors.Wrapf(
+	if err = e.store.Events().Delete(ctx, id); err != nil {
+		return errors.Wrapf(err, "error deleting event %q from store", id)
+	}
+
+	go func() {
+		if err = e.scheduler.Delete(
+			context.Background(), // Deliberately not using request context
+			brignext.NewEventReference(event),
+		); err != nil {
+			log.Println(
+				errors.Wrapf(
 					err,
 					"error deleting event %q from scheduler",
 					id,
-				)
-			}
-			eventRefList.Items = []brignext.EventReference{
-				eventRef,
-			}
+				),
+			)
 		}
-		return nil
-	})
-	return eventRefList, err
+	}()
+
+	return nil
 }
 
-func (e *eventsService) DeleteByProject(
+func (e *eventsService) DeleteCollection(
 	ctx context.Context,
-	projectID string,
-	deletePending bool,
-	deleteRunning bool,
+	opts brignext.EventListOptions,
 ) (brignext.EventReferenceList, error) {
 	eventRefList := brignext.NewEventReferenceList()
 
-	// Make sure the project exists
-	_, err := e.store.Projects().Get(ctx, projectID)
-	if err != nil {
-		return eventRefList, errors.Wrapf(
-			err,
-			"error retrieving project %q from store",
-			projectID,
-		)
-	}
-
-	// Find all events. We'll iterate over all of them and try to delete each.
-	// It sounds inefficient and it probably is, but this allows us to delete
-	// each event in its own transaction.
-	eventList, err := e.store.Events().ListByProject(ctx, projectID)
-	if err != nil {
-		return eventRefList, errors.Wrapf(
-			err,
-			"error retrieving events for project %q",
-			projectID,
-		)
-	}
-
-	for _, event := range eventList.Items {
-		if err := e.store.DoTx(ctx, func(ctx context.Context) error {
-			ok, err := e.store.Events().Delete(
-				ctx,
-				event.ID,
-				deletePending,
-				deleteRunning,
+	if opts.ProjectID != "" {
+		// Make sure the project exists
+		_, err := e.store.Projects().Get(ctx, opts.ProjectID)
+		if err != nil {
+			return eventRefList, errors.Wrapf(
+				err,
+				"error retrieving project %q from store",
+				opts.ProjectID,
 			)
-			if err != nil {
-				return errors.Wrapf(
-					err,
-					"error deleting event %q from store",
-					event.ID,
-				)
-			}
-			if ok {
-				eventRef := brignext.NewEventReference(event)
-				if err := e.scheduler.Delete(ctx, eventRef); err != nil {
-					return errors.Wrapf(
-						err,
-						"error deleting event %q from scheduler",
-						event.ID,
-					)
-				}
-				eventRefList.Items = append(
-					eventRefList.Items,
-					eventRef,
-				)
-			}
-			return nil
-		}); err != nil {
-			return eventRefList, err
 		}
 	}
+
+	eventRefList, err := e.store.Events().DeleteCollection(ctx, opts)
+	if err != nil {
+		return eventRefList, errors.Wrap(err, "error deleting events from store")
+	}
+
+	go func() {
+		for _, eventRef := range eventRefList.Items {
+			if err := e.scheduler.Delete(
+				context.Background(), // Deliberately not using request context
+				eventRef,
+			); err != nil {
+				log.Println(
+					errors.Wrapf(
+						err,
+						"error deleting event %q from scheduler",
+						eventRef.ID,
+					),
+				)
+			}
+		}
+	}()
 
 	return eventRefList, nil
 }

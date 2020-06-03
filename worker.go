@@ -14,24 +14,24 @@ const (
 type WorkerPhase string
 
 const (
+	// WorkerPhaseAborted represents the state wherein a worker was forcefully
+	// stopped during execution.
+	WorkerPhaseAborted WorkerPhase = "ABORTED"
+	// WorkerPhaseCanceled represents the state wherein a pending worker was
+	// canceled prior to execution.
+	WorkerPhaseCanceled WorkerPhase = "CANCELED"
+	// WorkerPhaseFailed represents the state wherein a worker has run to
+	// completion but experienced errors.
+	WorkerPhaseFailed WorkerPhase = "FAILED"
 	// WorkerPhasePending represents the state wherein a worker is awaiting
 	// execution.
 	WorkerPhasePending WorkerPhase = "PENDING"
 	// WorkerPhaseRunning represents the state wherein a worker is currently
 	// being executed.
 	WorkerPhaseRunning WorkerPhase = "RUNNING"
-	// WorkerPhaseCanceled represents the state wherein a pending worker was
-	// canceled prior to execution.
-	WorkerPhaseCanceled WorkerPhase = "CANCELED"
-	// WorkerPhaseAborted represents the state wherein a worker was forcefully
-	// stopped during execution.
-	WorkerPhaseAborted WorkerPhase = "ABORTED"
 	// WorkerPhaseSucceeded represents the state where a worker has run to
 	// completion without error.
 	WorkerPhaseSucceeded WorkerPhase = "SUCCEEDED"
-	// WorkerPhaseFailed represents the state wherein a worker has run to
-	// completion but experienced errors.
-	WorkerPhaseFailed WorkerPhase = "FAILED"
 	// WorkerPhaseTimedOut represents the state wherein a worker has has not
 	// completed within a designated timeframe.
 	WorkerPhaseTimedOut WorkerPhase = "TIMED_OUT"
@@ -39,6 +39,29 @@ const (
 	// unknown.
 	WorkerPhaseUnknown WorkerPhase = "UNKNOWN"
 )
+
+func WorkerPhasesAll() []WorkerPhase {
+	return []WorkerPhase{
+		WorkerPhaseAborted,
+		WorkerPhaseCanceled,
+		WorkerPhaseFailed,
+		WorkerPhasePending,
+		WorkerPhaseRunning,
+		WorkerPhaseSucceeded,
+		WorkerPhaseTimedOut,
+		WorkerPhaseUnknown,
+	}
+}
+
+func WorkerPhasesTerminal() []WorkerPhase {
+	return []WorkerPhase{
+		WorkerPhaseAborted,
+		WorkerPhaseCanceled,
+		WorkerPhaseFailed,
+		WorkerPhaseSucceeded,
+		WorkerPhaseTimedOut,
+	}
+}
 
 // nolint: lll
 type WorkerSpec struct {

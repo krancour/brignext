@@ -21,5 +21,10 @@ type ObjectMeta struct {
 	// LastUpdatedBy string     `json:"lastUpdatedBy,omitempty" bson:"lastUpdatedBy"`
 }
 
+// nolint: lll
+type ObjectReferenceMeta struct {
+	ID string `json:"id,omitempty" bson:"id"`
+}
+
 type ListMeta struct {
 }

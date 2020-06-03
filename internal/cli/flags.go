@@ -3,9 +3,13 @@ package main
 import "github.com/urfave/cli/v2"
 
 const (
+	flagAborted     = "aborted"
+	flagAnyState    = "any-state"
 	flagBrowse      = "browse"
+	flagCanceled    = "canceled"
 	flagDescription = "description"
 	flagEvent       = "event"
+	flagFailed      = "failed"
 	flagFile        = "file"
 	flagFollow      = "follow"
 	flagID          = "id"
@@ -23,7 +27,11 @@ const (
 	flagServer      = "server"
 	flagSet         = "set"
 	flagSource      = "source"
+	flagSucceeded   = "succeeded"
+	flagTerminal    = "terminal"
+	flagTimedOut    = "timedout"
 	flagType        = "type"
+	flagUnknown     = "unknown"
 	flagUnset       = "unset"
 )
 

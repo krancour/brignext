@@ -11,21 +11,16 @@ type EventsStore interface {
 	List(context.Context) (brignext.EventList, error)
 	ListByProject(context.Context, string) (brignext.EventList, error)
 	Get(context.Context, string) (brignext.Event, error)
-	Cancel(
-		ctx context.Context,
-		id string,
-	) error
+	Cancel(context.Context, string) error
 	CancelCollection(
-		ctx context.Context,
-		opts brignext.EventListOptions,
+		context.Context,
+		brignext.EventListOptions,
 	) (brignext.EventReferenceList, error)
-	Delete(
-		ctx context.Context,
-		id string,
-		deletePending bool,
-		deleteRunning bool,
-	) (bool, error)
-	DeleteByProject(context.Context, string) error
+	Delete(context.Context, string) error
+	DeleteCollection(
+		context.Context,
+		brignext.EventListOptions,
+	) (brignext.EventReferenceList, error)
 	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
