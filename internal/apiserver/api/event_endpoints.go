@@ -155,7 +155,6 @@ func (e *eventEndpoints) cancelCollection(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	// TODO: Reject requests that don't specify project and worker phase filters
 	opts := brignext.EventListOptions{
 		ProjectID: r.URL.Query().Get("projectID"),
 	}
@@ -193,7 +192,6 @@ func (e *eventEndpoints) deleteCollection(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	// TODO: Reject requests that don't specify project and worker phase filters
 	opts := brignext.EventListOptions{
 		ProjectID: r.URL.Query().Get("projectID"),
 	}

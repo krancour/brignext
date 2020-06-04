@@ -156,7 +156,6 @@ func (l *logStore) getLogs(
 	if err != nil {
 		return logEntryList, errors.Wrap(err, "error retrieving log entries")
 	}
-	// TODO: Why did I do it this way? Can't I decode them all in one shot?
 	for cursor.Next(ctx) {
 		logEntry := brignext.NewLogEntry()
 		err := cursor.Decode(&logEntry)

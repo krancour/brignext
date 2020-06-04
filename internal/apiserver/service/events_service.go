@@ -215,12 +215,6 @@ func (e *eventsService) List(
 ) (brignext.EventList, error) {
 	eventList := brignext.NewEventList()
 
-	// If project isn't identified, then there's nothing to do
-	// TODO: This should probably be an error
-	if opts.ProjectID == "" {
-		return eventList, nil
-	}
-
 	// If no worker phase filters were applied, retrieve all phases
 	if len(opts.WorkerPhases) == 0 {
 		opts.WorkerPhases = brignext.WorkerPhasesAll()
@@ -282,11 +276,18 @@ func (e *eventsService) CancelCollection(
 ) (brignext.EventReferenceList, error) {
 	eventRefList := brignext.NewEventReferenceList()
 
-	// If project isn't identified or no worker phases are specified, then there's
-	// nothing to do
-	// TODO: This should probably be an error
-	if opts.ProjectID == "" || len(opts.WorkerPhases) == 0 {
-		return eventRefList, nil
+	// Refuse requests not qualified by project
+	if opts.ProjectID == "" {
+		return eventRefList, brignext.NewErrBadRequest(
+			"Requests to cancel multiple events must be qualified by project.",
+		)
+	}
+	// Refuse requeets not qualified by worker phases
+	if len(opts.WorkerPhases) == 0 {
+		return eventRefList, brignext.NewErrBadRequest(
+			"Requests to cancel multiple events must be qualified by worker " +
+				"phase(s).",
+		)
 	}
 
 	if opts.ProjectID != "" {
@@ -360,11 +361,18 @@ func (e *eventsService) DeleteCollection(
 ) (brignext.EventReferenceList, error) {
 	eventRefList := brignext.NewEventReferenceList()
 
-	// If project isn't identified or no worker phases are specified, then there's
-	// nothing to do
-	// TODO: This should probably be an error
-	if opts.ProjectID == "" || len(opts.WorkerPhases) == 0 {
-		return eventRefList, nil
+	// Refuse requests not qualified by project
+	if opts.ProjectID == "" {
+		return eventRefList, brignext.NewErrBadRequest(
+			"Requests to delete multiple events must be qualified by project.",
+		)
+	}
+	// Refuse requeets not qualified by worker phases
+	if len(opts.WorkerPhases) == 0 {
+		return eventRefList, brignext.NewErrBadRequest(
+			"Requests to delete multiple events must be qualified by worker " +
+				"phase(s).",
+		)
 	}
 
 	if opts.ProjectID != "" {
