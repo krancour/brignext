@@ -34,9 +34,10 @@ var projectCommand = &cli.Command{
 			},
 			Action: projectCreate,
 		},
+		// TODO: Require confirmation of this action
 		{
 			Name:  "delete",
-			Usage: "Delete a project",
+			Usage: "Delete a single project",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     flagID,

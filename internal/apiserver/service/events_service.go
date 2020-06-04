@@ -216,6 +216,7 @@ func (e *eventsService) List(
 	eventList := brignext.NewEventList()
 
 	// If project isn't identified, then there's nothing to do
+	// TODO: This should probably be an error
 	if opts.ProjectID == "" {
 		return eventList, nil
 	}
@@ -283,6 +284,7 @@ func (e *eventsService) CancelCollection(
 
 	// If project isn't identified or no worker phases are specified, then there's
 	// nothing to do
+	// TODO: This should probably be an error
 	if opts.ProjectID == "" || len(opts.WorkerPhases) == 0 {
 		return eventRefList, nil
 	}
@@ -360,6 +362,7 @@ func (e *eventsService) DeleteCollection(
 
 	// If project isn't identified or no worker phases are specified, then there's
 	// nothing to do
+	// TODO: This should probably be an error
 	if opts.ProjectID == "" || len(opts.WorkerPhases) == 0 {
 		return eventRefList, nil
 	}
