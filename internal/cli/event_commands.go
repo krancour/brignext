@@ -41,6 +41,8 @@ var eventCommand = &cli.Command{
 			},
 			Action: eventCancel,
 		},
+		// TODO: This should error locally (without making a roundtrip) if no states
+		// were specified.
 		{
 			Name:  "cancel-many",
 			Usage: "Cancel multiple events without deleting them",
@@ -122,6 +124,8 @@ var eventCommand = &cli.Command{
 			},
 			Action: eventDelete,
 		},
+		// TODO: This should error locally (without making a roundtrip) if no states
+		// were specified.
 		{
 			Name:  "delete-many",
 			Usage: "Delete multiple events",
