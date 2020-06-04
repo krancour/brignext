@@ -42,42 +42,15 @@ type EventsService interface {
 		status brignext.JobStatus,
 	) error
 
-	GetWorkerLogs(
+	GetLogs(
 		ctx context.Context,
 		eventID string,
+		opts brignext.LogOptions,
 	) (brignext.LogEntryList, error)
-	StreamWorkerLogs(
+	StreamLogs(
 		ctx context.Context,
 		eventID string,
-	) (<-chan brignext.LogEntry, error)
-	GetWorkerInitLogs(
-		ctx context.Context,
-		eventID string,
-	) (brignext.LogEntryList, error)
-	StreamWorkerInitLogs(
-		ctx context.Context,
-		eventID string,
-	) (<-chan brignext.LogEntry, error)
-
-	GetJobLogs(
-		ctx context.Context,
-		eventID string,
-		jobName string,
-	) (brignext.LogEntryList, error)
-	StreamJobLogs(
-		ctx context.Context,
-		eventID string,
-		jobName string,
-	) (<-chan brignext.LogEntry, error)
-	GetJobInitLogs(
-		ctx context.Context,
-		eventID string,
-		jobName string,
-	) (brignext.LogEntryList, error)
-	StreamJobInitLogs(
-		ctx context.Context,
-		eventID string,
-		jobName string,
+		opts brignext.LogOptions,
 	) (<-chan brignext.LogEntry, error)
 }
 
@@ -453,9 +426,10 @@ func (e *eventsService) UpdateJobStatus(
 	return nil
 }
 
-func (e *eventsService) GetWorkerLogs(
+func (e *eventsService) GetLogs(
 	ctx context.Context,
 	eventID string,
+	opts brignext.LogOptions,
 ) (brignext.LogEntryList, error) {
 	logEntryList := brignext.LogEntryList{}
 	_, err := e.store.Events().Get(ctx, eventID)
@@ -466,12 +440,13 @@ func (e *eventsService) GetWorkerLogs(
 			eventID,
 		)
 	}
-	return e.logStore.GetWorkerLogs(ctx, eventID)
+	return e.logStore.GetLogs(ctx, eventID, opts)
 }
 
-func (e *eventsService) StreamWorkerLogs(
+func (e *eventsService) StreamLogs(
 	ctx context.Context,
 	eventID string,
+	opts brignext.LogOptions,
 ) (<-chan brignext.LogEntry, error) {
 	_, err := e.store.Events().Get(ctx, eventID)
 	if err != nil {
@@ -481,114 +456,5 @@ func (e *eventsService) StreamWorkerLogs(
 			eventID,
 		)
 	}
-	return e.logStore.StreamWorkerLogs(ctx, eventID)
-}
-
-func (e *eventsService) GetWorkerInitLogs(
-	ctx context.Context,
-	eventID string,
-) (brignext.LogEntryList, error) {
-	logEntryList := brignext.LogEntryList{}
-	_, err := e.store.Events().Get(ctx, eventID)
-	if err != nil {
-		return logEntryList, errors.Wrapf(
-			err,
-			"error retrieving event %q from store",
-			eventID,
-		)
-	}
-	return e.logStore.GetWorkerInitLogs(ctx, eventID)
-}
-
-func (e *eventsService) StreamWorkerInitLogs(
-	ctx context.Context,
-	eventID string,
-) (<-chan brignext.LogEntry, error) {
-	_, err := e.store.Events().Get(ctx, eventID)
-	if err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"error retrieving event %q from store",
-			eventID,
-		)
-	}
-	return e.logStore.StreamWorkerInitLogs(ctx, eventID)
-}
-
-func (e *eventsService) GetJobLogs(
-	ctx context.Context,
-	eventID string,
-	jobName string,
-) (brignext.LogEntryList, error) {
-	logEntryList := brignext.LogEntryList{}
-	event, err := e.store.Events().Get(ctx, eventID)
-	if err != nil {
-		return logEntryList, errors.Wrapf(
-			err,
-			"error retrieving event %q from store",
-			eventID,
-		)
-	}
-	if _, ok := event.Status.JobStatuses[jobName]; !ok {
-		return logEntryList, brignext.NewErrNotFound("Job", jobName)
-	}
-	return e.logStore.GetJobLogs(ctx, eventID, jobName)
-}
-
-func (e *eventsService) StreamJobLogs(
-	ctx context.Context,
-	eventID string,
-	jobName string,
-) (<-chan brignext.LogEntry, error) {
-	event, err := e.store.Events().Get(ctx, eventID)
-	if err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"error retrieving event %q from store",
-			eventID,
-		)
-	}
-	if _, ok := event.Status.JobStatuses[jobName]; !ok {
-		return nil, brignext.NewErrNotFound("Job", jobName)
-	}
-	return e.logStore.StreamJobLogs(ctx, eventID, jobName)
-}
-
-func (e *eventsService) GetJobInitLogs(
-	ctx context.Context,
-	eventID string,
-	jobName string,
-) (brignext.LogEntryList, error) {
-	logEntryList := brignext.LogEntryList{}
-	event, err := e.store.Events().Get(ctx, eventID)
-	if err != nil {
-		return logEntryList, errors.Wrapf(
-			err,
-			"error retrieving event %q from store",
-			eventID,
-		)
-	}
-	if _, ok := event.Status.JobStatuses[jobName]; !ok {
-		return logEntryList, brignext.NewErrNotFound("Job", jobName)
-	}
-	return e.logStore.GetJobInitLogs(ctx, eventID, jobName)
-}
-
-func (e *eventsService) StreamJobInitLogs(
-	ctx context.Context,
-	eventID string,
-	jobName string,
-) (<-chan brignext.LogEntry, error) {
-	event, err := e.store.Events().Get(ctx, eventID)
-	if err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"error retrieving event %q from store",
-			eventID,
-		)
-	}
-	if _, ok := event.Status.JobStatuses[jobName]; !ok {
-		return nil, brignext.NewErrNotFound("Job", jobName)
-	}
-	return e.logStore.StreamJobInitLogs(ctx, eventID, jobName)
+	return e.logStore.StreamLogs(ctx, eventID, opts)
 }

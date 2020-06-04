@@ -68,26 +68,20 @@ func (e *eventEndpoints) register(router *mux.Router) {
 
 	// Update worker status
 	router.HandleFunc(
-		"/v2/events/{eventID}/worker/status",
+		"/v2/events/{id}/worker/status",
 		e.tokenAuthFilter.Decorate(e.updateWorkerStatus),
 	).Methods(http.MethodPut)
 
-	// Get/stream worker logs
-	router.HandleFunc(
-		"/v2/events/{eventID}/worker/logs",
-		e.tokenAuthFilter.Decorate(e.getOrStreamWorkerLogs),
-	).Methods(http.MethodGet)
-
 	// Update job status
 	router.HandleFunc(
-		"/v2/events/{eventID}/worker/jobs/{jobName}/status",
+		"/v2/events/{id}/worker/jobs/{jobName}/status",
 		e.tokenAuthFilter.Decorate(e.updateJobStatus),
 	).Methods(http.MethodPut)
 
-	// Get/stream job logs
+	// Get/stream logs
 	router.HandleFunc(
-		"/v2/events/{eventID}/worker/jobs/{jobName}/logs",
-		e.tokenAuthFilter.Decorate(e.getOrStreamJobLogs),
+		"/v2/events/{id}/logs",
+		e.tokenAuthFilter.Decorate(e.getOrStreamLogs),
 	).Methods(http.MethodGet)
 }
 
@@ -217,7 +211,7 @@ func (e *eventEndpoints) updateWorkerStatus(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	eventID := mux.Vars(r)["eventID"]
+	id := mux.Vars(r)["id"]
 	status := brignext.WorkerStatus{}
 	e.serveAPIRequest(apiRequest{
 		w:                   w,
@@ -225,65 +219,45 @@ func (e *eventEndpoints) updateWorkerStatus(
 		reqBodySchemaLoader: e.workerStatusSchemaLoader,
 		reqBodyObj:          &status,
 		endpointLogic: func() (interface{}, error) {
-			return nil, e.service.UpdateWorkerStatus(
-				r.Context(),
-				eventID,
-				status,
-			)
+			return nil, e.service.UpdateWorkerStatus(r.Context(), id, status)
 		},
 		successCode: http.StatusOK,
 	})
 }
 
-func (e *eventEndpoints) getOrStreamWorkerLogs(
+func (e *eventEndpoints) getOrStreamLogs(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	eventID := mux.Vars(r)["eventID"]
+	id := mux.Vars(r)["id"]
 	// nolint: errchecks
 	stream, _ := strconv.ParseBool(r.URL.Query().Get("stream"))
-	// nolint: errcheck
-	init, _ := strconv.ParseBool(r.URL.Query().Get("init"))
+
+	opts := brignext.LogOptions{
+		Job:       r.URL.Query().Get("job"),
+		Container: r.URL.Query().Get("container"),
+	}
 
 	if !stream {
 		e.serveAPIRequest(apiRequest{
 			w: w,
 			r: r,
 			endpointLogic: func() (interface{}, error) {
-				if init {
-					return e.service.GetWorkerInitLogs(r.Context(), eventID)
-				}
-				return e.service.GetWorkerLogs(r.Context(), eventID)
+				return e.service.GetLogs(r.Context(), id, opts)
 			},
 			successCode: http.StatusOK,
 		})
 		return
 	}
 
-	var logEntryCh <-chan brignext.LogEntry
-	var err error
-	if init {
-		logEntryCh, err = e.service.StreamWorkerInitLogs(
-			r.Context(),
-			eventID,
-		)
-	} else {
-		logEntryCh, err = e.service.StreamWorkerLogs(
-			r.Context(),
-			eventID,
-		)
-	}
+	logEntryCh, err := e.service.StreamLogs(r.Context(), id, opts)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
 			e.writeAPIResponse(w, http.StatusNotFound, errors.Cause(err))
 			return
 		}
 		log.Println(
-			errors.Wrapf(
-				err,
-				"error retrieving log stream for event %q worker",
-				eventID,
-			),
+			errors.Wrapf(err, "error retrieving log stream for event %q", id),
 		)
 		e.writeAPIResponse(
 			w,
@@ -309,7 +283,7 @@ func (e *eventEndpoints) updateJobStatus(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	eventID := mux.Vars(r)["eventID"]
+	id := mux.Vars(r)["id"]
 	jobName := mux.Vars(r)["jobName"]
 	status := brignext.JobStatus{}
 	e.serveAPIRequest(apiRequest{
@@ -318,85 +292,8 @@ func (e *eventEndpoints) updateJobStatus(
 		reqBodySchemaLoader: e.jobStatusSchemaLoader,
 		reqBodyObj:          &status,
 		endpointLogic: func() (interface{}, error) {
-			return nil, e.service.UpdateJobStatus(
-				r.Context(),
-				eventID,
-				jobName,
-				status,
-			)
+			return nil, e.service.UpdateJobStatus(r.Context(), id, jobName, status)
 		},
 		successCode: http.StatusOK,
 	})
-}
-
-func (e *eventEndpoints) getOrStreamJobLogs(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
-	eventID := mux.Vars(r)["eventID"]
-	jobName := mux.Vars(r)["jobName"]
-	// nolint: errcheck
-	stream, _ := strconv.ParseBool(r.URL.Query().Get("stream"))
-	// nolint: errcheck
-	init, _ := strconv.ParseBool(r.URL.Query().Get("init"))
-
-	if !stream {
-		e.serveAPIRequest(apiRequest{
-			w: w,
-			r: r,
-			endpointLogic: func() (interface{}, error) {
-				if init {
-					return e.service.GetJobInitLogs(
-						r.Context(),
-						eventID,
-						jobName,
-					)
-				}
-				return e.service.GetJobLogs(
-					r.Context(),
-					eventID,
-					jobName,
-				)
-			},
-			successCode: http.StatusOK,
-		})
-		return
-	}
-
-	logEntryCh, err := e.service.StreamJobLogs(
-		r.Context(),
-		eventID,
-		jobName,
-	)
-	if err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
-			e.writeAPIResponse(w, http.StatusNotFound, errors.Cause(err))
-			return
-		}
-		log.Println(
-			errors.Wrapf(
-				err,
-				"error retrieving log stream for event %q job %q",
-				eventID,
-				jobName,
-			),
-		)
-		e.writeAPIResponse(
-			w,
-			http.StatusInternalServerError,
-			brignext.NewErrInternalServer(),
-		)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/event-stream")
-	for logEntry := range logEntryCh {
-		logEntryBytes, err := json.Marshal(logEntry)
-		if err != nil {
-			log.Println(errors.Wrapf(err, "error unmarshaling log entry"))
-			return
-		}
-		fmt.Fprint(w, string(logEntryBytes))
-		w.(http.Flusher).Flush()
-	}
 }

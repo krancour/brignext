@@ -13,6 +13,12 @@ var logsCommand = &cli.Command{
 	Usage: "View worker or job logs",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
+			Name:    flagContainer,
+			Aliases: []string{"c"},
+			Usage: "View logs from the specified container; if not set, displays " +
+				"logs from the worker or job's \"primary\" container",
+		},
+		&cli.StringFlag{
 			Name:     flagEvent,
 			Aliases:  []string{"e"},
 			Usage:    "View logs from the specified event",
@@ -22,11 +28,6 @@ var logsCommand = &cli.Command{
 			Name:    flagFollow,
 			Aliases: []string{"f"},
 			Usage:   "If set, will stream logs until interrupted",
-		},
-		&cli.BoolFlag{
-			Name:    flagInit,
-			Aliases: []string{"i"},
-			Usage:   "View logs from the corresponding init container",
 		},
 		&cli.StringFlag{
 			Name:    flagJob,
@@ -41,8 +42,11 @@ var logsCommand = &cli.Command{
 func logs(c *cli.Context) error {
 	eventID := c.String(flagEvent)
 	follow := c.Bool(flagFollow)
-	// initLogs := c.Bool(flagInits)
-	jobName := c.String(flagJob)
+
+	opts := brignext.LogOptions{
+		Job:       c.String(flagJob),
+		Container: c.String(flagContainer),
+	}
 
 	client, err := getClient(c)
 	if err != nil {
@@ -50,16 +54,7 @@ func logs(c *cli.Context) error {
 	}
 
 	if !follow {
-		var logEntryList brignext.LogEntryList
-		if jobName == "" {
-			logEntryList, err = client.Events().GetWorkerLogs(c.Context, eventID)
-		} else {
-			logEntryList, err = client.Events().GetJobLogs(
-				c.Context,
-				eventID,
-				jobName,
-			)
-		}
+		logEntryList, err := client.Events().GetLogs(c.Context, eventID, opts)
 		if err != nil {
 			return err
 		}
@@ -69,20 +64,7 @@ func logs(c *cli.Context) error {
 		return nil
 	}
 
-	var logEntryCh <-chan brignext.LogEntry
-	var errCh <-chan error
-	if jobName == "" {
-		logEntryCh, errCh, err = client.Events().StreamWorkerLogs(
-			c.Context,
-			eventID,
-		)
-	} else {
-		logEntryCh, errCh, err = client.Events().StreamJobLogs(
-			c.Context,
-			eventID,
-			jobName,
-		)
-	}
+	logEntryCh, errCh, err := client.Events().StreamLogs(c.Context, eventID, opts)
 	if err != nil {
 		return err
 	}

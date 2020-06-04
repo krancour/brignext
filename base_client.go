@@ -2,7 +2,6 @@ package brignext
 
 import (
 	"bytes"
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -148,29 +147,4 @@ func (b *baseClient) submitAPIRequest(
 		return nil, apiErr
 	}
 	return resp, nil
-}
-
-func (b *baseClient) receiveLogStream(
-	ctx context.Context,
-	reader io.ReadCloser,
-	logEntryCh chan<- LogEntry,
-	errCh chan<- error,
-) {
-	defer reader.Close()
-	decoder := json.NewDecoder(reader)
-	for {
-		logEntry := LogEntry{}
-		if err := decoder.Decode(&logEntry); err != nil {
-			select {
-			case errCh <- err:
-			case <-ctx.Done():
-			}
-			return
-		}
-		select {
-		case logEntryCh <- logEntry:
-		case <-ctx.Done():
-			return
-		}
-	}
 }

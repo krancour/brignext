@@ -3,7 +3,6 @@ package mongodb
 import (
 	"context"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/krancour/brignext/v2"
@@ -17,140 +16,23 @@ import (
 
 var mongodbTimeout = 5 * time.Second
 
-type logStore struct {
+type logsStore struct {
 	logsCollection *mongo.Collection
 }
 
 func NewLogStore(database *mongo.Database) storage.LogsStore {
-	return &logStore{
+	return &logsStore{
 		logsCollection: database.Collection("logs"),
 	}
 }
 
-func (l *logStore) GetWorkerLogs(
+func (l *logsStore) GetLogs(
 	ctx context.Context,
 	eventID string,
+	opts brignext.LogOptions,
 ) (brignext.LogEntryList, error) {
-	return l.getLogs(
-		ctx,
-		bson.M{
-			"component": "worker",
-			"event":     eventID,
-			"container": "worker",
-		},
-	)
-}
+	criteria := l.criteriaFromOptions(eventID, opts)
 
-func (l *logStore) StreamWorkerLogs(
-	ctx context.Context,
-	eventID string,
-) (<-chan brignext.LogEntry, error) {
-	return l.streamLogs(
-		ctx,
-		bson.M{
-			"component": "worker",
-			"event":     eventID,
-			"container": "worker",
-		},
-	)
-}
-
-func (l *logStore) GetWorkerInitLogs(
-	ctx context.Context,
-	eventID string,
-) (brignext.LogEntryList, error) {
-	return l.getLogs(
-		ctx,
-		bson.M{
-			"component": "worker",
-			"event":     eventID,
-			"container": "vcs",
-		},
-	)
-}
-
-func (l *logStore) StreamWorkerInitLogs(
-	ctx context.Context,
-	eventID string,
-) (<-chan brignext.LogEntry, error) {
-	return l.streamLogs(
-		ctx,
-		bson.M{
-			"component": "worker",
-			"event":     eventID,
-			"container": "vcs",
-		},
-	)
-}
-
-func (l *logStore) GetJobLogs(
-	ctx context.Context,
-	eventID string,
-	jobName string,
-) (brignext.LogEntryList, error) {
-	return l.getLogs(
-		ctx,
-		bson.M{
-			"component": "job",
-			"event":     eventID,
-			"job":       jobName,
-			"container": strings.ToLower(jobName),
-		},
-	)
-}
-
-func (l *logStore) StreamJobLogs(
-	ctx context.Context,
-	eventID string,
-	jobName string,
-) (<-chan brignext.LogEntry, error) {
-	return l.streamLogs(
-		ctx,
-		bson.M{
-			"component": "job",
-			"event":     eventID,
-			"job":       jobName,
-			"container": strings.ToLower(jobName),
-		},
-	)
-}
-
-func (l *logStore) GetJobInitLogs(
-	ctx context.Context,
-	eventID string,
-	jobName string,
-) (brignext.LogEntryList, error) {
-	return l.getLogs(
-		ctx,
-		bson.M{
-			"component": "job",
-			"event":     eventID,
-			"job":       jobName,
-			"container": "vcs",
-		},
-	)
-}
-
-func (l *logStore) StreamJobInitLogs(
-	ctx context.Context,
-	eventID string,
-	jobName string,
-) (<-chan brignext.LogEntry, error) {
-	return l.streamLogs(
-		ctx,
-		bson.M{
-			"component": "job",
-			"event":     eventID,
-			"job":       jobName,
-			"container": "vcs",
-		},
-	)
-}
-
-func (l *logStore) getLogs(
-	ctx context.Context,
-	criteria bson.M,
-) (brignext.LogEntryList, error) {
 	logEntryList := brignext.NewLogEntryList()
 	cursor, err := l.logsCollection.Find(ctx, criteria)
 	if err != nil {
@@ -167,10 +49,13 @@ func (l *logStore) getLogs(
 	return logEntryList, nil
 }
 
-func (l *logStore) streamLogs(
+func (l *logsStore) StreamLogs(
 	ctx context.Context,
-	criteria bson.M,
+	eventID string,
+	opts brignext.LogOptions,
 ) (<-chan brignext.LogEntry, error) {
+	criteria := l.criteriaFromOptions(eventID, opts)
+
 	logEntryCh := make(chan brignext.LogEntry)
 	go func() {
 		defer close(logEntryCh)
@@ -236,7 +121,41 @@ func (l *logStore) streamLogs(
 	return logEntryCh, nil
 }
 
-func (l *logStore) CheckHealth(ctx context.Context) error {
+func (l *logsStore) criteriaFromOptions(
+	eventID string,
+	opts brignext.LogOptions,
+) bson.M {
+	criteria := bson.M{
+		"event": eventID,
+	}
+
+	// If no job was specified, we want worker logs
+	if opts.Job == "" {
+		criteria["component"] = "worker"
+		// If no container was specified, we want the "worker" container
+		if opts.Container == "" {
+			criteria["container"] = "worker"
+		} else { // We want the one specified
+			criteria["container"] = opts.Container
+		}
+	} else { // We want job logs
+		criteria["component"] = "job"
+		// TODO: Probably we shouldn't let users set the job's primary container's
+		// name or else this assumption below doesn't hold.
+		//
+		// If no container was specified, we want the one with the same name as the
+		// job
+		if opts.Container == "" {
+			criteria["container"] = opts.Job
+		} else { // We want the one specified
+			criteria["container"] = opts.Container
+		}
+	}
+
+	return criteria
+}
+
+func (l *logsStore) CheckHealth(ctx context.Context) error {
 	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 	if err := l.logsCollection.Database().Client().Ping(
