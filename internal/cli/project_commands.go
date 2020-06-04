@@ -34,7 +34,6 @@ var projectCommand = &cli.Command{
 			},
 			Action: projectCreate,
 		},
-		// TODO: Require confirmation of this action
 		{
 			Name:  "delete",
 			Usage: "Delete a single project",
@@ -44,6 +43,11 @@ var projectCommand = &cli.Command{
 					Aliases:  []string{"i"},
 					Usage:    "Delete the specified project (required)",
 					Required: true,
+				},
+				&cli.BoolFlag{
+					Name:    flagYes,
+					Aliases: []string{"y"},
+					Usage:   "Non-interactively confirm deletion",
 				},
 			},
 			Action: projectDelete,
@@ -302,6 +306,14 @@ func projectUpdate(c *cli.Context) error {
 
 func projectDelete(c *cli.Context) error {
 	id := c.String(flagID)
+
+	confirmed, err := confirmed(c)
+	if err != nil {
+		return err
+	}
+	if !confirmed {
+		return nil
+	}
 
 	client, err := getClient(c)
 	if err != nil {

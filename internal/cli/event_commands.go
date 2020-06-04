@@ -20,7 +20,6 @@ var eventCommand = &cli.Command{
 	Name:  "event",
 	Usage: "Manage events",
 	Subcommands: []*cli.Command{
-		// TODO: Require confirmation of this action
 		{
 			Name:  "cancel",
 			Usage: "Cancel a single event without deleting it",
@@ -34,10 +33,14 @@ var eventCommand = &cli.Command{
 						"(required)",
 					Required: true,
 				},
+				&cli.BoolFlag{
+					Name:    flagYes,
+					Aliases: []string{"y"},
+					Usage:   "Non-interactively confirm cancellation",
+				},
 			},
 			Action: eventCancel,
 		},
-		// TODO: Require confirmation of this action
 		{
 			Name:  "cancel-many",
 			Usage: "Cancel multiple events without deleting them",
@@ -55,6 +58,11 @@ var eventCommand = &cli.Command{
 					Aliases: []string{"r"},
 					Usage: "If set, will additionally abort and cancel events with " +
 						"their worker in a RUNNING state",
+				},
+				&cli.BoolFlag{
+					Name:    flagYes,
+					Aliases: []string{"y"},
+					Usage:   "Non-interactively confirm cancellation",
 				},
 			},
 			Action: eventCancelMany,
@@ -93,7 +101,6 @@ var eventCommand = &cli.Command{
 			},
 			Action: eventCreate,
 		},
-		// TODO: Require confirmation of this action
 		{
 			Name:  "delete",
 			Usage: "Delete a single event",
@@ -107,10 +114,14 @@ var eventCommand = &cli.Command{
 						"(required)",
 					Required: true,
 				},
+				&cli.BoolFlag{
+					Name:    flagYes,
+					Aliases: []string{"y"},
+					Usage:   "Non-interactively confirm deletion",
+				},
 			},
 			Action: eventDelete,
 		},
-		// TODO: Require confirmation of this action
 		{
 			Name:  "delete-many",
 			Usage: "Delete multiple events",
@@ -176,6 +187,11 @@ var eventCommand = &cli.Command{
 					Usage: "If set, will delete events with their worker in an UNKNOWN " +
 						"state; mutually exclusive with --any-state and --terminal",
 				},
+				&cli.BoolFlag{
+					Name:    flagYes,
+					Aliases: []string{"y"},
+					Usage:   "Non-interactively confirm deletion",
+				},
 			},
 			Action: eventDeleteMany,
 		},
@@ -194,10 +210,9 @@ var eventCommand = &cli.Command{
 			Action: eventGet,
 		},
 		{
-			Name:  "list",
-			Usage: "Retrieve many events",
-			Description: "Retrieves all events for the specified project unless " +
-				"other criteria are specified to filter events based on state",
+			Name:        "list",
+			Usage:       "Retrieve many events",
+			Description: "Retrieves all events unless specific criteria are provided",
 			Flags: []cli.Flag{
 				cliFlagOutput,
 				&cli.BoolFlag{
@@ -229,10 +244,10 @@ var eventCommand = &cli.Command{
 						"--non-terminal",
 				},
 				&cli.StringFlag{
-					Name:     flagProject,
-					Aliases:  []string{"p"},
-					Usage:    "Retrieve events only for the specified project (required)",
-					Required: true,
+					Name:    flagProject,
+					Aliases: []string{"p"},
+					Usage: "If set, will retrieve events only for the specified " +
+						"project",
 				},
 				&cli.BoolFlag{
 					Name: flagRunning,
@@ -315,7 +330,6 @@ func eventCreate(c *cli.Context) error {
 	return nil
 }
 
-// TODO: Require the --project flag to avoid unnecessarily gigantic results
 func eventList(c *cli.Context) error {
 	output := c.String(flagOutput)
 	projectID := c.String(flagProject)
@@ -520,6 +534,14 @@ func eventGet(c *cli.Context) error {
 func eventCancel(c *cli.Context) error {
 	id := c.String(flagID)
 
+	confirmed, err := confirmed(c)
+	if err != nil {
+		return err
+	}
+	if !confirmed {
+		return nil
+	}
+
 	client, err := getClient(c)
 	if err != nil {
 		return errors.Wrap(err, "error getting brignext client")
@@ -536,6 +558,14 @@ func eventCancel(c *cli.Context) error {
 func eventCancelMany(c *cli.Context) error {
 	projectID := c.String(flagProject)
 	cancelRunning := c.Bool(flagRunning)
+
+	confirmed, err := confirmed(c)
+	if err != nil {
+		return err
+	}
+	if !confirmed {
+		return nil
+	}
 
 	client, err := getClient(c)
 	if err != nil {
@@ -562,6 +592,14 @@ func eventCancelMany(c *cli.Context) error {
 func eventDelete(c *cli.Context) error {
 	id := c.String(flagID)
 
+	confirmed, err := confirmed(c)
+	if err != nil {
+		return err
+	}
+	if !confirmed {
+		return nil
+	}
+
 	client, err := getClient(c)
 	if err != nil {
 		return errors.Wrap(err, "error getting brignext client")
@@ -577,7 +615,6 @@ func eventDelete(c *cli.Context) error {
 
 func eventDeleteMany(c *cli.Context) error {
 	projectID := c.String(flagProject)
-
 	workerPhases := []brignext.WorkerPhase{}
 
 	if c.Bool(flagAborted) {
@@ -621,6 +658,14 @@ func eventDeleteMany(c *cli.Context) error {
 			)
 		}
 		workerPhases = brignext.WorkerPhasesTerminal()
+	}
+
+	confirmed, err := confirmed(c)
+	if err != nil {
+		return err
+	}
+	if !confirmed {
+		return nil
 	}
 
 	client, err := getClient(c)

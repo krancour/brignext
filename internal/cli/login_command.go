@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 	"os/exec"
 	"runtime"
-	"strings"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/krancour/brignext/v2"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
@@ -61,17 +59,16 @@ func login(c *cli.Context) error {
 
 	var tokenStr, authURL string
 
-	var err error
 	if rootLogin {
-		reader := bufio.NewReader(os.Stdin)
 		for {
-			password = strings.TrimSpace(password)
 			if password != "" {
 				break
 			}
-			fmt.Print("Root user password? ")
-			if password, err = reader.ReadString('\n'); err != nil {
-				return errors.Wrap(err, "error reading password from stdin")
+			prompt := &survey.Password{
+				Message: "Root user password",
+			}
+			if err := survey.AskOne(prompt, &password); err != nil {
+				return err
 			}
 		}
 

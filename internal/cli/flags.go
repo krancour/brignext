@@ -34,6 +34,7 @@ const (
 	flagType        = "type"
 	flagUnknown     = "unknown"
 	flagUnset       = "unset"
+	flagYes         = "yes"
 )
 
 var (

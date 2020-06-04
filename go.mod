@@ -3,6 +3,7 @@ module github.com/krancour/brignext/v2
 go 1.14
 
 require (
+	github.com/AlecAivazis/survey/v2 v2.0.7
 	github.com/coreos/go-oidc v2.2.1+incompatible
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/ghodss/yaml v1.0.0
