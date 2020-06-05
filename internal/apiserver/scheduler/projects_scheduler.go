@@ -18,10 +18,12 @@ import (
 )
 
 type ProjectsScheduler interface {
+	// TODO: Add a PreCreate func!
 	Create(
 		ctx context.Context,
 		project brignext.Project,
 	) (brignext.Project, error)
+	// TODO: Add a PreUpdate func!
 	Update(
 		ctx context.Context,
 		project brignext.Project,

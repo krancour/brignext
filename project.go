@@ -28,5 +28,6 @@ type Project struct {
 type ProjectSpec struct {
 	Description        string              `json:"description" bson:"description"`
 	EventSubscriptions []EventSubscription `json:"eventSubscriptions" bson:"eventSubscriptions"`
-	Worker             WorkerSpec          `json:"worker" bson:"worker"`
+	// TODO: Consider renaming this field to WorkerTemplate
+	Worker WorkerSpec `json:"worker" bson:"worker"`
 }
