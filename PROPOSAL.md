@@ -9,6 +9,14 @@ limitations, and highly-desired features, many of which require breaking changes
 and a re-architected product in order to move forward. _In other words, it is
 time to talk about Brigade 2.0._
 
+## TL;DR
+
+Brigade 2.0 is proposed to improve usability, security, and flexability by
+leveraging revised architecture and technology choices while remaining faithful
+to the product's original intent. A succinct summary of the proposed changes is
+a nuanced transition from "event-driven scripting for Kubernetes" to "event
+driven scripting (for Kubernetes)."
+
 ## Motivations
 
 ### Issues with Brigade 1.x
