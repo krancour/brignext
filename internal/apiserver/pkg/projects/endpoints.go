@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2"
 	"github.com/krancour/brignext/v2/internal/apiserver/pkg/api"
+	errs "github.com/krancour/brignext/v2/internal/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -129,7 +130,7 @@ func (e *endpoints) update(w http.ResponseWriter, r *http.Request) {
 		ReqBodyObj:          &project,
 		EndpointLogic: func() (interface{}, error) {
 			if mux.Vars(r)["id"] != project.ID {
-				return nil, brignext.NewErrBadRequest(
+				return nil, errs.NewErrBadRequest(
 					"The project IDs in the URL path and request body do not match.",
 				)
 			}
@@ -171,7 +172,7 @@ func (e *endpoints) setSecret(w http.ResponseWriter, r *http.Request) {
 		ReqBodyObj:          &secret,
 		EndpointLogic: func() (interface{}, error) {
 			if key != secret.Key {
-				return nil, brignext.NewErrBadRequest(
+				return nil, errs.NewErrBadRequest(
 					"The secret key in the URL path and request body do not match.",
 				)
 			}

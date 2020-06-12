@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2"
+	errs "github.com/krancour/brignext/v2/internal/pkg/errors"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -84,7 +85,7 @@ func (s *store) Create(
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
-				return brignext.NewErrConflict(
+				return errs.NewErrConflict(
 					"ServiceAccount",
 					serviceAccount.ID,
 					fmt.Sprintf(
@@ -128,7 +129,7 @@ func (s *store) Get(
 	serviceAccount := brignext.ServiceAccount{}
 	res := s.collection.FindOne(ctx, bson.M{"metadata.id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return serviceAccount, brignext.NewErrNotFound("ServiceAccount", id)
+		return serviceAccount, errs.NewErrNotFound("ServiceAccount", id)
 	}
 	if res.Err() != nil {
 		return serviceAccount, errors.Wrapf(
@@ -155,7 +156,7 @@ func (s *store) GetByHashedToken(
 	res :=
 		s.collection.FindOne(ctx, bson.M{"hashedToken": hashedToken})
 	if res.Err() == mongo.ErrNoDocuments {
-		return serviceAccount, brignext.NewErrNotFound("ServiceAccount", "")
+		return serviceAccount, errs.NewErrNotFound("ServiceAccount", "")
 	}
 	if res.Err() != nil {
 		return serviceAccount, errors.Wrap(
@@ -186,7 +187,7 @@ func (s *store) Lock(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error updating service account %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return brignext.NewErrNotFound("ServiceAccount", id)
+		return errs.NewErrNotFound("ServiceAccount", id)
 	}
 	return nil
 }
@@ -210,7 +211,7 @@ func (s *store) Unlock(
 		return errors.Wrapf(err, "error updating service account %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return brignext.NewErrNotFound("ServiceAccount", id)
+		return errs.NewErrNotFound("ServiceAccount", id)
 	}
 	return nil
 }

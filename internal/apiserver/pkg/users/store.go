@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2"
+	errs "github.com/krancour/brignext/v2/internal/pkg/errors"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -63,7 +64,7 @@ func (s *store) Create(ctx context.Context, user brignext.User) error {
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
-				return brignext.NewErrConflict(
+				return errs.NewErrConflict(
 					"User",
 					user.ID,
 					fmt.Sprintf("A user with the ID %q already exists.", user.ID),
@@ -96,7 +97,7 @@ func (s *store) Get(
 	user := brignext.User{}
 	res := s.collection.FindOne(ctx, bson.M{"metadata.id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return user, brignext.NewErrNotFound("User", id)
+		return user, errs.NewErrNotFound("User", id)
 	}
 	if res.Err() != nil {
 		return user, errors.Wrapf(res.Err(), "error finding user %q", id)
@@ -121,7 +122,7 @@ func (s *store) Lock(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error updating user %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return brignext.NewErrNotFound("User", id)
+		return errs.NewErrNotFound("User", id)
 	}
 	return nil
 }
@@ -140,7 +141,7 @@ func (s *store) Unlock(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error updating user %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return brignext.NewErrNotFound("User", id)
+		return errs.NewErrNotFound("User", id)
 	}
 	return nil
 }

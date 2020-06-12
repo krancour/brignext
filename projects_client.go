@@ -5,6 +5,8 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+
+	"github.com/krancour/brignext/v2/internal/pkg/api"
 )
 
 type ProjectsClient interface {
@@ -22,7 +24,7 @@ type ProjectsClient interface {
 }
 
 type projectsClient struct {
-	*baseClient
+	*api.BaseClient
 }
 
 func NewProjectsClient(
@@ -31,10 +33,10 @@ func NewProjectsClient(
 	allowInsecure bool,
 ) ProjectsClient {
 	return &projectsClient{
-		baseClient: &baseClient{
-			apiAddress: apiAddress,
-			apiToken:   apiToken,
-			httpClient: &http.Client{
+		BaseClient: &api.BaseClient{
+			APIAddress: apiAddress,
+			APIToken:   apiToken,
+			HTTPClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,
@@ -46,13 +48,13 @@ func NewProjectsClient(
 }
 
 func (p *projectsClient) Create(_ context.Context, project Project) error {
-	return p.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodPost,
-			path:        "v2/projects",
-			authHeaders: p.bearerTokenAuthHeaders(),
-			reqBodyObj:  project,
-			successCode: http.StatusCreated,
+	return p.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodPost,
+			Path:        "v2/projects",
+			AuthHeaders: p.BearerTokenAuthHeaders(),
+			ReqBodyObj:  project,
+			SuccessCode: http.StatusCreated,
 		},
 	)
 }
@@ -61,51 +63,51 @@ func (p *projectsClient) CreateFromBytes(
 	_ context.Context,
 	projectBytes []byte,
 ) error {
-	return p.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodPost,
-			path:        "v2/projects",
-			authHeaders: p.bearerTokenAuthHeaders(),
-			reqBodyObj:  projectBytes,
-			successCode: http.StatusCreated,
+	return p.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodPost,
+			Path:        "v2/projects",
+			AuthHeaders: p.BearerTokenAuthHeaders(),
+			ReqBodyObj:  projectBytes,
+			SuccessCode: http.StatusCreated,
 		},
 	)
 }
 
 func (p *projectsClient) List(context.Context) (ProjectList, error) {
 	projectList := ProjectList{}
-	return projectList, p.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodGet,
-			path:        "v2/projects",
-			authHeaders: p.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-			respObj:     &projectList,
+	return projectList, p.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodGet,
+			Path:        "v2/projects",
+			AuthHeaders: p.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
+			RespObj:     &projectList,
 		},
 	)
 }
 
 func (p *projectsClient) Get(_ context.Context, id string) (Project, error) {
 	project := Project{}
-	return project, p.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/projects/%s", id),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-			respObj:     &project,
+	return project, p.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodGet,
+			Path:        fmt.Sprintf("v2/projects/%s", id),
+			AuthHeaders: p.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
+			RespObj:     &project,
 		},
 	)
 }
 
 func (p *projectsClient) Update(_ context.Context, project Project) error {
-	return p.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodPut,
-			path:        fmt.Sprintf("v2/projects/%s", project.ID),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			reqBodyObj:  project,
-			successCode: http.StatusOK,
+	return p.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodPut,
+			Path:        fmt.Sprintf("v2/projects/%s", project.ID),
+			AuthHeaders: p.BearerTokenAuthHeaders(),
+			ReqBodyObj:  project,
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -115,24 +117,24 @@ func (p *projectsClient) UpdateFromBytes(
 	projectID string,
 	projectBytes []byte,
 ) error {
-	return p.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodPut,
-			path:        fmt.Sprintf("v2/projects/%s", projectID),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			reqBodyObj:  projectBytes,
-			successCode: http.StatusOK,
+	return p.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodPut,
+			Path:        fmt.Sprintf("v2/projects/%s", projectID),
+			AuthHeaders: p.BearerTokenAuthHeaders(),
+			ReqBodyObj:  projectBytes,
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
 func (p *projectsClient) Delete(_ context.Context, id string) error {
-	return p.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodDelete,
-			path:        fmt.Sprintf("v2/projects/%s", id),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
+	return p.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodDelete,
+			Path:        fmt.Sprintf("v2/projects/%s", id),
+			AuthHeaders: p.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -142,13 +144,13 @@ func (p *projectsClient) ListSecrets(
 	projectID string,
 ) (SecretList, error) {
 	secretList := SecretList{}
-	return secretList, p.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/projects/%s/secrets", projectID),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-			respObj:     &secretList,
+	return secretList, p.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodGet,
+			Path:        fmt.Sprintf("v2/projects/%s/secrets", projectID),
+			AuthHeaders: p.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
+			RespObj:     &secretList,
 		},
 	)
 }
@@ -158,17 +160,17 @@ func (p *projectsClient) SetSecret(
 	projectID string,
 	secret Secret,
 ) error {
-	return p.executeAPIRequest(
-		apiRequest{
-			method: http.MethodPut,
-			path: fmt.Sprintf(
+	return p.ExecuteRequest(
+		api.Request{
+			Method: http.MethodPut,
+			Path: fmt.Sprintf(
 				"v2/projects/%s/secrets/%s",
 				projectID,
 				secret.Key,
 			),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			reqBodyObj:  secret,
-			successCode: http.StatusOK,
+			AuthHeaders: p.BearerTokenAuthHeaders(),
+			ReqBodyObj:  secret,
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -178,16 +180,16 @@ func (p *projectsClient) UnsetSecret(
 	projectID string,
 	key string,
 ) error {
-	return p.executeAPIRequest(
-		apiRequest{
-			method: http.MethodDelete,
-			path: fmt.Sprintf(
+	return p.ExecuteRequest(
+		api.Request{
+			Method: http.MethodDelete,
+			Path: fmt.Sprintf(
 				"v2/projects/%s/secrets/%s",
 				projectID,
 				key,
 			),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
+			AuthHeaders: p.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
 		},
 	)
 }

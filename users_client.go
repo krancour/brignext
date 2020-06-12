@@ -5,6 +5,8 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+
+	"github.com/krancour/brignext/v2/internal/pkg/api"
 )
 
 type UsersClient interface {
@@ -15,7 +17,7 @@ type UsersClient interface {
 }
 
 type usersClient struct {
-	*baseClient
+	*api.BaseClient
 }
 
 func NewUsersClient(
@@ -24,10 +26,10 @@ func NewUsersClient(
 	allowInsecure bool,
 ) UsersClient {
 	return &usersClient{
-		baseClient: &baseClient{
-			apiAddress: apiAddress,
-			apiToken:   apiToken,
-			httpClient: &http.Client{
+		BaseClient: &api.BaseClient{
+			APIAddress: apiAddress,
+			APIToken:   apiToken,
+			HTTPClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,
@@ -40,48 +42,48 @@ func NewUsersClient(
 
 func (c *usersClient) List(context.Context) (UserList, error) {
 	userList := UserList{}
-	return userList, c.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodGet,
-			path:        "v2/users",
-			authHeaders: c.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-			respObj:     &userList,
+	return userList, c.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodGet,
+			Path:        "v2/users",
+			AuthHeaders: c.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
+			RespObj:     &userList,
 		},
 	)
 }
 
 func (c *usersClient) Get(_ context.Context, id string) (User, error) {
 	user := User{}
-	return user, c.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/users/%s", id),
-			authHeaders: c.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-			respObj:     &user,
+	return user, c.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodGet,
+			Path:        fmt.Sprintf("v2/users/%s", id),
+			AuthHeaders: c.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
+			RespObj:     &user,
 		},
 	)
 }
 
 func (c *usersClient) Lock(_ context.Context, id string) error {
-	return c.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodPut,
-			path:        fmt.Sprintf("v2/users/%s/lock", id),
-			authHeaders: c.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
+	return c.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodPut,
+			Path:        fmt.Sprintf("v2/users/%s/lock", id),
+			AuthHeaders: c.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
 func (c *usersClient) Unlock(_ context.Context, id string) error {
-	return c.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodDelete,
-			path:        fmt.Sprintf("v2/users/%s/lock", id),
-			authHeaders: c.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
+	return c.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodDelete,
+			Path:        fmt.Sprintf("v2/users/%s/lock", id),
+			AuthHeaders: c.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
 		},
 	)
 }

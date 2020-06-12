@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/krancour/brignext/v2/internal/pkg/api"
 )
 
 type EventsClient interface {
@@ -51,7 +53,7 @@ type EventsClient interface {
 }
 
 type eventsClient struct {
-	*baseClient
+	*api.BaseClient
 }
 
 func NewEventsClient(
@@ -60,10 +62,10 @@ func NewEventsClient(
 	allowInsecure bool,
 ) EventsClient {
 	return &eventsClient{
-		baseClient: &baseClient{
-			apiAddress: apiAddress,
-			apiToken:   apiToken,
-			httpClient: &http.Client{
+		BaseClient: &api.BaseClient{
+			APIAddress: apiAddress,
+			APIToken:   apiToken,
+			HTTPClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,
@@ -79,14 +81,14 @@ func (e *eventsClient) Create(
 	event Event,
 ) (EventReferenceList, error) {
 	eventRefList := EventReferenceList{}
-	return eventRefList, e.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodPost,
-			path:        "v2/events",
-			authHeaders: e.bearerTokenAuthHeaders(),
-			reqBodyObj:  event,
-			successCode: http.StatusCreated,
-			respObj:     &eventRefList,
+	return eventRefList, e.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodPost,
+			Path:        "v2/events",
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			ReqBodyObj:  event,
+			SuccessCode: http.StatusCreated,
+			RespObj:     &eventRefList,
 		},
 	)
 }
@@ -107,38 +109,38 @@ func (e *eventsClient) List(
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
 	eventList := EventList{}
-	return eventList, e.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodGet,
-			path:        "v2/events",
-			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
-			successCode: http.StatusOK,
-			respObj:     &eventList,
+	return eventList, e.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodGet,
+			Path:        "v2/events",
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			QueryParams: queryParams,
+			SuccessCode: http.StatusOK,
+			RespObj:     &eventList,
 		},
 	)
 }
 
 func (e *eventsClient) Get(_ context.Context, id string) (Event, error) {
 	event := Event{}
-	return event, e.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/events/%s", id),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-			respObj:     &event,
+	return event, e.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodGet,
+			Path:        fmt.Sprintf("v2/events/%s", id),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
+			RespObj:     &event,
 		},
 	)
 }
 
 func (e *eventsClient) Cancel(_ context.Context, id string) error {
-	return e.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodPut,
-			path:        fmt.Sprintf("v2/events/%s/cancellation", id),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
+	return e.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodPut,
+			Path:        fmt.Sprintf("v2/events/%s/cancellation", id),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -159,25 +161,25 @@ func (e *eventsClient) CancelCollection(
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
 	eventRefList := EventReferenceList{}
-	return eventRefList, e.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodPost,
-			path:        "v2/events/cancellations",
-			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
-			successCode: http.StatusOK,
-			respObj:     &eventRefList,
+	return eventRefList, e.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodPost,
+			Path:        "v2/events/cancellations",
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			QueryParams: queryParams,
+			SuccessCode: http.StatusOK,
+			RespObj:     &eventRefList,
 		},
 	)
 }
 
 func (e *eventsClient) Delete(_ context.Context, id string) error {
-	return e.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodDelete,
-			path:        fmt.Sprintf("v2/events/%s", id),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
+	return e.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodDelete,
+			Path:        fmt.Sprintf("v2/events/%s", id),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -198,14 +200,14 @@ func (e *eventsClient) DeleteCollection(
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
 	eventRefList := EventReferenceList{}
-	return eventRefList, e.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodDelete,
-			path:        "v2/events",
-			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
-			successCode: http.StatusOK,
-			respObj:     &eventRefList,
+	return eventRefList, e.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodDelete,
+			Path:        "v2/events",
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			QueryParams: queryParams,
+			SuccessCode: http.StatusOK,
+			RespObj:     &eventRefList,
 		},
 	)
 }
@@ -215,13 +217,13 @@ func (e *eventsClient) UpdateWorkerStatus(
 	eventID string,
 	status WorkerStatus,
 ) error {
-	return e.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodPut,
-			path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			reqBodyObj:  status,
-			successCode: http.StatusOK,
+	return e.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodPut,
+			Path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			ReqBodyObj:  status,
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -232,17 +234,17 @@ func (e *eventsClient) UpdateJobStatus(
 	jobName string,
 	status JobStatus,
 ) error {
-	return e.executeAPIRequest(
-		apiRequest{
-			method: http.MethodPut,
-			path: fmt.Sprintf(
+	return e.ExecuteRequest(
+		api.Request{
+			Method: http.MethodPut,
+			Path: fmt.Sprintf(
 				"v2/events/%s/worker/jobs/%s/status",
 				eventID,
 				jobName,
 			),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			reqBodyObj:  status,
-			successCode: http.StatusOK,
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			ReqBodyObj:  status,
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -253,14 +255,14 @@ func (e *eventsClient) GetLogs(
 	opts LogOptions,
 ) (LogEntryList, error) {
 	logEntryList := LogEntryList{}
-	return logEntryList, e.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/events/%s/logs", eventID),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: e.queryParamsFromLogOptions(opts, false), // Don't stream
-			successCode: http.StatusOK,
-			respObj:     &logEntryList,
+	return logEntryList, e.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodGet,
+			Path:        fmt.Sprintf("v2/events/%s/logs", eventID),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			QueryParams: e.queryParamsFromLogOptions(opts, false), // Don't stream
+			SuccessCode: http.StatusOK,
+			RespObj:     &logEntryList,
 		},
 	)
 }
@@ -270,13 +272,13 @@ func (e *eventsClient) StreamLogs(
 	eventID string,
 	opts LogOptions,
 ) (<-chan LogEntry, <-chan error, error) {
-	resp, err := e.submitAPIRequest(
-		apiRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/events/%s/logs", eventID),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: e.queryParamsFromLogOptions(opts, true), // Stream
-			successCode: http.StatusOK,
+	resp, err := e.SubmitRequest(
+		api.Request{
+			Method:      http.MethodGet,
+			Path:        fmt.Sprintf("v2/events/%s/logs", eventID),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			QueryParams: e.queryParamsFromLogOptions(opts, true), // Stream
+			SuccessCode: http.StatusOK,
 		},
 	)
 	if err != nil {

@@ -12,6 +12,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2"
 	"github.com/krancour/brignext/v2/internal/apiserver/pkg/api"
+	errs "github.com/krancour/brignext/v2/internal/pkg/errors"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -268,7 +269,7 @@ func (e *endpoints) getOrStreamLogs(
 
 	logEntryCh, err := e.service.StreamLogs(r.Context(), id, opts)
 	if err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
+		if _, ok := errors.Cause(err).(*errs.ErrNotFound); ok {
 			e.WriteAPIResponse(w, http.StatusNotFound, errors.Cause(err))
 			return
 		}
@@ -278,7 +279,7 @@ func (e *endpoints) getOrStreamLogs(
 		e.WriteAPIResponse(
 			w,
 			http.StatusInternalServerError,
-			brignext.NewErrInternalServer(),
+			errs.NewErrInternalServer(),
 		)
 		return
 	}

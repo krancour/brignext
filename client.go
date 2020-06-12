@@ -3,6 +3,8 @@ package brignext
 import (
 	"crypto/tls"
 	"net/http"
+
+	"github.com/krancour/brignext/v2/internal/pkg/api"
 )
 
 type Client interface {
@@ -14,7 +16,7 @@ type Client interface {
 }
 
 type client struct {
-	*baseClient
+	*api.BaseClient
 	eventsClient          EventsClient
 	projectsClient        ProjectsClient
 	serviceAccountsClient ServiceAccountsClient
@@ -24,10 +26,10 @@ type client struct {
 
 func NewClient(apiAddress, apiToken string, allowInsecure bool) Client {
 	return &client{
-		baseClient: &baseClient{
-			apiAddress: apiAddress,
-			apiToken:   apiToken,
-			httpClient: &http.Client{
+		BaseClient: &api.BaseClient{
+			APIAddress: apiAddress,
+			APIToken:   apiToken,
+			HTTPClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,

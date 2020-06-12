@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2"
+	errs "github.com/krancour/brignext/v2/internal/pkg/errors"
+	"github.com/krancour/brignext/v2/internal/pkg/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,7 +46,7 @@ func TestTokenAuthFilterWithHeaderNotBearer(t *testing.T) {
 func TestTokenAuthFilterWithTokenInvalid(t *testing.T) {
 	a := NewTokenAuthFilter(
 		func(context.Context, string) (Session, error) {
-			return Session{}, &brignext.ErrNotFound{}
+			return Session{}, &errs.ErrNotFound{}
 		},
 		nil,
 		false,
@@ -97,7 +99,7 @@ func TestTokenAuthFilterWithAuthenticatedSession(t *testing.T) {
 			now := time.Now()
 			expiry := now.Add(time.Minute)
 			return Session{
-				ObjectMeta: brignext.ObjectMeta{
+				ObjectMeta: meta.ObjectMeta{
 					ID: sessionID,
 				},
 				Authenticated: &now,

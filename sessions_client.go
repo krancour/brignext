@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/tls"
 	"net/http"
+
+	"github.com/krancour/brignext/v2/internal/pkg/api"
 )
 
 type SessionsClient interface {
@@ -13,7 +15,7 @@ type SessionsClient interface {
 }
 
 type sessionsClient struct {
-	*baseClient
+	*api.BaseClient
 }
 
 func NewSessionsClient(
@@ -22,10 +24,10 @@ func NewSessionsClient(
 	allowInsecure bool,
 ) SessionsClient {
 	return &sessionsClient{
-		baseClient: &baseClient{
-			apiAddress: apiAddress,
-			apiToken:   apiToken,
-			httpClient: &http.Client{
+		BaseClient: &api.BaseClient{
+			APIAddress: apiAddress,
+			APIToken:   apiToken,
+			HTTPClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,
@@ -41,16 +43,16 @@ func (s *sessionsClient) CreateRootSession(
 	password string,
 ) (Token, error) {
 	token := Token{}
-	return token, s.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodPost,
-			path:        "v2/sessions",
-			authHeaders: s.basicAuthHeaders("root", password),
-			queryParams: map[string]string{
+	return token, s.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodPost,
+			Path:        "v2/sessions",
+			AuthHeaders: s.BasicAuthHeaders("root", password),
+			QueryParams: map[string]string{
 				"root": "true",
 			},
-			successCode: http.StatusCreated,
-			respObj:     &token,
+			SuccessCode: http.StatusCreated,
+			RespObj:     &token,
 		},
 	)
 }
@@ -59,23 +61,23 @@ func (s *sessionsClient) CreateUserSession(
 	context.Context,
 ) (UserSessionAuthDetails, error) {
 	userSessionAuthDetails := UserSessionAuthDetails{}
-	return userSessionAuthDetails, s.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodPost,
-			path:        "v2/sessions",
-			successCode: http.StatusCreated,
-			respObj:     &userSessionAuthDetails,
+	return userSessionAuthDetails, s.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodPost,
+			Path:        "v2/sessions",
+			SuccessCode: http.StatusCreated,
+			RespObj:     &userSessionAuthDetails,
 		},
 	)
 }
 
 func (s *sessionsClient) Delete(context.Context) error {
-	return s.executeAPIRequest(
-		apiRequest{
-			method:      http.MethodDelete,
-			path:        "v2/session",
-			authHeaders: s.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
+	return s.ExecuteRequest(
+		api.Request{
+			Method:      http.MethodDelete,
+			Path:        "v2/session",
+			AuthHeaders: s.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
 		},
 	)
 }

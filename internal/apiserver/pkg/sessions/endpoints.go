@@ -12,6 +12,7 @@ import (
 	"github.com/krancour/brignext/v2/internal/apiserver/pkg/api/auth"
 	"github.com/krancour/brignext/v2/internal/apiserver/pkg/crypto"
 	"github.com/krancour/brignext/v2/internal/apiserver/pkg/users"
+	errs "github.com/krancour/brignext/v2/internal/pkg/errors"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )
@@ -88,21 +89,21 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
 				if !e.rootUserEnabled {
-					return nil, brignext.NewErrNotSupported(
+					return nil, errs.NewErrNotSupported(
 						"Authentication using root credentials is not supported by this " +
 							"server.",
 					)
 				}
 				username, password, ok := r.BasicAuth()
 				if !ok {
-					return nil, brignext.NewErrBadRequest(
+					return nil, errs.NewErrBadRequest(
 						"The request to create a new root session did not include a " +
 							"valid basic auth header.",
 					)
 				}
 				if username != "root" ||
 					crypto.ShortSHA(username, password) != e.hashedRootUserPassword {
-					return nil, brignext.NewErrAuthentication(
+					return nil, errs.NewErrAuthentication(
 						"Could not authenticate request using the supplied credentials.",
 					)
 				}
@@ -118,7 +119,7 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 		R: r,
 		EndpointLogic: func() (interface{}, error) {
 			if !e.oidcEnabled {
-				return nil, brignext.NewErrNotSupported(
+				return nil, errs.NewErrNotSupported(
 					"Authentication using OpenID Connect is not supported by this " +
 						"server.",
 				)
@@ -164,7 +165,7 @@ func (e *endpoints) completeAuth(w http.ResponseWriter, r *http.Request) {
 		W: w,
 		EndpointLogic: func() (interface{}, error) {
 			if oauth2State == "" || oidcCode == "" {
-				return nil, brignext.NewErrBadRequest(
+				return nil, errs.NewErrBadRequest(
 					"The OpenID Connect authentication completion request lacked one " +
 						"or both of the \"oauth2State\" and \"oidcCode\" query parameters.",
 				)
@@ -204,7 +205,7 @@ func (e *endpoints) completeAuth(w http.ResponseWriter, r *http.Request) {
 			// TODO: Push this logic down into the sessions service?
 			user, err := e.usersService.Get(r.Context(), claims.Email)
 			if err != nil {
-				if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
+				if _, ok := errors.Cause(err).(*errs.ErrNotFound); ok {
 					// User wasn't found. That's ok. We'll create one.
 					user = brignext.NewUser(claims.Email, claims.Name)
 					if err = e.usersService.Create(r.Context(), user); err != nil {

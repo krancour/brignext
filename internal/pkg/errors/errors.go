@@ -1,4 +1,4 @@
-package brignext
+package errors
 
 import (
 	"fmt"
