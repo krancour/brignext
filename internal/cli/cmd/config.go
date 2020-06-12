@@ -6,7 +6,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/krancour/brignext/v2/internal/common/pkg/file"
+	"github.com/krancour/brignext/v2/internal/pkg/file"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 )

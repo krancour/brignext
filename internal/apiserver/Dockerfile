@@ -4,14 +4,14 @@ ARG COMMIT
 ENV CGO_ENABLED=0
 WORKDIR /src
 COPY internal/apiserver/ internal/apiserver/
-COPY internal/common/ internal/common/
+COPY internal/pkg/ internal/pkg/
 COPY *.go ./
 COPY vendor/ vendor/
 COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go build \
   -o bin/apiserver \
-  -ldflags "-w -X github.com/krancour/brignext/v2/internal/common/pkg/version.version=$VERSION -X github.com/krancour/brignext/v2/internal/common/pkg/version.commit=$COMMIT" \
+  -ldflags "-w -X github.com/krancour/brignext/v2/internal/pkg/version.version=$VERSION -X github.com/krancour/brignext/v2/internal/pkg/version.commit=$COMMIT" \
   ./internal/apiserver/cmd
 
 FROM scratch

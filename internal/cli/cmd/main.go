@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/krancour/brignext/v2/internal/common/pkg/signals"
-	"github.com/krancour/brignext/v2/internal/common/pkg/version"
+	"github.com/krancour/brignext/v2/internal/pkg/signals"
+	"github.com/krancour/brignext/v2/internal/pkg/version"
 	"github.com/urfave/cli/v2"
 )
 

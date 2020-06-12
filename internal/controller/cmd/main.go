@@ -4,10 +4,10 @@ import (
 	"log"
 
 	"github.com/krancour/brignext/v2"
-	"github.com/krancour/brignext/v2/internal/common/pkg/kubernetes"
-	"github.com/krancour/brignext/v2/internal/common/pkg/redis"
-	"github.com/krancour/brignext/v2/internal/common/pkg/signals"
-	"github.com/krancour/brignext/v2/internal/common/pkg/version"
+	"github.com/krancour/brignext/v2/internal/pkg/kubernetes"
+	"github.com/krancour/brignext/v2/internal/pkg/redis"
+	"github.com/krancour/brignext/v2/internal/pkg/signals"
+	"github.com/krancour/brignext/v2/internal/pkg/version"
 )
 
 func main() {

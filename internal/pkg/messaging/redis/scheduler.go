@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/krancour/brignext/v2/internal/common/pkg/retries"
+	"github.com/krancour/brignext/v2/internal/pkg/retries"
 )
 
 // defaultRunScheduler checks at regular intervals for messages in the global

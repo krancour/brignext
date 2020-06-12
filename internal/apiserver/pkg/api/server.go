@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/internal/common/pkg/file"
+	"github.com/krancour/brignext/v2/internal/pkg/file"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )

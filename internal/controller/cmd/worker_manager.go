@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2"
-	"github.com/krancour/brignext/v2/internal/common/pkg/messaging"
+	"github.com/krancour/brignext/v2/internal/pkg/messaging"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"

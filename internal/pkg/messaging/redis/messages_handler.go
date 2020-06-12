@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/krancour/brignext/v2/internal/common/pkg/retries"
+	"github.com/krancour/brignext/v2/internal/pkg/retries"
 	"github.com/pkg/errors"
 )
 

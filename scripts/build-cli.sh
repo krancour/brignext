@@ -10,7 +10,7 @@ for os in $OSES; do
     echo "building $os-$arch"
     GOOS=$os GOARCH=$arch CGO_ENABLED=0 \
       go build \
-      -ldflags "-w -X github.com/krancour/brignext/v2/internal/common/pkg/version.version=$VERSION -X github.com/krancour/brignext/v2/internal/common/pkg/version.commit=$COMMIT" \
+      -ldflags "-w -X github.com/krancour/brignext/v2/internal/pkg/version.version=$VERSION -X github.com/krancour/brignext/v2/internal/pkg/version.commit=$COMMIT" \
       -o ./bin/brignext-$os-$arch \
       ./internal/cli/cmd
   done

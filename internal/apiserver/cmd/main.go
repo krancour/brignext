@@ -12,9 +12,9 @@ import (
 	"github.com/krancour/brignext/v2/internal/apiserver/pkg/serviceaccounts"
 	"github.com/krancour/brignext/v2/internal/apiserver/pkg/sessions"
 	"github.com/krancour/brignext/v2/internal/apiserver/pkg/users"
-	"github.com/krancour/brignext/v2/internal/common/pkg/kubernetes"
-	"github.com/krancour/brignext/v2/internal/common/pkg/redis"
-	"github.com/krancour/brignext/v2/internal/common/pkg/version"
+	"github.com/krancour/brignext/v2/internal/pkg/kubernetes"
+	"github.com/krancour/brignext/v2/internal/pkg/redis"
+	"github.com/krancour/brignext/v2/internal/pkg/version"
 )
 
 func main() {

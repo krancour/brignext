@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/krancour/brignext/v2/internal/common/pkg/retries"
+	"github.com/krancour/brignext/v2/internal/pkg/retries"
 )
 
 // defaultRunCleaner continuously monitors the heartbeats of all known consumers
