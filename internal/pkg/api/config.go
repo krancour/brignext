@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/kelseyhightower/envconfig"
-	"github.com/krancour/brignext/v2/internal/apiserver/pkg/crypto"
+	"github.com/krancour/brignext/v2/internal/pkg/crypto"
 )
 
 const envconfigPrefix = "API_SERVER"

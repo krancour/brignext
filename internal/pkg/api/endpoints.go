@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/internal/apiserver/pkg/api/auth"
+	"github.com/krancour/brignext/v2/internal/pkg/api/auth"
 	errs "github.com/krancour/brignext/v2/internal/pkg/errors"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"

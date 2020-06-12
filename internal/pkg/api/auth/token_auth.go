@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2"
-	"github.com/krancour/brignext/v2/internal/apiserver/pkg/crypto"
+	"github.com/krancour/brignext/v2/internal/pkg/crypto"
 	errs "github.com/krancour/brignext/v2/internal/pkg/errors"
 	"github.com/pkg/errors"
 )

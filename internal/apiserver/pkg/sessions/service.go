@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2"
-	"github.com/krancour/brignext/v2/internal/apiserver/pkg/api/auth"
-	"github.com/krancour/brignext/v2/internal/apiserver/pkg/crypto"
+	"github.com/krancour/brignext/v2/internal/pkg/api/auth"
+	"github.com/krancour/brignext/v2/internal/pkg/crypto"
 	"github.com/pkg/errors"
 )
 

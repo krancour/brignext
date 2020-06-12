@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/internal/apiserver/pkg/api"
+	"github.com/krancour/brignext/v2/internal/pkg/api"
 )
 
 type endpoints struct {

@@ -3,16 +3,16 @@ package main
 import (
 	"log"
 
-	"github.com/krancour/brignext/v2/internal/apiserver/pkg/api"
-	"github.com/krancour/brignext/v2/internal/apiserver/pkg/api/auth"
 	"github.com/krancour/brignext/v2/internal/apiserver/pkg/events"
-	"github.com/krancour/brignext/v2/internal/apiserver/pkg/mongodb"
-	"github.com/krancour/brignext/v2/internal/apiserver/pkg/oidc"
 	"github.com/krancour/brignext/v2/internal/apiserver/pkg/projects"
 	"github.com/krancour/brignext/v2/internal/apiserver/pkg/serviceaccounts"
 	"github.com/krancour/brignext/v2/internal/apiserver/pkg/sessions"
 	"github.com/krancour/brignext/v2/internal/apiserver/pkg/users"
+	"github.com/krancour/brignext/v2/internal/pkg/api"
+	"github.com/krancour/brignext/v2/internal/pkg/api/auth"
 	"github.com/krancour/brignext/v2/internal/pkg/kubernetes"
+	"github.com/krancour/brignext/v2/internal/pkg/mongodb"
+	"github.com/krancour/brignext/v2/internal/pkg/oidc"
 	"github.com/krancour/brignext/v2/internal/pkg/redis"
 	"github.com/krancour/brignext/v2/internal/pkg/version"
 )

@@ -11,7 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2"
-	"github.com/krancour/brignext/v2/internal/apiserver/pkg/api"
+	"github.com/krancour/brignext/v2/internal/pkg/api"
 	errs "github.com/krancour/brignext/v2/internal/pkg/errors"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
