@@ -3,7 +3,7 @@ package brignext
 import (
 	"time"
 
-	"github.com/krancour/brignext/v2/internal/pkg/meta"
+	"github.com/krancour/brignext/v2/meta"
 )
 
 type ServiceAccountList struct {

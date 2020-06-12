@@ -1,6 +1,6 @@
 package brignext
 
-import "github.com/krancour/brignext/v2/internal/pkg/meta"
+import "github.com/krancour/brignext/v2/meta"
 
 type SecretList struct {
 	meta.TypeMeta `json:",inline"`

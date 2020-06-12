@@ -6,6 +6,7 @@ WORKDIR /src
 COPY internal/controller/ internal/controller/
 COPY internal/pkg/ internal/pkg/
 COPY api/ api/
+COPY meta/ meta/
 COPY *.go ./
 COPY vendor/ vendor/
 COPY go.mod go.mod

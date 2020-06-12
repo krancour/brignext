@@ -10,7 +10,7 @@ import (
 
 	"github.com/krancour/brignext/v2"
 	errs "github.com/krancour/brignext/v2/internal/pkg/errors"
-	"github.com/krancour/brignext/v2/internal/pkg/meta"
+	"github.com/krancour/brignext/v2/meta"
 	"github.com/stretchr/testify/require"
 )
 

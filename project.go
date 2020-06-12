@@ -1,7 +1,7 @@
 package brignext
 
 import (
-	"github.com/krancour/brignext/v2/internal/pkg/meta"
+	"github.com/krancour/brignext/v2/meta"
 	"go.mongodb.org/mongo-driver/bson"
 )
 

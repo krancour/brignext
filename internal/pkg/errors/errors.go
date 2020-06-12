@@ -3,7 +3,7 @@ package errors
 import (
 	"fmt"
 
-	"github.com/krancour/brignext/v2/internal/pkg/meta"
+	"github.com/krancour/brignext/v2/meta"
 )
 
 type ErrAuthentication struct {
