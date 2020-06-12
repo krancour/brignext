@@ -3,16 +3,16 @@ ARG VERSION
 ARG COMMIT
 ENV CGO_ENABLED=0
 WORKDIR /src
-COPY gateways/github/ gateways/github/
-COPY common/ common/
+COPY internal/gateways/github/ internal/gateways/github/
+COPY internal/common/ internal/common/
 COPY *.go ./
 COPY vendor/ vendor/
 COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go build \
   -o bin/github-gateway \
-  -ldflags "-w -X github.com/krancour/brignext/v2/internal/common/version.version=$VERSION -X github.com/krancour/brignext/v2/internal/common/version.commit=$COMMIT" \
-  ./gateways/github
+  -ldflags "-w -X github.com/krancour/brignext/v2/internal/common/pkg/version.version=$VERSION -X github.com/krancour/brignext/v2/internal/common/pkg/version.commit=$COMMIT" \
+  ./gateways/github/cmd
 
 FROM scratch
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt

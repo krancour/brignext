@@ -11,8 +11,8 @@ COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go build \
   -o bin/controller \
-  -ldflags "-w -X github.com/krancour/brignext/v2/internal/common/version.version=$VERSION -X github.com/krancour/brignext/v2/internal/common/version.commit=$COMMIT" \
-  ./internal/controller
+  -ldflags "-w -X github.com/krancour/brignext/v2/internal/common/pkg/version.version=$VERSION -X github.com/krancour/brignext/v2/internal/common/pkg/version.commit=$COMMIT" \
+  ./internal/controller/cmd
 
 FROM scratch
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
