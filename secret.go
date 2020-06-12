@@ -1,32 +1,34 @@
 package brignext
 
+import "github.com/krancour/brignext/v2/internal/pkg/meta"
+
 type SecretList struct {
-	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata"`
-	Items    []Secret `json:"items"`
+	meta.TypeMeta `json:",inline"`
+	meta.ListMeta `json:"metadata"`
+	Items         []Secret `json:"items"`
 }
 
 func NewSecretList() SecretList {
 	return SecretList{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "SecretList",
 		},
-		ListMeta: ListMeta{},
+		ListMeta: meta.ListMeta{},
 		Items:    []Secret{},
 	}
 }
 
 type Secret struct {
-	TypeMeta `json:",inline" bson:",inline"`
-	Key      string `json:"key" bson:"value"`
-	Value    string `json:"value" bson:"value"`
+	meta.TypeMeta `json:",inline" bson:",inline"`
+	Key           string `json:"key" bson:"value"`
+	Value         string `json:"value" bson:"value"`
 }
 
 func NewSecret(key, value string) Secret {
 	return Secret{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "Secret",
 		},
 		Key:   key,

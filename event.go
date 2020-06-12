@@ -3,40 +3,41 @@ package brignext
 import (
 	"time"
 
+	"github.com/krancour/brignext/v2/internal/pkg/meta"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 type EventReferenceList struct {
-	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata"`
-	Items    []EventReference `json:"items"`
+	meta.TypeMeta `json:",inline"`
+	meta.ListMeta `json:"metadata"`
+	Items         []EventReference `json:"items"`
 }
 
 func NewEventReferenceList() EventReferenceList {
 	return EventReferenceList{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "EventReferenceList",
 		},
-		ListMeta: ListMeta{},
+		ListMeta: meta.ListMeta{},
 		Items:    []EventReference{},
 	}
 }
 
 type EventReference struct {
-	TypeMeta            `json:",inline"`
-	ObjectReferenceMeta `json:"metadata" bson:"metadata"`
-	ProjectID           string           `json:"projectID" bson:"projectID"`
-	Kubernetes          KubernetesConfig `json:"-" bson:"kubernetes"`
+	meta.TypeMeta            `json:",inline"`
+	meta.ObjectReferenceMeta `json:"metadata" bson:"metadata"`
+	ProjectID                string           `json:"projectID" bson:"projectID"`
+	Kubernetes               KubernetesConfig `json:"-" bson:"kubernetes"`
 }
 
 func NewEventReference(event Event) EventReference {
 	eventRef := EventReference{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "EventReference",
 		},
-		ObjectReferenceMeta: ObjectReferenceMeta{
+		ObjectReferenceMeta: meta.ObjectReferenceMeta{
 			ID: event.ID,
 		},
 		ProjectID: event.ProjectID,
@@ -48,15 +49,15 @@ func NewEventReference(event Event) EventReference {
 }
 
 type EventList struct {
-	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata"`
-	Items    []Event `json:"items"`
+	meta.TypeMeta `json:",inline"`
+	meta.ListMeta `json:"metadata"`
+	Items         []Event `json:"items"`
 }
 
 func NewEventList() EventList {
 	return EventList{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "EventList",
 		},
 		Items: []Event{},
@@ -64,16 +65,16 @@ func NewEventList() EventList {
 }
 
 type Event struct {
-	TypeMeta   `json:",inline" bson:",inline"`
-	ObjectMeta `json:"metadata" bson:"metadata"`
-	ProjectID  string         `json:"projectID" bson:"projectID"`
-	Source     string         `json:"source" bson:"source"`
-	Type       string         `json:"type" bson:"type"`
-	Labels     Labels         `json:"labels" bson:"labels"`
-	ShortTitle string         `json:"shortTitle" bson:"shortTitle"`
-	LongTitle  string         `json:"longTitle" bson:"longTitle"`
-	Git        EventGitConfig `json:"git" bson:"git"`
-	Payload    string         `json:"payload" bson:"payload"`
+	meta.TypeMeta   `json:",inline" bson:",inline"`
+	meta.ObjectMeta `json:"metadata" bson:"metadata"`
+	ProjectID       string         `json:"projectID" bson:"projectID"`
+	Source          string         `json:"source" bson:"source"`
+	Type            string         `json:"type" bson:"type"`
+	Labels          Labels         `json:"labels" bson:"labels"`
+	ShortTitle      string         `json:"shortTitle" bson:"shortTitle"`
+	LongTitle       string         `json:"longTitle" bson:"longTitle"`
+	Git             EventGitConfig `json:"git" bson:"git"`
+	Payload         string         `json:"payload" bson:"payload"`
 	// The JSON schema doesn't permit the fields below to be set via the API.
 	Worker     *WorkerSpec       `json:"worker,omitempty" bson:"worker"`
 	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
@@ -83,8 +84,8 @@ type Event struct {
 
 func NewEvent() Event {
 	return Event{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "Event",
 		},
 	}

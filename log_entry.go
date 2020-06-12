@@ -1,17 +1,21 @@
 package brignext
 
-import "time"
+import (
+	"time"
+
+	"github.com/krancour/brignext/v2/internal/pkg/meta"
+)
 
 type LogEntryList struct {
-	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata"`
-	Items    []LogEntry `json:"items"`
+	meta.TypeMeta `json:",inline"`
+	meta.ListMeta `json:"metadata"`
+	Items         []LogEntry `json:"items"`
 }
 
 func NewLogEntryList() LogEntryList {
 	return LogEntryList{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "LogEntryList",
 		},
 		Items: []LogEntry{},
@@ -19,15 +23,15 @@ func NewLogEntryList() LogEntryList {
 }
 
 type LogEntry struct {
-	TypeMeta `json:",inline"`
-	Time     time.Time `json:"time" bson:"time"`
-	Message  string    `json:"message" bson:"log"`
+	meta.TypeMeta `json:",inline"`
+	Time          time.Time `json:"time" bson:"time"`
+	Message       string    `json:"message" bson:"log"`
 }
 
 func NewLogEntry() LogEntry {
 	return LogEntry{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "LogEntry",
 		},
 	}

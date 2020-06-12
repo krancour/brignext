@@ -1,6 +1,10 @@
 package brignext
 
-import "time"
+import (
+	"time"
+
+	"github.com/krancour/brignext/v2/internal/pkg/meta"
+)
 
 type LogLevel string
 
@@ -92,16 +96,16 @@ type ContainerSpec struct {
 }
 
 type WorkerStatus struct {
-	*TypeMeta `json:",inline,omitempty" bson:"-"`
-	Started   *time.Time  `json:"started" bson:"started"`
-	Ended     *time.Time  `json:"ended" bson:"ended"`
-	Phase     WorkerPhase `json:"phase" bson:"phase"`
+	*meta.TypeMeta `json:",inline,omitempty" bson:"-"`
+	Started        *time.Time  `json:"started" bson:"started"`
+	Ended          *time.Time  `json:"ended" bson:"ended"`
+	Phase          WorkerPhase `json:"phase" bson:"phase"`
 }
 
 func NewWorkerStatus() WorkerStatus {
 	return WorkerStatus{
-		TypeMeta: &TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: &meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "WorkerStatus",
 		},
 	}

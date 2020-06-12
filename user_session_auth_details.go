@@ -1,10 +1,12 @@
 package brignext
 
+import "github.com/krancour/brignext/v2/internal/pkg/meta"
+
 type UserSessionAuthDetails struct {
-	TypeMeta    `json:",inline" bson:",inline"`
-	OAuth2State string `json:"oauth2State"`
-	AuthURL     string `json:"authURL"`
-	Token       string `json:"token"`
+	meta.TypeMeta `json:",inline" bson:",inline"`
+	OAuth2State   string `json:"oauth2State"`
+	AuthURL       string `json:"authURL"`
+	Token         string `json:"token"`
 }
 
 func NewUserSessionAuthDetails(
@@ -12,8 +14,8 @@ func NewUserSessionAuthDetails(
 	token string,
 ) UserSessionAuthDetails {
 	return UserSessionAuthDetails{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "Token",
 		},
 		OAuth2State: oauth2State,

@@ -1,15 +1,17 @@
 package brignext
 
+import "github.com/krancour/brignext/v2/internal/pkg/meta"
+
 type ProjectList struct {
-	TypeMeta `json:",inline"`
-	ListMeta `json:"metadata"`
-	Items    []Project `json:"items"`
+	meta.TypeMeta `json:",inline"`
+	meta.ListMeta `json:"metadata"`
+	Items         []Project `json:"items"`
 }
 
 func NewProjectList() ProjectList {
 	return ProjectList{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "ProjectList",
 		},
 		Items: []Project{},
@@ -17,9 +19,9 @@ func NewProjectList() ProjectList {
 }
 
 type Project struct {
-	TypeMeta   `json:",inline" bson:",inline"`
-	ObjectMeta `json:"metadata" bson:"metadata"`
-	Spec       ProjectSpec `json:"spec" bson:"spec"`
+	meta.TypeMeta   `json:",inline" bson:",inline"`
+	meta.ObjectMeta `json:"metadata" bson:"metadata"`
+	Spec            ProjectSpec `json:"spec" bson:"spec"`
 	// The JSON schema doesn't permit the fields below to be set via the API.
 	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
 }

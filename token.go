@@ -1,14 +1,16 @@
 package brignext
 
+import "github.com/krancour/brignext/v2/internal/pkg/meta"
+
 type Token struct {
-	TypeMeta `json:",inline" bson:",inline"`
-	Value    string `json:"value" bson:"value"`
+	meta.TypeMeta `json:",inline" bson:",inline"`
+	Value         string `json:"value" bson:"value"`
 }
 
 func NewToken(value string) Token {
 	return Token{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "Token",
 		},
 		Value: value,

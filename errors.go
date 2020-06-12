@@ -1,16 +1,20 @@
 package brignext
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/krancour/brignext/v2/internal/pkg/meta"
+)
 
 type ErrAuthentication struct {
-	TypeMeta `json:",inline"`
-	Reason   string `json:"reason"`
+	meta.TypeMeta `json:",inline"`
+	Reason        string `json:"reason"`
 }
 
 func NewErrAuthentication(reason string) *ErrAuthentication {
 	return &ErrAuthentication{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "AuthenticationError",
 		},
 		Reason: reason,
@@ -22,13 +26,13 @@ func (e *ErrAuthentication) Error() string {
 }
 
 type ErrAuthorization struct {
-	TypeMeta `json:",inline"`
+	meta.TypeMeta `json:",inline"`
 }
 
 func NewErrAuthorization() *ErrAuthorization {
 	return &ErrAuthorization{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "AuthorizationError",
 		},
 	}
@@ -39,15 +43,15 @@ func (e *ErrAuthorization) Error() string {
 }
 
 type ErrBadRequest struct {
-	TypeMeta `json:",inline"`
-	Reason   string   `json:"reason"`
-	Details  []string `json:"details"`
+	meta.TypeMeta `json:",inline"`
+	Reason        string   `json:"reason"`
+	Details       []string `json:"details"`
 }
 
 func NewErrBadRequest(reason string, details ...string) *ErrBadRequest {
 	return &ErrBadRequest{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "BadRequestError",
 		},
 		Reason:  reason,
@@ -67,15 +71,15 @@ func (e *ErrBadRequest) Error() string {
 }
 
 type ErrNotFound struct {
-	TypeMeta `json:",inline"`
-	Type     string `json:"type"`
-	ID       string `json:"id"`
+	meta.TypeMeta `json:",inline"`
+	Type          string `json:"type"`
+	ID            string `json:"id"`
 }
 
 func NewErrNotFound(tipe, id string) *ErrNotFound {
 	return &ErrNotFound{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "NotFoundError",
 		},
 		Type: tipe,
@@ -88,16 +92,16 @@ func (e *ErrNotFound) Error() string {
 }
 
 type ErrConflict struct {
-	TypeMeta `json:",inline"`
-	Type     string `json:"type"`
-	ID       string `json:"id"`
-	Reason   string `json:"reason"`
+	meta.TypeMeta `json:",inline"`
+	Type          string `json:"type"`
+	ID            string `json:"id"`
+	Reason        string `json:"reason"`
 }
 
 func NewErrConflict(tipe string, id string, reason string) *ErrConflict {
 	return &ErrConflict{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "ConflictError",
 		},
 		Type:   tipe,
@@ -111,13 +115,13 @@ func (e *ErrConflict) Error() string {
 }
 
 type ErrInternalServer struct {
-	TypeMeta `json:",inline"`
+	meta.TypeMeta `json:",inline"`
 }
 
 func NewErrInternalServer() *ErrInternalServer {
 	return &ErrInternalServer{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "InternalServerError",
 		},
 	}
@@ -128,14 +132,14 @@ func (e *ErrInternalServer) Error() string {
 }
 
 type ErrNotSupported struct {
-	TypeMeta `json:",inline"`
-	Details  string `json:"reason"`
+	meta.TypeMeta `json:",inline"`
+	Details       string `json:"reason"`
 }
 
 func NewErrNotSupported(details string) *ErrNotSupported {
 	return &ErrNotSupported{
-		TypeMeta: TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "NotSupportedError",
 		},
 		Details: details,

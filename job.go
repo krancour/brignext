@@ -1,6 +1,10 @@
 package brignext
 
-import "time"
+import (
+	"time"
+
+	"github.com/krancour/brignext/v2/internal/pkg/meta"
+)
 
 type JobPhase string
 
@@ -34,16 +38,16 @@ type JobsKubernetesConfig struct {
 }
 
 type JobStatus struct {
-	*TypeMeta `json:",inline,omitempty" bson:"-"`
-	Started   *time.Time `json:"started" bson:"started"`
-	Ended     *time.Time `json:"ended" bson:"ended"`
-	Phase     JobPhase   `json:"phase" bson:"phase"`
+	*meta.TypeMeta `json:",inline,omitempty" bson:"-"`
+	Started        *time.Time `json:"started" bson:"started"`
+	Ended          *time.Time `json:"ended" bson:"ended"`
+	Phase          JobPhase   `json:"phase" bson:"phase"`
 }
 
 func NewJobStatus() JobStatus {
 	return JobStatus{
-		TypeMeta: &TypeMeta{
-			APIVersion: APIVersion,
+		TypeMeta: &meta.TypeMeta{
+			APIVersion: meta.APIVersion,
 			Kind:       "JobStatus",
 		},
 	}
