@@ -114,7 +114,7 @@ build-images: build-apiserver build-controller build-worker build-logger-linux
 .PHONY: build-apiserver
 build-apiserver:
 	docker build \
-		-f components/apiserver/Dockerfile \
+		-f apiserver/Dockerfile \
 		-t $(DOCKER_IMAGE_PREFIX)brignext-apiserver:$(IMMUTABLE_DOCKER_TAG) \
 		--build-arg VERSION='$(VERSION)' \
 		--build-arg COMMIT='$(GIT_VERSION)' \
@@ -124,7 +124,7 @@ build-apiserver:
 .PHONY: build-controller
 build-controller:
 	docker build \
-		-f components/controller/Dockerfile \
+		-f controller/Dockerfile \
 		-t $(DOCKER_IMAGE_PREFIX)brignext-controller:$(IMMUTABLE_DOCKER_TAG) \
 		--build-arg VERSION='$(VERSION)' \
 		--build-arg COMMIT='$(GIT_VERSION)' \
@@ -135,13 +135,13 @@ build-controller:
 build-worker:
 	docker build \
 		-t $(DOCKER_IMAGE_PREFIX)brignext-worker:$(IMMUTABLE_DOCKER_TAG) \
-		components/worker/
+		worker/
 	docker tag $(DOCKER_IMAGE_PREFIX)brignext-worker:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-worker:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: build-logger-linux
 build-logger-linux:
 	docker build \
-		-f components/logger/Dockerfile.linux \
+		-f logger/Dockerfile.linux \
 		-t $(DOCKER_IMAGE_PREFIX)brignext-logger-linux:$(IMMUTABLE_DOCKER_TAG) \
 		.
 	docker tag $(DOCKER_IMAGE_PREFIX)brignext-logger-linux:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-logger-linux:$(MUTABLE_DOCKER_TAG)
@@ -149,7 +149,7 @@ build-logger-linux:
 .PHONY: build-logger-windows
 build-logger-windows:
 	docker build \
-		-f components/logger/Dockerfile.winserv-2019 \
+		-f logger/Dockerfile.winserv-2019 \
 		-t $(DOCKER_IMAGE_PREFIX)brignext-logger-windows:$(IMMUTABLE_DOCKER_TAG) \
 		.
 	docker tag $(DOCKER_IMAGE_PREFIX)brignext-logger-windows:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-logger-windows:$(MUTABLE_DOCKER_TAG)

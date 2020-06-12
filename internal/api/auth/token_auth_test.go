@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/krancour/brignext/v2"
+	brignext "github.com/krancour/brignext/v2/sdk"
 	errs "github.com/krancour/brignext/v2/internal/errors"
-	"github.com/krancour/brignext/v2/meta"
+	"github.com/krancour/brignext/v2/sdk/meta"
 	"github.com/stretchr/testify/require"
 )
 

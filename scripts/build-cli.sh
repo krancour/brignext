@@ -12,7 +12,7 @@ for os in $OSES; do
       go build \
       -ldflags "-w -X github.com/krancour/brignext/v2/internal/version.version=$VERSION -X github.com/krancour/brignext/v2/internal/version.commit=$COMMIT" \
       -o ./bin/brignext-$os-$arch \
-      ./components/cli
+      ./cli
   done
   if [ $os = 'windows' ]; then
     mv ./bin/brignext-$os-$arch ./bin/brignext-$os-$arch.exe

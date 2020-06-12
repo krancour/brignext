@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/internal/crypto"
-	"github.com/krancour/brignext/v2/meta"
+	"github.com/krancour/brignext/v2/sdk/meta"
 	uuid "github.com/satori/go.uuid"
 )
 
