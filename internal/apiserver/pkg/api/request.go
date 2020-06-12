@@ -6,7 +6,7 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-type Request struct {
+type InboundRequest struct {
 	W                   http.ResponseWriter
 	R                   *http.Request
 	ReqBodySchemaLoader gojsonschema.JSONLoader

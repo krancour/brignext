@@ -44,7 +44,7 @@ func (c *client) Create(
 ) (brignext.Token, error) {
 	token := brignext.Token{}
 	return token, c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/service-accounts",
 			AuthHeaders: c.BearerTokenAuthHeaders(),
@@ -58,7 +58,7 @@ func (c *client) Create(
 func (c *client) List(context.Context) (brignext.ServiceAccountList, error) {
 	serviceAccountList := brignext.ServiceAccountList{}
 	return serviceAccountList, c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        "v2/service-accounts",
 			AuthHeaders: c.BearerTokenAuthHeaders(),
@@ -74,7 +74,7 @@ func (c *client) Get(
 ) (brignext.ServiceAccount, error) {
 	serviceAccount := brignext.ServiceAccount{}
 	return serviceAccount, c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/service-accounts/%s", id),
 			AuthHeaders: c.BearerTokenAuthHeaders(),
@@ -86,7 +86,7 @@ func (c *client) Get(
 
 func (c *client) Lock(_ context.Context, id string) error {
 	return c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/service-accounts/%s/lock", id),
 			AuthHeaders: c.BearerTokenAuthHeaders(),
@@ -98,7 +98,7 @@ func (c *client) Lock(_ context.Context, id string) error {
 func (c *client) Unlock(_ context.Context, id string) (brignext.Token, error) {
 	token := brignext.Token{}
 	return token, c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        fmt.Sprintf("v2/service-accounts/%s/lock", id),
 			AuthHeaders: c.BearerTokenAuthHeaders(),

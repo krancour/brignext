@@ -97,7 +97,7 @@ func (b *BaseEndpoints) readAndValidateRequestBody(
 	return true
 }
 
-func (b *BaseEndpoints) ServeRequest(req Request) {
+func (b *BaseEndpoints) ServeRequest(req InboundRequest) {
 	if req.ReqBodySchemaLoader != nil || req.ReqBodyObj != nil {
 		if !b.readAndValidateRequestBody(
 			req.W,

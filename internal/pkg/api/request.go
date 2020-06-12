@@ -1,6 +1,6 @@
 package api
 
-type Request struct {
+type OutboundRequest struct {
 	Method      string
 	Path        string
 	QueryParams map[string]string

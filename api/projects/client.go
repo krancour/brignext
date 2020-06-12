@@ -50,7 +50,7 @@ func NewClient(
 
 func (c *client) Create(_ context.Context, project brignext.Project) error {
 	return c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/projects",
 			AuthHeaders: c.BearerTokenAuthHeaders(),
@@ -65,7 +65,7 @@ func (c *client) CreateFromBytes(
 	projectBytes []byte,
 ) error {
 	return c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/projects",
 			AuthHeaders: c.BearerTokenAuthHeaders(),
@@ -78,7 +78,7 @@ func (c *client) CreateFromBytes(
 func (c *client) List(context.Context) (brignext.ProjectList, error) {
 	projectList := brignext.ProjectList{}
 	return projectList, c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        "v2/projects",
 			AuthHeaders: c.BearerTokenAuthHeaders(),
@@ -91,7 +91,7 @@ func (c *client) List(context.Context) (brignext.ProjectList, error) {
 func (c *client) Get(_ context.Context, id string) (brignext.Project, error) {
 	project := brignext.Project{}
 	return project, c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/projects/%s", id),
 			AuthHeaders: c.BearerTokenAuthHeaders(),
@@ -103,7 +103,7 @@ func (c *client) Get(_ context.Context, id string) (brignext.Project, error) {
 
 func (c *client) Update(_ context.Context, project brignext.Project) error {
 	return c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/projects/%s", project.ID),
 			AuthHeaders: c.BearerTokenAuthHeaders(),
@@ -119,7 +119,7 @@ func (c *client) UpdateFromBytes(
 	projectBytes []byte,
 ) error {
 	return c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/projects/%s", projectID),
 			AuthHeaders: c.BearerTokenAuthHeaders(),
@@ -131,7 +131,7 @@ func (c *client) UpdateFromBytes(
 
 func (c *client) Delete(_ context.Context, id string) error {
 	return c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        fmt.Sprintf("v2/projects/%s", id),
 			AuthHeaders: c.BearerTokenAuthHeaders(),
@@ -146,7 +146,7 @@ func (c *client) ListSecrets(
 ) (brignext.SecretList, error) {
 	secretList := brignext.SecretList{}
 	return secretList, c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/projects/%s/secrets", projectID),
 			AuthHeaders: c.BearerTokenAuthHeaders(),
@@ -162,7 +162,7 @@ func (c *client) SetSecret(
 	secret brignext.Secret,
 ) error {
 	return c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method: http.MethodPut,
 			Path: fmt.Sprintf(
 				"v2/projects/%s/secrets/%s",
@@ -182,7 +182,7 @@ func (c *client) UnsetSecret(
 	key string,
 ) error {
 	return c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method: http.MethodDelete,
 			Path: fmt.Sprintf(
 				"v2/projects/%s/secrets/%s",

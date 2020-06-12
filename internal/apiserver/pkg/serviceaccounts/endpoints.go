@@ -69,61 +69,70 @@ func (e *endpoints) create(
 	r *http.Request,
 ) {
 	serviceAccount := brignext.ServiceAccount{}
-	e.ServeRequest(api.Request{
-		W:                   w,
-		R:                   r,
-		ReqBodySchemaLoader: e.serviceAccountSchemaLoader,
-		ReqBodyObj:          &serviceAccount,
-		EndpointLogic: func() (interface{}, error) {
-			return e.service.Create(r.Context(), serviceAccount)
+	e.ServeRequest(
+		api.InboundRequest{
+			W:                   w,
+			R:                   r,
+			ReqBodySchemaLoader: e.serviceAccountSchemaLoader,
+			ReqBodyObj:          &serviceAccount,
+			EndpointLogic: func() (interface{}, error) {
+				return e.service.Create(r.Context(), serviceAccount)
+			},
+			SuccessCode: http.StatusCreated,
 		},
-		SuccessCode: http.StatusCreated,
-	})
+	)
 }
 
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			return e.service.List(r.Context())
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return e.service.List(r.Context())
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }
 
 func (e *endpoints) get(w http.ResponseWriter, r *http.Request) {
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			return e.service.Get(r.Context(), mux.Vars(r)["id"])
-		},
-		SuccessCode: http.StatusOK,
-	})
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return e.service.Get(r.Context(), mux.Vars(r)["id"])
+			},
+			SuccessCode: http.StatusOK,
+		})
 }
 
 func (e *endpoints) lock(w http.ResponseWriter, r *http.Request) {
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			return nil, e.service.Lock(r.Context(), mux.Vars(r)["id"])
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return nil, e.service.Lock(r.Context(), mux.Vars(r)["id"])
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }
 
 func (e *endpoints) unlock(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			return e.service.Unlock(r.Context(), mux.Vars(r)["id"])
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return e.service.Unlock(r.Context(), mux.Vars(r)["id"])
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }

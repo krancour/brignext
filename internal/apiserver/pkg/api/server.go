@@ -84,17 +84,19 @@ func (s *server) checkHealth(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	s.ServeRequest(Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			for _, eps := range s.endpoints {
-				if err := eps.CheckHealth(r.Context()); err != nil {
-					return nil, err
+	s.ServeRequest(
+		InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				for _, eps := range s.endpoints {
+					if err := eps.CheckHealth(r.Context()); err != nil {
+						return nil, err
+					}
 				}
-			}
-			return struct{}{}, nil
+				return struct{}{}, nil
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }

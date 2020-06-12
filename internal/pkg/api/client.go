@@ -39,18 +39,18 @@ func (b *BaseClient) BearerTokenAuthHeaders() map[string]string {
 	}
 }
 
-func (b *BaseClient) ExecuteRequest(apiReq Request) error {
-	resp, err := b.SubmitRequest(apiReq)
+func (b *BaseClient) ExecuteRequest(req OutboundRequest) error {
+	resp, err := b.SubmitRequest(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	if apiReq.RespObj != nil {
+	if req.RespObj != nil {
 		respBodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return errors.Wrap(err, "error reading response body")
 		}
-		if err := json.Unmarshal(respBodyBytes, apiReq.RespObj); err != nil {
+		if err := json.Unmarshal(respBodyBytes, req.RespObj); err != nil {
 			return errors.Wrap(err, "error unmarshaling response body")
 		}
 	}
@@ -58,15 +58,15 @@ func (b *BaseClient) ExecuteRequest(apiReq Request) error {
 }
 
 func (b *BaseClient) SubmitRequest(
-	apiReq Request,
+	req OutboundRequest,
 ) (*http.Response, error) {
 	var reqBodyReader io.Reader
-	if apiReq.ReqBodyObj != nil {
-		switch rb := apiReq.ReqBodyObj.(type) {
+	if req.ReqBodyObj != nil {
+		switch rb := req.ReqBodyObj.(type) {
 		case []byte:
 			reqBodyReader = bytes.NewBuffer(rb)
 		default:
-			reqBodyBytes, err := json.Marshal(apiReq.ReqBodyObj)
+			reqBodyBytes, err := json.Marshal(req.ReqBodyObj)
 			if err != nil {
 				return nil, errors.Wrap(err, "error marshaling request body")
 			}
@@ -74,40 +74,40 @@ func (b *BaseClient) SubmitRequest(
 		}
 	}
 
-	req, err := http.NewRequest(
-		apiReq.Method,
-		fmt.Sprintf("%s/%s", b.APIAddress, apiReq.Path),
+	r, err := http.NewRequest(
+		req.Method,
+		fmt.Sprintf("%s/%s", b.APIAddress, req.Path),
 		reqBodyReader,
 	)
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
 			"error creating request %s %s",
-			apiReq.Method,
-			apiReq.Path,
+			req.Method,
+			req.Path,
 		)
 	}
-	if len(apiReq.QueryParams) > 0 {
-		q := req.URL.Query()
-		for k, v := range apiReq.QueryParams {
+	if len(req.QueryParams) > 0 {
+		q := r.URL.Query()
+		for k, v := range req.QueryParams {
 			q.Set(k, v)
 		}
-		req.URL.RawQuery = q.Encode()
+		r.URL.RawQuery = q.Encode()
 	}
-	for k, v := range apiReq.AuthHeaders {
-		req.Header.Add(k, v)
+	for k, v := range req.AuthHeaders {
+		r.Header.Add(k, v)
 	}
-	for k, v := range apiReq.Headers {
-		req.Header.Add(k, v)
+	for k, v := range req.Headers {
+		r.Header.Add(k, v)
 	}
 
-	resp, err := b.HTTPClient.Do(req)
+	resp, err := b.HTTPClient.Do(r)
 	if err != nil {
 		return nil, errors.Wrap(err, "error invoking API")
 	}
 
-	if (apiReq.SuccessCode == 0 && resp.StatusCode != http.StatusOK) ||
-		(apiReq.SuccessCode != 0 && resp.StatusCode != apiReq.SuccessCode) {
+	if (req.SuccessCode == 0 && resp.StatusCode != http.StatusOK) ||
+		(req.SuccessCode != 0 && resp.StatusCode != req.SuccessCode) {
 		// HTTP Response code hints at what sort of error might be in the body
 		// of the response
 		var apiErr error

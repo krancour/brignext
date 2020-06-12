@@ -107,16 +107,18 @@ func (e *endpoints) CheckHealth(ctx context.Context) error {
 
 func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 	event := brignext.Event{}
-	e.ServeRequest(api.Request{
-		W:                   w,
-		R:                   r,
-		ReqBodySchemaLoader: e.eventSchemaLoader,
-		ReqBodyObj:          &event,
-		EndpointLogic: func() (interface{}, error) {
-			return e.service.Create(r.Context(), event)
+	e.ServeRequest(
+		api.InboundRequest{
+			W:                   w,
+			R:                   r,
+			ReqBodySchemaLoader: e.eventSchemaLoader,
+			ReqBodyObj:          &event,
+			EndpointLogic: func() (interface{}, error) {
+				return e.service.Create(r.Context(), event)
+			},
+			SuccessCode: http.StatusCreated,
 		},
-		SuccessCode: http.StatusCreated,
-	})
+	)
 }
 
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
@@ -131,36 +133,42 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 			opts.WorkerPhases[i] = brignext.WorkerPhase(workerPhaseStr)
 		}
 	}
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			return e.service.List(r.Context(), opts)
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return e.service.List(r.Context(), opts)
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }
 
 func (e *endpoints) get(w http.ResponseWriter, r *http.Request) {
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			return e.service.Get(r.Context(), mux.Vars(r)["id"])
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return e.service.Get(r.Context(), mux.Vars(r)["id"])
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }
 
 func (e *endpoints) cancel(w http.ResponseWriter, r *http.Request) {
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			return nil, e.service.Cancel(r.Context(), mux.Vars(r)["id"])
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return nil, e.service.Cancel(r.Context(), mux.Vars(r)["id"])
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }
 
 func (e *endpoints) cancelCollection(
@@ -178,25 +186,29 @@ func (e *endpoints) cancelCollection(
 			opts.WorkerPhases[i] = brignext.WorkerPhase(workerPhaseStr)
 		}
 	}
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			return e.service.CancelCollection(r.Context(), opts)
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return e.service.CancelCollection(r.Context(), opts)
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }
 
 func (e *endpoints) delete(w http.ResponseWriter, r *http.Request) {
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			return nil, e.service.Delete(r.Context(), mux.Vars(r)["id"])
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return nil, e.service.Delete(r.Context(), mux.Vars(r)["id"])
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }
 
 func (e *endpoints) deleteCollection(
@@ -214,14 +226,16 @@ func (e *endpoints) deleteCollection(
 			opts.WorkerPhases[i] = brignext.WorkerPhase(workerPhaseStr)
 		}
 	}
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			return e.service.DeleteCollection(r.Context(), opts)
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return e.service.DeleteCollection(r.Context(), opts)
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }
 
 func (e *endpoints) updateWorkerStatus(
@@ -229,17 +243,19 @@ func (e *endpoints) updateWorkerStatus(
 	r *http.Request,
 ) {
 	status := brignext.WorkerStatus{}
-	e.ServeRequest(api.Request{
-		W:                   w,
-		R:                   r,
-		ReqBodySchemaLoader: e.workerStatusSchemaLoader,
-		ReqBodyObj:          &status,
-		EndpointLogic: func() (interface{}, error) {
-			return nil,
-				e.service.UpdateWorkerStatus(r.Context(), mux.Vars(r)["id"], status)
+	e.ServeRequest(
+		api.InboundRequest{
+			W:                   w,
+			R:                   r,
+			ReqBodySchemaLoader: e.workerStatusSchemaLoader,
+			ReqBodyObj:          &status,
+			EndpointLogic: func() (interface{}, error) {
+				return nil,
+					e.service.UpdateWorkerStatus(r.Context(), mux.Vars(r)["id"], status)
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }
 
 func (e *endpoints) getOrStreamLogs(
@@ -256,14 +272,16 @@ func (e *endpoints) getOrStreamLogs(
 	}
 
 	if !stream {
-		e.ServeRequest(api.Request{
-			W: w,
-			R: r,
-			EndpointLogic: func() (interface{}, error) {
-				return e.service.GetLogs(r.Context(), id, opts)
+		e.ServeRequest(
+			api.InboundRequest{
+				W: w,
+				R: r,
+				EndpointLogic: func() (interface{}, error) {
+					return e.service.GetLogs(r.Context(), id, opts)
+				},
+				SuccessCode: http.StatusOK,
 			},
-			SuccessCode: http.StatusOK,
-		})
+		)
 		return
 	}
 
@@ -301,19 +319,21 @@ func (e *endpoints) updateJobStatus(
 	r *http.Request,
 ) {
 	status := brignext.JobStatus{}
-	e.ServeRequest(api.Request{
-		W:                   w,
-		R:                   r,
-		ReqBodySchemaLoader: e.jobStatusSchemaLoader,
-		ReqBodyObj:          &status,
-		EndpointLogic: func() (interface{}, error) {
-			return nil, e.service.UpdateJobStatus(
-				r.Context(),
-				mux.Vars(r)["id"],
-				mux.Vars(r)["jobName"],
-				status,
-			)
+	e.ServeRequest(
+		api.InboundRequest{
+			W:                   w,
+			R:                   r,
+			ReqBodySchemaLoader: e.jobStatusSchemaLoader,
+			ReqBodyObj:          &status,
+			EndpointLogic: func() (interface{}, error) {
+				return nil, e.service.UpdateJobStatus(
+					r.Context(),
+					mux.Vars(r)["id"],
+					mux.Vars(r)["jobName"],
+					status,
+				)
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }

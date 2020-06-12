@@ -84,75 +84,81 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 	rootSessionRequest, _ := strconv.ParseBool(r.URL.Query().Get("root"))
 
 	if rootSessionRequest {
-		e.ServeRequest(api.Request{
-			W: w,
-			R: r,
-			EndpointLogic: func() (interface{}, error) {
-				if !e.rootUserEnabled {
-					return nil, errs.NewErrNotSupported(
-						"Authentication using root credentials is not supported by this " +
-							"server.",
-					)
-				}
-				username, password, ok := r.BasicAuth()
-				if !ok {
-					return nil, errs.NewErrBadRequest(
-						"The request to create a new root session did not include a " +
-							"valid basic auth header.",
-					)
-				}
-				if username != "root" ||
-					crypto.ShortSHA(username, password) != e.hashedRootUserPassword {
-					return nil, errs.NewErrAuthentication(
-						"Could not authenticate request using the supplied credentials.",
-					)
-				}
-				return e.service.CreateRootSession(r.Context())
+		e.ServeRequest(
+			api.InboundRequest{
+				W: w,
+				R: r,
+				EndpointLogic: func() (interface{}, error) {
+					if !e.rootUserEnabled {
+						return nil, errs.NewErrNotSupported(
+							"Authentication using root credentials is not supported by this " +
+								"server.",
+						)
+					}
+					username, password, ok := r.BasicAuth()
+					if !ok {
+						return nil, errs.NewErrBadRequest(
+							"The request to create a new root session did not include a " +
+								"valid basic auth header.",
+						)
+					}
+					if username != "root" ||
+						crypto.ShortSHA(username, password) != e.hashedRootUserPassword {
+						return nil, errs.NewErrAuthentication(
+							"Could not authenticate request using the supplied credentials.",
+						)
+					}
+					return e.service.CreateRootSession(r.Context())
+				},
+				SuccessCode: http.StatusCreated,
 			},
-			SuccessCode: http.StatusCreated,
-		})
+		)
 		return
 	}
 
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			if !e.oidcEnabled {
-				return nil, errs.NewErrNotSupported(
-					"Authentication using OpenID Connect is not supported by this " +
-						"server.",
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				if !e.oidcEnabled {
+					return nil, errs.NewErrNotSupported(
+						"Authentication using OpenID Connect is not supported by this " +
+							"server.",
+					)
+				}
+				userSessionAuthDetails, err := e.service.CreateUserSession(r.Context())
+				if err != nil {
+					return nil, err
+				}
+				userSessionAuthDetails.AuthURL = e.oauth2Config.AuthCodeURL(
+					userSessionAuthDetails.OAuth2State,
 				)
-			}
-			userSessionAuthDetails, err := e.service.CreateUserSession(r.Context())
-			if err != nil {
-				return nil, err
-			}
-			userSessionAuthDetails.AuthURL = e.oauth2Config.AuthCodeURL(
-				userSessionAuthDetails.OAuth2State,
-			)
-			return userSessionAuthDetails, nil
+				return userSessionAuthDetails, nil
+			},
+			SuccessCode: http.StatusCreated,
 		},
-		SuccessCode: http.StatusCreated,
-	})
+	)
 }
 
 func (e *endpoints) delete(w http.ResponseWriter, r *http.Request) {
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			sessionID := auth.SessionIDFromContext(r.Context())
-			if sessionID == "" {
-				return nil, errors.New(
-					"error: delete session request authenticated, but no session ID " +
-						"found in request context",
-				)
-			}
-			return nil, e.service.Delete(r.Context(), sessionID)
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				sessionID := auth.SessionIDFromContext(r.Context())
+				if sessionID == "" {
+					return nil, errors.New(
+						"error: delete session request authenticated, but no session ID " +
+							"found in request context",
+					)
+				}
+				return nil, e.service.Delete(r.Context(), sessionID)
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }
 
 func (e *endpoints) completeAuth(w http.ResponseWriter, r *http.Request) {

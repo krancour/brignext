@@ -87,117 +87,133 @@ func (e *endpoints) CheckHealth(ctx context.Context) error {
 
 func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 	project := brignext.Project{}
-	e.ServeRequest(api.Request{
-		W:                   w,
-		R:                   r,
-		ReqBodySchemaLoader: e.projectSchemaLoader,
-		ReqBodyObj:          &project,
-		EndpointLogic: func() (interface{}, error) {
-			return nil, e.service.Create(r.Context(), project)
+	e.ServeRequest(
+		api.InboundRequest{
+			W:                   w,
+			R:                   r,
+			ReqBodySchemaLoader: e.projectSchemaLoader,
+			ReqBodyObj:          &project,
+			EndpointLogic: func() (interface{}, error) {
+				return nil, e.service.Create(r.Context(), project)
+			},
+			SuccessCode: http.StatusCreated,
 		},
-		SuccessCode: http.StatusCreated,
-	})
+	)
 }
 
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			return e.service.List(r.Context())
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return e.service.List(r.Context())
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }
 
 func (e *endpoints) get(w http.ResponseWriter, r *http.Request) {
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			return e.service.Get(r.Context(), mux.Vars(r)["id"])
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return e.service.Get(r.Context(), mux.Vars(r)["id"])
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }
 
 func (e *endpoints) update(w http.ResponseWriter, r *http.Request) {
 	project := brignext.Project{}
-	e.ServeRequest(api.Request{
-		W:                   w,
-		R:                   r,
-		ReqBodySchemaLoader: e.projectSchemaLoader,
-		ReqBodyObj:          &project,
-		EndpointLogic: func() (interface{}, error) {
-			if mux.Vars(r)["id"] != project.ID {
-				return nil, errs.NewErrBadRequest(
-					"The project IDs in the URL path and request body do not match.",
-				)
-			}
-			return nil, e.service.Update(r.Context(), project)
+	e.ServeRequest(
+		api.InboundRequest{
+			W:                   w,
+			R:                   r,
+			ReqBodySchemaLoader: e.projectSchemaLoader,
+			ReqBodyObj:          &project,
+			EndpointLogic: func() (interface{}, error) {
+				if mux.Vars(r)["id"] != project.ID {
+					return nil, errs.NewErrBadRequest(
+						"The project IDs in the URL path and request body do not match.",
+					)
+				}
+				return nil, e.service.Update(r.Context(), project)
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }
 
 func (e *endpoints) delete(w http.ResponseWriter, r *http.Request) {
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			return nil, e.service.Delete(r.Context(), mux.Vars(r)["id"])
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return nil, e.service.Delete(r.Context(), mux.Vars(r)["id"])
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }
 
 func (e *endpoints) listSecrets(w http.ResponseWriter, r *http.Request) {
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			return e.service.ListSecrets(r.Context(), mux.Vars(r)["id"])
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return e.service.ListSecrets(r.Context(), mux.Vars(r)["id"])
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }
 
 func (e *endpoints) setSecret(w http.ResponseWriter, r *http.Request) {
 	key := mux.Vars(r)["key"]
 	secret := brignext.Secret{}
-	e.ServeRequest(api.Request{
-		W:                   w,
-		R:                   r,
-		ReqBodySchemaLoader: e.secretSchemaLoader,
-		ReqBodyObj:          &secret,
-		EndpointLogic: func() (interface{}, error) {
-			if key != secret.Key {
-				return nil, errs.NewErrBadRequest(
-					"The secret key in the URL path and request body do not match.",
+	e.ServeRequest(
+		api.InboundRequest{
+			W:                   w,
+			R:                   r,
+			ReqBodySchemaLoader: e.secretSchemaLoader,
+			ReqBodyObj:          &secret,
+			EndpointLogic: func() (interface{}, error) {
+				if key != secret.Key {
+					return nil, errs.NewErrBadRequest(
+						"The secret key in the URL path and request body do not match.",
+					)
+				}
+				return nil, e.service.SetSecret(
+					r.Context(),
+					mux.Vars(r)["id"],
+					secret,
 				)
-			}
-			return nil, e.service.SetSecret(
-				r.Context(),
-				mux.Vars(r)["id"],
-				secret,
-			)
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }
 
 func (e *endpoints) unsetSecret(w http.ResponseWriter, r *http.Request) {
 	key := mux.Vars(r)["key"]
-	e.ServeRequest(api.Request{
-		W: w,
-		R: r,
-		EndpointLogic: func() (interface{}, error) {
-			return nil, e.service.UnsetSecret(
-				r.Context(),
-				mux.Vars(r)["id"],
-				key,
-			)
+	e.ServeRequest(
+		api.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return nil, e.service.UnsetSecret(
+					r.Context(),
+					mux.Vars(r)["id"],
+					key,
+				)
+			},
+			SuccessCode: http.StatusOK,
 		},
-		SuccessCode: http.StatusOK,
-	})
+	)
 }

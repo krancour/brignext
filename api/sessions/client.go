@@ -45,7 +45,7 @@ func (c *client) CreateRootSession(
 ) (brignext.Token, error) {
 	token := brignext.Token{}
 	return token, c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/sessions",
 			AuthHeaders: c.BasicAuthHeaders("root", password),
@@ -63,7 +63,7 @@ func (c *client) CreateUserSession(
 ) (brignext.UserSessionAuthDetails, error) {
 	userSessionAuthDetails := brignext.UserSessionAuthDetails{}
 	return userSessionAuthDetails, c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/sessions",
 			SuccessCode: http.StatusCreated,
@@ -74,7 +74,7 @@ func (c *client) CreateUserSession(
 
 func (c *client) Delete(context.Context) error {
 	return c.ExecuteRequest(
-		api.Request{
+		api.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        "v2/session",
 			AuthHeaders: c.BearerTokenAuthHeaders(),
