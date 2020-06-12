@@ -33,7 +33,7 @@ ifneq ($(SKIP_DOCKER),true)
 		-it \
 		--rm \
 		-e SKIP_DOCKER=true \
-		-v $(PROJECT_ROOT)/internal/worker:/src \
+		-v $(PROJECT_ROOT)/worker:/src \
 		-w /src \
 		$(JS_DEV_IMAGE)
 endif
@@ -135,7 +135,7 @@ build-controller:
 build-worker:
 	docker build \
 		-t $(DOCKER_IMAGE_PREFIX)brignext-worker:$(IMMUTABLE_DOCKER_TAG) \
-		internal/worker/
+		worker/
 	docker tag $(DOCKER_IMAGE_PREFIX)brignext-worker:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-worker:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: build-logger-linux

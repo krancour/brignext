@@ -13,6 +13,8 @@ type Project struct {
 	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
 }
 
+// TODO: Add ProjectStatus type-- move KubernetesConfig under there
+
 func NewProject() Project {
 	return Project{
 		TypeMeta: meta.TypeMeta{
