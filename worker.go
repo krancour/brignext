@@ -87,12 +87,22 @@ type WorkerSpec struct {
 	DefaultConfigFiles   map[string]string      `json:"defaultConfigFiles" bson:"defaultConfigFiles"`
 }
 
-// nolint: lll
 type ContainerSpec struct {
 	Image           string            `json:"image" bson:"image"`
-	ImagePullPolicy string            `json:"imagePullPolicy" bson:"imagePullPolicy"`
+	ImagePullPolicy string            `json:"imagePullPolicy" bson:"imagePullPolicy"` // nolint: lll
 	Command         string            `json:"command" bson:"command"`
 	Environment     map[string]string `json:"environment" bson:"environment"`
+}
+
+type WorkerGitConfig struct {
+	CloneURL       string `json:"cloneURL" bson:"cloneURL"`
+	Commit         string `json:"commit" bson:"commit"`
+	Ref            string `json:"ref" bson:"ref"`
+	InitSubmodules bool   `json:"initSubmodules" bson:"initSubmodules"`
+}
+
+type WorkerKubernetesConfig struct {
+	ImagePullSecrets []string `json:"imagePullSecrets" bson:"imagePullSecrets"`
 }
 
 type WorkerStatus struct {
