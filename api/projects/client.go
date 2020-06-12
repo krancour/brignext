@@ -1,4 +1,4 @@
-package brignext
+package projects
 
 import (
 	"context"
@@ -6,33 +6,34 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/krancour/brignext/v2"
 	"github.com/krancour/brignext/v2/internal/pkg/api"
 )
 
-type ProjectsClient interface {
-	Create(context.Context, Project) error
+type Client interface {
+	Create(context.Context, brignext.Project) error
 	CreateFromBytes(context.Context, []byte) error
-	List(context.Context) (ProjectList, error)
-	Get(context.Context, string) (Project, error)
-	Update(context.Context, Project) error
+	List(context.Context) (brignext.ProjectList, error)
+	Get(context.Context, string) (brignext.Project, error)
+	Update(context.Context, brignext.Project) error
 	UpdateFromBytes(context.Context, string, []byte) error
 	Delete(context.Context, string) error
 
-	ListSecrets(ctx context.Context, projectID string) (SecretList, error)
-	SetSecret(ctx context.Context, projectID string, secret Secret) error
+	ListSecrets(ctx context.Context, projectID string) (brignext.SecretList, error)
+	SetSecret(ctx context.Context, projectID string, secret brignext.Secret) error
 	UnsetSecret(ctx context.Context, projectID string, key string) error
 }
 
-type projectsClient struct {
+type client struct {
 	*api.BaseClient
 }
 
-func NewProjectsClient(
+func NewClient(
 	apiAddress string,
 	apiToken string,
 	allowInsecure bool,
-) ProjectsClient {
-	return &projectsClient{
+) Client {
+	return &client{
 		BaseClient: &api.BaseClient{
 			APIAddress: apiAddress,
 			APIToken:   apiToken,
@@ -47,120 +48,120 @@ func NewProjectsClient(
 	}
 }
 
-func (p *projectsClient) Create(_ context.Context, project Project) error {
-	return p.ExecuteRequest(
+func (c *client) Create(_ context.Context, project brignext.Project) error {
+	return c.ExecuteRequest(
 		api.Request{
 			Method:      http.MethodPost,
 			Path:        "v2/projects",
-			AuthHeaders: p.BearerTokenAuthHeaders(),
+			AuthHeaders: c.BearerTokenAuthHeaders(),
 			ReqBodyObj:  project,
 			SuccessCode: http.StatusCreated,
 		},
 	)
 }
 
-func (p *projectsClient) CreateFromBytes(
+func (c *client) CreateFromBytes(
 	_ context.Context,
 	projectBytes []byte,
 ) error {
-	return p.ExecuteRequest(
+	return c.ExecuteRequest(
 		api.Request{
 			Method:      http.MethodPost,
 			Path:        "v2/projects",
-			AuthHeaders: p.BearerTokenAuthHeaders(),
+			AuthHeaders: c.BearerTokenAuthHeaders(),
 			ReqBodyObj:  projectBytes,
 			SuccessCode: http.StatusCreated,
 		},
 	)
 }
 
-func (p *projectsClient) List(context.Context) (ProjectList, error) {
-	projectList := ProjectList{}
-	return projectList, p.ExecuteRequest(
+func (c *client) List(context.Context) (brignext.ProjectList, error) {
+	projectList := brignext.ProjectList{}
+	return projectList, c.ExecuteRequest(
 		api.Request{
 			Method:      http.MethodGet,
 			Path:        "v2/projects",
-			AuthHeaders: p.BearerTokenAuthHeaders(),
+			AuthHeaders: c.BearerTokenAuthHeaders(),
 			SuccessCode: http.StatusOK,
 			RespObj:     &projectList,
 		},
 	)
 }
 
-func (p *projectsClient) Get(_ context.Context, id string) (Project, error) {
-	project := Project{}
-	return project, p.ExecuteRequest(
+func (c *client) Get(_ context.Context, id string) (brignext.Project, error) {
+	project := brignext.Project{}
+	return project, c.ExecuteRequest(
 		api.Request{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/projects/%s", id),
-			AuthHeaders: p.BearerTokenAuthHeaders(),
+			AuthHeaders: c.BearerTokenAuthHeaders(),
 			SuccessCode: http.StatusOK,
 			RespObj:     &project,
 		},
 	)
 }
 
-func (p *projectsClient) Update(_ context.Context, project Project) error {
-	return p.ExecuteRequest(
+func (c *client) Update(_ context.Context, project brignext.Project) error {
+	return c.ExecuteRequest(
 		api.Request{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/projects/%s", project.ID),
-			AuthHeaders: p.BearerTokenAuthHeaders(),
+			AuthHeaders: c.BearerTokenAuthHeaders(),
 			ReqBodyObj:  project,
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (p *projectsClient) UpdateFromBytes(
+func (c *client) UpdateFromBytes(
 	_ context.Context,
 	projectID string,
 	projectBytes []byte,
 ) error {
-	return p.ExecuteRequest(
+	return c.ExecuteRequest(
 		api.Request{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/projects/%s", projectID),
-			AuthHeaders: p.BearerTokenAuthHeaders(),
+			AuthHeaders: c.BearerTokenAuthHeaders(),
 			ReqBodyObj:  projectBytes,
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (p *projectsClient) Delete(_ context.Context, id string) error {
-	return p.ExecuteRequest(
+func (c *client) Delete(_ context.Context, id string) error {
+	return c.ExecuteRequest(
 		api.Request{
 			Method:      http.MethodDelete,
 			Path:        fmt.Sprintf("v2/projects/%s", id),
-			AuthHeaders: p.BearerTokenAuthHeaders(),
+			AuthHeaders: c.BearerTokenAuthHeaders(),
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (p *projectsClient) ListSecrets(
+func (c *client) ListSecrets(
 	ctx context.Context,
 	projectID string,
-) (SecretList, error) {
-	secretList := SecretList{}
-	return secretList, p.ExecuteRequest(
+) (brignext.SecretList, error) {
+	secretList := brignext.SecretList{}
+	return secretList, c.ExecuteRequest(
 		api.Request{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/projects/%s/secrets", projectID),
-			AuthHeaders: p.BearerTokenAuthHeaders(),
+			AuthHeaders: c.BearerTokenAuthHeaders(),
 			SuccessCode: http.StatusOK,
 			RespObj:     &secretList,
 		},
 	)
 }
 
-func (p *projectsClient) SetSecret(
+func (c *client) SetSecret(
 	ctx context.Context,
 	projectID string,
-	secret Secret,
+	secret brignext.Secret,
 ) error {
-	return p.ExecuteRequest(
+	return c.ExecuteRequest(
 		api.Request{
 			Method: http.MethodPut,
 			Path: fmt.Sprintf(
@@ -168,19 +169,19 @@ func (p *projectsClient) SetSecret(
 				projectID,
 				secret.Key,
 			),
-			AuthHeaders: p.BearerTokenAuthHeaders(),
+			AuthHeaders: c.BearerTokenAuthHeaders(),
 			ReqBodyObj:  secret,
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (p *projectsClient) UnsetSecret(
+func (c *client) UnsetSecret(
 	ctx context.Context,
 	projectID string,
 	key string,
 ) error {
-	return p.ExecuteRequest(
+	return c.ExecuteRequest(
 		api.Request{
 			Method: http.MethodDelete,
 			Path: fmt.Sprintf(
@@ -188,7 +189,7 @@ func (p *projectsClient) UnsetSecret(
 				projectID,
 				key,
 			),
-			AuthHeaders: p.BearerTokenAuthHeaders(),
+			AuthHeaders: c.BearerTokenAuthHeaders(),
 			SuccessCode: http.StatusOK,
 		},
 	)

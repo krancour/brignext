@@ -1,29 +1,30 @@
-package brignext
+package sessions
 
 import (
 	"context"
 	"crypto/tls"
 	"net/http"
 
+	"github.com/krancour/brignext/v2"
 	"github.com/krancour/brignext/v2/internal/pkg/api"
 )
 
-type SessionsClient interface {
-	CreateRootSession(ctx context.Context, password string) (Token, error)
-	CreateUserSession(context.Context) (UserSessionAuthDetails, error)
+type Client interface {
+	CreateRootSession(ctx context.Context, password string) (brignext.Token, error)
+	CreateUserSession(context.Context) (brignext.UserSessionAuthDetails, error)
 	Delete(context.Context) error
 }
 
-type sessionsClient struct {
+type client struct {
 	*api.BaseClient
 }
 
-func NewSessionsClient(
+func NewClient(
 	apiAddress string,
 	apiToken string,
 	allowInsecure bool,
-) SessionsClient {
-	return &sessionsClient{
+) Client {
+	return &client{
 		BaseClient: &api.BaseClient{
 			APIAddress: apiAddress,
 			APIToken:   apiToken,
@@ -38,16 +39,16 @@ func NewSessionsClient(
 	}
 }
 
-func (s *sessionsClient) CreateRootSession(
+func (c *client) CreateRootSession(
 	_ context.Context,
 	password string,
-) (Token, error) {
-	token := Token{}
-	return token, s.ExecuteRequest(
+) (brignext.Token, error) {
+	token := brignext.Token{}
+	return token, c.ExecuteRequest(
 		api.Request{
 			Method:      http.MethodPost,
 			Path:        "v2/sessions",
-			AuthHeaders: s.BasicAuthHeaders("root", password),
+			AuthHeaders: c.BasicAuthHeaders("root", password),
 			QueryParams: map[string]string{
 				"root": "true",
 			},
@@ -57,11 +58,11 @@ func (s *sessionsClient) CreateRootSession(
 	)
 }
 
-func (s *sessionsClient) CreateUserSession(
+func (c *client) CreateUserSession(
 	context.Context,
-) (UserSessionAuthDetails, error) {
-	userSessionAuthDetails := UserSessionAuthDetails{}
-	return userSessionAuthDetails, s.ExecuteRequest(
+) (brignext.UserSessionAuthDetails, error) {
+	userSessionAuthDetails := brignext.UserSessionAuthDetails{}
+	return userSessionAuthDetails, c.ExecuteRequest(
 		api.Request{
 			Method:      http.MethodPost,
 			Path:        "v2/sessions",
@@ -71,12 +72,12 @@ func (s *sessionsClient) CreateUserSession(
 	)
 }
 
-func (s *sessionsClient) Delete(context.Context) error {
-	return s.ExecuteRequest(
+func (c *client) Delete(context.Context) error {
+	return c.ExecuteRequest(
 		api.Request{
 			Method:      http.MethodDelete,
 			Path:        "v2/session",
-			AuthHeaders: s.BearerTokenAuthHeaders(),
+			AuthHeaders: c.BearerTokenAuthHeaders(),
 			SuccessCode: http.StatusOK,
 		},
 	)

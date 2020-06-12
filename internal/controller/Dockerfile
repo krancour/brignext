@@ -5,6 +5,7 @@ ENV CGO_ENABLED=0
 WORKDIR /src
 COPY internal/controller/ internal/controller/
 COPY internal/pkg/ internal/pkg/
+COPY api/ api/
 COPY *.go ./
 COPY vendor/ vendor/
 COPY go.mod go.mod

@@ -6,7 +6,7 @@ import (
 	"runtime"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/krancour/brignext/v2"
+	"github.com/krancour/brignext/v2/api/sessions"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -51,7 +51,7 @@ func login(c *cli.Context) error {
 	password := c.String(flagPassword)
 	rootLogin := c.Bool(flagRoot)
 
-	client := brignext.NewClient(
+	client := sessions.NewClient(
 		address,
 		"",
 		c.Bool(flagInsecure),
@@ -72,14 +72,14 @@ func login(c *cli.Context) error {
 			}
 		}
 
-		token, err := client.Sessions().CreateRootSession(c.Context, password)
+		token, err := client.CreateRootSession(c.Context, password)
 		if err != nil {
 			return err
 		}
 		tokenStr = token.Value
 	} else {
 		userSessionAuthDetails, err :=
-			client.Sessions().CreateUserSession(c.Context)
+			client.CreateUserSession(c.Context)
 		if err != nil {
 			return err
 		}

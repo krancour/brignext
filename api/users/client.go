@@ -1,4 +1,4 @@
-package brignext
+package users
 
 import (
 	"context"
@@ -6,26 +6,27 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/krancour/brignext/v2"
 	"github.com/krancour/brignext/v2/internal/pkg/api"
 )
 
-type UsersClient interface {
-	List(context.Context) (UserList, error)
-	Get(context.Context, string) (User, error)
+type Client interface {
+	List(context.Context) (brignext.UserList, error)
+	Get(context.Context, string) (brignext.User, error)
 	Lock(context.Context, string) error
 	Unlock(context.Context, string) error
 }
 
-type usersClient struct {
+type client struct {
 	*api.BaseClient
 }
 
-func NewUsersClient(
+func NewClient(
 	apiAddress string,
 	apiToken string,
 	allowInsecure bool,
-) UsersClient {
-	return &usersClient{
+) Client {
+	return &client{
 		BaseClient: &api.BaseClient{
 			APIAddress: apiAddress,
 			APIToken:   apiToken,
@@ -40,8 +41,8 @@ func NewUsersClient(
 	}
 }
 
-func (c *usersClient) List(context.Context) (UserList, error) {
-	userList := UserList{}
+func (c *client) List(context.Context) (brignext.UserList, error) {
+	userList := brignext.UserList{}
 	return userList, c.ExecuteRequest(
 		api.Request{
 			Method:      http.MethodGet,
@@ -53,8 +54,8 @@ func (c *usersClient) List(context.Context) (UserList, error) {
 	)
 }
 
-func (c *usersClient) Get(_ context.Context, id string) (User, error) {
-	user := User{}
+func (c *client) Get(_ context.Context, id string) (brignext.User, error) {
+	user := brignext.User{}
 	return user, c.ExecuteRequest(
 		api.Request{
 			Method:      http.MethodGet,
@@ -66,7 +67,7 @@ func (c *usersClient) Get(_ context.Context, id string) (User, error) {
 	)
 }
 
-func (c *usersClient) Lock(_ context.Context, id string) error {
+func (c *client) Lock(_ context.Context, id string) error {
 	return c.ExecuteRequest(
 		api.Request{
 			Method:      http.MethodPut,
@@ -77,7 +78,7 @@ func (c *usersClient) Lock(_ context.Context, id string) error {
 	)
 }
 
-func (c *usersClient) Unlock(_ context.Context, id string) error {
+func (c *client) Unlock(_ context.Context, id string) error {
 	return c.ExecuteRequest(
 		api.Request{
 			Method:      http.MethodDelete,

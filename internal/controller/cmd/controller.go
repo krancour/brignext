@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	"github.com/krancour/brignext/v2"
+	"github.com/krancour/brignext/v2/api"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
-	core_v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 type Controller interface {
@@ -19,10 +19,10 @@ type Controller interface {
 
 type controller struct {
 	controllerConfig   Config
-	apiClient          brignext.Client
+	apiClient          api.Client
 	redisClient        *redis.Client
 	kubeClient         *kubernetes.Clientset
-	podsClient         core_v1.PodInterface
+	podsClient         corev1.PodInterface
 	workerPodsSelector labels.Selector
 	workerPodsSet      map[string]struct{}
 	deletingPodsSet    map[string]struct{}
@@ -44,7 +44,7 @@ type controller struct {
 
 func NewController(
 	controllerConfig Config,
-	apiClient brignext.Client,
+	apiClient api.Client,
 	redisClient *redis.Client,
 	kubeClient *kubernetes.Clientset,
 ) Controller {
