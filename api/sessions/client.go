@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/krancour/brignext/v2"
-	"github.com/krancour/brignext/v2/internal/pkg/api"
+	"github.com/krancour/brignext/v2/internal/api"
 )
 
 type Client interface {

@@ -9,7 +9,7 @@ import (
 	"github.com/krancour/brignext/v2/api/serviceaccounts"
 	"github.com/krancour/brignext/v2/api/sessions"
 	"github.com/krancour/brignext/v2/api/users"
-	"github.com/krancour/brignext/v2/internal/pkg/api"
+	"github.com/krancour/brignext/v2/internal/api"
 )
 
 type Client interface {
