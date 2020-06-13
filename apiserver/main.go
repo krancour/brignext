@@ -50,7 +50,7 @@ func main() {
 		projects.NewScheduler(kubeClient),
 	)
 
-	// Events
+	// Events-- depends on projects
 	redisClient, err := redis.Client()
 	if err != nil {
 		log.Fatal(err)
@@ -76,8 +76,15 @@ func main() {
 	}
 	serviceAccountsService := serviceaccounts.NewService(serviceAccountsStore)
 
-	// Sessions
-	oidcConfig, oidcIdentityVerifier, err :=
+	// Users
+	usersStore, err := users.NewStore(database)
+	if err != nil {
+		log.Fatal(err)
+	}
+	usersService := users.NewService(usersStore)
+
+	// Sessions-- depends on users
+	oauth2Config, oidcIdentityVerifier, err :=
 		oidc.GetConfigAndVerifierFromEnvironment()
 	if err != nil {
 		log.Fatal(err)
@@ -88,16 +95,12 @@ func main() {
 	}
 	sessionsService := sessions.NewService(
 		sessionsStore,
-		oidcConfig,
+		usersStore,
+		apiConfig.RootUserEnabled(),
+		apiConfig.HashedRootUserPassword(),
+		oauth2Config,
 		oidcIdentityVerifier,
 	)
-
-	// Users
-	usersStore, err := users.NewStore(database)
-	if err != nil {
-		log.Fatal(err)
-	}
-	usersService := users.NewService(usersStore)
 
 	baseEndpoints := &api.BaseEndpoints{
 		TokenAuthFilter: auth.NewTokenAuthFilter(
@@ -116,16 +119,7 @@ func main() {
 				events.NewEndpoints(baseEndpoints, eventsService),
 				projects.NewEndpoints(baseEndpoints, projectsService),
 				serviceaccounts.NewEndpoints(baseEndpoints, serviceAccountsService),
-				sessions.NewEndpoints(
-					baseEndpoints,
-					apiConfig.RootUserEnabled(),
-					apiConfig.HashedRootUserPassword(),
-					oidcConfig != nil && oidcIdentityVerifier != nil,
-					oidcConfig,
-					oidcIdentityVerifier,
-					sessionsService,
-					usersService,
-				),
+				sessions.NewEndpoints(baseEndpoints, sessionsService),
 				users.NewEndpoints(baseEndpoints, usersService),
 			},
 		).ListenAndServe(),

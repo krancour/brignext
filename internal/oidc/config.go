@@ -77,7 +77,7 @@ func GetConfigAndVerifierFromEnvironment() (
 		RedirectURL: fmt.Sprintf(
 			"%s/%s",
 			c.RedirectURLBase,
-			"auth/oidc/callback",
+			"v2/session/auth",
 		),
 		Scopes: []string{oidc.ScopeOpenID, "profile", "email"},
 	}

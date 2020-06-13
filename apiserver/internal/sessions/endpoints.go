@@ -5,57 +5,33 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/coreos/go-oidc"
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/users"
 	"github.com/krancour/brignext/v2/internal/api"
 	"github.com/krancour/brignext/v2/internal/api/auth"
-	"github.com/krancour/brignext/v2/internal/crypto"
 	errs "github.com/krancour/brignext/v2/internal/errors"
-	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
-	"golang.org/x/oauth2"
 )
 
 type endpoints struct {
 	*api.BaseEndpoints
-	oidcEnabled            bool
-	rootUserEnabled        bool
-	hashedRootUserPassword string
-	oauth2Config           *oauth2.Config
-	oidcTokenVerifier      *oidc.IDTokenVerifier
-	service                Service
-	usersService           users.Service
+	service      Service
+	usersService users.Service
 }
 
 func NewEndpoints(
 	baseEndpoints *api.BaseEndpoints,
-	rootUserEnabled bool,
-	hashedRootUserPassword string,
-	oidcEnabled bool,
-	oauth2Config *oauth2.Config,
-	oidcTokenVerifier *oidc.IDTokenVerifier,
 	service Service,
-	usersService users.Service,
 ) api.Endpoints {
 	return &endpoints{
-		BaseEndpoints:          baseEndpoints,
-		rootUserEnabled:        rootUserEnabled,
-		hashedRootUserPassword: hashedRootUserPassword,
-		oidcEnabled:            oidcEnabled,
-		oauth2Config:           oauth2Config,
-		oidcTokenVerifier:      oidcTokenVerifier,
-		service:                service,
-		usersService:           usersService,
+		BaseEndpoints: baseEndpoints,
+		service:       service,
 	}
 }
 
 func (e *endpoints) CheckHealth(ctx context.Context) error {
 	if err := e.service.CheckHealth(ctx); err != nil {
 		return errors.Wrap(err, "error checking sessions service health")
-	}
-	if err := e.usersService.CheckHealth(ctx); err != nil {
-		return errors.Wrap(err, "error checking users service health")
 	}
 	return nil
 }
@@ -73,13 +49,11 @@ func (e *endpoints) Register(router *mux.Router) {
 		e.TokenAuthFilter.Decorate(e.delete),
 	).Methods(http.MethodDelete)
 
-	if e.oidcEnabled {
-		// OIDC callback
-		router.HandleFunc(
-			"/auth/oidc/callback", // TODO: We should change this path
-			e.completeAuth,        // No filters applied to this request
-		).Methods(http.MethodGet)
-	}
+	// OIDC callback
+	router.HandleFunc(
+		"/v2/session/auth",
+		e.authenticate, // No filters applied to this request
+	).Methods(http.MethodGet)
 }
 
 func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
@@ -92,12 +66,6 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 				W: w,
 				R: r,
 				EndpointLogic: func() (interface{}, error) {
-					if !e.rootUserEnabled {
-						return nil, errs.NewErrNotSupported(
-							"Authentication using root credentials is not supported by " +
-								"this server.",
-						)
-					}
 					username, password, ok := r.BasicAuth()
 					if !ok {
 						return nil, errs.NewErrBadRequest(
@@ -105,13 +73,7 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 								"valid basic auth header.",
 						)
 					}
-					if username != "root" ||
-						crypto.ShortSHA(username, password) != e.hashedRootUserPassword {
-						return nil, errs.NewErrAuthentication(
-							"Could not authenticate request using the supplied credentials.",
-						)
-					}
-					return e.service.CreateRootSession(r.Context())
+					return e.service.CreateRootSession(r.Context(), username, password)
 				},
 				SuccessCode: http.StatusCreated,
 			},
@@ -124,20 +86,7 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				if !e.oidcEnabled {
-					return nil, errs.NewErrNotSupported(
-						"Authentication using OpenID Connect is not supported by this " +
-							"server.",
-					)
-				}
-				userSessionAuthDetails, err := e.service.CreateUserSession(r.Context())
-				if err != nil {
-					return nil, err
-				}
-				userSessionAuthDetails.AuthURL = e.oauth2Config.AuthCodeURL(
-					userSessionAuthDetails.OAuth2State,
-				)
-				return userSessionAuthDetails, nil
+				return e.service.CreateUserSession(r.Context())
 			},
 			SuccessCode: http.StatusCreated,
 		},
@@ -164,7 +113,7 @@ func (e *endpoints) delete(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (e *endpoints) completeAuth(w http.ResponseWriter, r *http.Request) {
+func (e *endpoints) authenticate(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close() // nolint: errcheck
 
 	oauth2State := r.URL.Query().Get("state")
@@ -179,58 +128,13 @@ func (e *endpoints) completeAuth(w http.ResponseWriter, r *http.Request) {
 						"or both of the \"oauth2State\" and \"oidcCode\" query parameters.",
 				)
 			}
-			session, err := e.service.GetByOAuth2State(
+			if err := e.service.Authenticate(
 				r.Context(),
 				oauth2State,
-			)
-			if err != nil {
-				return nil, err
-			}
-			oauth2Token, err := e.oauth2Config.Exchange(r.Context(), oidcCode)
-			if err != nil {
-				return nil, err
-			}
-			rawIDToken, ok := oauth2Token.Extra("id_token").(string)
-			if !ok {
-				return nil, errors.New(
-					"OAuth2 token, did not include an OpenID Connect identity token",
-				)
-			}
-			idToken, err := e.oidcTokenVerifier.Verify(r.Context(), rawIDToken)
-			if err != nil {
-				return nil,
-					errors.Wrap(err, "error verifying OpenID Connect identity token")
-			}
-			claims := struct {
-				Name  string `json:"name"`
-				Email string `json:"email"`
-			}{}
-			if err = idToken.Claims(&claims); err != nil {
-				return nil, errors.Wrap(
-					err,
-					"error decoding OpenID Connect identity token claims",
-				)
-			}
-			// TODO: Push this logic down into the sessions service?
-			user, err := e.usersService.Get(r.Context(), claims.Email)
-			if err != nil {
-				if _, ok := errors.Cause(err).(*errs.ErrNotFound); ok {
-					// User wasn't found. That's ok. We'll create one.
-					user = brignext.NewUser(claims.Email, claims.Name)
-					if err = e.usersService.Create(r.Context(), user); err != nil {
-						return nil, err
-					}
-				} else {
-					// It was something else that went wrong when searching for the user.
-					return nil, err
-				}
-			}
-			if err = e.service.Authenticate(
-				r.Context(),
-				session.ID,
-				user.ID,
+				oidcCode,
 			); err != nil {
-				return nil, err
+				return nil,
+					errors.Wrap(err, "error completing OpenID Connect authentication")
 			}
 			return []byte("You're now authenticated. You may resume using the CLI."),
 				nil

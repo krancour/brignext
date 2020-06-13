@@ -70,9 +70,10 @@ func NewService(
 	scheduler Scheduler,
 ) Service {
 	return &service{
-		store:     store,
-		scheduler: scheduler,
-		logsStore: logsStore,
+		projectsStore: projectsStore,
+		store:         store,
+		scheduler:     scheduler,
+		logsStore:     logsStore,
 	}
 }
 
