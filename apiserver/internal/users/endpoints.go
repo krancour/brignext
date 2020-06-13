@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/internal/api"
+	"github.com/pkg/errors"
 )
 
 type endpoints struct {
@@ -50,7 +51,10 @@ func (e *endpoints) Register(router *mux.Router) {
 }
 
 func (e *endpoints) CheckHealth(ctx context.Context) error {
-	return e.service.CheckHealth(ctx)
+	if err := e.service.CheckHealth(ctx); err != nil {
+		return errors.Wrap(err, "error checking users service health")
+	}
+	return nil
 }
 
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {

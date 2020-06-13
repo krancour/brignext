@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
-	brignext "github.com/krancour/brignext/v2/sdk"
+	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/krancour/brignext/v2/internal/messaging"
 	redisMessaging "github.com/krancour/brignext/v2/internal/messaging/redis"
+	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,20 +19,17 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// TODO: These might have been duplicated in a few places
-const (
-	componentLabel = "brignext.io/component"
-	projectLabel   = "brignext.io/project"
-	eventLabel     = "brignext.io/event"
-)
-
 type Scheduler interface {
-	// TODO: Add a PreCreate func!
-	Create(
+	PreCreate(
 		ctx context.Context,
 		project brignext.Project,
 		event brignext.Event,
 	) (brignext.Event, error)
+	Create(
+		ctx context.Context,
+		project brignext.Project,
+		event brignext.Event,
+	) error
 	Delete(context.Context, brignext.EventReference) error
 
 	CheckHealth(context.Context) error
@@ -52,7 +50,7 @@ func NewScheduler(
 	}
 }
 
-func (s *scheduler) Create(
+func (s *scheduler) PreCreate(
 	ctx context.Context,
 	proj brignext.Project,
 	event brignext.Event,
@@ -60,13 +58,20 @@ func (s *scheduler) Create(
 	// Fill in scheduler-specific details
 	event.Kubernetes = proj.Kubernetes
 	event.Worker.Kubernetes = proj.Spec.Worker.Kubernetes
+	return event, nil
+}
 
+func (s *scheduler) Create(
+	ctx context.Context,
+	proj brignext.Project,
+	event brignext.Event,
+) error {
 	// Get the project's secrets
 	projectSecretsSecret, err := s.kubeClient.CoreV1().Secrets(
 		event.Kubernetes.Namespace,
 	).Get(ctx, "project-secrets", metav1.GetOptions{})
 	if err != nil {
-		return event, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error finding secret \"project-secrets\" in namespace %q",
 			event.Kubernetes.Namespace,
@@ -126,7 +131,7 @@ func (s *scheduler) Create(
 		"  ",
 	)
 	if err != nil {
-		return event, errors.Wrapf(err, "error marshaling event %q", event.ID)
+		return errors.Wrapf(err, "error marshaling event %q", event.ID)
 	}
 
 	data := map[string][]byte{}
@@ -142,9 +147,9 @@ func (s *scheduler) Create(
 			ObjectMeta: metav1.ObjectMeta{
 				Name: fmt.Sprintf("event-%s", event.ID),
 				Labels: map[string]string{
-					componentLabel: "event",
-					projectLabel:   event.ProjectID,
-					eventLabel:     event.ID,
+					myk8s.ComponentLabel: "event",
+					myk8s.ProjectLabel:   event.ProjectID,
+					myk8s.EventLabel:     event.ID,
 				},
 			},
 			Type: corev1.SecretType("brignext.io/event"),
@@ -152,7 +157,7 @@ func (s *scheduler) Create(
 		},
 		metav1.CreateOptions{},
 	); err != nil {
-		return event, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error creating secret %q in namespace %q",
 			event.ID,
@@ -168,7 +173,7 @@ func (s *scheduler) Create(
 		Event: event.ID,
 	})
 	if err != nil {
-		return event, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error encoding execution task for event %q worker",
 			event.ID,
@@ -181,14 +186,14 @@ func (s *scheduler) Create(
 	if err := producer.Publish(
 		messaging.NewDelayedMessage(messageBody, 5*time.Second),
 	); err != nil {
-		return event, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error submitting execution task for event %q worker",
 			event.ID,
 		)
 	}
 
-	return event, nil
+	return nil
 }
 
 func (s *scheduler) Delete(
@@ -196,7 +201,7 @@ func (s *scheduler) Delete(
 	eventRef brignext.EventReference,
 ) error {
 	matchesEvent, _ := labels.NewRequirement(
-		eventLabel,
+		myk8s.EventLabel,
 		selection.Equals,
 		[]string{eventRef.ID},
 	)
@@ -266,7 +271,11 @@ func (s *scheduler) Delete(
 }
 
 func (s *scheduler) CheckHealth(context.Context) error {
-	// TODO: Ping the Kubernetes apiserver
+	// We'll just ask the apiserver for version info since this like it's
+	// probably the simplest way to test that it is responding.
+	if _, err := s.kubeClient.Discovery().ServerVersion(); err != nil {
+		return errors.Wrap(err, "error pinging kubernetes apiserver")
+	}
 	if err := s.redisClient.Ping().Err(); err != nil {
 		return errors.Wrap(err, "error pinging redis")
 	}

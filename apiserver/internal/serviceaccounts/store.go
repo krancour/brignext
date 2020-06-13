@@ -5,17 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
 	errs "github.com/krancour/brignext/v2/internal/errors"
+	"github.com/krancour/brignext/v2/internal/mongodb"
+	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
-
-// TODO: DRY this up
-var mongodbTimeout = 5 * time.Second
 
 type Store interface {
 	Create(context.Context, brignext.ServiceAccount) error
@@ -25,18 +22,19 @@ type Store interface {
 	Lock(context.Context, string) error
 	Unlock(ctx context.Context, id string, newHashedToken string) error
 
-	// TODO: DRY this up
 	DoTx(context.Context, func(context.Context) error) error
 
 	CheckHealth(context.Context) error
 }
 
 type store struct {
+	*mongodb.BaseStore
 	collection *mongo.Collection
 }
 
 func NewStore(database *mongo.Database) (Store, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	ctx, cancel :=
+		context.WithTimeout(context.Background(), mongodb.CreateIndexTimeout)
 	defer cancel()
 	unique := true
 	collection := database.Collection("service-accounts")
@@ -68,6 +66,9 @@ func NewStore(database *mongo.Database) (Store, error) {
 		)
 	}
 	return &store{
+		BaseStore: &mongodb.BaseStore{
+			Database: database,
+		},
 		collection: collection,
 	}, nil
 }
@@ -189,6 +190,8 @@ func (s *store) Lock(ctx context.Context, id string) error {
 	if res.MatchedCount == 0 {
 		return errs.NewErrNotFound("ServiceAccount", id)
 	}
+	// Note, unlike the case of locking a user, there are no sessions to delete
+	// because service accounts use non-expiring, sessionless tokens.
 	return nil
 }
 
@@ -212,42 +215,6 @@ func (s *store) Unlock(
 	}
 	if res.MatchedCount == 0 {
 		return errs.NewErrNotFound("ServiceAccount", id)
-	}
-	return nil
-}
-
-func (s *store) DoTx(
-	ctx context.Context,
-	fn func(context.Context) error,
-) error {
-	if err := s.collection.Database().Client().UseSession(
-		ctx,
-		func(sc mongo.SessionContext) error {
-			if err := sc.StartTransaction(); err != nil {
-				return errors.Wrapf(err, "error starting transaction")
-			}
-			if err := fn(sc); err != nil {
-				return err
-			}
-			if err := sc.CommitTransaction(sc); err != nil {
-				return errors.Wrap(err, "error committing transaction")
-			}
-			return nil
-		},
-	); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *store) CheckHealth(ctx context.Context) error {
-	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-	if err := s.collection.Database().Client().Ping(
-		pingCtx,
-		readpref.Primary(),
-	); err != nil {
-		return errors.Wrap(err, "error pinging mongodb")
 	}
 	return nil
 }

@@ -4,10 +4,12 @@ import (
 	"context"
 	"time"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/coreos/go-oidc"
 	"github.com/krancour/brignext/v2/internal/api/auth"
 	"github.com/krancour/brignext/v2/internal/crypto"
+	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
+	"golang.org/x/oauth2"
 )
 
 type Service interface {
@@ -21,18 +23,25 @@ type Service interface {
 		userID string,
 	) error
 	Delete(context.Context, string) error
-	DeleteByUser(context.Context, string) (int64, error)
 
 	CheckHealth(context.Context) error
 }
 
 type service struct {
-	store Store
+	store             Store
+	oauth2Config      *oauth2.Config
+	oidcTokenVerifier *oidc.IDTokenVerifier
 }
 
-func NewService(store Store) Service {
+func NewService(
+	store Store,
+	oauth2Config *oauth2.Config,
+	oidcTokenVerifier *oidc.IDTokenVerifier,
+) Service {
 	return &service{
-		store: store,
+		store:             store,
+		oauth2Config:      oauth2Config,
+		oidcTokenVerifier: oidcTokenVerifier,
 	}
 }
 
@@ -133,21 +142,9 @@ func (s *service) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *service) DeleteByUser(
-	ctx context.Context,
-	userID string,
-) (int64, error) {
-	n, err := s.store.DeleteByUser(ctx, userID)
-	if err != nil {
-		return 0, errors.Wrapf(
-			err,
-			"error removing sessions for user %q from store",
-			userID,
-		)
-	}
-	return n, nil
-}
-
 func (s *service) CheckHealth(ctx context.Context) error {
-	return s.store.CheckHealth(ctx)
+	if err := s.store.CheckHealth(ctx); err != nil {
+		return errors.Wrap(err, "error checking sessions store health")
+	}
+	return nil
 }

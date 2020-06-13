@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/internal/crypto"
+	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
+	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -17,23 +18,23 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// TODO: These might have been duplicated in a few places
-const (
-	componentLabel = "brignext.io/component"
-	projectLabel   = "brignext.io/project"
-)
-
 type Scheduler interface {
-	// TODO: Add a PreCreate func!
+	PreCreate(
+		ctx context.Context,
+		project brignext.Project,
+	) (brignext.Project, error)
 	Create(
 		ctx context.Context,
 		project brignext.Project,
-	) (brignext.Project, error)
-	// TODO: Add a PreUpdate func!
-	Update(
+	) error
+	PreUpdate(
 		ctx context.Context,
 		project brignext.Project,
 	) (brignext.Project, error)
+	Update(
+		ctx context.Context,
+		project brignext.Project,
+	) error
 	Delete(
 		ctx context.Context,
 		project brignext.Project,
@@ -62,7 +63,7 @@ func NewScheduler(kubeClient *kubernetes.Clientset) Scheduler {
 	}
 }
 
-func (s *scheduler) Create(
+func (s *scheduler) PreCreate(
 	ctx context.Context,
 	project brignext.Project,
 ) (brignext.Project, error) {
@@ -72,9 +73,14 @@ func (s *scheduler) Create(
 			fmt.Sprintf("brignext-%s-%s", project.ID, crypto.NewToken(10)),
 		),
 	}
-
 	project = s.projectWithDefaults(project)
+	return project, nil
+}
 
+func (s *scheduler) Create(
+	ctx context.Context,
+	project brignext.Project,
+) error {
 	// Create the project's namespace
 	if _, err := s.kubeClient.CoreV1().Namespaces().Create(
 		ctx,
@@ -85,7 +91,7 @@ func (s *scheduler) Create(
 		},
 		metav1.CreateOptions{},
 	); err != nil {
-		return project, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error creating namespace %q for project %q",
 			project.Kubernetes.Namespace,
@@ -110,7 +116,7 @@ func (s *scheduler) Create(
 		},
 		metav1.CreateOptions{},
 	); err != nil {
-		return project, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error creating role \"workers\" in namespace %q",
 			project.Kubernetes.Namespace,
@@ -129,7 +135,7 @@ func (s *scheduler) Create(
 		},
 		metav1.CreateOptions{},
 	); err != nil {
-		return project, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error creating service account \"workers\" in namespace %q",
 			project.Kubernetes.Namespace,
@@ -160,7 +166,7 @@ func (s *scheduler) Create(
 		},
 		metav1.CreateOptions{},
 	); err != nil {
-		return project, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error creating role binding \"workers\" in namespace %q",
 			project.Kubernetes.Namespace,
@@ -178,7 +184,7 @@ func (s *scheduler) Create(
 		},
 		metav1.CreateOptions{},
 	); err != nil {
-		return project, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error creating role \"jobs\" in namespace %q",
 			project.Kubernetes.Namespace,
@@ -197,7 +203,7 @@ func (s *scheduler) Create(
 		},
 		metav1.CreateOptions{},
 	); err != nil {
-		return project, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error creating service account \"jobs\" in namespace %q",
 			project.Kubernetes.Namespace,
@@ -228,7 +234,7 @@ func (s *scheduler) Create(
 		},
 		metav1.CreateOptions{},
 	); err != nil {
-		return project, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error creating role binding \"jobs\" in namespace %q",
 			project.Kubernetes.Namespace,
@@ -244,29 +250,33 @@ func (s *scheduler) Create(
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "project-secrets",
 				Labels: map[string]string{
-					componentLabel: "project-secrets",
-					projectLabel:   project.ID,
+					myk8s.ComponentLabel: "project-secrets",
+					myk8s.ProjectLabel:   project.ID,
 				},
 			},
 			Type: corev1.SecretType("brignext.io/project-secrets"),
 		},
 		metav1.CreateOptions{},
 	); err != nil {
-		return project, errors.Wrapf(
+		return errors.Wrapf(
 			err,
 			"error creating secret \"project-secrets\" in namespace %q",
 			project.Kubernetes.Namespace,
 		)
 	}
 
-	return project, nil
+	return nil
 }
 
-func (s *scheduler) Update(
+func (s *scheduler) PreUpdate(
 	ctx context.Context,
 	project brignext.Project,
 ) (brignext.Project, error) {
 	return s.projectWithDefaults(project), nil
+}
+
+func (s *scheduler) Update(context.Context, brignext.Project) error {
+	return nil
 }
 
 func (s *scheduler) Delete(
@@ -413,7 +423,11 @@ func (s *scheduler) UnsetSecret(
 }
 
 func (s *scheduler) CheckHealth(context.Context) error {
-	// TODO: Ping the Kubernetes apiserver
+	// We'll just ask the apiserver for version info since this like it's
+	// probably the simplest way to test that it is responding.
+	if _, err := s.kubeClient.Discovery().ServerVersion(); err != nil {
+		return errors.Wrap(err, "error pinging kubernetes apiserver")
+	}
 	return nil
 }
 

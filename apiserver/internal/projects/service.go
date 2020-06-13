@@ -46,24 +46,29 @@ func (s *service) Create(
 ) error {
 	project = s.projectWithDefaults(project)
 
-	// We send this to the scheduler first because we expect the scheduler will
-	// will add some scheduler-specific details that we will want to persist.
+	// Let the scheduler add sheduler-specific details before we persist.
 	var err error
-	project, err = s.scheduler.Create(ctx, project)
-	if err != nil {
+	if project, err = s.scheduler.PreCreate(ctx, project); err != nil {
 		return errors.Wrapf(
 			err,
-			"error creating project %q in the scheduler",
+			"error pre-creating project %q in the scheduler",
 			project.ID,
 		)
 	}
-	if err := s.store.Create(ctx, project); err != nil {
-		// We need to roll this back manually because the scheduler doesn't
-		// automatically roll anything back upon failure.
-		s.scheduler.Delete(ctx, project) // nolint: errcheck
-		return errors.Wrapf(err, "error storing new project %q", project.ID)
-	}
-	return nil
+
+	return s.store.DoTx(ctx, func(ctx context.Context) error {
+		if err = s.store.Create(ctx, project); err != nil {
+			return errors.Wrapf(err, "error storing new project %q", project.ID)
+		}
+		if err = s.scheduler.Create(ctx, project); err != nil {
+			return errors.Wrapf(
+				err,
+				"error creating project %q in the scheduler",
+				project.ID,
+			)
+		}
+		return nil
+	})
 }
 
 func (s *service) List(
@@ -97,26 +102,33 @@ func (s *service) Update(
 ) error {
 	project = s.projectWithDefaults(project)
 
-	// We send this to the scheduler first because we expect the scheduler will
-	// will add some scheduler-specific details that we will want to persist.
+	// Let the scheduler update sheduler-specific details before we persist.
 	var err error
-	project, err = s.scheduler.Update(ctx, project)
-	if err != nil {
+	if project, err = s.scheduler.PreUpdate(ctx, project); err != nil {
 		return errors.Wrapf(
 			err,
-			"error updating project %q in the scheduler",
+			"error pre-updating project %q in the scheduler",
 			project.ID,
 		)
 	}
 
-	if err := s.store.Update(ctx, project); err != nil {
-		return errors.Wrapf(
-			err,
-			"error updating project %q in store",
-			project.ID,
-		)
-	}
-	return nil
+	return s.store.DoTx(ctx, func(ctx context.Context) error {
+		if err = s.store.Update(ctx, project); err != nil {
+			return errors.Wrapf(
+				err,
+				"error updating project %q in store",
+				project.ID,
+			)
+		}
+		if err = s.scheduler.Update(ctx, project); err != nil {
+			return errors.Wrapf(
+				err,
+				"error updating project %q in the scheduler",
+				project.ID,
+			)
+		}
+		return nil
+	})
 }
 
 func (s *service) Delete(ctx context.Context, id string) error {
@@ -128,20 +140,6 @@ func (s *service) Delete(ctx context.Context, id string) error {
 		if err := s.store.Delete(ctx, id); err != nil {
 			return errors.Wrapf(err, "error removing project %q from store", id)
 		}
-		// TODO: Cascade the delete to the project's events somehow
-		// if _, err := p.store.Events().DeleteCollection(
-		// 	ctx,
-		// 	brignext.EventListOptions{
-		// 		ProjectID:    id,
-		// 		WorkerPhases: brignext.WorkerPhasesAll(),
-		// 	},
-		// ); err != nil {
-		// 	return errors.Wrapf(
-		// 		err,
-		// 		"error deleting events for project %q from scheduler",
-		// 		id,
-		// 	)
-		// }
 		if err := s.scheduler.Delete(ctx, project); err != nil {
 			return errors.Wrapf(
 				err,
@@ -229,9 +227,12 @@ func (s *service) UnsetSecret(
 
 func (s *service) CheckHealth(ctx context.Context) error {
 	if err := s.store.CheckHealth(ctx); err != nil {
-		return err
+		return errors.Wrap(err, "error checking projects store health")
 	}
-	return s.scheduler.CheckHealth(ctx)
+	if err := s.scheduler.CheckHealth(ctx); err != nil {
+		return errors.Wrap(err, "error checking projects scheduler health")
+	}
+	return nil
 }
 
 func (s *service) projectWithDefaults(

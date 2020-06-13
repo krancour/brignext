@@ -5,17 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
 	errs "github.com/krancour/brignext/v2/internal/errors"
+	"github.com/krancour/brignext/v2/internal/mongodb"
+	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
-
-// TODO: DRY this up
-var mongodbTimeout = 5 * time.Second
 
 type Store interface {
 	Create(context.Context, brignext.User) error
@@ -30,11 +27,14 @@ type Store interface {
 }
 
 type store struct {
-	collection *mongo.Collection
+	*mongodb.BaseStore
+	collection         *mongo.Collection
+	sessionsCollection *mongo.Collection
 }
 
 func NewStore(database *mongo.Database) (Store, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	ctx, cancel :=
+		context.WithTimeout(context.Background(), mongodb.CreateIndexTimeout)
 	defer cancel()
 	unique := true
 	collection := database.Collection("users")
@@ -52,7 +52,11 @@ func NewStore(database *mongo.Database) (Store, error) {
 		return nil, errors.Wrap(err, "error adding indexes to users collection")
 	}
 	return &store{
-		collection: collection,
+		BaseStore: &mongodb.BaseStore{
+			Database: database,
+		},
+		collection:         collection,
+		sessionsCollection: database.Collection("sessions"),
 	}, nil
 }
 
@@ -124,6 +128,20 @@ func (s *store) Lock(ctx context.Context, id string) error {
 	if res.MatchedCount == 0 {
 		return errs.NewErrNotFound("User", id)
 	}
+
+	// Now delete all the user's sessions. Note we're deliberately not doing this
+	// in a transaction. This way if an error occurs after successfully locking
+	// the user, but BEFORE OR WHILE deleting their existing sessions, at least
+	// the user will be locked.
+	if _, err = s.sessionsCollection.DeleteMany(
+		ctx,
+		bson.M{
+			"userID": id,
+		},
+	); err != nil {
+		return errors.Wrapf(err, "error deleting sessions for user %q", id)
+	}
+
 	return nil
 }
 
@@ -142,42 +160,6 @@ func (s *store) Unlock(ctx context.Context, id string) error {
 	}
 	if res.MatchedCount == 0 {
 		return errs.NewErrNotFound("User", id)
-	}
-	return nil
-}
-
-func (s *store) DoTx(
-	ctx context.Context,
-	fn func(context.Context) error,
-) error {
-	if err := s.collection.Database().Client().UseSession(
-		ctx,
-		func(sc mongo.SessionContext) error {
-			if err := sc.StartTransaction(); err != nil {
-				return errors.Wrapf(err, "error starting transaction")
-			}
-			if err := fn(sc); err != nil {
-				return err
-			}
-			if err := sc.CommitTransaction(sc); err != nil {
-				return errors.Wrap(err, "error committing transaction")
-			}
-			return nil
-		},
-	); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *store) CheckHealth(ctx context.Context) error {
-	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-	if err := s.collection.Database().Client().Ping(
-		pingCtx,
-		readpref.Primary(),
-	); err != nil {
-		return errors.Wrap(err, "error pinging mongodb")
 	}
 	return nil
 }

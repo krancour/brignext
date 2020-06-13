@@ -5,9 +5,10 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/internal/api"
 	errs "github.com/krancour/brignext/v2/internal/errors"
+	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -82,7 +83,10 @@ func (e *endpoints) Register(router *mux.Router) {
 }
 
 func (e *endpoints) CheckHealth(ctx context.Context) error {
-	return e.service.CheckHealth(ctx)
+	if err := e.service.CheckHealth(ctx); err != nil {
+		return errors.Wrap(err, "error checking projects service health")
+	}
+	return nil
 }
 
 func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {

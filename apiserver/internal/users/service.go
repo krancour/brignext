@@ -55,21 +55,10 @@ func (s *service) Get(ctx context.Context, id string) (brignext.User, error) {
 }
 
 func (s *service) Lock(ctx context.Context, id string) error {
-	return s.store.DoTx(ctx, func(ctx context.Context) error {
-		var err error
-		if err = s.store.Lock(ctx, id); err != nil {
-			return errors.Wrapf(err, "error locking user %q in store", id)
-		}
-		// TODO: Cascade this delete somehow
-		// if _, err := u.store.Sessions().DeleteByUser(ctx, id); err != nil {
-		// 	return errors.Wrapf(
-		// 		err,
-		// 		"error removing sessions for user %q from store",
-		// 		id,
-		// 	)
-		// }
-		return nil
-	})
+	if err := s.store.Lock(ctx, id); err != nil {
+		return errors.Wrapf(err, "error locking user %q in store", id)
+	}
+	return nil
 }
 
 func (s *service) Unlock(ctx context.Context, id string) error {
@@ -80,5 +69,8 @@ func (s *service) Unlock(ctx context.Context, id string) error {
 }
 
 func (s *service) CheckHealth(ctx context.Context) error {
-	return s.store.CheckHealth(ctx)
+	if err := s.store.CheckHealth(ctx); err != nil {
+		return errors.Wrap(err, "error checking users store health")
+	}
+	return nil
 }

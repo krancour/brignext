@@ -40,6 +40,16 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Projects
+	projectsStore, err := projects.NewStore(database)
+	if err != nil {
+		log.Fatal(err)
+	}
+	projectsService := projects.NewService(
+		projectsStore,
+		projects.NewScheduler(kubeClient),
+	)
+
 	// Events
 	redisClient, err := redis.Client()
 	if err != nil {
@@ -53,19 +63,10 @@ func main() {
 		log.Fatal(err)
 	}
 	eventsService := events.NewService(
-		eventsStore,
-		events.NewScheduler(redisClient, kubeClient),
-		events.NewLogsStore(database),
-	)
-
-	// Projects
-	projectsStore, err := projects.NewStore(database)
-	if err != nil {
-		log.Fatal(err)
-	}
-	projectsService := projects.NewService(
 		projectsStore,
-		projects.NewScheduler(kubeClient),
+		eventsStore,
+		events.NewLogsStore(database),
+		events.NewScheduler(redisClient, kubeClient),
 	)
 
 	// Service Accounts
@@ -76,11 +77,20 @@ func main() {
 	serviceAccountsService := serviceaccounts.NewService(serviceAccountsStore)
 
 	// Sessions
+	oidcConfig, oidcIdentityVerifier, err :=
+		oidc.GetConfigAndVerifierFromEnvironment()
+	if err != nil {
+		log.Fatal(err)
+	}
 	sessionsStore, err := sessions.NewStore(database)
 	if err != nil {
 		log.Fatal(err)
 	}
-	sessionsService := sessions.NewService(sessionsStore)
+	sessionsService := sessions.NewService(
+		sessionsStore,
+		oidcConfig,
+		oidcIdentityVerifier,
+	)
 
 	// Users
 	usersStore, err := users.NewStore(database)
@@ -96,14 +106,6 @@ func main() {
 			apiConfig.RootUserEnabled(),
 			apiConfig.HashedControllerToken(),
 		),
-	}
-
-	// TODO: Move this
-	// OpenID Connect config
-	oidcConfig, oidcIdentityVerifier, err :=
-		oidc.GetConfigAndVerifierFromEnvironment()
-	if err != nil {
-		log.Fatal(err)
 	}
 
 	log.Println(

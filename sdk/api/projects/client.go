@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/internal/api"
+	brignext "github.com/krancour/brignext/v2/sdk"
 )
 
 type Client interface {
@@ -19,7 +19,10 @@ type Client interface {
 	UpdateFromBytes(context.Context, string, []byte) error
 	Delete(context.Context, string) error
 
-	ListSecrets(ctx context.Context, projectID string) (brignext.SecretList, error)
+	ListSecrets(
+		ctx context.Context,
+		projectID string,
+	) (brignext.SecretList, error)
 	SetSecret(ctx context.Context, projectID string, secret brignext.Secret) error
 	UnsetSecret(ctx context.Context, projectID string, key string) error
 }

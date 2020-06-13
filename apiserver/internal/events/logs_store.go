@@ -5,12 +5,12 @@ import (
 	"log"
 	"time"
 
+	"github.com/krancour/brignext/v2/internal/mongodb"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 type LogsStore interface {
@@ -29,11 +29,15 @@ type LogsStore interface {
 }
 
 type logsStore struct {
+	*mongodb.BaseStore
 	logsCollection *mongo.Collection
 }
 
 func NewLogsStore(database *mongo.Database) LogsStore {
 	return &logsStore{
+		BaseStore: &mongodb.BaseStore{
+			Database: database,
+		},
 		logsCollection: database.Collection("logs"),
 	}
 }
@@ -165,16 +169,4 @@ func (l *logsStore) criteriaFromOptions(
 	}
 
 	return criteria
-}
-
-func (l *logsStore) CheckHealth(ctx context.Context) error {
-	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-	if err := l.logsCollection.Database().Client().Ping(
-		pingCtx,
-		readpref.Primary(),
-	); err != nil {
-		return errors.Wrap(err, "error pinging mongo")
-	}
-	return nil
 }

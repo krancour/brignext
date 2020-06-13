@@ -59,14 +59,15 @@ type Service interface {
 type service struct {
 	projectsStore projects.Store
 	store         Store
-	scheduler     Scheduler
 	logsStore     LogsStore
+	scheduler     Scheduler
 }
 
 func NewService(
+	projectsStore projects.Store,
 	store Store,
-	scheduler Scheduler,
 	logsStore LogsStore,
+	scheduler Scheduler,
 ) Service {
 	return &service{
 		store:     store,
@@ -156,27 +157,29 @@ func (s *service) Create(
 		JobStatuses: map[string]brignext.JobStatus{},
 	}
 
-	// We send this to the scheduler first because we expect the scheduler will
-	// will add some scheduler-specific details that we will want to persist.
-	event, err = s.scheduler.Create(
-		ctx,
-		project,
-		event,
-	)
-	if err != nil {
+	// Let the scheduler add sheduler-specific details before we persist.
+	if event, err = s.scheduler.PreCreate(ctx, project, event); err != nil {
 		return eventRefList, errors.Wrapf(
 			err,
-			"error creating event %q in scheduler",
+			"error pre-creating event %q in scheduler",
 			event.ID,
 		)
 	}
-	if err := s.store.Create(ctx, event); err != nil {
-		// We need to roll this back manually because the scheduler doesn't
-		// automatically roll anything back upon failure.
-		// nolint: errcheck
-		s.scheduler.Delete(ctx, brignext.EventReference{})
-		return eventRefList,
-			errors.Wrapf(err, "error storing new event %q", event.ID)
+
+	if err = s.store.DoTx(ctx, func(ctx context.Context) error {
+		if err = s.store.Create(ctx, event); err != nil {
+			return errors.Wrapf(err, "error storing new event %q", event.ID)
+		}
+		if err = s.scheduler.Create(ctx, project, event); err != nil {
+			return errors.Wrapf(
+				err,
+				"error creating event %q in scheduler",
+				event.ID,
+			)
+		}
+		return nil
+	}); err != nil {
+		return eventRefList, err
 	}
 
 	eventRefList.Items = []brignext.EventReference{
@@ -464,10 +467,13 @@ func (s *service) StreamLogs(
 
 func (s *service) CheckHealth(ctx context.Context) error {
 	if err := s.store.CheckHealth(ctx); err != nil {
-		return err
+		return errors.Wrap(err, "error checking events store health")
 	}
 	if err := s.scheduler.CheckHealth(ctx); err != nil {
-		return err
+		return errors.Wrap(err, "error checking events scheduler health")
 	}
-	return s.logsStore.CheckHealth(ctx)
+	if err := s.logsStore.CheckHealth(ctx); err != nil {
+		return errors.Wrap(err, "error checking logs store health")
+	}
+	return nil
 }

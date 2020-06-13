@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/internal/api"
+	brignext "github.com/krancour/brignext/v2/sdk"
 )
 
 type Client interface {

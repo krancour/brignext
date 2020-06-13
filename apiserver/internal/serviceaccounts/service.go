@@ -3,8 +3,8 @@ package serviceaccounts
 import (
 	"context"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/internal/crypto"
+	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 )
 
@@ -119,5 +119,8 @@ func (s *service) Unlock(
 }
 
 func (s *service) CheckHealth(ctx context.Context) error {
-	return s.store.CheckHealth(ctx)
+	if err := s.store.CheckHealth(ctx); err != nil {
+		return errors.Wrap(err, "error checking service accounts store health")
+	}
+	return nil
 }

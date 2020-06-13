@@ -5,17 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
 	errs "github.com/krancour/brignext/v2/internal/errors"
+	"github.com/krancour/brignext/v2/internal/mongodb"
+	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
-
-// TODO: DRY this up
-var mongodbTimeout = 5 * time.Second
 
 type Store interface {
 	Create(context.Context, brignext.Event) error
@@ -51,11 +48,13 @@ type Store interface {
 }
 
 type store struct {
+	*mongodb.BaseStore
 	collection *mongo.Collection
 }
 
 func NewStore(database *mongo.Database) (Store, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	ctx, cancel :=
+		context.WithTimeout(context.Background(), mongodb.CreateIndexTimeout)
 	defer cancel()
 	unique := true
 	collection := database.Collection("events")
@@ -87,6 +86,9 @@ func NewStore(database *mongo.Database) (Store, error) {
 		return nil, errors.Wrap(err, "error adding indexes to events collection")
 	}
 	return &store{
+		BaseStore: &mongodb.BaseStore{
+			Database: database,
+		},
 		collection: collection,
 	}, nil
 }
@@ -308,55 +310,53 @@ func (s *store) DeleteCollection(
 	// The MongoDB driver for Go doesn't expose findAndModify(), which could be
 	// used to select events and delete them at the same time. As a workaround,
 	// we'll perform a logical delete first, select the logically deleted events,
-	// and then perform a real delete.
+	// and then perform a real delete. To be on the safe side, we do all of that
+	// within a transaction.
+	return eventRefList, s.DoTx(ctx, func(ctx context.Context) error {
 
-	// TODO: We should probably do all of this inside a transaction
+		deletedTime := time.Now()
 
-	deletedTime := time.Now()
-
-	// Logical delete...
-	criteria := bson.M{
-		"projectID": opts.ProjectID,
-		"status.workerStatus.phase": bson.M{
-			"$in": opts.WorkerPhases,
-		},
-		"deleted": bson.M{
-			"$exists": false,
-		},
-	}
-	if _, err := s.collection.UpdateMany(
-		ctx,
-		criteria,
-		bson.M{
-			"$set": bson.M{
-				"deleted": deletedTime,
+		// Logical delete...
+		criteria := bson.M{
+			"projectID": opts.ProjectID,
+			"status.workerStatus.phase": bson.M{
+				"$in": opts.WorkerPhases,
 			},
-		},
-	); err != nil {
-		return eventRefList, errors.Wrap(err, "error logically deleting events")
-	}
+			"deleted": bson.M{
+				"$exists": false,
+			},
+		}
+		if _, err := s.collection.UpdateMany(
+			ctx,
+			criteria,
+			bson.M{
+				"$set": bson.M{
+					"deleted": deletedTime,
+				},
+			},
+		); err != nil {
+			return errors.Wrap(err, "error logically deleting events")
+		}
 
-	// Select the logically deleted documents...
-	criteria["deleted"] = deletedTime
-	findOptions := options.Find()
-	findOptions.SetSort(bson.M{"metadata.created": -1})
-	cur, err := s.collection.Find(ctx, criteria, findOptions)
-	if err != nil {
-		return eventRefList,
-			errors.Wrapf(err, "error finding logically deleted events")
-	}
-	if err := cur.All(ctx, &eventRefList.Items); err != nil {
-		return eventRefList,
-			errors.Wrap(err, "error decoding logically deleted events")
-	}
+		// Select the logically deleted documents...
+		criteria["deleted"] = deletedTime
+		findOptions := options.Find()
+		findOptions.SetSort(bson.M{"metadata.created": -1})
+		cur, err := s.collection.Find(ctx, criteria, findOptions)
+		if err != nil {
+			return errors.Wrapf(err, "error finding logically deleted events")
+		}
+		if err := cur.All(ctx, &eventRefList.Items); err != nil {
+			return errors.Wrap(err, "error decoding logically deleted events")
+		}
 
-	// Final deletion
-	if _, err := s.collection.DeleteMany(ctx, criteria); err != nil {
-		return eventRefList,
-			errors.Wrap(err, "error deleting events")
-	}
+		// Final deletion
+		if _, err := s.collection.DeleteMany(ctx, criteria); err != nil {
+			return errors.Wrap(err, "error deleting events")
+		}
 
-	return eventRefList, nil
+		return nil
+	})
 }
 
 func (s *store) UpdateWorkerStatus(
@@ -413,42 +413,6 @@ func (s *store) UpdateJobStatus(
 	}
 	if res.MatchedCount == 0 {
 		return errs.NewErrNotFound("Event", eventID)
-	}
-	return nil
-}
-
-func (s *store) DoTx(
-	ctx context.Context,
-	fn func(context.Context) error,
-) error {
-	if err := s.collection.Database().Client().UseSession(
-		ctx,
-		func(sc mongo.SessionContext) error {
-			if err := sc.StartTransaction(); err != nil {
-				return errors.Wrapf(err, "error starting transaction")
-			}
-			if err := fn(sc); err != nil {
-				return err
-			}
-			if err := sc.CommitTransaction(sc); err != nil {
-				return errors.Wrap(err, "error committing transaction")
-			}
-			return nil
-		},
-	); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *store) CheckHealth(ctx context.Context) error {
-	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-	if err := s.collection.Database().Client().Ping(
-		pingCtx,
-		readpref.Primary(),
-	); err != nil {
-		return errors.Wrap(err, "error pinging mongodb")
 	}
 	return nil
 }

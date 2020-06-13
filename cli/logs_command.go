@@ -54,8 +54,9 @@ func logs(c *cli.Context) error {
 	}
 
 	if !follow {
-		logEntryList, err := client.Events().GetLogs(c.Context, eventID, opts)
-		if err != nil {
+		var logEntryList brignext.LogEntryList
+		if logEntryList, err =
+			client.Events().GetLogs(c.Context, eventID, opts); err != nil {
 			return err
 		}
 		for _, logEntry := range logEntryList.Items {

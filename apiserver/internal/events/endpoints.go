@@ -102,7 +102,10 @@ func (e *endpoints) Register(router *mux.Router) {
 }
 
 func (e *endpoints) CheckHealth(ctx context.Context) error {
-	return e.service.CheckHealth(ctx)
+	if err := e.service.CheckHealth(ctx); err != nil {
+		return errors.Wrap(err, "error checking events service health")
+	}
+	return nil
 }
 
 func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
@@ -263,7 +266,7 @@ func (e *endpoints) getOrStreamLogs(
 	r *http.Request,
 ) {
 	id := mux.Vars(r)["id"]
-	// nolint: errchecks
+	// nolint: errcheck
 	stream, _ := strconv.ParseBool(r.URL.Query().Get("stream"))
 
 	opts := brignext.LogOptions{

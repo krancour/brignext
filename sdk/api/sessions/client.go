@@ -5,12 +5,15 @@ import (
 	"crypto/tls"
 	"net/http"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/internal/api"
+	brignext "github.com/krancour/brignext/v2/sdk"
 )
 
 type Client interface {
-	CreateRootSession(ctx context.Context, password string) (brignext.Token, error)
+	CreateRootSession(
+		ctx context.Context,
+		password string,
+	) (brignext.Token, error)
 	CreateUserSession(context.Context) (brignext.UserSessionAuthDetails, error)
 	Delete(context.Context) error
 }

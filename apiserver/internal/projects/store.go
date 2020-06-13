@@ -5,17 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
 	errs "github.com/krancour/brignext/v2/internal/errors"
+	"github.com/krancour/brignext/v2/internal/mongodb"
+	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
-
-// TODO: DRY this up
-var mongodbTimeout = 5 * time.Second
 
 type Store interface {
 	Create(context.Context, brignext.Project) error
@@ -28,18 +25,20 @@ type Store interface {
 	Update(context.Context, brignext.Project) error
 	Delete(context.Context, string) error
 
-	// TODO: DRY this up
 	DoTx(context.Context, func(context.Context) error) error
 
 	CheckHealth(context.Context) error
 }
 
 type store struct {
-	collection *mongo.Collection
+	*mongodb.BaseStore
+	collection       *mongo.Collection
+	eventsCollection *mongo.Collection
 }
 
 func NewStore(database *mongo.Database) (Store, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), mongodbTimeout)
+	ctx, cancel :=
+		context.WithTimeout(context.Background(), mongodb.CreateIndexTimeout)
 	defer cancel()
 	unique := true
 	collection := database.Collection("projects")
@@ -78,7 +77,11 @@ func NewStore(database *mongo.Database) (Store, error) {
 		)
 	}
 	return &store{
-		collection: collection,
+		BaseStore: &mongodb.BaseStore{
+			Database: database,
+		},
+		collection:       collection,
+		eventsCollection: database.Collection("events"),
 	}, nil
 }
 
@@ -210,48 +213,25 @@ func (s *store) Update(
 }
 
 func (s *store) Delete(ctx context.Context, id string) error {
-	res, err := s.collection.DeleteOne(ctx, bson.M{"metadata.id": id})
-	if err != nil {
-		return errors.Wrapf(err, "error deleting project %q", id)
-	}
-	if res.DeletedCount == 0 {
-		return errs.NewErrNotFound("Project", id)
-	}
-	return nil
-}
+	return s.DoTx(ctx, func(ctx context.Context) error {
+		res, err := s.collection.DeleteOne(ctx, bson.M{"metadata.id": id})
+		if err != nil {
+			return errors.Wrapf(err, "error deleting project %q", id)
+		}
+		if res.DeletedCount == 0 {
+			return errs.NewErrNotFound("Project", id)
+		}
 
-func (s *store) DoTx(
-	ctx context.Context,
-	fn func(context.Context) error,
-) error {
-	if err := s.collection.Database().Client().UseSession(
-		ctx,
-		func(sc mongo.SessionContext) error {
-			if err := sc.StartTransaction(); err != nil {
-				return errors.Wrapf(err, "error starting transaction")
-			}
-			if err := fn(sc); err != nil {
-				return err
-			}
-			if err := sc.CommitTransaction(sc); err != nil {
-				return errors.Wrap(err, "error committing transaction")
-			}
-			return nil
-		},
-	); err != nil {
-		return err
-	}
-	return nil
-}
+		// Cascade the delete to the project's events
+		if _, err := s.eventsCollection.DeleteMany(
+			ctx,
+			bson.M{
+				"projectID": id,
+			},
+		); err != nil {
+			return errors.Wrapf(err, "error deleting events for project %q", id)
+		}
 
-func (s *store) CheckHealth(ctx context.Context) error {
-	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-	if err := s.collection.Database().Client().Ping(
-		pingCtx,
-		readpref.Primary(),
-	); err != nil {
-		return errors.Wrap(err, "error pinging mongodb")
-	}
-	return nil
+		return nil
+	})
 }

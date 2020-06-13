@@ -42,8 +42,8 @@ func NewEndpoints(
 		BaseEndpoints:          baseEndpoints,
 		rootUserEnabled:        rootUserEnabled,
 		hashedRootUserPassword: hashedRootUserPassword,
-		oauth2Config:           oauth2Config,
 		oidcEnabled:            oidcEnabled,
+		oauth2Config:           oauth2Config,
 		oidcTokenVerifier:      oidcTokenVerifier,
 		service:                service,
 		usersService:           usersService,
@@ -52,9 +52,12 @@ func NewEndpoints(
 
 func (e *endpoints) CheckHealth(ctx context.Context) error {
 	if err := e.service.CheckHealth(ctx); err != nil {
-		return err
+		return errors.Wrap(err, "error checking sessions service health")
 	}
-	return e.usersService.CheckHealth(ctx)
+	if err := e.usersService.CheckHealth(ctx); err != nil {
+		return errors.Wrap(err, "error checking users service health")
+	}
+	return nil
 }
 
 func (e *endpoints) Register(router *mux.Router) {
@@ -91,8 +94,8 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 				EndpointLogic: func() (interface{}, error) {
 					if !e.rootUserEnabled {
 						return nil, errs.NewErrNotSupported(
-							"Authentication using root credentials is not supported by this " +
-								"server.",
+							"Authentication using root credentials is not supported by " +
+								"this server.",
 						)
 					}
 					username, password, ok := r.BasicAuth()
