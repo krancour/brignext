@@ -276,6 +276,9 @@ development of Brigade 2.0:
 
 1. Neither Kubernetes expertise nor cluster credentials must be a prerequisite
    for success.
+    1. Kubernetes is neither to be removed nor 100% abstracted. A realistic
+       goal is to minimize Kubernetes' use as anything other than a substrate
+       for workload execution and minimize Brigade / Kubernetes touchpoints.
     1. Some degree of freedom to "drop down" to Kubernetes may be retained to
        enable advanced / fringe use cases, but the need to utilize this should
        be _exceptional._
@@ -283,10 +286,10 @@ development of Brigade 2.0:
 1. The UX must be both simplified and improved while striving to remain
    recognizable and comfortable for experienced Brigade users.
 
-1. Security must be improved beyond the status quo.
+1. Security and reliability must be improved beyond the Brigade 1.x status quo.
 
 1. Product evaluation (aka "tire kicking") / local use for development must not
-   be onerous.
+   become onerous.
     1. For any new dependencies, a default Brigade installation must provision
        _free, in-cluster instances running in configurations that limit resource
        use_. Documentation may offer guidance on optimizing installations for
@@ -305,24 +308,142 @@ development of Brigade 2.0:
 ### High Level Architecture
 
 With a few cross-cutting concerns such as access control notwithstanding, the
-proposed architecture fundamentally decomposes Brigade into three distinct
-sub-systems-- record keeping, event handling, and log aggregation with a service
-layer to coordinate among these three. The service layer will be exposed to
-clients via secure HTTP endpoints that implement a RESTful API. An API client
-will be made available as a Go package.
+proposed architecture logically decomposes Brigade into three distinct
+sub-systems-- record keeping, scheduling, and loging with a service layer to
+coordinate among these three. The service layer will be exposed to clients via
+secure HTTP endpoints that implement a RESTful API. An API client will be made
+available as a Go package.
 
 N.B.: Brigade 1.x has a read-only API that is utilized by Kashti only. (Kashti
-is the web-based, read-only Brigade dashboard.) The API referenced above is a
-_new_ one for use by all Brigade 2.0 components, gateways, and clients so as to
-abstract all of those away from underlying technology choices.
+is the web-based, read-only Brigade 1.x dashboard.) The API referenced above is
+a _new_ one for use by all Brigade 2.0 components, gateways, and clients so as
+to abstract all of those away from underlying technology choices.
+
+### The Domain Model
+
+
 
 ### Record Keeping
 
-### Event Handling
+The record keeping subsystem will handle persistence for domain objects such as
+projects and events. Document-based storage is proposed since relatiely few
+relationships exist between domain objects and among those relationships that do
+exist, composition is highly favored. i.e. A relational database is unlikely to
+yield any significant advantages.
 
-### Log Aggregation
+Further, MongoDB is recommended based on several factors:
+
+1. Permissive license
+1. Deployable in-cluster
+1. Managed instances available from numerous vendors
+1. Deployable in wide array of configurations to cover both
+   evaluation/development use _and_ production use
+1. Demonstrated ability to scale
+1. Atomic updates to single documents without the need for transactions
+1. Distributed transactions available when needed (in some configurations)
+1. Widespread developer familiarity
+
+### Scheduling
+
+The scheduling subsystem will provide a synchronous interface for managing the
+underlying workload execution substrate-- which will be Kubernetes, exclusively.
+Additionally, it will provide an agent to asynchronously handle events by
+orchestating workload execution on the substrate.
+
+The synchronous interface will effect immediate changes to the substrate
+wherever those changes can be applied in real-time and with minimal resource
+utilization. For instance, event creation or cancelation may occur in real-time,
+while _event-handling_ may be deferred to the asynchronous agent.
+
+To bridge the gap between the synchronous and asynchronous components of this
+subsystem, a message bus capable of ensuring reliable transmission of messages
+with at-least-once delivery guarantees will be required.
+
+No specific recommendation is made at this time, but the message bus selected
+should have most, if not all of these qualities:
+
+1. Permissive license
+1. Deployable in-cluster
+1. Managed instances available from numerous vendors
+1. Deployable in wide array of configurations to cover both
+   evaluation/development use _and_ production use
+1. Demonstrated ability to scale
+1. Widespread developer familiarity
+
+### Logging
+
+The logging subsystem will utilize an agent-per-substrate-node deployment model
+to aggregate logs from worker and job containers and persist them in some data
+store. Another component of the subsystem will make these logs available on a
+read-only basis via the Brigade API.
+
+Fluentd is recommended for log aggregation.
+
+N.B. The log-agent-per-substrate-node deployment model will, in aggregate,
+consume an undesireable amount of resources in any cluster (large or small) that
+is not used exclusively for Brigade. In light of this, it is recommended that
+only a _subset_ of a cluster's nodes are designated for the execution of Brigade
+workers and jobs.
 
 ### Securing the API
+
+In contrast to Brigade 1.x, the design proposed here does not have Brigade
+clients communicating directly with the Kubernetes API server. By requiring
+Brigade 2.0 clients to communicate with a Brigade API instead, the implicit
+delegation of authentication and authorization to the Kubernetes API server
+comes to an end and must be replaced with other access control measures.
+
+#### Authentication
+
+Authentication is not, in and of itself onerous to implement, but orthogonal
+concerns such as user registraton and password reset functionality can be. Such
+features additionally increase the footprint of Brigade's infrastructure
+dependencies in that they rely on outbound email for purposes of identity
+verification. Wishing to avoid both the development effort and the additional
+dependencies, the maintainers propose utilizing [OpenID
+Connect](https://openid.net/connect/) in order to delegate authentication (of
+human users) to trusted identity providers such as Azure Active Directory or
+Google Identity Platform.
+
+The following sequence diagram depicts a human user logging into Brigade using
+the CLI. The initial request to log in returns an opaque and as-yet-unactivated
+bearer token as well as a URL that the human user can navigate to using their
+web browser in order to complete authentication using their trusted identity
+provider. Completion of that process results in bearer token _activation_. All
+subsequent user interactions with Brigade will present the bearer token as
+proof of authentication. Bearer tokens will expire periodically.
+
+`<< sequence diagram goes here >>`
+
+To prevent the dependency on an identity provider from becoming an impedence to
+evaluation (aka "tire kicking") and local development, as well as to facilitate
+initial setup (only) of Brigade on _shared_ clusters, it is proposed that "root"
+access to Brigade may be selectively enabled / disabled at the time of
+deployment / re-deployment / upgrade.
+
+Non-human users-- such as event gateways-- will utilize service accounts that
+human Brigade administrators may manage directly using the CLI/API. Service
+accounts will authenticate by means of non-expiring, but revokable, bearer
+tokens.
+
+Lastly, the scheduling agent is, necessarily, a special class of user that can
+carry out operations disallowed for _all_ other users (including "root"). These
+include updating the observed status of an executing worker or job. Being a
+special class of user, the controller will authenticate to the API using a
+shared secret that is mutually agreed upon at the time of deployment /
+re-deployment / upgrade.
+
+To prevent session hijacking by means of root password theft or bearer token
+theft, Brigade API servers in remote clusters must secure traffic using HTTPS.
+
+#### Authorization
+
+With authorization concerns no longer implicitly delegted to the Kubernetes API
+server, Brigade 2.0 will need to provide its own access control model.
+
+To be continued...
+
+#### Preventing Escalation of Privileges
 
 ### Non-Goals
 
