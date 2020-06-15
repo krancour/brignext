@@ -11,10 +11,16 @@ import (
 )
 
 type Client interface {
+	// TODO: This should return the project because the system will have provided
+	// values for some fields that are beyond a client's control, but are not
+	// necessarily beyond a client's interest.
 	Create(context.Context, brignext.Project) error
 	CreateFromBytes(context.Context, []byte) error
 	List(context.Context) (brignext.ProjectList, error)
 	Get(context.Context, string) (brignext.Project, error)
+	// TODO: This should return the project because the system will have provided
+	// values for some fields that are beyond a client's control, but are not
+	// necessarily beyond a client's interest.
 	Update(context.Context, brignext.Project) error
 	UpdateFromBytes(context.Context, string, []byte) error
 	Delete(context.Context, string) error
