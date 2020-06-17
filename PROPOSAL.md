@@ -36,8 +36,8 @@ consciously shunning third-party dependencies and relying solely on Kubernetes
 wherever practical. To be sure, this was not without merit. By leveraging
 Kubernetes `Secret` resources as a sort of makeshift document store and message
 bus, Brigade's developers were spared from integrating with third-party
-alternatives. Meanwhile, Brigade operators were spared from deploying and such
-dependencies.
+alternatives. Meanwhile, Brigade operators were spared from deploying and
+managing such dependencies.
 
 These principles resulted in a _very thin_ layer of abstraction between
 Brigade's users and Kubernetes. The `brig` CLI, for instance, communicates
@@ -116,17 +116,16 @@ are due some consideration.
 Usability issues and security risks notwithstanding, persisting Brigade projects
 as `Secret` resources seems sensible. Yet, projects are not the only Brigade
 objects that are backed by a Kubernetes resources. Like projects, events are
-backed by `Secret` resources. (This is discussed in more detail in the next
-section.) _Workers_ that process those events, as well as the _jobs_ those
-workers may fan out to, are backed by the Kubernetes pods in which they were
-executed.
+backed by `Secret` resources. _Workers_ that process those events, as well as
+the _jobs_ those workers may fan out to, are backed by the Kubernetes pods in
+which they were executed.
 
 A worker or job's logs are found nowhere except within the corresponding pod.
-CLI commands such as `brig logs` merely retrieve those logs via the Kubernetes
-API. Even a worker or job's state is determined solely by the corresponding
-pod's state, and a worker or job's very existence is coupled to the existence of
-the corresponding pod. Should a pod be deleted, all record of the corresponding
-worker or job is deleted with it.
+CLI commands such as `brig build logs` merely retrieve those logs via the
+Kubernetes API. Even a worker or job's state is determined solely by the
+corresponding pod's state, and a worker or job's very existence is coupled to
+the existence of the corresponding pod. Should a pod be deleted, all record of
+the corresponding worker or job is deleted with it.
 
 The above is especially problematic when considering the array of circumstances
 beyond any user's control in which a pod might be deleted. If the Kubernetes
@@ -355,6 +354,12 @@ is the web-based, read-only Brigade 1.x dashboard.) The API referenced above is
 a _new_ one for use by all Brigade 2.0 components, gateways, and clients so as
 to abstract all of those away from underlying technology choices.
 
+The following sequence diagram depicts by example how different logical
+components interact with one another, using the complex sequence of event
+creation and handling to illustrate.
+
+![Event Lifecycle](events.png)
+
 ### REST API Endpoints
 
 Brigade 2.0's REST API will be minimal and unremarkable, serving only to handle
@@ -495,6 +500,8 @@ With authorization concerns no longer implicitly delegted to the Kubernetes API
 server, Brigade 2.0 will need to provide its own access control model.
 
 `<<To be continued...>>`
+
+#### Secret Storage
 
 #### Preventing Escalation of Privileges
 
