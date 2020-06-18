@@ -341,11 +341,11 @@ execution substrate to only a few components.
 ### High Level Architecture
 
 With a few cross-cutting concerns such as access control notwithstanding, the
-proposed architecture decomposes Brigade three logical sub-systems-- record
-keeping, scheduling, and logging-- with a service layer to coordinate among
-these three. The service layer will be exposed to clients via secure HTTP
-endpoints that implement a RESTful API. An API client will be made available as
-a Go package.
+proposed architecture decomposes Brigade into three logical subsystems-- record
+keeping, scheduling, and logging-- with a service facade layer to coordinate
+among these three. The service facade layer will be exposed to clients via
+secure HTTP endpoints that implement a RESTful API. An API client will be made
+available as a Go package.
 
 ![Logical Component Model](component.png)
 
@@ -354,42 +354,43 @@ is the web-based, read-only Brigade 1.x dashboard.) The API referenced above is
 a _new_ one for use by all Brigade 2.0 components, gateways, and clients so as
 to abstract all of those away from underlying technology choices.
 
-The following sequence diagram depicts by example how different logical
-components interact with one another, using the complex sequence of event
-creation and handling to illustrate.
+The following diagram depicts by example how different logical components
+interact with one another, using the complex sequence of event creation and
+handling to illustrate.
 
 ![Event Lifecycle](events.png)
 
 ### REST API Endpoints
 
 Brigade 2.0's REST API will be minimal and unremarkable, serving only to handle
-transport-specific details-- decoding HTTP requests into domain objects that
-may be passed to a transport-agnostic service layer and encoding domain objects
-returned from that service layer as HTTP responses.
+transport-specific details-- decoding HTTP requests into domain objects that may
+be passed to a transport-agnostic service facade layer and encoding domain
+objects returned from that service facde layer as HTTP responses.
 
-It is proposed that validation be handled by the endpoints since JSON schema
+It is proposed that validation be handled by the API endpoints since JSON schema
 provides an easy and efficient mechanism for this purpose, but must be applied
 to raw HTTP request bodies prior to unmarshaling.
 
-### The Service Layer
+### The Service Facade Layer
 
-Brigade 2.0's service layer will implement all vendor-neutral business logic and
-both delegate to and coordinate Brigade's underlying sub-systems through
+Brigade 2.0's service facade layer will implement high level, vendor neutral
+business logic and coordinate Brigade's underlying subsystems through
 well-defined interfaces.
 
-### Record Keeping
+### Record Keeping Subsystem
 
-The record keeping subsystem will handle persistence for domain objects such as
-projects and events. Document-based storage is proposed since relatively few
-relationships exist between domain objects and among those relationships that do
-exist, composition is highly favored. i.e. A relational database is unlikely to
-yield any significant advantages.
+The record keeping subsystem will provide a synchronous interface for the
+persistence of domain objects such as projects and events. Document-based
+storage is proposed since relatively few relationships exist between domain
+objects and among those relationships that do exist, composition is highly
+favored. i.e. A relational database is unlikely to yield any significant
+advantages.
 
 Further, MongoDB is recommended as the underlying data store based on several
 factors:
 
 1. Permissive license
-1. Deployable in-cluster
+1. Deployable in-cluster; can be included in default Brigade install
 1. Managed instances available from numerous vendors
 1. Deployable in wide array of configurations to cover both
    evaluation/development use _and_ production use
@@ -398,7 +399,7 @@ factors:
 1. Distributed transactions available when needed (in some configurations)
 1. Widespread developer familiarity
 
-### Scheduling
+### Scheduling Subsystem
 
 The scheduling subsystem will provide a synchronous interface for managing the
 underlying workload execution substrate-- which will be Kubernetes, exclusively.
@@ -425,16 +426,27 @@ should have most, if not all of these qualities:
 1. Demonstrated ability to scale
 1. Widespread developer familiarity
 
+A non-exhaustive list of potential message buses includes:
+
+1. NATS
+1. NSQ
+1. RabbitMQ
+1. Redis (using the [reliable queue](https://redis.io/commands/rpoplpush#pattern-reliable-queue) pattern)
+
 `<<TODO: Describe the role of workers.>>`
 
-### Logging
+### Logging Subsystem
 
 The logging subsystem will utilize an agent-per-node deployment model to
 aggregate logs from worker and job containers and persist them in some data
 store. Another component of the subsystem will make these logs available on a
 read-only basis via the Brigade API.
 
-Fluentd is recommended for log aggregation.
+Fluentd is recommended for log aggregation. Although ElasticSearch seems to be
+the most popular data store for logs forwarded from Fluentd agents, this
+proposal recommends the use of MongoDB for this purpose. Assuming MongoDB will
+be utilized as the record keeping subsystem's underlying data store, the choice
+to reuse it minimizes the footprint of Brigade's infrastructure dependendies.
 
 N.B. The
 [log-agent-per-node](https://docs.fluentd.org/container-deployment/kubernetes#fluentd-daemonset)
@@ -447,7 +459,7 @@ designated for the execution of Brigade workers and jobs.
 
 In contrast to Brigade 1.x, the design proposed here does not have Brigade
 clients communicating directly with the Kubernetes API server. By requiring
-Brigade 2.0 clients to communicate with a Brigade API instead, the implicit
+Brigade 2.0 clients to communicate with a new Brigade API instead, the implicit
 delegation of authentication and authorization to the Kubernetes API server
 comes to an end and must be replaced with other access control measures.
 
@@ -469,7 +481,8 @@ well as a URL that the human user can navigate to using their web browser in
 order to complete authentication using their trusted identity provider.
 Completion of that process results in bearer token _activation_. All subsequent
 user interactions with Brigade will present the bearer token as proof of
-authentication. Bearer tokens will expire periodically.
+authentication. Bearer tokens will expire periodically. (As a point of
+reference, the Azure CLI implements authentication in a similar fashion.)
 
 ![Authentication Using OpenID Connect](authentication.png)
 
@@ -482,9 +495,10 @@ the time of deployment / re-deployment / upgrade.
 Non-human users-- such as event gateways-- will utilize service accounts that
 human Brigade administrators may manage directly using the CLI/API. Service
 accounts will authenticate by means of non-expiring, but revokable, bearer
-tokens.
+tokens. (Note these are _not_ Kubernetes service accounts; but _Brigade_ service
+accounts.)
 
-Lastly, the scheduling agent is, necessarily, a special class of user that can
+Lastly, the scheduling agent is, necessarily, a _special class of user_ that can
 carry out operations disallowed for _all_ other users (including "root"). These
 include updating the observed status of an executing worker or job. Being a
 special class of user, the controller will authenticate to the API using a
@@ -492,16 +506,106 @@ shared secret that is mutually agreed upon at the time of deployment /
 re-deployment / upgrade.
 
 To prevent session hijacking by means of root password theft or bearer token
-theft, Brigade API servers in remote clusters must secure traffic using HTTPS.
+theft, Brigade API servers in remote clusters should secure traffic API traffic
+using HTTPS.
 
 #### Authorization
 
-With authorization concerns no longer implicitly delegted to the Kubernetes API
-server, Brigade 2.0 will need to provide its own access control model.
+With authorization concerns no longer implicitly delegated to the Kubernetes API
+server, Brigade 2.0 will need to provide its own access control model. It is
+proposed to utilize a simple model wherein permissions are granted by
+associating a principal with an action and a resource (or set of resources)
+identified by means of a URI.
 
-`<<To be continued...>>`
+The following table illustrates using several examples.
+
+`<<TODO: Some of this is loosely inspired by Open Policy Agent. Read up on that some more for more useful insight...>>`
+
+| Principal Type | Principal | Action | Resource | Result |
+|----------------|-----------|--------|----------|--------|
+| user | matt.butcher@microsoft.com | create | /permissions | Matt can create global permissions. |
+| user | matt.butcher@microsoft.com | list | /permissions | Matt can list global permissions. |
+| user | matt.butcher@microsoft.com | delete | /permissions/* | Matt delete any global permission. |
+| user | matt.butcher@microsoft.com | create | /projects | Matt can create new projects. |
+| user | matt.butcher@microsoft.com | list | /projects | Matt can list projects. |
+| user | matt.butcher@microsoft.com | get | /projects/* | Matt can view any project. |
+| user | matt.butcher@microsoft.com | update | /projects/* | Matt can update any project. |
+| user | matt.butcher@microsoft.com | delete | /projects/* | Matt can delete any project. |
+| user | matt.butcher@microsoft.com | create | /projects/*/events | Matt can create new events for any project. |
+| user | matt.butcher@microsoft.com | list | /projects/*/events | Matt can list events for any project. |
+| user | matt.butcher@microsoft.com | get | /projects/*/events/* | Matt can view any event for any project. |
+| user | matt.butcher@microsoft.com | cancel | /projects/*/events/* | Matt can cancel any event for any project. |
+| user | matt.butcher@microsoft.com | delete | /projects/*/events/* | Matt can delete any event for any project. |
+| user | matt.butcher@microsoft.com | create | /projects/*/permissions | Matt can create permissions for any project. |
+| user | matt.butcher@microsoft.com | list | /projects/*/permissions | Matt can list permissions for any project. |
+| user | matt.butcher@microsoft.com | delete | /projects/*/permissions/* | Matt can delete any permission for any project. |
+| user | matt.butcher@microsoft.com | create | /service-accounts | Matt can create new service accounts. |
+| user | matt.butcher@microsoft.com | list | /service-accounts | Matt can list service accounts. |
+| user | matt.butcher@microsoft.com | get | /service-accounts/* | Matt can view any service account. |
+| user | matt.butcher@microsoft.com | update | /service-accounts/* | Matt can update any service account. |
+| user | matt.butcher@microsoft.com | lock | /service-accounts/* | Matt can lock any service account. |
+| user | matt.butcher@microsoft.com | unlock | /service-accounts/* | Matt can unlock any service account. |
+| user | matt.butcher@microsoft.com | list | /users | Matt can list users. |
+| user | matt.butcher@microsoft.com | get | /users/* | Matt can view any user. |
+| user | matt.butcher@microsoft.com | lock | /users/* | Matt can lock any user. |
+| user | matt.butcher@microsoft.com | unlock | /users/* | Matt can unlock any user. |
+| user | kent.rancourt@microsoft.com | list | /permissions | Kent can list global permissions. |
+| user | kent.rancourt@microsoft.com | list | /projects | Kent can list projects. |
+| user | kent.rancourt@microsoft.com | get | /projects/* | Kent can view any project. |
+| user | kent.rancourt@microsoft.com | update | /projects/foo | Kent can update the foo project. |
+| user | kent.rancourt@microsoft.com | delete | /projects/foo | Kent can delete the foo project. |
+| user | kent.rancourt@microsoft.com | create | /projects/foo/events | Kent can create new events for the foo project. |
+| user | kent.rancourt@microsoft.com | list | /projects/foo/events | Kent can list events for the foo project. |
+| user | kent.rancourt@microsoft.com | get | /projects/foo/events/* | Kent can view any event for the foo project. |
+| user | kent.rancourt@microsoft.com | cancel | /projects/foo/events/* | Kent can cancel any event for the foo project. |
+| user | kent.rancourt@microsoft.com | delete | /projects/foo/events/* | Kent can delete any event for the foo project. |
+| user | kent.rancourt@microsoft.com | create | /projects/foo/permissions | Kent can create permissions for the foo project. |
+| user | kent.rancourt@microsoft.com | list | /projects/*/permissions | Kent can list permissions for any project. |
+| user | kent.rancourt@microsoft.com | delete | /projects/foo/permissions/* | Kent can delete any permission for the foo project. |
+| user | kent.rancourt@microsoft.com | list | /service-accounts | Kent can list service accounts. |
+| user | kent.rancourt@microsoft.com | get | /service-accounts/* | Kent can view any service account. |
+| user | kent.rancourt@microsoft.com | list | /users | Kent can list users. |
+| user | kent.rancourt@microsoft.com | get | /users/* | Kent can view any user. |
+| user | radu.matei@microsoft.com | get | /projects/foo | Radu can view the foo project. |
+| user | radu.matei@microsoft.com | list | /projects/foo/events | Radu can list events for the foo project. |
+| user | radu.matei@microsoft.com | get | /projects/foo/events/* | Radu can view any event for the foo project. |
+| service account | github-gateway | create | /projects/*/events?source=github.com%2Fkrancour%2Fbrigade-github-gateway | The GitHub gateway can create events with `source=github.com/krancour/brigade-github-gateway` for any project. |
+| service account | github-gateway | get | /projects/*/events/*?source=github.com%2Fkrancour%2Fbrigade-github-gateway | The GitHub gateway can view events with `source=github.com/krancour/brigade-github-gateway` for any project. |
+
+`<<TODO: To be continued...>>`
 
 #### Secret Storage
+
+With respect to secrets used by Brigade itself, for instance bearer tokens
+associated with a user session or service account, it is both sufficient and
+easy to persist only a secure, one-way hash, however, no such assumption can be
+made with respect to a _project's_ secrets. Without knowing _how_ a project will
+utilize its secrets, any encryption must be reversible such that the original,
+cleartext value is available to workers and jobs in the course of
+event-handling. This being the case, secure storage of encrypted project-level
+secrets is a necessity. Implementing this would onerous once factors such as
+periodic key rotation have been accounted for and maintainers do not wish to
+undertake this. On the surface, delegating secret storage to a managed service
+such as Azure Key Vault or similar may appear easy and attractive, but would
+increase the operational footprint of Brigade's infrastructure dependencies and
+impede ease of use for evaluation or development purposes, making this another
+undesirable option.
+
+Recognizing, however, that once created, project-level secrets are utilized
+exclusively by workers and jobs, both of which execute on the underlying
+workload execution substrate (i.e. Kubernetes), and further recognizing that to
+be made available to those workers and pods, secret values must necessarily, at
+some point, be stored using the substrate's native secret storage mechanisms
+(i.e. Kubernetes `Secret` resources), it begins to appear tenable to delegate
+secret storage _exclusively_ to the substrate via the scheduling subsystem. i.e.
+When setting the value of a secret, it is set directly on the substrate and
+stored nowhere else.
+
+The secret storage solution proposed above means that Brigade can do no worse
+than the underlying substrate in securing a project's secrets. If the underlying
+substrate's (i.e. Kubernetes') native secret storage facilities are deemed
+inadequate, that problem is not Brigade's and can be addressed at a lower level,
+since Kubernetes supports pluggable backends for secret management.
 
 #### Preventing Escalation of Privileges
 
