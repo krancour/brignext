@@ -342,12 +342,12 @@ execution substrate to only a few components.
 
 With a few cross-cutting concerns such as access control notwithstanding, the
 proposed architecture decomposes Brigade into three logical subsystems-- record
-keeping, scheduling, and logging-- with a service facade layer to coordinate
-among these three. The service facade layer will be exposed to clients via
-secure HTTP endpoints that implement a RESTful API. An API client will be made
-available as a Go package.
+storage, scheduling, and logging-- with a service layer to coordinate among
+these three. The service layer will be exposed to clients via secure HTTP
+endpoints that implement a RESTful API. An API client will be made available as
+a Go package.
 
-![Logical Component Model](component.png)
+![Logical Component Model](components.png)
 
 N.B.: Brigade 1.x has a read-only API that is utilized by Kashti only. (Kashti
 is the web-based, read-only Brigade 1.x dashboard.) The API referenced above is
@@ -364,22 +364,22 @@ handling to illustrate.
 
 Brigade 2.0's REST API will be minimal and unremarkable, serving only to handle
 transport-specific details-- decoding HTTP requests into domain objects that may
-be passed to a transport-agnostic service facade layer and encoding domain
-objects returned from that service facde layer as HTTP responses.
+be passed to the transport-agnostic service layer and encoding domain objects
+returned from that service layer as HTTP responses.
 
 It is proposed that validation be handled by the API endpoints since JSON schema
 provides an easy and efficient mechanism for this purpose, but must be applied
 to raw HTTP request bodies prior to unmarshaling.
 
-### The Service Facade Layer
+### The Service Layer
 
-Brigade 2.0's service facade layer will implement high level, vendor neutral
-business logic and coordinate Brigade's underlying subsystems through
-well-defined interfaces.
+Brigade 2.0's service layer will implement high level, vendor neutral business
+logic and coordinate Brigade's underlying subsystems through well-defined
+interfaces.
 
-### Record Keeping Subsystem
+### Record Storage
 
-The record keeping subsystem will provide a synchronous interface for the
+The record storage subsystem will provide a synchronous interface for the
 persistence of domain objects such as projects and events. Document-based
 storage is proposed since relatively few relationships exist between domain
 objects and among those relationships that do exist, composition is highly
@@ -399,7 +399,7 @@ factors:
 1. Distributed transactions available when needed (in some configurations)
 1. Widespread developer familiarity
 
-### Scheduling Subsystem
+### Scheduling
 
 The scheduling subsystem will provide a synchronous interface for managing the
 underlying workload execution substrate-- which will be Kubernetes, exclusively.
@@ -435,7 +435,7 @@ A non-exhaustive list of potential message buses includes:
 
 `<<TODO: Describe the role of workers.>>`
 
-### Logging Subsystem
+### Logging
 
 The logging subsystem will utilize an agent-per-node deployment model to
 aggregate logs from worker and job containers and persist them in some data
