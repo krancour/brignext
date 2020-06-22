@@ -244,6 +244,14 @@ Refer to:
 
 * [Issue #340](https://github.com/brigadecore/brigade/issues/340)
 
+### Resumable Workflows
+
+`<<TODO: Flesh this out>>`
+
+Refer to:
+
+* [Issue #369](https://github.com/brigadecore/brigade/issues/369)
+
 ### Philosophical Issues
 
 Our final section outlining the motivations driving Brigade 2.0 tackles two
@@ -548,7 +556,7 @@ associate a principal with a `ClusterRole` that can, for instance, read all
 and `ClusterRoleBinding` resources are additionally utilized to manage access
 for resources that do not logically belong to a namespace. For instance,
 `StorageClass` resources are never scoped to a namespace, so access to such
-resources is managed in a global scope. Just as not all Kubernetes resources
+resources is managed in a cluster scope. Just as not all Kubernetes resources
 logically belong to a namespace, not all Brigade 2.0 resources logically belong
 to a project. Some Brigade 2.0 roles, therefore will have a global scope.
 
@@ -570,14 +578,17 @@ most access cases well.
 
 | Name | Scope | Description |
 |------|-------|-------------|
-| USER_MANAGER | Global | Lock and unlock users; grant/revoke global roles to/from users |
-| SERVICE_ACCOUNT_MANAGER | Global | Create, update, lock, and unlock service accounts; grant/revoke global roles to/from service accounts |
-| PROJECT_CREATOR | Global | Create new projects |
-| EVENT_CREATOR | `source` attribute | Create events for any project, as long as the `source` attribute has a specific value |
-| PROJECT_READER | Global or Project | Read permissions on all projects (global) or a specified project
-| PROJECT_USER | Project | Read, create events for the specified project |
-| PROJECT_DEVELOPER | Project | Read and update the specified project |
-| PROJECT_ADMIN | Project | Read, modify, delete, and create events for the specified project; grant/revoke project-scoped roles to/from users and service accounts |
+| `USER_MANAGER` | Global | Lock and unlock users; grant/revoke global roles to/from users |
+| `SERVICE_ACCOUNT_MANAGER` | Global | Create, update, lock, and unlock service accounts; grant/revoke global roles to/from service accounts |
+| `PROJECT_CREATOR` | Global | Create new projects |
+| `EVENT_CREATOR` | `source` attribute | Create events for any project, as long as the `source` attribute has a specific value |
+| `PROJECT_READER` | Global or Project | Read permissions on all projects (global) or a specified project
+| `PROJECT_USER` | Project | Read, create events for the specified project |
+| `PROJECT_DEVELOPER` | Project | Read and update the specified project |
+| `PROJECT_ADMIN` | Project | Read, modify, delete, and create events for the specified project; grant/revoke project-scoped roles to/from users and service accounts |
+
+N.B.: A principal in the global `PROJECT_CREATOR` automatically receives the
+`PROJECT_ADMIN` role for any new project they create.
 
 #### Secret Storage
 
@@ -614,9 +625,36 @@ since Kubernetes supports pluggable backends for secret management.
 
 #### Preventing Escalation of Privileges
 
-### Non-Goals
+Isolating each Brigade project to its own namespace has been among Brigade's
+most requested features. To fulfill this, Brigade 2.0 is proposed to (via the
+scheduling subsystem) _automatically create a brand new Kubernetes namespace for
+each new project_.
 
-### Unknowns
+N.B: The Kubernetes namespace to be used by each new project is proposed to
+_not_ be specifiable by any Brigade user. Since Brigade cannot know what
+permissions (if any) a user posseses within the underlying Kubernetes cluster,
+allowing any Brigade user to specify the namespace for a new project could be
+abused as an avenue for escalating user privileges as high as Brigade's own
+(which are substatial) to effectively hijack any existing namespace. Similarly,
+the Kubernetes service accounts used by a given Brigade project's workers and
+jobs within its assigned namespace are automatically created and are _not_ user
+specifiable.
+
+Although Brigade 2.0 is proposed to prohibit users from _specifying_ the
+namespace in which a given project's workloads will be executed and likewise
+prohibits the service accounts utilized by a project's workers and jobs from be
+specified, Brigade will _expose_ all of this information to users in a read-only
+capacity. By doing so, users implementing advanced use cases and having need to
+customize the underlying namespace (for instance, manually launching
+supplemental, long-running processes) or service accounts (to grant workers or
+jobs additional permissions within the Kubernetes namespace or cluster) may
+still do so by "dropping down" to Kubernetes to effect those customizations.
+
+Refer to:
+
+* [Issue #755](https://github.com/brigadecore/brigade/issues/755)
+
+### Unknowns and Risks
 
 ### Early Prototype
 
