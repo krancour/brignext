@@ -492,11 +492,25 @@ to facilitate initial setup (only) of Brigade on _shared_ clusters, it is
 proposed that "root" access to Brigade may be selectively enabled / disabled at
 the time of deployment / re-deployment / upgrade.
 
+N.B.: When any _new_ user authenticates with OpenID Connect, a new user account
+is created automatically, but initially has no roles assigned (see section on
+authorization). Roles may be granted by a user manager or project admin. It is
+proposed that users, once registered _cannot_ be deleted since nothing prevents
+a deleted user from re-registering (although having no permissions upon doing
+so). The benefits of _keeping_ the user account and thereby maintaining the
+relational integrity of the underlying data store seem to outweight the finality
+of hard-deleting the account. Users who require their Brigade access to be
+revoked can therefore have their accounts _locked_ by a user manager.
+
 Non-human users-- such as event gateways-- will utilize service accounts that
 human Brigade administrators may manage directly using the CLI/API. Service
 accounts will authenticate by means of non-expiring, but revokable, bearer
 tokens. (Note these are _not_ Kubernetes service accounts; but _Brigade_ service
 accounts.)
+
+N.B.: For symmetry with user accounts, service accounts, once created, cannot be
+deleted, but can only be locked if access must be revoked. This also helps to
+maintain the relational integrity of the underlying data store.
 
 Lastly, the scheduling agent is, necessarily, a _special class of user_ that can
 carry out operations disallowed for _all_ other users (including "root"). These
@@ -513,66 +527,57 @@ using HTTPS.
 
 With authorization concerns no longer implicitly delegated to the Kubernetes API
 server, Brigade 2.0 will need to provide its own access control model. It is
-proposed to utilize a simple model wherein permissions are granted by
-associating a principal with an action and a resource (or set of resources)
-identified by means of a URI.
+proposed to utilize a simple role-based model with pre-defined roles, each
+being constrained to a particular scope.
 
-The following table illustrates using several examples.
+A meaningful comparison can be made between Kubernetes' access control model and
+that proposed here. In Kubernetes, a `RoleBinding` resource creates an
+association between a principal and a `Role` _in a given namespace._ Using a
+`RoleBinding` to associate a principal with a `Role` that can, for instance,
+read all `Pod` resources within a given namespace says nothing of the
+principal's ability to read `Pod` resources in _other_ namespaces. Since Brigade
+2.0 projects are roughly analagous to Kubernetes namespaces, a project acts as a
+convenient boundary for qualifying the scope of certain roles granted to a
+principal.
 
-`<<TODO: Some of this is loosely inspired by Open Policy Agent. Read up on that some more for more useful insight...>>`
+Extending the comparison to Kubernetes, in that system a `ClusterRoleBinding`
+resource creates an association between a principal and a `ClusterRole` that is
+_not_ qualified or constrained by namespace. Using a `ClusterRoleBinding` to
+associate a principal with a `ClusterRole` that can, for instance, read all
+`Pod` resources grants the principal this ability _cluster-wide_. `ClusterRole`
+and `ClusterRoleBinding` resources are additionally utilized to manage access
+for resources that do not logically belong to a namespace. For instance,
+`StorageClass` resources are never scoped to a namespace, so access to such
+resources is managed in a global scope. Just as not all Kubernetes resources
+logically belong to a namespace, not all Brigade 2.0 resources logically belong
+to a project. Some Brigade 2.0 roles, therefore will have a global scope.
 
-| Principal Type | Principal | Action | Resource | Result |
-|----------------|-----------|--------|----------|--------|
-| user | matt.butcher@microsoft.com | create | /permissions | Matt can create global permissions. |
-| user | matt.butcher@microsoft.com | list | /permissions | Matt can list global permissions. |
-| user | matt.butcher@microsoft.com | delete | /permissions/* | Matt delete any global permission. |
-| user | matt.butcher@microsoft.com | create | /projects | Matt can create new projects. |
-| user | matt.butcher@microsoft.com | list | /projects | Matt can list projects. |
-| user | matt.butcher@microsoft.com | get | /projects/* | Matt can view any project. |
-| user | matt.butcher@microsoft.com | update | /projects/* | Matt can update any project. |
-| user | matt.butcher@microsoft.com | delete | /projects/* | Matt can delete any project. |
-| user | matt.butcher@microsoft.com | create | /projects/*/events | Matt can create new events for any project. |
-| user | matt.butcher@microsoft.com | list | /projects/*/events | Matt can list events for any project. |
-| user | matt.butcher@microsoft.com | get | /projects/*/events/* | Matt can view any event for any project. |
-| user | matt.butcher@microsoft.com | cancel | /projects/*/events/* | Matt can cancel any event for any project. |
-| user | matt.butcher@microsoft.com | delete | /projects/*/events/* | Matt can delete any event for any project. |
-| user | matt.butcher@microsoft.com | create | /projects/*/permissions | Matt can create permissions for any project. |
-| user | matt.butcher@microsoft.com | list | /projects/*/permissions | Matt can list permissions for any project. |
-| user | matt.butcher@microsoft.com | delete | /projects/*/permissions/* | Matt can delete any permission for any project. |
-| user | matt.butcher@microsoft.com | create | /service-accounts | Matt can create new service accounts. |
-| user | matt.butcher@microsoft.com | list | /service-accounts | Matt can list service accounts. |
-| user | matt.butcher@microsoft.com | get | /service-accounts/* | Matt can view any service account. |
-| user | matt.butcher@microsoft.com | update | /service-accounts/* | Matt can update any service account. |
-| user | matt.butcher@microsoft.com | lock | /service-accounts/* | Matt can lock any service account. |
-| user | matt.butcher@microsoft.com | unlock | /service-accounts/* | Matt can unlock any service account. |
-| user | matt.butcher@microsoft.com | list | /users | Matt can list users. |
-| user | matt.butcher@microsoft.com | get | /users/* | Matt can view any user. |
-| user | matt.butcher@microsoft.com | lock | /users/* | Matt can lock any user. |
-| user | matt.butcher@microsoft.com | unlock | /users/* | Matt can unlock any user. |
-| user | kent.rancourt@microsoft.com | list | /permissions | Kent can list global permissions. |
-| user | kent.rancourt@microsoft.com | list | /projects | Kent can list projects. |
-| user | kent.rancourt@microsoft.com | get | /projects/* | Kent can view any project. |
-| user | kent.rancourt@microsoft.com | update | /projects/foo | Kent can update the foo project. |
-| user | kent.rancourt@microsoft.com | delete | /projects/foo | Kent can delete the foo project. |
-| user | kent.rancourt@microsoft.com | create | /projects/foo/events | Kent can create new events for the foo project. |
-| user | kent.rancourt@microsoft.com | list | /projects/foo/events | Kent can list events for the foo project. |
-| user | kent.rancourt@microsoft.com | get | /projects/foo/events/* | Kent can view any event for the foo project. |
-| user | kent.rancourt@microsoft.com | cancel | /projects/foo/events/* | Kent can cancel any event for the foo project. |
-| user | kent.rancourt@microsoft.com | delete | /projects/foo/events/* | Kent can delete any event for the foo project. |
-| user | kent.rancourt@microsoft.com | create | /projects/foo/permissions | Kent can create permissions for the foo project. |
-| user | kent.rancourt@microsoft.com | list | /projects/*/permissions | Kent can list permissions for any project. |
-| user | kent.rancourt@microsoft.com | delete | /projects/foo/permissions/* | Kent can delete any permission for the foo project. |
-| user | kent.rancourt@microsoft.com | list | /service-accounts | Kent can list service accounts. |
-| user | kent.rancourt@microsoft.com | get | /service-accounts/* | Kent can view any service account. |
-| user | kent.rancourt@microsoft.com | list | /users | Kent can list users. |
-| user | kent.rancourt@microsoft.com | get | /users/* | Kent can view any user. |
-| user | radu.matei@microsoft.com | get | /projects/foo | Radu can view the foo project. |
-| user | radu.matei@microsoft.com | list | /projects/foo/events | Radu can list events for the foo project. |
-| user | radu.matei@microsoft.com | get | /projects/foo/events/* | Radu can view any event for the foo project. |
-| service account | github-gateway | create | /projects/*/events?source=github.com%2Fkrancour%2Fbrigade-github-gateway | The GitHub gateway can create events with `source=github.com/krancour/brigade-github-gateway` for any project. |
-| service account | github-gateway | get | /projects/*/events/*?source=github.com%2Fkrancour%2Fbrigade-github-gateway | The GitHub gateway can view events with `source=github.com/krancour/brigade-github-gateway` for any project. |
+In contrast to Kubernetes, Brigade 2.0 is proposed to, in one isolated case, be
+capable of scoping a role to something other than a namespace (Kubernetes) or
+project (Brigade). To illustrate, it would be rational to wish that a service
+account utilized by an event gateway would be able to create events for _all_
+projects, but _only if_ the event's `source` attribute is set to a specific
+value. This would effectively prohibit a gateway from creating events that
+masquerade as having originated from a different gateway.
 
-`<<TODO: To be continued...>>`
+Also standing in contrast to Kubernetes, all Brigade 2.0 roles are proposed to
+be pre-defined and _not_ user-defined. This is proposed because, compared to
+Kubernetes, Brigade has relatively few resource types, cannot be extended with
+user-define APIs and resource types, and resource types possess an inate level
+of domain specificty that Kubernetes resource types lack. Under these
+conditions, it is easy to enumerate a small number of roles that should cover
+most access cases well.
+
+| Name | Scope | Description |
+|------|-------|-------------|
+| USER_MANAGER | Global | Lock and unlock users; grant/revoke global roles to/from users |
+| SERVICE_ACCOUNT_MANAGER | Global | Create, update, lock, and unlock service accounts; grant/revoke global roles to/from service accounts |
+| PROJECT_CREATOR | Global | Create new projects |
+| EVENT_CREATOR | `source` attribute | Create events for any project, as long as the `source` attribute has a specific value |
+| PROJECT_READER | Global or Project | Read permissions on all projects (global) or a specified project
+| PROJECT_USER | Project | Read, create events for the specified project |
+| PROJECT_DEVELOPER | Project | Read and update the specified project |
+| PROJECT_ADMIN | Project | Read, modify, delete, and create events for the specified project; grant/revoke project-scoped roles to/from users and service accounts |
 
 #### Secret Storage
 
