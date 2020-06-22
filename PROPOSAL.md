@@ -244,13 +244,19 @@ Refer to:
 
 * [Issue #340](https://github.com/brigadecore/brigade/issues/340)
 
-### Resumable Workflows
+### Resilient Workflows
 
-`<<TODO: Flesh this out>>`
+Support for "resilient" worklows-- ones that can be retried after a failure and
+resume where they left off _without re-executing jobs that have already
+succeeded--_ has been a popular feature request. Under the Brigade 1.x
+architecture, implementing this had not been deemed feasible, however, the
+maintainers wish to revisit this feature request if new architecture improves
+its tenability.
 
 Refer to:
 
 * [Issue #369](https://github.com/brigadecore/brigade/issues/369)
+* [Issue #995](https://github.com/brigadecore/brigade/issues/995)
 
 ### Philosophical Issues
 
