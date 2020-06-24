@@ -1,11 +1,11 @@
 # Toward a Better Brigade
 
-In the time since its first major release, Brigade has proven itself a useful
-and [moderately
+Since its first major release, Brigade has proven itself a useful and
+[moderately
 popular](https://www.cncf.io/wp-content/uploads/2020/03/CNCF_Survey_Report.pdf)
 platform for achieving _"event-driven scripting for Kubernetes."_ Over that same
 period, reports from our community and the maintainers' own efforts to "dog
-food" Brigade have exposed numerous issues and reasonable feature requests which
+food" Brigade have exposed many issues and reasonable feature requests which
 cannot be addressed without re-architecting the product and incurring some
 degree of breaking changes. _In other words, it is time to talk about Brigade
 2.0._
@@ -18,11 +18,11 @@ feedback from and ratification by the broader Brigade community.
 
 Brigade 2.0 is proposed to introduce a less Kubernetes-centric experience,
 wherein users having little or no Kubernetes experience, or even those lacking
-direct access to a Kubernetes cluster, can quickly become productive. Breaking
-changes are on the docket, but Brigade 2.0 should feel familiar to anyone with
-previous Brigade experience. In short, the author proposes Brigade's nuanced
-transition from "event-driven scripting for Kubernetes" to "event driven
-scripting (for Kubernetes)."
+direct access to a cluster, can quickly become productive. Breaking changes are
+on the docket, but Brigade 2.0 should feel familiar to anyone with previous
+Brigade experience. In short, the author proposes Brigade's nuanced transition
+from "event-driven scripting for Kubernetes" to "event driven scripting (for
+Kubernetes)."
 
 ## Motivations
 
@@ -33,48 +33,47 @@ architecture, and a selection of existing issues is in order.
 ### Early Design Decisions & Architecture
 
 Brigade was designed to be as lightweight and "cloud native" as possible,
-consciously shunning third-party dependencies and relying solely on Kubernetes
-wherever practical. To be sure, this was not without merit. By leveraging
-Kubernetes `Secret` resources as a sort of makeshift document store and message
-bus, Brigade's developers were spared from integrating with third-party
-alternatives. Meanwhile, Brigade operators were spared from deploying and
-managing such dependencies.
+shunning third-party dependencies and relying solely on Kubernetes wherever
+practical. To be sure, this was not without merit. By leveraging Kubernetes
+`Secret` resources as a sort of makeshift document store and message bus,
+Brigade's developers were spared from integrating with third-party alternatives.
+Meanwhile, Brigade operators were spared from deploying and managing such
+dependencies.
 
 These principles resulted in a _very thin_ layer of abstraction between
 Brigade's users and Kubernetes. The `brig` CLI, for instance, communicates
-_directly_ with the Kubernetes API server using the user's own Kubernetes
-cluster credentials. Similarly, gateways that broker events from external
-systems like GitHub, Docker Hub, or Slack (to name a few), communicate directly
-with the Kubernetes API server using Kubernetes cluster service accounts.
+_directly_ with the Kubernetes API server using the user's own cluster
+credentials. Similarly, gateways that broker events from external systems like
+GitHub, Docker Hub, or Slack (to name a few), communicate directly with the
+Kubernetes API server using Kubernetes service accounts.
 
 Brigade owes much of its early success to its lightweight nature, but many
 outstanding issues can also be traced back to these early design decisions,
-which the author of this proposal suggests are worth revisiting.
+which this proposal suggests are worth revisiting.
 
 ### Usability Issues
 
 Usability issues have been a common complaint. By way of example, anyone who has
 created a Brigade project through the interactive `brig project create` command
 is likely to have found that experience clumsy. In the event of later wishing to
-revise one's project definition, users discover that the `brig` CLI exposes no
-`brig project update` command. A novice user might issue a `brig project create
---replace` command to repeat the onerous creation process in its entirety.
-Meanwhile, an intrepid Kubernetes user is apt to directly edit the `Secret`
-resource backing the project definition. Maintainers are aware of many such
-users having fallen back on Helm or loose Kubernetes manifests to manage Brigade
-projects.
+revise one's project definition, users discover that the CLI exposes no `project
+update` command. A novice user might issue a `brig project create --replace`
+command to repeat the onerous creation process in its entirety. Meanwhile, an
+intrepid Kubernetes user might directly edit the `Secret` resource backing the
+project definition. Maintainers are aware of many such users having fallen back
+on Helm or loose Kubernetes manifests to manage their Brigade projects.
 
-To be fair, this issue is a UX one and could probably be remediated without
-re-architecting the entire product, but it is noteworthy because it illustrates
-just how thin Brigade's abstraction between the user and Kubernetes is. While a
-seasoned Kubernaut might perceive the ability to "drop down" to Kubernetes on an
-as-needed basis to be a feature, a novice Kubernetes user is more likely to
-perceive that UX in more perilous terms-- falling through thin ice.
+To be fair, this particular issue is a UX one and could probably be remediated
+without re-architecting the entire product, but it is noteworthy because it
+illustrates just how thin Brigade's abstraction between the user and Kubernetes
+is. While a seasoned Kubernaut might perceive the ability to "drop down" to
+Kubernetes on an as-needed basis to be a feature, a novice user is more likely
+to perceive that UX in more perilous terms, such as falling through thin ice.
 
 In the view of the author, permitting Kubernetes expertise to remain a _de
-facto_ prerequisite for success with Brigade creates an undesired barrier to
-adoption by a broader population of developers who may lack Kubernetes expertise
-but could otherwise find value in Brigade.
+facto_ prerequisite for success creates a barrier to adoption by a broader
+population of developers who may lack such expertise but could otherwise find
+value in Brigade.
 
 Refer to:
 
@@ -83,24 +82,27 @@ Refer to:
 ### Security Risks
 
 Brigade's abstraction between users and Kubernetes being as thin as it is poses
-a security risk. Because the `brig` CLI is useless without Kubernetes cluster
-credentials, all Brigade users must have such credentials and, minimally, be
-granted read access to `Secret` resources within Brigade's namespace.
-
-With the author wishing for Kubernetes expertise not to remain a _de facto_
-prerequisite, it is prudent to contemplate the potential folly of granting any
-level of cluster access to a novice user. Even if Kubernetes expertise were to
-remain a given, there is obvious risk in granting even _read_ access to `Secret`
-resources within Brigade's namespace, since it is likely to host projects _other
-than the users' own._ With such permissions, users too easily gain access to one
-another's project-level secrets and the inherent risk in that cannot be
+an inherent security risk. Because the `brig` CLI is useless without Kubernetes
+cluster credentials, all Brigade users must have such credentials and,
+minimally, be granted read access to `Secret` resources within Brigade's
+namespace. If Brigade hosts any projects other than the users' own, that user
+can too easily access their secrets and the risk that presents cannot be
 overstated.
 
-N.B. 1: The current workaround for this is to run a separate Brigade instance
-for each project or logical group of projects, which is resource-intensive.
+N.B.: The current workaround for this is to run a separate Brigade instance
+for each project or logical group of projects, which has the potential to become
+a resource drain as the number of projects increases.
 
-N.B. 2: Isolating each Brigade project to its own namespace has been among
+N.B.: Isolating each Brigade project to its own namespace has been among
 Brigade's most requested features.
+
+Since the author additionally wishes for Kubernetes expertise not to remain a
+_de facto_ prerequisite, it is also worth weighing the risks posed by granting
+_any_ level of cluster access to a novice user.
+
+These factors strongly point to the need for better isolation between projects,
+and an access control model that is viable for users who are not granted direct
+access to the cluster.
 
 Refer to:
 
@@ -112,25 +114,23 @@ Reiterating that Brigade leverages Kubernetes as a makeshift data store, it is
 worth examining whether it fills that role well or whether possible alteratives
 are due some consideration.
 
-Usability issues and security risks notwithstanding, persisting Brigade projects
-as `Secret` resources seems sensible. Yet, projects are not the only Brigade
-objects that are backed by a Kubernetes resources. Like projects, events are
-backed by `Secret` resources. _Workers_ that process those events, as well as
-the _jobs_ those workers may fan out to, are backed by the Kubernetes pods in
-which they were executed.
+On the surface, persisting Brigade projects as `Secret` resources may seem
+sensible. Yet, projects are not the only Brigade objects that are backed by
+Kubernetes resources. _Workers_ that process Brigade events, for instance, are
+backed by the Kubernetes pods in which they were executed. A worker's logs are
+found nowhere except within the corresponding pod. CLI commands such as `brig
+build logs` only retrieve those logs via the Kubernetes API. Even a worker's
+state is determined solely by the corresponding pod's state, and a worker's very
+existence is coupled to the existence of the corresponding pod. Should a pod be
+deleted, all record of the corresponding worker is deleted with it.
 
-A worker or job's logs are found nowhere except within the corresponding pod.
-CLI commands such as `brig build logs` merely retrieve those logs via the
-Kubernetes API. Even a worker or job's state is determined solely by the
-corresponding pod's state, and a worker or job's very existence is coupled to
-the existence of the corresponding pod. Should a pod be deleted, all record of
-the corresponding worker or job is deleted with it.
-
-The above is especially problematic when considering the array of circumstances
-beyond any user's control in which a pod might be deleted. If the Kubernetes
-node that hosted a given pod were to be decomissioned, for instance, all record
-of the corresponding worker or job would vanish without a trace. A pod evicted
-from its node by the Kubelet, for any reason, would have the same result.
+While Kubernetes users who like a tidy cluster may be put off by completed pods
+hanging around indefinitely for the sake of data retention, the above is even
+more problematic when considering the array of circumstances beyond any user's
+control under which a pod might be deleted. If the Kubernetes node that hosted a
+given worker pod were to be decomissioned, for instance, all record of the
+corresponding worker would vanish without a trace. A pod evicted from its node
+by the Kubelet, for any reason, would have the same result.
 
 While it is easy to imagine how the potential for data loss might preclude
 Brigade's use by enterprises with strict data retention policies, all users
@@ -148,25 +148,25 @@ Refer to:
 
 Use of Kubernetes as a makeshift message bus for event delivery has also been
 found to be problematic. Brigade's controller component monitors Brigade's
-namespace for `Secret` resources that represent new events. When found, it
-launches a worker pod in response. If a large volume of events are created at
+namespace for `Secret` resources that represent new events. When one is found,
+it launches a worker pod in response. If a large volume of events are created at
 once, a large volume of worker pods are also launched in rapid succession-- each
 potentially fanning out and creating multiple job pods.
 
-How events unfold depends on the extent to which the good practice of specifying
-resource limits for each worker and job has been observed. If not observed
-widely, the amount of work scheduled in the cluster may effectively be
-unbounded. This may result in numerous pod evictions as resources become scarce.
-(The previous section describes how that is problematic in its own right.)
+If the good practice of specifying resource limits for each worker (and job) has
+not been widely observed, the amount of concurrent work scheduled in the cluster
+is effectively unbounded. This may result in numerous pod evictions as resources
+become scarce. (And the previous section describes how that can precipitate data
+loss.)
 
-If resource limits have been specified, situations may be encountered wherein
-worker pods launch, consume all available resources, and cannot spawn job pods
-due to resource scarcity. This can deadlock a cluster until workers begin timing
-out-- perhaps only to be replaced with new workers that will encounter the same
-conditions.
+If resource limits have been widely specified, situations may be encountered
+wherein worker pods launch, consume all available resources, and therefore
+cannot spawn job pods due to resource scarcity. This can deadlock a cluster
+until workers begin timing out-- perhaps only to be replaced with new workers
+that will encounter the same conditions.
 
 It is clear that the Brigade controller would benefit from the ability to
-_throttle_ the number of concurrent events that may be processed, perhaps on a
+_limit_ the number of concurrent events that may be handled, perhaps on a
 per-project basis as well as cluster-wide. It is difficult to imagine how this
 might be accomplished whilst utilizing Kubernetes as a makeshift message bus,
 but is easy to implement using any of several alternatives.
@@ -181,7 +181,7 @@ Refer to:
 Brigade does not currently provide gateways with any explicit method of
 discovering projects that are subscribed to an inbound event. A project's
 subscription to any particular set of events is implied by its name. For
-instance, the GitHub gateway emits events from GitHub into Brigade for (at most)
+instance, the GitHub gateway emits events from GitHub into Brigade for, at most,
 one project whose name must precisely match the fully qualified name of the
 repository. For example, the Brigade project named `krancour/demo` is implicitly
 subscribed to events originating from the `krancour/demo` repository on GitHub.
@@ -204,13 +204,24 @@ default, but whose behavior is defined differently. This concept was even
 demonstrated live in a KubeCon 2019 talk.
 
 Though it has been proven possible, the method of achieving this remains
-cumbersome and unintuitive from a UX standpoint because Brigade makes
-unnecessary assumptions that do not hold for all custom worker images. It is,
-for instance, confusing to encounter a project that embeds as default
-`brigade.js` file that actually contains YAML or TypeScript.
+cumbersome. For one, producing alternative workers is onerous because workers
+receive input through two different channels: dozens of environment variables
+and Kubernetes API calls to read project secrets. Understanding what inputs need
+to be obtained from where requires the developers of alternative worker images
+to dig deep into Brigade documentation and code.
+
+Support for alternative workers is also cumbersome and unintuitive from a UX
+perspective since Brigade makes unnecessary assumptions that do not hold for all
+worker images. It is, for instance, confusing to encounter a project that embeds
+a default `brigade.js` file that actually contains YAML or TypeScript.
+
+If these issues can be satisfactorily addressed by Brigade 2.0, it is proposed
+that future 2.x releases introduce official support for workflows defined using
+YAML or TypeScript.
 
 Refer to:
 
+* [Issue #1038](https://github.com/brigadecore/brigade/issues/1038)
 * [Issue #1024](https://github.com/brigadecore/brigade/issues/1024)
 * [Issue #527](https://github.com/brigadecore/brigade/issues/527)
 
@@ -224,9 +235,30 @@ While this principle was and remains commendable, Brigade has failed to enforce
 a clean separation between itself and GitHub. GitHub-specific fields exist
 within the Brigade `Project` type. The maintainers do wish to see this undone.
 
+Conversely, when this principle _has_ been observed, the burden of reporting
+event status upstream to the system from which the event originated has been
+shifted to Brigade users who must account for such requirements in their
+`brigade.js` script. GitHub, again, provides an example. If a workflow were
+triggered by a pull request and a Brigade user wished for that workflow to
+report unit test results upstream using the Checks API, their `brigade.js` sript
+would have to account for that, either directly or by spawning additional jobs
+to facilitate the reporting.
+
+Aside: The GitHub gateway "wraps" some (but not other) event payloads from
+GitHub to add short-lived credentials that the `brigade.js` script can use for
+reporting. This effectively changes the schema of certain event payloads from
+what has been documented by GitHub to something Brigade-specific, which is
+unexpected behavior the author of a `brigade.js` script needs to be aware of. It
+is easy to see this is a brittle.
+
+Event gateways could take on the burden of reporting status to upstream event
+sources if they were to gain insight into the status and logs of the events they
+have emitted into Brigade.
+
 Refer to:
 
 * [project.go](https://github.com/brigadecore/brigade/blob/8ffeb29d3e8133826851d8c7471915b7c50fe412/pkg/brigade/project.go#L31-L34)
+* [Issue #1039](https://github.com/brigadecore/brigade/issues/1039)
 
 ### Job Sidecars
 
@@ -235,12 +267,14 @@ wished to add for some time. To date, this has not been possible. Kubernetes
 supports multiple containers per pod, but does not permit any one container to
 be designated as "primary" and treated differently than the others. Thus,
 there's no way to shut down all containers and conclude a pod's lifecycle once
-one particular container has exited. A workaround for this is to monitor pods
-for completion of a particular container and then delete the entire pod. To
-date, Brigade has been unable to take advantage of that workaround since all job
-state and logs are coupled to the continued existence of its corresponding pod.
-If the decision to utilize Kubernetes as a makeshift data store is revisited, so
-too can the possibility of support for job sidecars.
+one particular container has exited.
+
+A workaround for this could be to monitor pods for completion of a particular
+container and then delete the entire pod. To date, Brigade has been unable to
+take advantage of that workaround since all job state and logs are coupled to
+the continued existence of its corresponding pod. If the decision to utilize
+Kubernetes as a makeshift data store is revisited, so too can the possibility of
+support for job sidecars.
 
 Refer to:
 
@@ -292,12 +326,13 @@ Brigade 2.0:
 
 1. Neither Kubernetes expertise nor cluster credentials must be a prerequisite
    for success.
-    1. Kubernetes is neither to be removed nor 100% abstracted. A realistic
-       goal is to minimize Kubernetes' use as anything other than a substrate
-       for workload execution and minimize Brigade / Kubernetes touchpoints.
+    1. Kubernetes is neither to be removed nor 100% abstracted. Realistic goals
+       are to minimize Kubernetes' use as anything other than a substrate for
+       workload execution and to isolate Brigade's touchpoints with Kubernetes
+       to specific components.
     1. Some degree of freedom to "drop down" to Kubernetes may be retained to
-       enable advanced / fringe use cases, but the need to utilize this should
-       be _exceptional._
+       enable implementation of advanced / fringe use cases, but the need to
+       utilize this should be _exceptional._
 
 1. The UX must be both simplified and improved while striving to remain
    recognizable and comfortable for experienced Brigade users.
@@ -307,13 +342,13 @@ Brigade 2.0:
 1. Product evaluation (aka "tire kicking") / local use for development must not
    become onerous.
     1. For any new dependencies, a default Brigade installation must provision
-       in-cluster instances running in configurations that limit resource use.
-       Documentation may offer guidance on optimizing installations for
-       production use.
+       in-cluster instances running in configurations that consume few
+       resources. Documentation may offer guidance on optimizing installations
+       for production use.
     1. Security improvements must not encumber evaluation.
 
-1. Small compromises are deemed acceptable if they remediate larger issues. By
-   way of example, logs that stream more slowly than Brigade 1.x's are
+1. Small compromises are deemed acceptable if they remediate larger issues. For
+   instance, logs that stream with greater latency than Brigade 1.x's are
    acceptable if they're less susceptible to data loss.
 
 1. Design cues should be taken from Kubernetes (or other familiar sources)
@@ -323,16 +358,16 @@ Brigade 2.0:
 
 ### The Domain Model
 
-Incidental types required to address non-functional requirements (such as
-authentication and authorization) notwithstanding, Brigade 2.0 is proposed to
-deal with only two "top level" domain elements: projects and events.
+Incidental types required to address non-functional requirements (such as access
+control) notwithstanding, Brigade 2.0 is proposed to deal with only two "top
+level" domain elements: projects and events.
 
-__Projects__ pair _subscriptions_ to various events with a prototype or
-_template_ for a worker that will be triggered to handle such events. Projects
-additionally play a role similar to that of a Kubernetes namespace in that they
-define a logical scope for permissions. For instance, rather than granting a
-user permissions to list or view all events in Brigade, a user might be granted
-permissions to list or view events _for a particular project_.
+__Projects__ pair _subscriptions_ to various events with a _template_ for a
+worker that will be handle such events. Projects additionally play a role
+similar to that of a Kubernetes namespace in that they define a logical scope
+for access controls. For instance, rather than granting a user permissions to
+list or view _all_ events in Brigade, a user might be granted permissions to
+list or view events _for a particular project_.
 
 __Events__ describe something that has occurred in some upstream system that may
 trigger a workflow within Brigade. Event gateways broker these events,
@@ -361,8 +396,9 @@ With a few cross-cutting concerns such as access control notwithstanding, the
 proposed architecture decomposes Brigade into three logical subsystems-- record
 storage, scheduling, and logging-- with a service layer to coordinate among
 these three. The service layer will be exposed to clients via secure HTTP
-endpoints that implement a RESTful API. An API client will be made available as
-a Go package.
+endpoints that implement a RESTful API. Brigade tpyes and an API client will be
+made available as in a Go SDK. An improved `brig` CLI and crop of new gateways
+will utilize utilize that SDK.
 
 ![Logical Component Model](components.png)
 
@@ -387,6 +423,10 @@ returned from that service layer as HTTP responses.
 It is proposed that validation be handled by the API endpoints since JSON schema
 provides an easy and efficient mechanism for this purpose, but must be applied
 to raw HTTP request bodies prior to unmarshaling.
+
+N.B.: In the case of projects, JSON schema can be reused by IDEs to validate
+project definitions as they are edited. The author proposes this UX to be
+superior to the current `brig project create` process.
 
 ### The Service Layer
 
@@ -426,8 +466,8 @@ orchestating workload execution on the substrate.
 
 The synchronous interface will effect immediate changes to the substrate
 wherever those changes can be applied in real-time and with minimal resource
-utilization. For instance, event creation or cancelation may occur in real-time,
-while _event-handling_ may be deferred to the asynchronous agent.
+utilization. For instance, event creation or cancelation may occur in real-time.
+Event execution will be deferred to the asynchronous agent.
 
 To bridge the gap between the synchronous and asynchronous components of this
 subsystem, a message bus capable of ensuring reliable transmission of messages
@@ -452,8 +492,6 @@ A non-exhaustive list of potential message buses includes:
 1. Kafka
 1. Redis (using the [reliable queue](https://redis.io/commands/rpoplpush#pattern-reliable-queue) pattern)
 
-`<<TODO: Describe the role of workers.>>`
-
 ### Logging
 
 The logging subsystem will utilize an agent-per-node deployment model to
@@ -467,7 +505,12 @@ proposal recommends the use of MongoDB for this purpose. Assuming MongoDB will
 be utilized as the record keeping subsystem's underlying data store, the choice
 to reuse it minimizes the footprint of Brigade's infrastructure dependendies.
 
-N.B. The
+N.B.: As fluent-bit matures, it may become another viable log agent-- one that
+can reasonably be expected to both be faster and consume fewer resources than
+fluentd. Switching from fluentd to fluent-bit could be accomplished with no
+user-facing changes being incurred.
+
+N.B.: The
 [log-agent-per-node](https://docs.fluentd.org/container-deployment/kubernetes#fluentd-daemonset)
 deployment model will, in aggregate, consume an undesireable amount of resources
 in any cluster (large or small) that is not used _exclusively_ for Brigade. In
@@ -484,9 +527,9 @@ comes to an end and must be replaced with other access control measures.
 
 #### Authentication
 
-Authentication is not, in and of itself onerous to implement, but orthogonal
+Authentication is not, in and of itself onerous to implement, but tangential
 concerns such as user registraton and password reset functionality can be. Such
-features additionally increase the footprint of Brigade's infrastructure
+features would additionally increase the footprint of Brigade's infrastructure
 dependencies in that they rely on outbound email for purposes of identity
 verification. Wishing to avoid both the development effort and the additional
 dependencies, the author proposes utilizing [OpenID
@@ -507,7 +550,7 @@ reference, the Azure CLI implements authentication in a similar fashion.)
 
 N.B.: To prevent the dependency on an identity provider from becoming an
 impedence to evaluation (aka "tire kicking") and local development, as well as
-to facilitate initial setup of Brigade on _shared_ clusters, it is proposed that
+to facilitate initial setup of Brigade on remote clusters, it is proposed that
 "root" access to Brigade may be selectively enabled / disabled at the time of
 deployment / re-deployment / upgrade.
 
@@ -515,16 +558,15 @@ N.B.: When any _new_ user authenticates with OpenID Connect, a new user account
 is created automatically, but initially has no roles assigned (see section on
 authorization). Roles may be granted by a user manager or project admin. It is
 proposed that users, once registered _cannot_ be deleted since nothing prevents
-a deleted user from re-registering (although having no permissions upon doing
-so). The benefits of _keeping_ the user account and thereby maintaining the
-relational integrity of the underlying data store seem to outweight the finality
-of hard-deleting the account. Users who require their Brigade access to be
-revoked can therefore have their accounts _locked_ (instead of deleted) by a
-user manager.
+a deleted user from re-registering. The benefits of _keeping_ but disabling the
+user account and thereby maintaining the relational integrity of the underlying
+data store seem to outweight the finality of hard-deleting the account. Users
+who require their Brigade access to be revoked can therefore have their accounts
+_locked_ (instead of deleted) by a user manager.
 
 Non-human users-- such as event gateways-- will utilize service accounts that
 human Brigade administrators may manage directly using the CLI/API. Service
-accounts will authenticate by means of non-expiring, but revokable, bearer
+accounts will authenticate by means of non-expiring but revokable bearer
 tokens. (Note these are _not_ Kubernetes service accounts; but _Brigade_ service
 accounts.)
 
@@ -545,48 +587,18 @@ HTTPS.
 
 #### Authorization
 
-With authorization concerns no longer implicitly delegated to the Kubernetes API
-server, Brigade 2.0 will need to provide its own access control model. It is
-proposed to utilize a simple role-based model with pre-defined roles, each
-being constrained to a particular scope.
+With authorization decisions no longer implicitly delegated to the Kubernetes
+API server, Brigade 2.0 will need to provide its own access control model. It is
+proposed to utilize a simple role-based model with pre-defined roles, each being
+constrained to a particular scope.
 
-A meaningful comparison can be made between Kubernetes' access control model and
-that proposed here. In Kubernetes, a `RoleBinding` resource creates an
-association between a principal and a `Role` _in a given namespace._ Using a
-`RoleBinding` to associate a principal with a `Role` that can, for instance,
-read all `Pod` resources within a given namespace says nothing of the
-principal's ability to read `Pod` resources in _other_ namespaces. Since Brigade
-2.0 projects are roughly analagous to Kubernetes namespaces, a project acts as a
-convenient boundary for qualifying the scope of certain roles granted to a
-principal.
-
-Extending the comparison to Kubernetes, in that system a `ClusterRoleBinding`
-resource creates an association between a principal and a `ClusterRole` that is
-_not_ qualified or constrained by namespace. Using a `ClusterRoleBinding` to
-associate a principal with a `ClusterRole` that can, for instance, read all
-`Pod` resources grants the principal this ability _cluster-wide_. `ClusterRole`
-and `ClusterRoleBinding` resources are additionally utilized to manage access
-for resources that do not logically belong to a namespace. For instance,
-`StorageClass` resources are never scoped to a namespace, so access to such
-resources is managed in a cluster scope. Just as not all Kubernetes resources
-logically belong to a namespace, not all Brigade 2.0 resources logically belong
-to a project. Some Brigade 2.0 roles, therefore will have a global scope.
-
-In contrast to Kubernetes, Brigade 2.0 is proposed to, in one isolated case, be
-capable of scoping a role to something other than a namespace (Kubernetes) or
-project (Brigade). To illustrate, it would be rational to wish that a service
-account utilized by an event gateway would be able to create events for _all_
-projects, but _only if_ the event's `source` attribute is set to a specific
-value. This would effectively prohibit a gateway from creating events that
-masquerade as having originated from a different gateway.
-
-Also standing in contrast to Kubernetes, all Brigade 2.0 roles are proposed to
-be pre-defined and _not_ user-defined. This is proposed because, compared to
-Kubernetes, Brigade has relatively few resource types, cannot be extended with
-user-define APIs and resource types, and resource types possess an inate level
-of domain specificty that Kubernetes resource types lack. Under these
-conditions, it is easy to enumerate a small number of roles that should cover
-most access cases well.
+In contrast to Kubernetes, all Brigade 2.0 roles are proposed to be pre-defined
+and _not_ user-defined. This is proposed because, compared to Kubernetes,
+Brigade has relatively few resource types, cannot be extended with user-define
+APIs and resource types, and resource types possess an inate level of domain
+specificty that Kubernetes resource types lack. Under these conditions, it is
+easy to enumerate a small number of roles that should cover most access cases
+well.
 
 | Name | Scope | Description |
 |------|-------|-------------|
@@ -594,7 +606,7 @@ most access cases well.
 | `SERVICE_ACCOUNT_MANAGER` | Global | Create, update, lock, and unlock service accounts; grant/revoke global roles to/from service accounts |
 | `PROJECT_CREATOR` | Global | Create new projects |
 | `EVENT_CREATOR` | `source` attribute | Create events for any project, as long as the `source` attribute has a specific value |
-| `PROJECT_READER` | Global or Project | Read permissions on all projects (global) or a specified project
+| `PROJECT_READER` | Project or Global (`*`) | Read permissions on all projects (global) or a specified project
 | `PROJECT_USER` | Project | Read, create events for the specified project |
 | `PROJECT_DEVELOPER` | Project | Read and update the specified project |
 | `PROJECT_ADMIN` | Project | Read, modify, delete, and create events for the specified project; grant/revoke project-scoped roles to/from users and service accounts |
@@ -612,12 +624,12 @@ utilize its secrets, any encryption must be reversible such that the original,
 cleartext value is available to workers and jobs in the course of
 event-handling. This being the case, secure storage of encrypted project-level
 secrets is a necessity. Implementing this would prove onerous once factors such
-as periodic key rotation have been accounted for and the author does not wish to
-undertake this. On the surface, delegating secret storage to a managed service
-such as Azure Key Vault or similar may appear easy and attractive, but would
-increase the operational footprint of Brigade's infrastructure dependencies and
-impede ease of use for evaluation or development purposes, making this another
-undesirable option.
+as periodic key rotation have been accounted for and the author does not propose
+such an undertaking. On the surface, delegating secret storage to a managed
+service such as Azure Key Vault or similar may appear easy and attractive, but
+would increase the operational footprint of Brigade's infrastructure
+dependencies and impede ease of use for evaluation or development purposes,
+making this another undesirable option.
 
 Recognizing, however, that once created, project-level secrets are utilized
 exclusively by workers and jobs, both of which execute on the underlying
@@ -629,7 +641,7 @@ secret storage _exclusively_ to the substrate via the scheduling subsystem. i.e.
 When setting the value of a secret, it is set directly on the substrate and
 stored nowhere else.
 
-The secret storage solution proposed above means that Brigade can do no worse
+The secret storage solution proposed above means that Brigade can do _no worse_
 than the underlying substrate in securing a project's secrets. If the underlying
 substrate's (i.e. Kubernetes') native secret storage facilities are deemed
 inadequate, that problem is not Brigade's and can be addressed at a lower level,
@@ -653,71 +665,90 @@ jobs within its assigned namespace are automatically created and are _not_ user
 specifiable.
 
 Although Brigade 2.0 is proposed to prohibit users from _specifying_ the
-namespace in which a given project's workloads will be executed and likewise
-prohibits the service accounts utilized by a project's workers and jobs from be
-specified, Brigade will _expose_ all of this information to users in a read-only
-capacity. By doing so, users implementing advanced use cases and having need to
-customize the underlying namespace (for instance, manually launching
-supplemental, long-running processes) or service accounts (to grant workers or
-jobs additional permissions within the Kubernetes namespace or cluster) may
-still do so by "dropping down" to Kubernetes to effect those customizations--
-if they have the necessary privileges within the cluster.
+namespace or service accounts used by a project, this information can still be
+_exposed_ in a read-only capacity. By doing so, users implementing advanced use
+cases and having need to customize the underlying namespace (for instance,
+manually launching supplemental, long-running processes) or service accounts (to
+grant workers or jobs additional permissions within the Kubernetes namespace or
+cluster) may still do so by "dropping down" to Kubernetes to effect those
+customizations-- if they have the necessary privileges within the cluster.
 
 Refer to:
 
 * [Issue #755](https://github.com/brigadecore/brigade/issues/755)
 
+### Overview of Proposed Changes
+
+The architecture described earlier in this document should enable remediation
+of all issues cited as rational for a major release.
+
+Proposed changes of note include (but are not limited to):
+
+* Streamlined domain model
+  * Made more intuitive
+  * Gateway-specific fields eliminated
+  * Projects made discoverable / able to subscribe to events
+* Streamlined UX
+  * Clumsy interactive project create/update process eliminated; replaced with
+    "project as code" approach and JSON schema to validate project file format
+  * Kubernetes expertise not required
+* Introduction of a Brigade API
+  * Kubernetes cluster access not required
+  * OpenID Connect used for authentication (optional locally; required for
+    remote clusters)
+  * Gateways granted insight into events they have created-- access to status
+    and logs
+* Prevent data loss
+  * Do not use Kubernetes as a data store
+  * Store project configuration and events in MongoDB
+  * Store logs in MongoDB
+* Cluster resources managed better
+  * Message bus used to limit concurrent workers
+* Alternative workers made easier to create
+  * Tight coupling to the default worker undone
+  * Worker input made easier to consume
+  * Formal support for YAML and TypeScript-based workers to come in subsequent
+    2.x releases
+
+### Assumptions
+
+Since the new domain model and API permit projects to subscribe to events, it is
+assumed (and required) that events _do not ever contain sensitive information_.
+If a project's workflows must access sensitive event-related information, then
+those events should only _reference_ the sensitive information. The project's
+worker and/or jobs can retrieve the sensitive information through API calls to
+the upstream event source using project secrets to authenticate.
+
+If this assumption is challenged, the event subscription feature will have to be
+reconsidered or redesigned.
+
 ### Unknowns and Risks
 
-The biggest challenges foreseen lurking within the proposed architecture
-involve syncing across the record keeping and scheduling subsystems and how
-the answers to that problem may also impact Brigade's infrastructure footprint.
+The biggest challenges foreseen involve reliably syncing across the record
+keeping and scheduling subsystems, and how the ultimate solution may also impact
+Brigade's underlying dependencies.
 
-Consider, for instance, that when a new event is created, an entry must be made
-in the record service's underlying data store, multiple event-related resources
-must be created on the workload execution substrate (Kubernetes) by the
-scheduling service, and the scheduling service must also enqueue work to be
-completed asynchronously by the scheduling agent. If either the second or third
-step were to fail, the record keeping subsystem and scheduling subsystem would
-fall out of sync. An event may be recorded, for instance, but one or more
-corresponding Kubernetes resources may not have been created.
+Consider, for instance, that one possible solution utilizes database
+transactions to roll back changes to the record store when related operations in
+the scheduling subsystem fail. Since only very new versions of MongoDB support
+transactions and, even then, support them only in specific configurations, this
+may limit the availability of Brigade-compatible data stores from major cloud
+vendors.
 
-There are steps that can be taken to mitigate both the liklihood and impact of
-scenarios like the one described above. For instance, when applicable, database
-transactions can be used to prevent new events from being committed to the
-record service's underlying datastore if subsequent steps in the event creation
-process fail. Without additional care, however, this could result in pending
-data store writes being rolled back whilst leaving behind corresponding
-Kubernetes resources-- the inverse of the original scenario. This could be
-tolerated, however, if the record service is designated as _the source of truth_
-with all other components dependent on that source of truth only, or otherwise
-capable of rectifying discrepancies.
-
-Related, is the question of whether database transactions in MongoDB are truly
-tenable to begin with. Distributed transactions are only available when MongoDB
-is deployed in a certain configuration (with replica sets enabled) _and_ are
-only available for very recent version of MongoDB. Such requirements impact the
-overhead of running MongoDB in-cluster _and_ impede the availability of the
-alternatives-- hosted, _managed_ MongoDB compatible services-- some of which are
-actually multi-mode data stores that are compatible only with older versions of
-the MongoDB APIs and support a lowest-common-denominator feature set.
-
-Cummulatively, these issues are likely to prompt several iterations of amending
-the architecture and revising the implementation in order to achieve both
-stability and a minimized infrastructure footprint. The possibility exists that
-even the recommendation to use MongoDB as the record service's underlying
-datastore may need to be revisited.
+Keeping data in sync across subsystems while also keeping Brigade's dependencies
+in check is likely to prompt several iterations of amending the architecture and
+revising the implementation and/or technology choices.
 
 ### Working Proof of Concept
 
-The author acknowledges his proposal has been informed to a significant degree
+The author acknowledges this proposal has been informed to a significant degree
 by a working proof of concept, but wishes to dispel any misconception that the
 PoC represents the output of a premature or "stealth" development effort. Many
 concepts put forth by this proposal represent radical departures from Brigade
-1.x and warranted an exploration of their tenability.
+1.x and warranted a detailed exploration of their tenability.
 
 Should any PoC code be reused in any form, additional rigor will be applied to
-reconcile it with the final draft of the proposal and to ensure high degrees of
+reconcile it with the final draft of this proposal and to ensure high degrees of
 code hygeine, commit hygeine, and test coverage.
 
 ### Development Approach
