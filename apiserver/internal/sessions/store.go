@@ -46,24 +46,32 @@ func NewStore(database *mongo.Database) (Store, error) {
 		[]mongo.IndexModel{
 			{
 				Keys: bson.M{
-					"metadata.id": 1,
+					"id": 1,
 				},
 				Options: &options.IndexOptions{
 					Unique: &unique,
 				},
 			},
 			// Fast lookup for completing OIDC auth
-			{
-				Keys: bson.M{
-					"hashedOAuth2State": 1,
-				},
-				Options: &options.IndexOptions{
-					Unique: &unique,
-					PartialFilterExpression: bson.M{
-						"hashedOAuth2State": bson.M{"exists": true},
-					},
-				},
-			},
+			//
+			// TODO: CosmosDB doesn't support this partial index. We can probably live
+			// without it because lookup by hashedOAuth2State should only occur at the
+			// end of an OIDC authentication flow, which should be relatively
+			// uncommon. We can afford for it to be relatively slow. What we should
+			// probably do is make this index optional through a configuration
+			// setting.
+			//
+			// {
+			// 	Keys: bson.M{
+			// 		"hashedOAuth2State": 1,
+			// 	},
+			// 	Options: &options.IndexOptions{
+			// 		Unique: &unique,
+			// 		PartialFilterExpression: bson.M{
+			// 			"hashedOAuth2State": bson.M{"exists": true},
+			// 		},
+			// 	},
+			// },
 			// Fast lookup by bearer token
 			{
 				Keys: bson.M{
@@ -151,7 +159,7 @@ func (s *store) Authenticate(
 	res, err := s.collection.UpdateOne(
 		ctx,
 		bson.M{
-			"metadata.id": sessionID,
+			"id": sessionID,
 		},
 		bson.M{
 			"$set": bson.M{
@@ -171,7 +179,7 @@ func (s *store) Authenticate(
 }
 
 func (s *store) Delete(ctx context.Context, id string) error {
-	res, err := s.collection.DeleteOne(ctx, bson.M{"metadata.id": id})
+	res, err := s.collection.DeleteOne(ctx, bson.M{"id": id})
 	if err != nil {
 		return errors.Wrapf(err, "error deleting session %q", id)
 	}

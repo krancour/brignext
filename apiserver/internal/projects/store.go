@@ -47,7 +47,7 @@ func NewStore(database *mongo.Database) (Store, error) {
 		[]mongo.IndexModel{
 			{
 				Keys: bson.M{
-					"metadata.id": 1,
+					"id": 1,
 				},
 				Options: &options.IndexOptions{
 					Unique: &unique,
@@ -58,17 +58,24 @@ func NewStore(database *mongo.Database) (Store, error) {
 			// array fields. Indexes involving multiple array fields aren't permitted
 			// by MongoDB, so we create two separate indexes and MongoDB *should*
 			// utilize the intersection of the two indexes to support such queries.
-			{
-				Keys: bson.M{
-					"spec.eventSubscriptions.source": 1,
-					"spec.eventSubscriptions.types":  1,
-				},
-			},
-			{
-				Keys: bson.M{
-					"spec.eventSubscriptions.labels": 1,
-				},
-			},
+			//
+			// TODO: CosmosDB doesn't support these indices. We can probably live
+			// without them because the number of projects in a cluster should usually
+			// be pretty small in comparison to the number of events. What we should
+			// probably do is make these indices optional through a configuration
+			// setting.
+			//
+			// {
+			// 	Keys: bson.M{
+			// 		"spec.eventSubscriptions.source": 1,
+			// 		"spec.eventSubscriptions.types":  1,
+			// 	},
+			// },
+			// {
+			// 	Keys: bson.M{
+			// 		"spec.eventSubscriptions.labels": 1,
+			// 	},
+			// },
 		},
 	); err != nil {
 		return nil, errors.Wrap(
@@ -112,7 +119,7 @@ func (s *store) List(
 ) (brignext.ProjectList, error) {
 	projectList := brignext.NewProjectList()
 	findOptions := options.Find()
-	findOptions.SetSort(bson.M{"metadata.id": 1})
+	findOptions.SetSort(bson.M{"id": 1})
 	cur, err := s.collection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		return projectList, errors.Wrap(err, "error finding projects")
@@ -151,7 +158,7 @@ func (s *store) ListSubscribers(
 		}
 	}
 	findOptions := options.Find()
-	findOptions.SetSort(bson.M{"metadata.id": 1})
+	findOptions.SetSort(bson.M{"id": 1})
 	cur, err := s.collection.Find(
 		ctx,
 		bson.M{
@@ -175,7 +182,7 @@ func (s *store) Get(
 	id string,
 ) (brignext.Project, error) {
 	project := brignext.Project{}
-	res := s.collection.FindOne(ctx, bson.M{"metadata.id": id})
+	res := s.collection.FindOne(ctx, bson.M{"id": id})
 	if res.Err() == mongo.ErrNoDocuments {
 		return project, errs.NewErrNotFound("Project", id)
 	}
@@ -194,12 +201,12 @@ func (s *store) Update(
 	res, err := s.collection.UpdateOne(
 		ctx,
 		bson.M{
-			"metadata.id": project.ID,
+			"id": project.ID,
 		},
 		bson.M{
 			"$set": bson.M{
-				"metadata.lastUpdated": time.Now(),
-				"spec":                 project.Spec,
+				"lastUpdated": time.Now(),
+				"spec":        project.Spec,
 			},
 		},
 	)
@@ -214,7 +221,7 @@ func (s *store) Update(
 
 func (s *store) Delete(ctx context.Context, id string) error {
 	return s.DoTx(ctx, func(ctx context.Context) error {
-		res, err := s.collection.DeleteOne(ctx, bson.M{"metadata.id": id})
+		res, err := s.collection.DeleteOne(ctx, bson.M{"id": id})
 		if err != nil {
 			return errors.Wrapf(err, "error deleting project %q", id)
 		}

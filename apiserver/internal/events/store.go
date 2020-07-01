@@ -63,7 +63,7 @@ func NewStore(database *mongo.Database) (Store, error) {
 		[]mongo.IndexModel{
 			{
 				Keys: bson.M{
-					"metadata.id": 1,
+					"id": 1,
 				},
 				Options: &options.IndexOptions{
 					Unique: &unique,
@@ -72,7 +72,7 @@ func NewStore(database *mongo.Database) (Store, error) {
 			// This facilitates sorting by event creation date/time
 			{
 				Keys: bson.M{
-					"metadata.created": -1,
+					"created": -1,
 				},
 			},
 			// This facilitates quickly selecting all events for a given project
@@ -121,7 +121,7 @@ func (s *store) List(
 	}
 
 	findOptions := options.Find()
-	findOptions.SetSort(bson.M{"metadata.created": -1})
+	findOptions.SetSort(bson.M{"created": -1})
 	cur, err := s.collection.Find(ctx, criteria, findOptions)
 	if err != nil {
 		return eventList, errors.Wrap(err, "error finding events")
@@ -137,7 +137,7 @@ func (s *store) Get(
 	id string,
 ) (brignext.Event, error) {
 	event := brignext.Event{}
-	res := s.collection.FindOne(ctx, bson.M{"metadata.id": id})
+	res := s.collection.FindOne(ctx, bson.M{"id": id})
 	if res.Err() == mongo.ErrNoDocuments {
 		return event, errs.NewErrNotFound("Event", id)
 	}
@@ -157,7 +157,7 @@ func (s *store) Cancel(ctx context.Context, id string) error {
 	res, err := s.collection.UpdateOne(
 		ctx,
 		bson.M{
-			"metadata.id":               id,
+			"id":                        id,
 			"status.workerStatus.phase": brignext.WorkerPhasePending,
 		},
 		bson.M{
@@ -177,7 +177,7 @@ func (s *store) Cancel(ctx context.Context, id string) error {
 	res, err = s.collection.UpdateOne(
 		ctx,
 		bson.M{
-			"metadata.id":               id,
+			"id":                        id,
 			"status.workerStatus.phase": brignext.WorkerPhaseRunning,
 		},
 		bson.M{
@@ -273,7 +273,7 @@ func (s *store) CancelCollection(
 	delete(criteria, "status.workerStatus.phase")
 	criteria["canceled"] = cancellationTime
 	findOptions := options.Find()
-	findOptions.SetSort(bson.M{"metadata.created": -1})
+	findOptions.SetSort(bson.M{"created": -1})
 	cur, err := s.collection.Find(ctx, criteria, findOptions)
 	if err != nil {
 		return eventRefList, errors.Wrapf(err, "error finding canceled events")
@@ -289,7 +289,7 @@ func (s *store) Delete(ctx context.Context, id string) error {
 	res, err := s.collection.DeleteOne(
 		ctx,
 		bson.M{
-			"metadata.id": id,
+			"id": id,
 		},
 	)
 	if err != nil {
@@ -341,7 +341,7 @@ func (s *store) DeleteCollection(
 		// Select the logically deleted documents...
 		criteria["deleted"] = deletedTime
 		findOptions := options.Find()
-		findOptions.SetSort(bson.M{"metadata.created": -1})
+		findOptions.SetSort(bson.M{"created": -1})
 		cur, err := s.collection.Find(ctx, criteria, findOptions)
 		if err != nil {
 			return errors.Wrapf(err, "error finding logically deleted events")
@@ -366,7 +366,7 @@ func (s *store) UpdateWorkerStatus(
 ) error {
 	res, err := s.collection.UpdateOne(
 		ctx,
-		bson.M{"metadata.id": eventID},
+		bson.M{"id": eventID},
 		bson.M{
 			"$set": bson.M{
 				"status.workerStatus": status,
@@ -395,7 +395,7 @@ func (s *store) UpdateJobStatus(
 	res, err := s.collection.UpdateOne(
 		ctx,
 		bson.M{
-			"metadata.id": eventID,
+			"id": eventID,
 		},
 		bson.M{
 			"$set": bson.M{

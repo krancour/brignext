@@ -71,6 +71,7 @@ spec:
         - name: API_SERVER_TLS_KEY_PATH
           value: /app/certs/tls.key
         {{- end }}
+        {{- if .Values.mongodb.enabled }}
         - name: MONGODB_HOST
           value: {{ include "call-nested" (list . "mongodb" "mongodb.fullname") }}.{{ .Release.Namespace }}.svc.cluster.local
         - name: MONGODB_PORT
@@ -86,6 +87,15 @@ spec:
             secretKeyRef:
               name: {{ include "call-nested" (list . "mongodb" "mongodb.fullname") }}
               key: mongodb-password
+        {{- else }}
+        - name: MONGODB_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "brignext.apiserver.fullname" . }}
+              key: mongodb-connection-string
+        - name: MONGODB_DATABASE
+          value: {{ .Values.externalMongodb.database }}
+        {{- end }}
         - name: REDIS_HOST
           value: {{ include "call-nested" (list . "redis" "redis.fullname") }}-master.{{ .Release.Namespace }}.svc.cluster.local
         - name: REDIS_PORT

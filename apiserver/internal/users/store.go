@@ -42,7 +42,7 @@ func NewStore(database *mongo.Database) (Store, error) {
 		ctx,
 		mongo.IndexModel{
 			Keys: bson.M{
-				"metadata.id": 1,
+				"id": 1,
 			},
 			Options: &options.IndexOptions{
 				Unique: &unique,
@@ -83,7 +83,7 @@ func (s *store) Create(ctx context.Context, user brignext.User) error {
 func (s *store) List(ctx context.Context) (brignext.UserList, error) {
 	userList := brignext.NewUserList()
 	findOptions := options.Find()
-	findOptions.SetSort(bson.M{"metadata.id": 1})
+	findOptions.SetSort(bson.M{"id": 1})
 	cur, err := s.collection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		return userList, errors.Wrap(err, "error finding users")
@@ -99,7 +99,7 @@ func (s *store) Get(
 	id string,
 ) (brignext.User, error) {
 	user := brignext.User{}
-	res := s.collection.FindOne(ctx, bson.M{"metadata.id": id})
+	res := s.collection.FindOne(ctx, bson.M{"id": id})
 	if res.Err() == mongo.ErrNoDocuments {
 		return user, errs.NewErrNotFound("User", id)
 	}
@@ -115,7 +115,7 @@ func (s *store) Get(
 func (s *store) Lock(ctx context.Context, id string) error {
 	res, err := s.collection.UpdateOne(
 		ctx,
-		bson.M{"metadata.id": id},
+		bson.M{"id": id},
 		bson.M{
 			"$set": bson.M{
 				"locked": time.Now(),
@@ -148,7 +148,7 @@ func (s *store) Lock(ctx context.Context, id string) error {
 func (s *store) Unlock(ctx context.Context, id string) error {
 	res, err := s.collection.UpdateOne(
 		ctx,
-		bson.M{"metadata.id": id},
+		bson.M{"id": id},
 		bson.M{
 			"$set": bson.M{
 				"locked": nil,

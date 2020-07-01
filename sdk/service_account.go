@@ -24,7 +24,7 @@ func NewServiceAccountList() ServiceAccountList {
 
 type ServiceAccount struct {
 	meta.TypeMeta   `json:",inline" bson:",inline"`
-	meta.ObjectMeta `json:"metadata" bson:"metadata"`
+	meta.ObjectMeta `json:"metadata" bson:",inline"`
 	Description     string     `json:"description" bson:"description"`
 	HashedToken     string     `json:"-" bson:"hashedToken"`
 	Locked          *time.Time `json:"locked,omitempty" bson:"locked"`

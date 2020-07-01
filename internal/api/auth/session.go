@@ -10,7 +10,7 @@ import (
 
 type Session struct {
 	meta.TypeMeta     `json:",inline" bson:",inline"`
-	meta.ObjectMeta   `json:"metadata" bson:"metadata"`
+	meta.ObjectMeta   `json:"metadata" bson:",inline"`
 	Root              bool       `json:"root" bson:"root"`
 	UserID            string     `json:"userID" bson:"userID"`
 	HashedOAuth2State string     `json:"-" bson:"hashedOAuth2State"`

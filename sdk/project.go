@@ -7,7 +7,7 @@ import (
 
 type Project struct {
 	meta.TypeMeta   `json:",inline" bson:",inline"`
-	meta.ObjectMeta `json:"metadata" bson:"metadata"`
+	meta.ObjectMeta `json:"metadata" bson:",inline"`
 	Spec            ProjectSpec `json:"spec" bson:"spec"`
 	// The JSON schema doesn't permit the fields below to be set via the API.
 	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`

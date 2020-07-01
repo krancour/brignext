@@ -9,7 +9,7 @@ import (
 
 type Event struct {
 	meta.TypeMeta   `json:",inline" bson:",inline"`
-	meta.ObjectMeta `json:"metadata" bson:"metadata"`
+	meta.ObjectMeta `json:"metadata" bson:",inline"`
 	ProjectID       string         `json:"projectID" bson:"projectID"`
 	Source          string         `json:"source" bson:"source"`
 	Type            string         `json:"type" bson:"type"`
@@ -88,7 +88,7 @@ func NewEventList() EventList {
 
 type EventReference struct {
 	meta.TypeMeta            `json:",inline"`
-	meta.ObjectReferenceMeta `json:"metadata" bson:"metadata"`
+	meta.ObjectReferenceMeta `json:"metadata" bson:",inline"`
 	ProjectID                string           `json:"projectID" bson:"projectID"`
 	Kubernetes               KubernetesConfig `json:"-" bson:"kubernetes"`
 }

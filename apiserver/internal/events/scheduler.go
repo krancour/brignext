@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/go-redis/redis"
 	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
@@ -179,12 +178,8 @@ func (s *scheduler) Create(
 			event.ID,
 		)
 	}
-	// TODO: Fix this
-	// There's deliberately a short delay here to minimize the possibility of
-	// the controller trying (and failing) to locate this new event before the
-	// transaction on the store has become durable.
 	if err := producer.Publish(
-		messaging.NewDelayedMessage(messageBody, 5*time.Second),
+		messaging.NewMessage(messageBody),
 	); err != nil {
 		return errors.Wrapf(
 			err,

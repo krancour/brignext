@@ -24,7 +24,7 @@ func NewUserList() UserList {
 
 type User struct {
 	meta.TypeMeta   `json:",inline" bson:",inline"`
-	meta.ObjectMeta `json:"metadata" bson:"metadata"`
+	meta.ObjectMeta `json:"metadata" bson:",inline"`
 	Name            string     `json:"name" bson:"name"`
 	Locked          *time.Time `json:"locked" bson:"locked"`
 }
