@@ -1,0 +1,42 @@
+{
+	"name": "BrigNext Development Environment",
+	"dockerFile": "Dockerfile",
+	
+	"containerEnv": {
+		"GOCACHE": "/workspaces/brignext/.gocache",
+		"SKIP_DOCKER": "true"
+	},
+
+	"settings": { 
+		"terminal.integrated.shell.linux": "/bin/bash",
+		"workbench.colorCustomizations": {
+			"statusBar.background": "#28ba39",
+			"statusBarItem.remoteBackground": "#0000ff"
+		},
+		"go.gopath": "/go",
+		"go.inferGopath": true,
+		"go.useLanguageServer": true,
+		"json.schemas": [
+			{
+				"fileMatch": [
+					"/examples/*.json"
+				],
+				"url": "./apiserver/schemas/project.json"
+			}
+		],
+		"yaml.schemas": {
+			"./apiserver/schemas/project.json": [
+				"/examples/*.yaml",
+				"/examples/*.yml"
+			]
+		}
+	},
+
+	"extensions": [
+		"golang.Go",
+		"ms-azuretools.vscode-docker",
+		"redhat.vscode-yaml",
+		"stkb.rewrap",
+		"byi8220.indented-block-highlighting"
+	]
+}

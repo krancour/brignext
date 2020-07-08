@@ -25,8 +25,9 @@ ifneq ($(SKIP_DOCKER),true)
 		-it \
 		--rm \
 		-e SKIP_DOCKER=true \
-		-v $(PROJECT_ROOT):/src \
-		-w /src \
+		-e GOCACHE=/workspaces/brignext/.gocache \
+		-v $(PROJECT_ROOT):/workspaces/brignext \
+		-w /workspaces/brignext \
 		$(GO_DEV_IMAGE)
 
 	JS_DOCKER_CMD := docker run \

@@ -1,21 +1,21 @@
 {
   "workbench.colorCustomizations": {
-    "statusBar.background": "#28ba39"
+    "statusBar.background": "#28ba39",
+    "statusBarItem.remoteBackground": "#0000ff"
   },
   "json.schemas": [
     {
       "fileMatch": [
-        "/projects/*.json",
-        "/projects/*.yaml",
-        "/projects/*.yml"
+        "/examples/*.json"
       ],
-      "url": "./internal/apiserver/schemas/project.json"
+      "url": "./apiserver/schemas/project.json"
     }
   ],
   "yaml.schemas": {
-    "./internal/apiserver/schemas/project.json": [
-      "/projects/*.yaml",
-      "/projects/*.yml"
+    "./apiserver/schemas/project.json": [
+      "/examples/*.yaml",
+      "/examples/*.yml"
     ]
-  }
+  },
+  "go.inferGopath": false
 }
