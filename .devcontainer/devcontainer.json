@@ -29,7 +29,8 @@
 				"/examples/*.yaml",
 				"/examples/*.yml"
 			]
-		}
+		},
+		"blockhighlight.accentCurrentLine": false
 	},
 
 	"extensions": [
@@ -37,6 +38,7 @@
 		"ms-azuretools.vscode-docker",
 		"redhat.vscode-yaml",
 		"stkb.rewrap",
-		"byi8220.indented-block-highlighting"
+		"byi8220.indented-block-highlighting",
+		"sohamkamani.code-eol"
 	]
 }

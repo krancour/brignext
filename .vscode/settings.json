@@ -17,5 +17,5 @@
       "/examples/*.yml"
     ]
   },
-  "go.inferGopath": false
+  "go.inferGopath": true
 }
