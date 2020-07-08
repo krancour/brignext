@@ -88,11 +88,13 @@ verify-vendored-go-code:
 
 .PHONY: lint-go
 lint-go:
-	$(GO_DOCKER_CMD) golangci-lint run --config ./golangci.yaml
+	$(GO_DOCKER_CMD) golangci-lint run --config ./golangci.yaml \
+		./apiserver/... ./controller/... ./internal/... ./sdk/...
 
 .PHONY: test-unit-go
 test-unit-go:
-	$(GO_DOCKER_CMD) go test -v ./...
+	$(GO_DOCKER_CMD) go test -v \
+		./apiserver/... ./controller/... ./internal/... ./sdk/...
 
 .PHONY: verify-vendored-js-code
 verify-vendored-js-code:
