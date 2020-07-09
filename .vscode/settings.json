@@ -1,8 +1,23 @@
 {
+  "editor.rulers": [80],
+  "rewrap.wrappingColumn": 80,
+
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/vendor": true
+  },
+
   "workbench.colorCustomizations": {
     "statusBar.background": "#28ba39",
     "statusBarItem.remoteBackground": "#0000ff"
   },
+
+  "terminal.integrated.shell.linux": "/bin/bash",
+  "terminal.integrated.shell.osx": "/bin/zsh",
+
+  "go.testFlags": ["-v"],
+  "go.useLanguageServer": true,
+
   "json.schemas": [
     {
       "fileMatch": [
@@ -11,11 +26,11 @@
       "url": "./apiserver/schemas/project.json"
     }
   ],
+
   "yaml.schemas": {
     "./apiserver/schemas/project.json": [
       "/examples/*.yaml",
       "/examples/*.yml"
     ]
-  },
-  "go.inferGopath": true
+  }
 }
