@@ -1,14 +1,13 @@
-# Toward a Better Brigade
+# Brigade 2.0 Proposal
 
 Since its first major release, Brigade has proven itself a useful and
 [moderately
 popular](https://www.cncf.io/wp-content/uploads/2020/03/CNCF_Survey_Report.pdf)
 platform for achieving _"event-driven scripting for Kubernetes."_ Over that same
 period, reports from our community and the maintainers' own efforts to "dog
-food" Brigade have exposed many issues and reasonable feature requests which
-cannot be addressed without re-architecting the product and incurring some
-degree of breaking changes. _In other words, it is time to talk about Brigade
-2.0._
+food" Brigade have exposed many issues and reasonable feature requests which can
+be addressed only by re-architecting the product and incurring some degree of
+breaking changes. _In other words, it is time to talk about Brigade 2.0._
 
 In this document, one project maintainer, operating with input from other
 maintainers, wishes to present a formal proposal for Brigade 2.0, and solicit
@@ -26,7 +25,7 @@ Kubernetes)."
 
 ## Contents
 
-* Motivations
+* [Motivations](#motivations)
   * [Early Design Decisions & Architecture](#early-design-decisions-%25-architecture)
   * [Usability](#usability)
   * [Security](#security)
@@ -70,7 +69,7 @@ architecture, and a selection of existing issues is in order.
 
 Brigade was designed to be as lightweight and "cloud native" as possible,
 shunning third-party dependencies and relying solely on Kubernetes wherever
-practical. To be sure, this was not without merit. By leveraging Kubernetes
+practical. To be sure, this approach had its merits. By leveraging Kubernetes
 `Secret` resources as a sort of makeshift document store and message bus,
 Brigade's developers were spared from integrating with third-party alternatives.
 Meanwhile, Brigade operators were spared from deploying and managing such
@@ -122,12 +121,12 @@ an inherent security risk. Because the `brig` CLI is useless without Kubernetes
 cluster credentials, all Brigade users must have such credentials and,
 minimally, be granted read access to `Secret` resources within Brigade's
 namespace. If Brigade hosts any projects other than the users' own, that user
-can too easily access their secrets and the risk that presents cannot be
-overstated.
+can too easily access those projects' secrets and the risk that presents cannot
+be overstated.
 
-N.B.: The current workaround for this is to run a separate Brigade instance
-for each project or logical group of projects, which has the potential to become
-a resource drain as the number of projects increases.
+N.B.: The current workaround for this is to run a separate Brigade instance for
+each project or logical group of projects, which has the potential to become a
+resource drain as the number of projects increases.
 
 N.B.: Isolating each Brigade project to its own namespace has been among
 Brigade's most requested features.
@@ -223,8 +222,8 @@ repository. For example, the Brigade project named `krancour/demo` is implicitly
 subscribed to events originating from the `krancour/demo` repository on GitHub.
 This unfortunately precludes multiple projects from subscribing to events from a
 single GitHub repository. It also precludes a single project from subscribing to
-events brokered by multiple gateways that make differing assumptions about how
-projects are named.
+events brokered by multiple gateways if those gateways make differing
+assumptions about how projects are named.
 
 Refer to:
 
@@ -233,11 +232,12 @@ Refer to:
 ### Alternative Workers
 
 The question of support for workflows defined using something other than
-JavaScript (such as YAML or TypeScript) is a perennial favorite among community
-members and maintainers alike. This has already been shown to be possible simply
-by utilizing a custom worker image that behaves similarly enough to Brigade's
-default, but whose behavior is defined differently. This concept was even
-demonstrated live in a KubeCon 2019 talk.
+JavaScript is a perennial favorite among community members and maintainers
+alike. This has already been shown to be possible simply by utilizing a custom
+worker image that behaves similarly enough to Brigade's default, but executes
+workflows that have been defined differently (for instance, using YAML or
+TypeScript). This concept was even demonstrated live in a [KubeCon 2019
+talk](https://youtu.be/o2D5XI9jhYA?t=1418).
 
 Though it has been proven possible, the method of achieving this remains
 cumbersome. For one, producing alternative workers is onerous because workers
@@ -285,7 +285,7 @@ GitHub to add short-lived credentials that the `brigade.js` script can use for
 reporting. This effectively changes the schema of certain event payloads from
 what has been documented by GitHub to something Brigade-specific, which is
 unexpected behavior the author of a `brigade.js` script needs to be aware of. It
-is easy to see this is a brittle.
+is easy to see this is brittle.
 
 Event gateways could take on the burden of reporting status to upstream event
 sources if they were to gain insight into the status and logs of the events they
@@ -343,14 +343,28 @@ author proposes to strike "build" from Brigade's lexicon entirely and speak more
 generically, only in terms of events, each of which has a worker that _handles_
 it.
 
-Second, prior guidance from Brigade documentation and maintainers has been that
-Brigade workers should ideally perform no work beyond coordinating the execution
-of jobs, to which all actual work is delegated. While this is a useful pattern
-for many use cases that are well served by serialized or concurrent execution of
-multiple containerized tasks, it is a pattern whose additional overhead (in the
-form of container start time) probably underserves very simple use cases or use
-cases requiring minimized latency. To that end, the maintainers move to no
-longer discourage Brigade workers from doing actual work.
+Second, prior guidance from [Brigade
+documentation](https://docs.brigade.sh/topics/dependencies/#best-practices) has
+been that Brigade workers should ideally perform no work beyond coordinating the
+execution of jobs, to which all actual work is delegated. While this is a useful
+pattern for many use cases that are well served by serialized or concurrent
+execution of multiple containerized tasks, it is a pattern whose additional
+overhead (in the form of container start time) probably underserves very simple
+use cases or use cases requiring minimized latency. To that end, it is proposed
+to no longer discourage Brigade workers from doing actual work.
+
+N.B.: The need to reduce latency in the form of container start time has led to
+at least one existing proposal (for Brigade 1.x) that makes a case for
+"long-running workers" (i.e. a controller-per-project pattern). That existing
+proposal introduces numerous architectural complications and is therefore not
+entertained by the Brigade 2.0 proposal. The philosophical pivot to "let workers
+work" is in no small measure intended to reduce event handling-latency for
+simple use cases that can not abide a worker pod starting _only_ to launch one
+other pod.
+
+Refer to:
+
+* [Issue #977](https://github.com/brigadecore/brigade/issues/977)
 
 ## Proposed Path Forward
 
@@ -376,10 +390,11 @@ Brigade 2.0:
 
 1. Product evaluation (aka "tire kicking") / local use for development must not
    become onerous.
-    1. For any new dependencies, a default Brigade installation must provision
-       in-cluster instances running in configurations that consume few
-       resources. Documentation may offer guidance on optimizing installations
-       for production use.
+    1. For any new infrastructure dependencies (for instance, a data store or
+       message bus), a default Brigade installation must provision in-cluster
+       instances running in modest configurations that prioritize minimized
+       resource use. Documentation may offer guidance on optimizing
+       installations for production use.
     1. Security improvements must not encumber evaluation.
 
 1. Small compromises are deemed acceptable if they remediate larger issues. For
@@ -398,23 +413,26 @@ control) notwithstanding, Brigade 2.0 is proposed to deal with only two "top
 level" domain elements: projects and events.
 
 __Projects__ pair _subscriptions_ to various events with a _template_ for a
-worker that will be handle such events. Projects additionally play a role
-similar to that of a Kubernetes namespace in that they define a logical scope
-for access controls. For instance, rather than granting a user permissions to
-list or view _all_ events in Brigade, a user might be granted permissions to
-list or view events _for a particular project_.
+worker that will handle such events. Projects additionally play a role similar
+to that of a Kubernetes namespace in that they define a logical scope for access
+controls. For instance, rather than granting a user permissions to list or view
+_all_ events in Brigade, a user might be granted permissions to list or view
+events _for a particular project_.
 
 __Events__ describe something that has occurred in some upstream system that may
 trigger a workflow within Brigade. Event gateways broker these events,
 _emitting_ them into Brigade by means of the Brigade API. A new event may
-explicitly identify a project with which it is associated. Alternatively, a new
-event may lack this information and can be matched with projects that have
-subscribed to it, in which case, the new event is treated as a template and a
-distinct copy of the event is created for each subscribed project. Events are
-composed of worker specifications, which are copied from the associated project,
-event-specific details (title and payload, for instance), and worker status.
+explicitly identify a project (by ID) with which it is associated.
+Alternatively, a new event may lack this explicit project association and,
+instead, be matched by Brigade with projects that have subscribed to it, in
+which case, the new event is treated as a _template_ and a distinct copy of the
+event is created for each subscribed project. For each distinct event, the
+worker specification is copied from the associated project. An event can thus be
+thought of not only "as something that has occurred in some upstream system,"
+but as a more complete story-- "something has occurred in some upstream system
+and here's what we're going to do about it."
 
-The attached class diagram presents a _logical_ view of participants in the
+The following class diagram presents a _logical_ view of participants in the
 domain model.
 
 ![Logical Domain Model](domain.png)
@@ -431,16 +449,18 @@ With a few cross-cutting concerns such as access control notwithstanding, the
 proposed architecture decomposes Brigade into three logical subsystems-- record
 storage, scheduling, and logging-- with a service layer to coordinate among
 these three. The service layer will be exposed to clients via secure HTTP
-endpoints that implement a RESTful API. Brigade types and an API client will be
-made available as in a Go SDK. An improved `brig` CLI and crop of new gateways
-will utilize utilize that SDK.
+endpoints that implement a RESTful API. Brigade types and an API client will
+also be made available in a Go SDK. An improved `brig` CLI and new gateways will
+utilize that SDK.
 
 ![Logical Component Model](components.png)
 
 N.B.: Brigade 1.x has a read-only API that is utilized by Kashti only. (Kashti
 is the web-based, read-only Brigade 1.x dashboard.) The API referenced above is
 a _new_ one for use by all Brigade 2.0 components, gateways, and clients so as
-to abstract all of those away from underlying technology choices.
+to abstract all of those consumers away from underlying technology choices.
+
+N.B.: A Brigade 2.x-compatible Kashti 2.0 is not proposed at this time.
 
 The following diagram depicts by example how different logical components
 interact with one another, using the complex sequence of event creation and
@@ -450,7 +470,7 @@ handling to illustrate.
 
 ### API Endpoints
 
-Brigade 2.0's REST API will be minimal and unremarkable, serving only to handle
+Brigade 2.0's REST API endpoints will be thin, serving only to handle
 transport-specific details-- decoding HTTP requests into domain objects that may
 be passed to the transport-agnostic service layer and encoding domain objects
 returned from that service layer as HTTP responses.
@@ -462,9 +482,6 @@ to raw HTTP request bodies prior to unmarshaling.
 N.B.: In the case of projects, JSON schema can be reused by IDEs to validate
 project definitions as they are edited. The author proposes this UX to be
 superior to the current `brig project create` process.
-
-N.B.: A gRPC-based API was initially considered and rejected by maintainer
-consensus.
 
 ### Service Layer
 
@@ -482,18 +499,31 @@ favored. i.e. A relational database is unlikely to yield any significant
 advantages and would also introduce object-relational impedance that can
 otherwise be avoided.
 
-Further, MongoDB is recommended as the underlying data store based on several
-factors:
+Further, after careful consideration of MongoDB, Cassandra, and CouchDB, as well
+as cursory consideration of a few other options, MongoDB is proposed as the
+underlying data store based on several factors:
 
-1. Permissive license
-1. Deployable in-cluster; can be included in default Brigade install
-1. Managed instances available from numerous vendors
-1. Deployable in a wide array of configurations to cover both
-   evaluation/development use _and_ production use
-1. Demonstrated ability to scale
-1. Atomic updates to single documents without the need for transactions
-1. Distributed transactions available when needed (in some configurations)
-1. Widespread developer familiarity
+1. Development concerns:
+    1. Programming model has lowest impedence with proposed domain model
+    1. Expressive query language
+    1. Atomic updates to single documents without the need for transactions 
+    1. Widespread developer familiarity
+1. Operational concerns:
+    1. Deployable in-cluster using existing Helm charts; can be included in
+       default Brigade install
+    1. Deployable in a wide array of configurations to cover both
+       evaluation/development _and_ production 
+    1. Managed instances of MongoDB (or wire-compatible services) readily
+       available from (or in) the leading public clouds
+    1. Demonstrated ability to scale
+1. Permissive (enough) license
+
+N.B.: Criticisms of MongoDB such as [this one from
+Jepsen](http://jepsen.io/analyses/mongodb-4.2.6) were carefully considered and
+determined to be inapplicable with respect to the proposed use. Likewise, known
+[licensing
+constraints](https://www.mongodb.com/licensing/server-side-public-license/faq)
+were also carefully considered and judged inapplicable for the use case.
 
 ### Scheduling
 
@@ -511,24 +541,28 @@ To bridge the gap between the synchronous and asynchronous components of this
 subsystem, a message bus capable of ensuring reliable transmission of messages
 with at-least-once delivery guarantees will be required.
 
-No specific recommendation is made at this time, but the message bus selected
-should have most, if not all of these qualities:
+After careful consideration of Kafka, ActiveMQ, RabbitMQ, and Redis (using the
+[reliable queue](https://redis.io/commands/rpoplpush#pattern-reliable-queue)
+pattern), Kafka is proposed to be used for this purpose based on several
+factors:
 
+1. Development concerns:
+    1. Gentle learning curve
+    1. Accommodates desired delivery semantics:
+        1. At least once delivery
+        1. Event delivery order preserved / guaranteed on a per-project basis
+        1. Fair scheduling of events on a backed up queue can be solved with
+           nominal effort
+    1. Widespread developer familiarity
+1. Operational concerns:
+    1. Deployable in-cluster using existing Helm charts; can be included in
+       default Brigade install
+    1. Deployable in a wide array of configurations to cover both
+       evaluation/development _and_ production 
+    1. Managed instances of Kafka (or wire-compatible services) readily
+       available from (or in) the leading public clouds
+    1. Demonstrated ability to scale
 1. Permissive license
-1. Deployable in-cluster
-1. Managed instances available from numerous vendors
-1. Deployable in a wide array of configurations to cover both
-   evaluation/development use _and_ production use
-1. Demonstrated ability to scale
-1. Widespread developer familiarity
-
-A non-exhaustive list of potential message buses includes:
-
-1. NATS
-1. NSQ
-1. RabbitMQ
-1. Kafka
-1. Redis (using the [reliable queue](https://redis.io/commands/rpoplpush#pattern-reliable-queue) pattern)
 
 ### Logging
 
@@ -537,11 +571,11 @@ aggregate logs from worker and job containers and persist them in some data
 store. Another component of the subsystem will make these logs available on a
 read-only basis via the Brigade API.
 
-Fluentd is recommended for log aggregation. Although ElasticSearch seems to be
-the most popular data store for logs forwarded from Fluentd agents, this
-proposal recommends the use of MongoDB for this purpose. Assuming MongoDB will
-be utilized as the record keeping subsystem's underlying data store, the choice
-to reuse it minimizes the footprint of Brigade's infrastructure dependencies.
+Fluentd is proposed for log aggregation. Although ElasticSearch seems to be the
+most popular data store for logs forwarded from Fluentd agents, it is proposed
+that MongoDB be used for this purpose. Assuming MongoDB will be utilized as the
+record keeping subsystem's underlying data store, the choice to reuse it
+minimizes the footprint of Brigade's infrastructure dependencies.
 
 N.B.: As fluent-bit matures, it may become another viable log agent-- one that
 can reasonably be expected to both be faster and consume fewer resources than
@@ -552,8 +586,9 @@ N.B.: The
 [log-agent-per-node](https://docs.fluentd.org/container-deployment/kubernetes#fluentd-daemonset)
 deployment model will, in aggregate, consume an undesirable amount of resources
 in any cluster (large or small) that is not used _exclusively_ for Brigade. In
-light of this, it is recommended that only a _subset_ of a cluster's nodes are
-designated for the execution of Brigade workers and jobs.
+light of this, it is proposed that users be advised to designate (through
+labels) a _subset_ of their cluster's nodes for the execution of Brigade workers
+and jobs. Those nodes may optionally be tainted to repel non-Brigade workloads.
 
 ### Securing Brigade
 
@@ -592,20 +627,22 @@ to facilitate initial setup of Brigade on remote clusters, it is proposed that
 "root" access to Brigade may be selectively enabled / disabled at the time of
 deployment / re-deployment / upgrade.
 
-N.B.: When any _new_ user authenticates with OpenID Connect, a new user account
-is created automatically, but initially has no roles assigned (see section on
-authorization). Roles may be granted by a user manager or project admin. It is
-proposed that users, once registered _cannot_ be deleted since nothing prevents
-a deleted user from re-registering. The benefits of _keeping_ but disabling the
-user account and thereby maintaining the relational integrity of the underlying
-data store seem to outweigh the finality of hard-deleting the account. Users
-who require their Brigade access to be revoked can therefore have their accounts
-_locked_ (instead of deleted) by a user manager.
+N.B.: When any _new_ user authenticates with OpenID Connect, a new Brigade
+account is created automatically and federated with the user's identity from the
+trusted provider. Such a user initially has no roles assigned (see
+[authorization](#authorization) section). Roles may be granted by a user manager
+or project admin. It is proposed that users, once registered _cannot_ be deleted
+since nothing prevents a deleted user from re-registering. The benefits of
+_keeping_ but disabling the user account and thereby maintaining the relational
+integrity of the underlying data store seem to outweigh the finality of
+hard-deleting the account. Users who require their Brigade access to be revoked
+can therefore have their accounts _locked_ (instead of deleted) by a user
+manager.
 
 Non-human users-- such as event gateways-- will utilize service accounts that
 human Brigade administrators may manage directly using the CLI/API. Service
-accounts will authenticate by means of non-expiring but revokable bearer
-tokens. (Note these are _not_ Kubernetes service accounts; but _Brigade_ service
+accounts will authenticate by means of non-expiring but revokable bearer tokens.
+(Note these are _not_ Kubernetes service accounts; but _Brigade_ service
 accounts.)
 
 N.B.: For symmetry with user accounts, service accounts, once created, cannot be
@@ -627,16 +664,14 @@ HTTPS.
 
 With authorization decisions no longer implicitly delegated to the Kubernetes
 API server, Brigade 2.0 will need to provide its own access control model. It is
-proposed to utilize a simple role-based model with pre-defined roles, each being
-constrained to a particular scope.
+proposed to utilize a simple role-based model with roles each being constrained
+to a particular scope.
 
-In contrast to Kubernetes, all Brigade 2.0 roles are proposed to be pre-defined
-and _not_ user-defined. This is proposed because, compared to Kubernetes,
-Brigade has relatively few resource types, cannot be extended with user-define
-APIs and resource types, and resource types possess an innate level of domain
-specificity that Kubernetes resource types lack. Under these conditions, it is
-easy to enumerate a small number of roles that should cover most access cases
-well.
+Contrasted with Kubernetes, Brigade has relatively few resource types and those
+types cannot be extended. Brigade resource types also possess an innate level of
+domain specificity that Kubernetes resource types lack. Under these conditions,
+it is possible to enumerate a small number of roles that cover most access cases
+well. Therefore the following _pre-defined_ roles are proposed:
 
 | Name | Scope | Description |
 |------|-------|-------------|
@@ -656,16 +691,16 @@ N.B.: A principal in the global `PROJECT_CREATOR` automatically receives the
 
 With respect to secrets used by Brigade itself, for instance bearer tokens
 associated with a user session or service account, it is both sufficient and
-easy to persist only a secure, one-way hash, however, no such assumption can be
+easy to persist only a secure, one-way hash; however, no such assumption can be
 made with respect to a _project's_ secrets. Without knowing _how_ a project will
 utilize its secrets, any encryption must be reversible such that the original,
 cleartext value is available to workers and jobs in the course of
 event-handling. This being the case, secure storage of encrypted project-level
 secrets is a necessity. Implementing this would prove onerous once factors such
 as periodic key rotation have been accounted for and the author does not propose
-such an undertaking. On the surface, delegating secret storage to a managed
-service such as Azure Key Vault or similar may appear easy and attractive, but
-would increase the operational footprint of Brigade's infrastructure
+such an undertaking. On the surface, delegating secret storage to a service such
+as Azure Key Vault or HashiCorp Vault may appear easy and attractive, but would
+further increase the operational footprint of Brigade's infrastructure
 dependencies and impede ease of use for evaluation or development purposes,
 making this another undesirable option.
 
@@ -717,8 +752,8 @@ Refer to:
 
 ### Summary of Proposed Changes
 
-The architecture described earlier in this document should enable remediation
-of all issues cited as rational for a major release.
+The architecture described earlier in this document should enable remediation of
+all issues cited as rationale for a major release.
 
 Proposed changes of note include (but are not limited to):
 
@@ -762,32 +797,20 @@ reconsidered or redesigned.
 
 ### Unknowns
 
-The biggest challenges foreseen involve reliably syncing across the record
-keeping and scheduling subsystems, and how the ultimate solution may also impact
-Brigade's underlying dependencies.
-
-Consider, for instance, that one possible solution utilizes database
-transactions to roll back changes to the record store when related operations in
-the scheduling subsystem fail. Since only very new versions of MongoDB support
-transactions and, even then, support them only in specific configurations, this
-may limit the availability of Brigade-compatible data stores from major cloud
-vendors.
-
-Keeping data in sync across subsystems while also keeping Brigade's dependencies
-in check is likely to prompt several iterations of amending the architecture and
-revising the implementation and/or technology choices.
+As of this writing, the biggest challenge lacking a clear solution involves
+reliably syncing across the record keeping and scheduling subsystems. It is
+anticipated that this may prompt a few iterations of amending the proposed
+architecture and implementation.
 
 ### Proof of Concept
 
-The author acknowledges this proposal has been informed to a significant degree
-by a working proof of concept, but wishes to dispel any misconception that the
-PoC represents the output of a premature or "stealth" development effort. Many
-concepts put forth by this proposal represent radical departures from Brigade
-1.x and warranted a detailed exploration of their tenability.
-
-Should any PoC code be reused in any form, additional rigor will be applied to
-reconcile it with the final draft of this proposal and to ensure high degrees of
-code hygiene, commit hygiene, and test coverage.
+Since many concepts put forth by this proposal represent radical departures from
+Brigade 1.x, a working proof of concept has been built to explore their
+tenability. It is incomplete, poorly tested, and should not be used in
+production under any circumstances. Should any of this code be reused in any
+form, additional rigor will be applied to reconcile it with the final draft of
+this proposal and to ensure high degrees of code hygiene, commit hygiene, and
+test coverage.
 
 ### Development Approach
 
@@ -804,6 +827,11 @@ long-term home for any continued 1.x development activity. At that time, the
 `2.0` branch can be merged into `master`, which remains the project's "main"
 branch throughout the entire process.
 
+N.B.: The above only outlines a technical procedure for managing parallel
+development of the 1.x and 2.x lines. Project maintainers will jointly need to
+define the windows for 1.x support, feature releases, bug fixes, and security
+patches, but establishing those is beyond the scope of this proposal.
+
 To address specific concerns about the continued availability of Brigade 1.x's
 stable Go libraries to third parties using _existing_ package import paths, all
 Brigade 2.0 source will be stored in a `v2/` folder, so that even when Brigade
@@ -813,16 +841,16 @@ even the oldest Go package management and dependency management tools.
 
 ### Roadmap
 
-It is proposed that principle Brigade 2.0 development concludes by the end of
-calendar year 2020, culminating in a `2.0-alpha` release with a stable-ish API
-and Go SDK. From that point forward, focus will shift toward improvements in
-stability and performance as well as development of two to three compatible
-gateways, with minimal breaking changes incurred. That effort is to culminate in
-a mid-spring 2021 `2.0-beta` release with a stable API and Go SDK that will
-incur breaking changes only on an exception basis. The remaining development
-efforts will focus on documentation, bug remediation, and further gateway
-improvements, culminating in a GA `2.0` release mid-summer 2021 with a stable
-API and Go SDK with the usual forward compatibility guarantees of a major
+It is proposed that the initial period of Brigade 2.0 development concludes by
+the end of calendar year 2020, culminating in a `2.0-alpha` release with a
+stable-ish API and Go SDK. From that point forward, focus will shift toward
+improvements in stability and performance as well as development of two to three
+compatible gateways, with minimal breaking changes incurred. That effort is to
+culminate in a mid-spring 2021 `2.0-beta` release with a stable API and Go SDK
+that will incur breaking changes only on an exception basis. The remaining
+development efforts will focus on documentation, bug remediation, and further
+gateway improvements, culminating in a GA `2.0` release mid-summer 2021 with a
+stable API and Go SDK and the usual forward compatibility guarantees of a major
 release.
 
 ### Ratifying this Proposal
@@ -834,8 +862,8 @@ amended, and ultimately ratified or rejected by the broader Brigade community.
    `brigadecore/brigade` repository and pinned to the top of the issue queue.
 1. The entire Brigade community is invited to comment on any aspect of the
    proposal (including these procedures).
-1. The author will work with commentators and fellow maintainers to reconcile
-   all feedback.
+1. The author will work with commentators and fellow maintainers to address all
+   feedback.
 1. The pull request will remain open for a _minimum_ of two weeks to allow
    sufficient opportunity for feedback to be submitted by all interested
    parties.
