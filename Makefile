@@ -18,8 +18,8 @@ ifneq ($(SKIP_DOCKER),true)
 	PROJECT_ROOT := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))
 	# https://github.com/krancour/go-tools
 	# https://hub.docker.com/repository/docker/krancour/go-tools
-	GO_DEV_IMAGE := krancour/go-tools:v0.2.0
-	JS_DEV_IMAGE := node:12.16.2-alpine3.11
+	GO_DEV_IMAGE := krancour/go-tools:v0.3.0
+	JS_DEV_IMAGE := vsc-brignext-4463e33a676ff70dda3c8745bab961cd
 
 	GO_DOCKER_CMD := docker run \
 		-it \
@@ -34,8 +34,8 @@ ifneq ($(SKIP_DOCKER),true)
 		-it \
 		--rm \
 		-e SKIP_DOCKER=true \
-		-v $(PROJECT_ROOT)/worker:/src \
-		-w /src \
+		-v $(PROJECT_ROOT):/workspaces/brignext \
+		-w /workspaces/brignext \
 		$(JS_DEV_IMAGE)
 endif
 
@@ -76,7 +76,7 @@ resolve-go-dependencies:
 
 .PHONY: resolve-js-dependencies
 resolve-js-dependencies:
-	$(JS_DOCKER_CMD) yarn install
+	$(JS_DOCKER_CMD) sh -c 'cd worker && yarn install'
 
 ################################################################################
 # Tests                                                                        #
@@ -98,11 +98,11 @@ test-unit-go:
 
 .PHONY: verify-vendored-js-code
 verify-vendored-js-code:
-	$(JS_DOCKER_CMD) sh -c "yarn check --integrity && yarn check --verify-tree"
+	$(JS_DOCKER_CMD) sh -c "cd worker && yarn check --integrity && yarn check --verify-tree"
 
 .PHONY: test-unit-js
 test-unit-js:
-	$(JS_DOCKER_CMD) sh -c "yarn build && yarn test"
+	$(JS_DOCKER_CMD) sh -c "cd worker && yarn build && yarn test"
 
 ################################################################################
 # Build / Publish                                                              #

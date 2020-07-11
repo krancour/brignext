@@ -1,7 +1,7 @@
 {
 	"name": "BrigNext Development Environment",
-	"image": "krancour/go-tools:v0.2.0",
-	
+	"image": "krancour/brignext-dev-env:v0.1.0",
+
 	"containerEnv": {
 		"GOCACHE": "/workspaces/brignext/.gocache",
 		"SKIP_DOCKER": "true"

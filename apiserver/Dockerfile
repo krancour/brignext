@@ -1,4 +1,4 @@
-FROM krancour/go-tools:v0.2.0
+FROM krancour/go-tools:v0.3.0
 ARG VERSION
 ARG COMMIT
 ENV CGO_ENABLED=0
