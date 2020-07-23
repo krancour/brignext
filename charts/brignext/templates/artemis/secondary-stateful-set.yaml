@@ -116,7 +116,7 @@ spec:
       accessModes: [ {{ .Values.artemis.persistence.accessMode }} ]
       resources:
         requests:
-          storage: {{ .Values.aretemis.persistence.size }}
+          storage: {{ .Values.artemis.persistence.size }}
   {{- end}}
 {{- end }}
 {{- end }}

@@ -1331,6 +1331,16 @@ redis:
     ##
     create: false
 
+## Valid values include:
+##
+## - "IncludedArtemis": Uses an instance of ActiveMQ Artemis installed alongside
+##     BrigNext. Further configuration is optional in the "artemis" section.
+## - "ExternalAMQP": Bring your own AMQP 1.0 compatible message broker. Further
+##     configuration is required in the "externalAMQP" section.
+## - "AzureServiceBus": Bring your own Azure Service Bus instance. Further
+##     configuration is required in the "azureServiceBus" section.
+##
+## AMQP 1.0 is the protocol used in all three cases.
 messageBus: IncludedArtemis
 
 ## The following settings are only applicable when messageBus (above) is set

@@ -18,8 +18,7 @@ data:
           <replication>
             <master>
               <group-name>to-be-set-by-configure-primary-node.sh</group-name>
-              <!--we need this for auto failback-->
-              <check-for-live-server>false</check-for-live-server>
+              <check-for-live-server>true</check-for-live-server>
             </master>
           </replication>
         </ha-policy>
