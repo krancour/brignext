@@ -32,6 +32,10 @@ If release name contains chart name it will be used as a full name.
 {{ include "brignext.fullname" . | printf "%s-controller" }}
 {{- end -}}
 
+{{- define "brignext.artemis.fullname" -}}
+{{ include "brignext.fullname" . | printf "%s-artemis" }}
+{{- end -}}
+
 {{- define "brignext.logger.linux.fullname" -}}
 {{ include "brignext.logger.fullname" . | printf "%s-linux" }}
 {{- end -}}
@@ -73,6 +77,20 @@ app.kubernetes.io/component: apiserver
 
 {{- define "brignext.controller.labels" -}}
 app.kubernetes.io/component: controller
+{{- end -}}
+
+{{- define "brignext.artemis.labels" -}}
+app.kubernetes.io/component: artemis
+{{- end -}}
+
+{{- define "brignext.artemis.primary.labels" -}}
+{{ include "brignext.artemis.labels" . }}
+app.kubernetes.io/role: primary
+{{- end -}}
+
+{{- define "brignext.artemis.secondary.labels" -}}
+{{ include "brignext.artemis.labels" . }}
+app.kubernetes.io/role: secondary
 {{- end -}}
 
 {{- define "brignext.logger.labels" -}}
