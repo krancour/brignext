@@ -4,10 +4,10 @@ go 1.14
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.0.7
+	github.com/Azure/go-amqp v0.12.7
 	github.com/coreos/go-oidc v2.2.1+incompatible
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/ghodss/yaml v1.0.0
-	github.com/go-redis/redis v6.15.7+incompatible
 	github.com/gorilla/mux v1.7.4
 	github.com/gosuri/uitable v0.0.4
 	github.com/imdario/mergo v0.3.8 // indirect
