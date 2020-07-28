@@ -96,17 +96,29 @@ spec:
         - name: MONGODB_DATABASE
           value: {{ .Values.externalMongodb.database }}
         {{- end }}
-        - name: REDIS_HOST
-          value: {{ include "call-nested" (list . "redis" "redis.fullname") }}-master.{{ .Release.Namespace }}.svc.cluster.local
-        - name: REDIS_PORT
-          value: {{ quote .Values.redis.redisPort }}
-        - name: REDIS_PASSWORD
+        {{- if eq .Values.messageBus "IncludedArtemis" }}
+        - name: AMQP_ADDRESS
+          value: amqp://{{ include "brignext.artemis.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:5672
+        - name: AMQP_USERNAME
+          value: {{ .Values.artemis.username }}
+        {{- else if eq .Values.messageBus "ExternalAMQP" }}
+        - name: AMQP_ADDRESS
+          value: {{ .Values.externalAMQP.address }}
+        - name: AMQP_USERNAME
+          value: {{ .Values.externalAMQP.username }}
+        {{- else if eq .Values.messageBus "AzureServiceBus" }}
+        - name: AMQP_ADDRESS
+          value: {{ .Values.azureServiceBus.address }}
+        - name: AMQP_USERNAME
+          value: {{ .Values.azureServiceBus.username }}
+        - name: AMQP_IS_AZURE_SERVICE_BUS
+          value: "true"
+        {{- end }}
+        - name: AMQP_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: {{ include "call-nested" (list . "redis" "redis.fullname") }}
-              key: redis-password
-        - name: REDIS_DB
-          value: {{ quote .Values.apiserver.redis.database }}
+              name: {{ include "brignext.apiserver.fullname" . }}
+              key: amqp-password
         {{- if .Values.apiserver.tls.enabled }}
         volumeMounts:
         - name: cert
