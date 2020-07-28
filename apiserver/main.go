@@ -10,10 +10,10 @@ import (
 	"github.com/krancour/brignext/v2/apiserver/internal/users"
 	"github.com/krancour/brignext/v2/internal/api"
 	"github.com/krancour/brignext/v2/internal/api/auth"
+	"github.com/krancour/brignext/v2/internal/events/amqp"
 	"github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/krancour/brignext/v2/internal/mongodb"
 	"github.com/krancour/brignext/v2/internal/oidc"
-	"github.com/krancour/brignext/v2/internal/redis"
 	"github.com/krancour/brignext/v2/internal/version"
 )
 
@@ -51,7 +51,7 @@ func main() {
 	)
 
 	// Events-- depends on projects
-	redisClient, err := redis.Client()
+	eventSenderFactory, err := amqp.GetSenderFactoryFromEnvironment()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func main() {
 		projectsStore,
 		eventsStore,
 		events.NewLogsStore(database),
-		events.NewScheduler(redisClient, kubeClient),
+		events.NewScheduler(eventSenderFactory, kubeClient),
 	)
 
 	// Service Accounts

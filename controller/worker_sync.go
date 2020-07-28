@@ -14,11 +14,11 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func (c *controller) defaultSyncExistingWorkerPods(ctx context.Context) error {
+func (c *controller) syncExistingWorkerPods(ctx context.Context) error {
 	workerPodList, err := c.podsClient.List(
 		ctx,
 		metav1.ListOptions{
-			LabelSelector: c.workerPodsSelector.String(),
+			LabelSelector: workerPodsSelector,
 		},
 	)
 	if err != nil {
@@ -30,15 +30,15 @@ func (c *controller) defaultSyncExistingWorkerPods(ctx context.Context) error {
 	return nil
 }
 
-func (c *controller) defaultContinuouslySyncWorkerPods(ctx context.Context) {
+func (c *controller) continuouslySyncWorkerPods(ctx context.Context) {
 	workerPodsInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				options.LabelSelector = c.workerPodsSelector.String()
+				options.LabelSelector = workerPodsSelector
 				return c.podsClient.List(ctx, options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				options.LabelSelector = c.workerPodsSelector.String()
+				options.LabelSelector = workerPodsSelector
 				return c.podsClient.Watch(ctx, options)
 			},
 		},

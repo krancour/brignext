@@ -13,15 +13,15 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func (c *controller) defaultContinuouslySyncJobPods(ctx context.Context) {
+func (c *controller) continuouslySyncJobPods(ctx context.Context) {
 	jobPodsInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				options.LabelSelector = c.jobPodsSelector.String()
+				options.LabelSelector = jobPodsSelector
 				return c.podsClient.List(ctx, options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				options.LabelSelector = c.jobPodsSelector.String()
+				options.LabelSelector = jobPodsSelector
 				return c.podsClient.Watch(ctx, options)
 			},
 		},

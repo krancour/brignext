@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-redis/redis"
+	"github.com/krancour/brignext/v2/internal/events"
 	"github.com/krancour/brignext/v2/sdk/api"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/labels"
@@ -13,80 +13,57 @@ import (
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
+var (
+	workerPodsSelector = labels.Set(
+		map[string]string{
+			"brignext.io/component": "worker",
+		},
+	).AsSelector().String()
+
+	jobPodsSelector = labels.Set(
+		map[string]string{
+			"brignext.io/component": "job",
+		},
+	).AsSelector().String()
+)
+
 type Controller interface {
 	Run(context.Context) error
 }
 
+// TODO: Bust this up into two separate components-- scheduler and observer
 type controller struct {
-	controllerConfig   Config
-	apiClient          api.Client
-	redisClient        *redis.Client
-	kubeClient         *kubernetes.Clientset
-	podsClient         corev1.PodInterface
-	workerPodsSelector labels.Selector
-	workerPodsSet      map[string]struct{}
-	deletingPodsSet    map[string]struct{}
-	podsLock           sync.Mutex
-	availabilityCh     chan struct{}
-	jobPodsSelector    labels.Selector
-
-	// All of the following behaviors can be overridden for testing purposes
-	syncExistingWorkerPods            func(context.Context) error
-	manageCapacity                    func(context.Context)
-	continuouslySyncWorkerPods        func(context.Context)
-	manageProjectWorkerQueueConsumers func(context.Context)
-	continuouslySyncJobPods           func(context.Context)
-
-	workerContextCh chan workerContext
-	// All goroutines we launch will send errors here
-	errCh chan error
+	controllerConfig Config
+	apiClient        api.Client
+	// TODO: This should be closed somewhere
+	eventReceiverFactory events.ReceiverFactory
+	kubeClient           *kubernetes.Clientset
+	podsClient           corev1.PodInterface
+	workerPodsSet        map[string]struct{}
+	deletingPodsSet      map[string]struct{}
+	podsLock             sync.Mutex
+	availabilityCh       chan struct{}
+	errCh                chan error // All goroutines will send fatal errors here
 }
 
 func NewController(
 	controllerConfig Config,
 	apiClient api.Client,
-	redisClient *redis.Client,
+	eventReceiverFactory events.ReceiverFactory,
 	kubeClient *kubernetes.Clientset,
 ) Controller {
 	podsClient := kubeClient.CoreV1().Pods("")
-	workerPodsSelector := labels.Set(
-		map[string]string{
-			"brignext.io/component": "worker",
-		},
-	).AsSelector()
-	jobPodsSelector := labels.Set(
-		map[string]string{
-			"brignext.io/component": "job",
-		},
-	).AsSelector()
-	c := &controller{
-		controllerConfig: controllerConfig,
-		apiClient:        apiClient,
-		redisClient:      redisClient,
-		kubeClient:       kubeClient,
-
-		// New stuff
-		// TODO: Organize this better
-		podsClient:         podsClient,
-		workerPodsSelector: workerPodsSelector,
-		workerPodsSet:      map[string]struct{}{},
-		deletingPodsSet:    map[string]struct{}{},
-		availabilityCh:     make(chan struct{}),
-		jobPodsSelector:    jobPodsSelector,
-
-		workerContextCh: make(chan workerContext),
-		errCh:           make(chan error),
+	return &controller{
+		controllerConfig:     controllerConfig,
+		apiClient:            apiClient,
+		eventReceiverFactory: eventReceiverFactory,
+		kubeClient:           kubeClient,
+		podsClient:           podsClient,
+		workerPodsSet:        map[string]struct{}{},
+		deletingPodsSet:      map[string]struct{}{},
+		availabilityCh:       make(chan struct{}),
+		errCh:                make(chan error),
 	}
-
-	// Behaviors
-	c.syncExistingWorkerPods = c.defaultSyncExistingWorkerPods
-	c.manageCapacity = c.defaultManageCapacity
-	c.continuouslySyncWorkerPods = c.defaultContinuouslySyncWorkerPods
-	c.manageProjectWorkerQueueConsumers =
-		c.defaultManageProjectWorkerQueueConsumers
-	c.continuouslySyncJobPods = c.defaultContinuouslySyncJobPods
-
-	return c
 }
 
 func (c *controller) Run(ctx context.Context) error {
@@ -124,11 +101,11 @@ func (c *controller) Run(ctx context.Context) error {
 	}()
 
 	// Monitor for new/deleted projects at a regular interval. Launch or stop
-	// new project-specific queue consumers as needed.
+	// new project-specific event loops as needed.
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		c.manageProjectWorkerQueueConsumers(ctx)
+		c.manageProjectEventLoops(ctx)
 	}()
 
 	// Wait for an error or a completed context

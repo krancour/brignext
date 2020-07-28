@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/go-redis/redis"
+	events "github.com/krancour/brignext/v2/internal/events"
 	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
-	"github.com/krancour/brignext/v2/internal/messaging"
-	redisMessaging "github.com/krancour/brignext/v2/internal/messaging/redis"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -35,17 +33,17 @@ type Scheduler interface {
 }
 
 type scheduler struct {
-	redisClient *redis.Client
-	kubeClient  *kubernetes.Clientset
+	eventSenderFactory events.SenderFactory
+	kubeClient         *kubernetes.Clientset
 }
 
 func NewScheduler(
-	redisClient *redis.Client,
+	eventSenderFactory events.SenderFactory,
 	kubeClient *kubernetes.Clientset,
 ) Scheduler {
 	return &scheduler{
-		redisClient: redisClient,
-		kubeClient:  kubeClient,
+		eventSenderFactory: eventSenderFactory,
+		kubeClient:         kubeClient,
 	}
 }
 
@@ -165,22 +163,15 @@ func (s *scheduler) Create(
 	}
 
 	// Schedule event's worker for asynchronous execution
-	producer := redisMessaging.NewProducer(event.ProjectID, s.redisClient, nil)
-	messageBody, err := json.Marshal(struct {
-		Event string `json:"event"`
-	}{
-		Event: event.ID,
-	})
+	eventSender, err := s.eventSenderFactory.NewSender(event.ProjectID)
 	if err != nil {
 		return errors.Wrapf(
 			err,
-			"error encoding execution task for event %q worker",
+			"error creating event sender for event %q",
 			event.ID,
 		)
 	}
-	if err := producer.Publish(
-		messaging.NewMessage(messageBody),
-	); err != nil {
+	if err := eventSender.Send(ctx, event.ID); err != nil {
 		return errors.Wrapf(
 			err,
 			"error submitting execution task for event %q worker",
@@ -266,14 +257,12 @@ func (s *scheduler) Delete(
 }
 
 func (s *scheduler) CheckHealth(context.Context) error {
-	// We'll just ask the apiserver for version info since this like it's
-	// probably the simplest way to test that it is responding.
+	// We'll just ask the apiserver for version info since that's probably the
+	// simplest way to test that it is responding.
 	if _, err := s.kubeClient.Discovery().ServerVersion(); err != nil {
 		return errors.Wrap(err, "error pinging kubernetes apiserver")
 	}
-	if err := s.redisClient.Ping().Err(); err != nil {
-		return errors.Wrap(err, "error pinging redis")
-	}
+	// TODO: Test database and message bus connections
 	return nil
 }
 

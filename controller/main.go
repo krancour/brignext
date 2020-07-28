@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 
-	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/krancour/brignext/v2/internal/events/amqp"
 	"github.com/krancour/brignext/v2/internal/kubernetes"
-	"github.com/krancour/brignext/v2/internal/redis"
 	"github.com/krancour/brignext/v2/internal/signals"
 	"github.com/krancour/brignext/v2/internal/version"
+	"github.com/krancour/brignext/v2/sdk/api"
 )
 
 func main() {
@@ -27,7 +27,7 @@ func main() {
 		config.IgnoreAPICertWarnings,
 	)
 
-	redisClient, err := redis.Client()
+	eventReceiverFactory, err := amqp.GetReceiverFactoryFromEnvironment()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func main() {
 	controller := NewController(
 		config,
 		apiClient,
-		redisClient,
+		eventReceiverFactory,
 		kubeClient,
 	)
 

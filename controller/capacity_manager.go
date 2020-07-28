@@ -9,7 +9,7 @@ import (
 // defaultManageCapacity periodically checks how many worker pods are currently
 // running and sends a signal on an availability channel when there is available
 // capacity.
-func (c *controller) defaultManageCapacity(ctx context.Context) {
+func (c *controller) manageCapacity(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 	for {

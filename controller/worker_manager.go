@@ -2,37 +2,29 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/krancour/brignext/v2/internal/events"
 	brignext "github.com/krancour/brignext/v2/sdk"
-	"github.com/krancour/brignext/v2/internal/messaging"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (c *controller) handleProjectWorkerMessage(
+// TODO: This has some good logic here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+func (c *controller) handleEvent(
 	ctx context.Context,
-	msg messaging.Message,
+	asyncEvent events.AsyncEvent,
 ) error {
-	workerCtx := workerContext{}
-	if err := json.Unmarshal(msg.Body(), &workerCtx); err != nil {
-		return errors.Wrap(
-			err,
-			"error unmarshaling message body into worker context",
-		)
-	}
-
 	// Use the API to find the worker and check if anything even needs to be
 	// done
-	event, err := c.apiClient.Events().Get(ctx, workerCtx.EventID)
+	event, err := c.apiClient.Events().Get(ctx, asyncEvent.EventID)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving event %q", workerCtx.EventID)
+		return errors.Wrapf(err, "error retrieving event %q", asyncEvent.EventID)
 	}
 	// If the worker's phase isn't PENDING or RUNNING, there's nothing for us to
 	// do. It's already in a terminal state.
@@ -52,7 +44,7 @@ func (c *controller) handleProjectWorkerMessage(
 				return errors.Wrapf(
 					err,
 					"error creating workspace for event %q worker",
-					workerCtx.EventID,
+					asyncEvent.EventID,
 				)
 			}
 			if err := c.createWorkerPod(
@@ -62,7 +54,7 @@ func (c *controller) handleProjectWorkerMessage(
 				return errors.Wrapf(
 					err,
 					"error starting pod for event %q worker",
-					workerCtx.EventID,
+					asyncEvent.EventID,
 				)
 			}
 		case <-ctx.Done():
@@ -79,12 +71,12 @@ func (c *controller) handleProjectWorkerMessage(
 	for {
 		select {
 		case <-ticker.C:
-			event, err := c.apiClient.Events().Get(ctx, workerCtx.EventID)
+			event, err := c.apiClient.Events().Get(ctx, asyncEvent.EventID)
 			if err != nil {
 				return errors.Wrapf(
 					err,
 					"error retrieving event %q while polling for completion",
-					workerCtx.EventID,
+					asyncEvent.EventID,
 				)
 			}
 			// If worker phase isn't RUNNING, we're done
