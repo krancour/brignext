@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/internal/api"
+	"github.com/krancour/brignext/v2/apiserver/internal/api"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"

@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/internal/api"
+	"github.com/krancour/brignext/v2/apiserver/internal/api"
 	errs "github.com/krancour/brignext/v2/internal/errors"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
