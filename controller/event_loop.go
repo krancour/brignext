@@ -5,22 +5,22 @@ import (
 	"log"
 	"time"
 
-	"github.com/krancour/brignext/v2/internal/events"
+	"github.com/krancour/brignext/v2/controller/internal/events"
 	brignext "github.com/krancour/brignext/v2/sdk"
 )
 
 func (c *controller) runEventLoop(ctx context.Context, projectID string) {
 
-	var eventReceiver events.Receiver
+	var eventsReceiver events.Receiver
 
 outerLoop:
 	for {
 
-		if eventReceiver != nil {
+		if eventsReceiver != nil {
 			closeCtx, cancelCloseCtx :=
 				context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancelCloseCtx()
-			eventReceiver.Close(closeCtx)
+			eventsReceiver.Close(closeCtx)
 		}
 
 		select {
@@ -29,7 +29,7 @@ outerLoop:
 		default:
 		}
 
-		eventReceiver, err := c.eventReceiverFactory.NewReceiver(projectID)
+		eventsReceiver, err := c.eventsReceiverFactory.NewReceiver(projectID)
 		if err != nil { // It's fatal if we can't get an event receiver
 			select {
 			case c.errCh <- err:
@@ -41,7 +41,7 @@ outerLoop:
 		// This is the main loop for receiving this project's events
 		for {
 			// Get the next event for this project
-			asyncEvent, err := eventReceiver.Receive(ctx)
+			asyncEvent, err := eventsReceiver.Receive(ctx)
 			if err != nil {
 				continue outerLoop // Try again with a new receiver
 			}

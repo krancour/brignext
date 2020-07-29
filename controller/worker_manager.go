@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
-	"github.com/krancour/brignext/v2/internal/events"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -15,80 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// TODO: This has some good logic here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-func (c *controller) handleEvent(
-	ctx context.Context,
-	asyncEvent events.AsyncEvent,
-) error {
-	// Use the API to find the worker and check if anything even needs to be
-	// done
-	event, err := c.apiClient.Events().Get(ctx, asyncEvent.EventID)
-	if err != nil {
-		return errors.Wrapf(err, "error retrieving event %q", asyncEvent.EventID)
-	}
-	// If the worker's phase isn't PENDING or RUNNING, there's nothing for us to
-	// do. It's already in a terminal state.
-	if event.Status.WorkerStatus.Phase != brignext.WorkerPhasePending &&
-		event.Status.WorkerStatus.Phase != brignext.WorkerPhaseRunning {
-		return nil
-	}
-
-	// If the phase is pending, we'll wait for available capacity and then get
-	// the worker pod started
-	if event.Status.WorkerStatus.Phase == brignext.WorkerPhasePending {
-		// Wait for capacity, then start the pod
-		select {
-		case <-c.availabilityCh:
-			if err :=
-				c.createWorkspacePVC(ctx, event); err != nil {
-				return errors.Wrapf(
-					err,
-					"error creating workspace for event %q worker",
-					asyncEvent.EventID,
-				)
-			}
-			if err := c.createWorkerPod(
-				ctx,
-				event,
-			); err != nil {
-				return errors.Wrapf(
-					err,
-					"error starting pod for event %q worker",
-					asyncEvent.EventID,
-				)
-			}
-		case <-ctx.Done():
-			return nil
-		}
-	}
-
-	// Wait for the worker to reach a terminal state. We do this by periodically
-	// polling the API because that's much simpler than trying to coordinate with
-	// the routine that's continuously monitoring worker pods. We can revisit this
-	// later if need be.
-	ticker := time.NewTicker(10 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ticker.C:
-			event, err := c.apiClient.Events().Get(ctx, asyncEvent.EventID)
-			if err != nil {
-				return errors.Wrapf(
-					err,
-					"error retrieving event %q while polling for completion",
-					asyncEvent.EventID,
-				)
-			}
-			// If worker phase isn't RUNNING, we're done
-			if event.Status.WorkerStatus.Phase != brignext.WorkerPhaseRunning {
-				return nil
-			}
-		// TODO: We should also have a case for worker timeout
-		case <-ctx.Done():
-			return nil
-		}
-	}
-}
+// TODO: Rename this file or find other homes for these functions
 
 func (c *controller) createWorkspacePVC(
 	ctx context.Context,

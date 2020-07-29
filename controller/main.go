@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"github.com/krancour/brignext/v2/internal/events/amqp"
+	"github.com/krancour/brignext/v2/controller/internal/events/amqp"
 	"github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/krancour/brignext/v2/internal/signals"
 	"github.com/krancour/brignext/v2/internal/version"
@@ -27,7 +27,7 @@ func main() {
 		config.IgnoreAPICertWarnings,
 	)
 
-	eventReceiverFactory, err := amqp.GetReceiverFactoryFromEnvironment()
+	eventsReceiverFactory, err := amqp.GetEventsReceiverFactoryFromEnvironment()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func main() {
 	controller := NewController(
 		config,
 		apiClient,
-		eventReceiverFactory,
+		eventsReceiverFactory,
 		kubeClient,
 	)
 

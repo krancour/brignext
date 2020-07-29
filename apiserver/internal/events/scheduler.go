@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	events "github.com/krancour/brignext/v2/internal/events"
 	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
@@ -33,17 +32,17 @@ type Scheduler interface {
 }
 
 type scheduler struct {
-	eventSenderFactory events.SenderFactory
-	kubeClient         *kubernetes.Clientset
+	eventsSenderFactory SenderFactory
+	kubeClient          *kubernetes.Clientset
 }
 
 func NewScheduler(
-	eventSenderFactory events.SenderFactory,
+	eventsSenderFactory SenderFactory,
 	kubeClient *kubernetes.Clientset,
 ) Scheduler {
 	return &scheduler{
-		eventSenderFactory: eventSenderFactory,
-		kubeClient:         kubeClient,
+		eventsSenderFactory: eventsSenderFactory,
+		kubeClient:          kubeClient,
 	}
 }
 
@@ -163,7 +162,7 @@ func (s *scheduler) Create(
 	}
 
 	// Schedule event's worker for asynchronous execution
-	eventSender, err := s.eventSenderFactory.NewSender(event.ProjectID)
+	eventSender, err := s.eventsSenderFactory.NewSender(event.ProjectID)
 	if err != nil {
 		return errors.Wrapf(
 			err,

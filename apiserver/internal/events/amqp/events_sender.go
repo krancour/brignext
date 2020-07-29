@@ -2,13 +2,12 @@ package amqp
 
 import (
 	"context"
-	"log"
 
 	amqp "github.com/Azure/go-amqp"
 	"github.com/pkg/errors"
 )
 
-type sender struct {
+type eventsSender struct {
 	// TODO: Replace this with some kind of options doohickey
 	isAzureServiceBus bool
 	projectID         string
@@ -16,7 +15,7 @@ type sender struct {
 	amqpSender        *amqp.Sender
 }
 
-func (s *sender) Send(ctx context.Context, event string) error {
+func (e *eventsSender) Send(ctx context.Context, event string) error {
 	msg := &amqp.Message{
 		Header: &amqp.MessageHeader{
 			Durable: true,
@@ -25,39 +24,35 @@ func (s *sender) Send(ctx context.Context, event string) error {
 			[]byte(event),
 		},
 	}
-	if s.isAzureServiceBus {
+	if e.isAzureServiceBus {
 		msg.Properties = &amqp.MessageProperties{
-			GroupID: s.projectID,
+			GroupID: e.projectID,
 		}
 	}
-	if err := s.amqpSender.Send(ctx, msg); err != nil {
+	if err := e.amqpSender.Send(ctx, msg); err != nil {
 		return errors.Wrapf(
 			err,
 			"error sending amqp message for project %q",
-			s.projectID,
+			e.projectID,
 		)
 	}
 	return nil
 }
 
-func (s *sender) Close(ctx context.Context) error {
-	if err := s.amqpSender.Close(ctx); err != nil {
+func (e *eventsSender) Close(ctx context.Context) error {
+	if err := e.amqpSender.Close(ctx); err != nil {
 		return errors.Wrapf(
 			err,
 			"error closing AMQP sender for project %q",
-			s.projectID,
+			e.projectID,
 		)
 	}
-	if err := s.amqpSession.Close(ctx); err != nil {
+	if err := e.amqpSession.Close(ctx); err != nil {
 		return errors.Wrapf(
 			err,
 			"error closing AMQP session for project %q",
-			s.projectID,
+			e.projectID,
 		)
 	}
-	log.Printf(
-		"DEBUG: closed AMQP-based event sender for project %q",
-		s.projectID,
-	)
 	return nil
 }

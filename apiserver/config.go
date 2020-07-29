@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/events"
+	"github.com/krancour/brignext/v2/apiserver/internal/events/amqp"
 	"github.com/krancour/brignext/v2/apiserver/internal/mongodb"
 	"github.com/krancour/brignext/v2/apiserver/internal/projects"
 	"github.com/krancour/brignext/v2/apiserver/internal/serviceaccounts"
@@ -11,7 +12,6 @@ import (
 	"github.com/krancour/brignext/v2/apiserver/internal/users"
 	"github.com/krancour/brignext/v2/internal/api"
 	"github.com/krancour/brignext/v2/internal/api/auth"
-	"github.com/krancour/brignext/v2/internal/events/amqp"
 	"github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/krancour/brignext/v2/internal/oidc"
 )
@@ -45,7 +45,7 @@ func getAPIServerFromEnvironment() (api.Server, error) {
 	)
 
 	// Events-- depends on projects
-	eventSenderFactory, err := amqp.GetSenderFactoryFromEnvironment()
+	eventsSenderFactory, err := amqp.GetEventsSenderFactoryFromEnvironment()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func getAPIServerFromEnvironment() (api.Server, error) {
 		projectsStore,
 		eventsStore,
 		mongodb.NewLogsStore(database),
-		events.NewScheduler(eventSenderFactory, kubeClient),
+		events.NewScheduler(eventsSenderFactory, kubeClient),
 	)
 
 	// Service Accounts

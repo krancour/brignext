@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/krancour/brignext/v2/internal/events"
+	"github.com/krancour/brignext/v2/controller/internal/events"
 	"github.com/krancour/brignext/v2/sdk/api"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/labels"
@@ -36,33 +36,33 @@ type controller struct {
 	controllerConfig Config
 	apiClient        api.Client
 	// TODO: This should be closed somewhere
-	eventReceiverFactory events.ReceiverFactory
-	kubeClient           *kubernetes.Clientset
-	podsClient           corev1.PodInterface
-	workerPodsSet        map[string]struct{}
-	deletingPodsSet      map[string]struct{}
-	podsLock             sync.Mutex
-	availabilityCh       chan struct{}
-	errCh                chan error // All goroutines will send fatal errors here
+	eventsReceiverFactory events.ReceiverFactory
+	kubeClient            *kubernetes.Clientset
+	podsClient            corev1.PodInterface
+	workerPodsSet         map[string]struct{}
+	deletingPodsSet       map[string]struct{}
+	podsLock              sync.Mutex
+	availabilityCh        chan struct{}
+	errCh                 chan error // All goroutines will send fatal errors here
 }
 
 func NewController(
 	controllerConfig Config,
 	apiClient api.Client,
-	eventReceiverFactory events.ReceiverFactory,
+	eventsReceiverFactory events.ReceiverFactory,
 	kubeClient *kubernetes.Clientset,
 ) Controller {
 	podsClient := kubeClient.CoreV1().Pods("")
 	return &controller{
-		controllerConfig:     controllerConfig,
-		apiClient:            apiClient,
-		eventReceiverFactory: eventReceiverFactory,
-		kubeClient:           kubeClient,
-		podsClient:           podsClient,
-		workerPodsSet:        map[string]struct{}{},
-		deletingPodsSet:      map[string]struct{}{},
-		availabilityCh:       make(chan struct{}),
-		errCh:                make(chan error),
+		controllerConfig:      controllerConfig,
+		apiClient:             apiClient,
+		eventsReceiverFactory: eventsReceiverFactory,
+		kubeClient:            kubeClient,
+		podsClient:            podsClient,
+		workerPodsSet:         map[string]struct{}{},
+		deletingPodsSet:       map[string]struct{}{},
+		availabilityCh:        make(chan struct{}),
+		errCh:                 make(chan error),
 	}
 }
 
