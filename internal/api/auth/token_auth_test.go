@@ -14,10 +14,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testToken = "foooooooooooooooooooo"
+const testSchedulerToken = "foooooooooooooooooooo"
+const testObserverToken = "baaaaaaaaaaaaaaaaaaaar"
 
 func TestTokenAuthFilterWithHeaderMissing(t *testing.T) {
-	a := NewTokenAuthFilter(nil, nil, false, testToken)
+	a := NewTokenAuthFilter(
+		nil,
+		nil,
+		false,
+		testSchedulerToken,
+		testObserverToken,
+	)
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	require.NoError(t, err)
 	rr := httptest.NewRecorder()
@@ -30,7 +37,13 @@ func TestTokenAuthFilterWithHeaderMissing(t *testing.T) {
 }
 
 func TestTokenAuthFilterWithHeaderNotBearer(t *testing.T) {
-	a := NewTokenAuthFilter(nil, nil, false, testToken)
+	a := NewTokenAuthFilter(
+		nil,
+		nil,
+		false,
+		testSchedulerToken,
+		testObserverToken,
+	)
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	require.NoError(t, err)
 	req.Header.Add("Authorization", "Digest foo")
@@ -50,7 +63,8 @@ func TestTokenAuthFilterWithTokenInvalid(t *testing.T) {
 		},
 		nil,
 		false,
-		testToken,
+		testSchedulerToken,
+		testObserverToken,
 	)
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	require.NoError(t, err)
@@ -76,7 +90,8 @@ func TestTokenAuthFilterWithUnauthenticatedSession(t *testing.T) {
 			return brignext.User{}, nil
 		},
 		false,
-		testToken,
+		testSchedulerToken,
+		testObserverToken,
 	)
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	require.NoError(t, err)
@@ -110,7 +125,8 @@ func TestTokenAuthFilterWithAuthenticatedSession(t *testing.T) {
 			return brignext.User{}, nil
 		},
 		false,
-		testToken,
+		testSchedulerToken,
+		testObserverToken,
 	)
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	require.NoError(t, err)

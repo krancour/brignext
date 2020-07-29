@@ -8,23 +8,8 @@ import (
 	"github.com/krancour/brignext/v2/scheduler/internal/events"
 	"github.com/krancour/brignext/v2/sdk/api"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-)
-
-var (
-	workerPodsSelector = labels.Set(
-		map[string]string{
-			"brignext.io/component": "worker",
-		},
-	).AsSelector().String()
-
-	jobPodsSelector = labels.Set(
-		map[string]string{
-			"brignext.io/component": "job",
-		},
-	).AsSelector().String()
 )
 
 type Scheduler interface {
@@ -40,8 +25,7 @@ type scheduler struct {
 	kubeClient            *kubernetes.Clientset
 	podsClient            corev1.PodInterface
 	workerPodsSet         map[string]struct{}
-	deletingPodsSet       map[string]struct{}
-	podsLock              sync.Mutex
+	syncMu                *sync.Mutex
 	availabilityCh        chan struct{}
 	errCh                 chan error // All goroutines will send fatal errors here
 }
@@ -60,7 +44,7 @@ func NewScheduler(
 		kubeClient:            kubeClient,
 		podsClient:            podsClient,
 		workerPodsSet:         map[string]struct{}{},
-		deletingPodsSet:       map[string]struct{}{},
+		syncMu:                &sync.Mutex{},
 		availabilityCh:        make(chan struct{}),
 		errCh:                 make(chan error),
 	}
@@ -91,13 +75,6 @@ func (s *scheduler) Run(ctx context.Context) error {
 	go func() {
 		defer wg.Done()
 		s.manageCapacity(ctx)
-	}()
-
-	// Continuously sync job pods
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		s.continuouslySyncJobPods(ctx)
 	}()
 
 	// Monitor for new/deleted projects at a regular interval. Launch or stop

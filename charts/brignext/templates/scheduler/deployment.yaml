@@ -16,6 +16,8 @@ spec:
       labels:
         {{- include "brignext.selectorLabels" . | nindent 8 }}
         {{- include "brignext.scheduler.labels" . | nindent 8 }}
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/scheduler/secret.yaml") . | sha256sum }}
     spec:
       serviceAccount: {{ include "brignext.scheduler.fullname" . }}
       containers:

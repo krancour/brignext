@@ -13,16 +13,16 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func (s *scheduler) continuouslySyncJobPods(ctx context.Context) {
+func (o *observer) continuouslySyncJobPods(ctx context.Context) {
 	jobPodsInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				options.LabelSelector = jobPodsSelector
-				return s.podsClient.List(ctx, options)
+				return o.podsClient.List(ctx, options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				options.LabelSelector = jobPodsSelector
-				return s.podsClient.Watch(ctx, options)
+				return o.podsClient.Watch(ctx, options)
 			},
 		},
 		&corev1.Pod{},
@@ -31,23 +31,23 @@ func (s *scheduler) continuouslySyncJobPods(ctx context.Context) {
 	)
 	jobPodsInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: s.syncJobPod,
+			AddFunc: o.syncJobPod,
 			UpdateFunc: func(_, newObj interface{}) {
-				s.syncJobPod(newObj)
+				o.syncJobPod(newObj)
 			},
-			DeleteFunc: s.syncDeletedPod,
+			DeleteFunc: o.syncDeletedPod,
 		},
 	)
 	jobPodsInformer.Run(ctx.Done())
 }
 
-func (s *scheduler) syncJobPod(obj interface{}) {
-	s.podsLock.Lock()
-	defer s.podsLock.Unlock()
+func (o *observer) syncJobPod(obj interface{}) {
+	o.syncMu.Lock()
+	defer o.syncMu.Unlock()
 	jobPod := obj.(*corev1.Pod)
 
 	// Job pods are only deleted by the API (during event or worker abortion or
-	// cancelation) or by the scheduler. In EITHER case, the job pod has already
+	// cancelation) or by the observer. In EITHER case, the job pod has already
 	// reached a terminal state and that has already been recorded in the
 	// database, so there's nothing to do.
 	if jobPod.DeletionTimestamp != nil {
@@ -83,7 +83,7 @@ func (s *scheduler) syncJobPod(obj interface{}) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := s.apiClient.Events().UpdateJobStatus(
+	if err := o.apiClient.Events().UpdateJobStatus(
 		ctx,
 		eventID,
 		jobName,
@@ -91,7 +91,7 @@ func (s *scheduler) syncJobPod(obj interface{}) {
 	); err != nil {
 		// TODO: Can we return this over the errCh somehow? Only problem is we
 		// don't want to block forever and we don't have access to the context
-		// here. Maybe we can make the context an attribute of the scheduler?
+		// here. Maybe we can make the context an attribute of the observer?
 		log.Printf(
 			"error updating status for event %q worker job %q: %s",
 			eventID,
@@ -106,13 +106,13 @@ func (s *scheduler) syncJobPod(obj interface{}) {
 		// We want to delete this pod after a short delay, but first let's make
 		// sure we aren't already working on that. If we schedule this for
 		// deletion more than once, we'll end up causing some errors.
-		_, alreadyDeleting := s.deletingPodsSet[namespacedJobPodName]
+		_, alreadyDeleting := o.deletingPodsSet[namespacedJobPodName]
 		if !alreadyDeleting {
 			log.Printf("scheduling job pod %s deletion\n", namespacedJobPodName)
-			s.deletingPodsSet[namespacedJobPodName] = struct{}{}
+			o.deletingPodsSet[namespacedJobPodName] = struct{}{}
 			// Do NOT pass the pointer. It seems to be reused by the informer.
 			// Pass the thing it points TO.
-			go s.deletePod(*jobPod)
+			go o.deletePod(*jobPod)
 		}
 	}
 }

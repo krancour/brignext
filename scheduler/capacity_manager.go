@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"time"
 )
 
@@ -13,14 +12,13 @@ func (s *scheduler) manageCapacity(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 	for {
-		s.podsLock.Lock()
+		s.syncMu.Lock()
 		runningWorkerPods := len(s.workerPodsSet)
 		// Give up this lock before we potentially block waiting on someone who's
 		// ready for the capacity we might be allocating.
-		s.podsLock.Unlock()
+		s.syncMu.Unlock()
 		// TODO: Make this configurable
 		if runningWorkerPods < 2 {
-			log.Println("found available capacity")
 			select {
 			case s.availabilityCh <- struct{}{}:
 			case <-ctx.Done():

@@ -102,6 +102,7 @@ func getAPIServerFromEnvironment() (api.Server, error) {
 			usersService.Get,
 			apiConfig.RootUserEnabled(),
 			apiConfig.HashedSchedulerToken(),
+			apiConfig.HashedObserverToken(),
 		),
 	}
 

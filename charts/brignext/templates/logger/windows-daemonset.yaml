@@ -16,7 +16,7 @@ spec:
         {{- include "brignext.selectorLabels" . | nindent 8 }}
         {{- include "brignext.logger.windows.labels" . | nindent 8 }}
       annotations:
-        checksum/config: {{ include (print $.Template.BasePath "/logger/secret.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/logger/secret.yaml") . | sha256sum }}
     spec:
       serviceAccount: {{ include "brignext.logger.fullname" . }}
       containers:

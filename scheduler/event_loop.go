@@ -60,6 +60,11 @@ outerLoop:
 				continue // Next event
 			}
 
+			// TODO: We should still check k8s for the existence of the pod before
+			// proceeding, because with at least once event delivery semantics, there
+			// is always the possibility that we already scheduled this pod, but the
+			// worker's status remains PENDING only because the observer is down.
+
 			// TODO: Wait for project capacity
 
 			// Wait for system capacity
@@ -94,6 +99,7 @@ outerLoop:
 				continue // Next event
 			}
 
+			asyncEvent.Ack()
 		}
 
 	}

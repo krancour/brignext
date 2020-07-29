@@ -26,6 +26,7 @@ type tokenAuthFilter struct {
 	findUser             FindUserFn
 	rootUserEnabled      bool
 	hashedSchedulerToken string
+	hashedObserverToken  string
 }
 
 func NewTokenAuthFilter(
@@ -33,12 +34,14 @@ func NewTokenAuthFilter(
 	findUser FindUserFn,
 	rootUserEnabled bool,
 	hashedSchedulerToken string,
+	hashedObserverToken string,
 ) Filter {
 	return &tokenAuthFilter{
 		findSession:          findSession,
 		findUser:             findUser,
 		rootUserEnabled:      rootUserEnabled,
 		hashedSchedulerToken: hashedSchedulerToken,
+		hashedObserverToken:  hashedObserverToken,
 	}
 }
 
@@ -75,6 +78,17 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 				r.Context(),
 				principalContextKey{},
 				schedulerPrincipal,
+			)
+			handle(w, r.WithContext(ctx))
+			return
+		}
+
+		// Is it the observer's token?
+		if crypto.ShortSHA("", token) == t.hashedObserverToken {
+			ctx := context.WithValue(
+				r.Context(),
+				principalContextKey{},
+				observerPrincipal,
 			)
 			handle(w, r.WithContext(ctx))
 			return

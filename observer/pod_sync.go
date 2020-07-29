@@ -8,27 +8,27 @@ import (
 
 // syncDeletedPod only fires when a pod deletion is COMPLETE. i.e. The pod is
 // completely gone.
-func (s *scheduler) syncDeletedPod(obj interface{}) {
-	s.podsLock.Lock()
-	defer s.podsLock.Unlock()
+func (o *observer) syncDeletedPod(obj interface{}) {
+	o.syncMu.Lock()
+	defer o.syncMu.Unlock()
 	pod := obj.(*corev1.Pod)
 	// Remove this pod from the set of pods we were tracking for deletion.
 	// Managing this set is essential to not leaking memory.
-	delete(s.deletingPodsSet, namespacedPodName(pod.Namespace, pod.Name))
+	delete(o.deletingPodsSet, namespacedPodName(pod.Namespace, pod.Name))
 }
 
 // deletePod deletes a pod after a 60 second delay. The delay is to ensure any
 // log aggregators have a chance to get all logs from a completed pod before it
 // is torpedoed.
-func (s *scheduler) deletePod(_ corev1.Pod) {
+func (o *observer) deletePod(_ corev1.Pod) {
 	<-time.After(60 * time.Second)
-	// Can't use the podsClient that is stored as a scheduler attribute. We
+	// Can't use the podsClient that is stored as an observer attribute. We
 	// need to grab a namespaced one.
 	//
 	// TODO: Uncomment this. This is just to help me hack without things getting
 	// deleted from underneath my feet.
 	//
-	// podsClient := s.kubeClient.CoreV1().Pods(pod.Namespace)
+	// podsClient := o.kubeClient.CoreV1().Pods(pod.Namespace)
 	// namespacedPodName := namespacedPodName(pod.Namespace, pod.Name)
 	// log.Printf("finally deleting pod %s", namespacedPodName)
 	// if err :=

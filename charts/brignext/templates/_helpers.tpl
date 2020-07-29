@@ -32,6 +32,10 @@ If release name contains chart name it will be used as a full name.
 {{ include "brignext.fullname" . | printf "%s-scheduler" }}
 {{- end -}}
 
+{{- define "brignext.observer.fullname" -}}
+{{ include "brignext.fullname" . | printf "%s-observer" }}
+{{- end -}}
+
 {{- define "brignext.artemis.fullname" -}}
 {{ include "brignext.fullname" . | printf "%s-artemis" }}
 {{- end -}}
@@ -77,6 +81,10 @@ app.kubernetes.io/component: apiserver
 
 {{- define "brignext.scheduler.labels" -}}
 app.kubernetes.io/component: scheduler
+{{- end -}}
+
+{{- define "brignext.observer.labels" -}}
+app.kubernetes.io/component: observer
 {{- end -}}
 
 {{- define "brignext.artemis.labels" -}}

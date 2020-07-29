@@ -16,6 +16,7 @@ type Config interface {
 	RootUserEnabled() bool
 	HashedRootUserPassword() string
 	HashedSchedulerToken() string
+	HashedObserverToken() string
 	TLSEnabled() bool
 	TLSCertPath() string
 	TLSKeyPath() string
@@ -28,6 +29,8 @@ type config struct {
 	HashedRootUserPasswordAttr string
 	SchedulerTokenAttr         string `envconfig:"SCHEDULER_TOKEN" required:"true"` // nolint: lll
 	HashedSchedulerTokenAttr   string
+	ObserverTokenAttr          string `envconfig:"OBSERVER_TOKEN" required:"true"` // nolint: lll
+	HashedObserverTokenAttr    string
 	TLSEnabledAttr             bool   `envconfig:"TLS_ENABLED"`
 	TLSCertPathAttr            string `envconfig:"TLS_CERT_PATH"`
 	TLSKeyPathAttr             string `envconfig:"TLS_KEY_PATH"`
@@ -78,6 +81,10 @@ func GetConfigFromEnvironment() (Config, error) {
 	// Don't let the unencrypted token float around in memory!
 	c.SchedulerTokenAttr = ""
 
+	c.HashedObserverTokenAttr = crypto.ShortSHA("", c.ObserverTokenAttr)
+	// Don't let the unencrypted token float around in memory!
+	c.ObserverTokenAttr = ""
+
 	return c, nil
 }
 
@@ -95,6 +102,10 @@ func (c *config) HashedRootUserPassword() string {
 
 func (c *config) HashedSchedulerToken() string {
 	return c.HashedSchedulerTokenAttr
+}
+
+func (c *config) HashedObserverToken() string {
+	return c.HashedObserverTokenAttr
 }
 
 func (c *config) TLSEnabled() bool {
