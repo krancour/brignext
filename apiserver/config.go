@@ -6,6 +6,7 @@ import (
 	"github.com/krancour/brignext/v2/apiserver/internal/events"
 	"github.com/krancour/brignext/v2/apiserver/internal/events/amqp"
 	"github.com/krancour/brignext/v2/apiserver/internal/mongodb"
+	"github.com/krancour/brignext/v2/apiserver/internal/oidc"
 	"github.com/krancour/brignext/v2/apiserver/internal/projects"
 	"github.com/krancour/brignext/v2/apiserver/internal/serviceaccounts"
 	"github.com/krancour/brignext/v2/apiserver/internal/sessions"
@@ -13,7 +14,6 @@ import (
 	"github.com/krancour/brignext/v2/internal/api"
 	"github.com/krancour/brignext/v2/internal/api/auth"
 	"github.com/krancour/brignext/v2/internal/kubernetes"
-	"github.com/krancour/brignext/v2/internal/oidc"
 )
 
 func getAPIServerFromEnvironment() (api.Server, error) {
