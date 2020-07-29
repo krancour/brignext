@@ -2,7 +2,7 @@ package amqp
 
 import (
 	"github.com/kelseyhightower/envconfig"
-	"github.com/krancour/brignext/v2/controller/internal/events"
+	"github.com/krancour/brignext/v2/scheduler/internal/events"
 	"github.com/pkg/errors"
 )
 

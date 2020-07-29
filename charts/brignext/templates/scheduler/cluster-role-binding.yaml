@@ -2,16 +2,16 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "brignext.controller.fullname" . }}
+  name: {{ include "brignext.scheduler.fullname" . }}
   labels:
     {{- include "brignext.labels" . | nindent 4 }}
-    {{- include "brignext.controller.labels" . | nindent 4 }}
+    {{- include "brignext.scheduler.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "brignext.controller.fullname" . }}
+  name: {{ include "brignext.scheduler.fullname" . }}
 subjects:
 - kind: ServiceAccount
   namespace: {{ .Release.Namespace }}
-  name: {{ include "brignext.controller.fullname" . }}
+  name: {{ include "brignext.scheduler.fullname" . }}
 {{- end }}

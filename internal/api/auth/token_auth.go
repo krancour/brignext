@@ -22,23 +22,23 @@ type FindUserFn func(
 ) (brignext.User, error)
 
 type tokenAuthFilter struct {
-	findSession           FindSessionFn
-	findUser              FindUserFn
-	rootUserEnabled       bool
-	hashedControllerToken string
+	findSession          FindSessionFn
+	findUser             FindUserFn
+	rootUserEnabled      bool
+	hashedSchedulerToken string
 }
 
 func NewTokenAuthFilter(
 	findSession FindSessionFn,
 	findUser FindUserFn,
 	rootUserEnabled bool,
-	hashedControllerToken string,
+	hashedSchedulerToken string,
 ) Filter {
 	return &tokenAuthFilter{
-		findSession:           findSession,
-		findUser:              findUser,
-		rootUserEnabled:       rootUserEnabled,
-		hashedControllerToken: hashedControllerToken,
+		findSession:          findSession,
+		findUser:             findUser,
+		rootUserEnabled:      rootUserEnabled,
+		hashedSchedulerToken: hashedSchedulerToken,
 	}
 }
 
@@ -69,12 +69,12 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 		}
 		token := headerValueParts[1]
 
-		// Is it the controller's token?
-		if crypto.ShortSHA("", token) == t.hashedControllerToken {
+		// Is it the scheduler's token?
+		if crypto.ShortSHA("", token) == t.hashedSchedulerToken {
 			ctx := context.WithValue(
 				r.Context(),
 				principalContextKey{},
-				controllerPrincipal,
+				schedulerPrincipal,
 			)
 			handle(w, r.WithContext(ctx))
 			return

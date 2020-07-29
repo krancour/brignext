@@ -15,7 +15,7 @@ type Config interface {
 	Port() int
 	RootUserEnabled() bool
 	HashedRootUserPassword() string
-	HashedControllerToken() string
+	HashedSchedulerToken() string
 	TLSEnabled() bool
 	TLSCertPath() string
 	TLSKeyPath() string
@@ -26,8 +26,8 @@ type config struct {
 	RootUserEnabledAttr        bool   `envconfig:"ROOT_USER_ENABLED"`
 	RootUserPasswordAttr       string `envconfig:"ROOT_USER_PASSWORD"`
 	HashedRootUserPasswordAttr string
-	ControllerTokenAttr        string `envconfig:"CONTROLLER_TOKEN" required:"true"` // nolint: lll
-	HashedControllerTokenAttr  string
+	SchedulerTokenAttr         string `envconfig:"SCHEDULER_TOKEN" required:"true"` // nolint: lll
+	HashedSchedulerTokenAttr   string
 	TLSEnabledAttr             bool   `envconfig:"TLS_ENABLED"`
 	TLSCertPathAttr            string `envconfig:"TLS_CERT_PATH"`
 	TLSKeyPathAttr             string `envconfig:"TLS_KEY_PATH"`
@@ -74,9 +74,9 @@ func GetConfigFromEnvironment() (Config, error) {
 	// Don't let the unencrypted password float around in memory!
 	c.RootUserPasswordAttr = ""
 
-	c.HashedControllerTokenAttr = crypto.ShortSHA("", c.ControllerTokenAttr)
+	c.HashedSchedulerTokenAttr = crypto.ShortSHA("", c.SchedulerTokenAttr)
 	// Don't let the unencrypted token float around in memory!
-	c.ControllerTokenAttr = ""
+	c.SchedulerTokenAttr = ""
 
 	return c, nil
 }
@@ -93,8 +93,8 @@ func (c *config) HashedRootUserPassword() string {
 	return c.HashedRootUserPasswordAttr
 }
 
-func (c *config) HashedControllerToken() string {
-	return c.HashedControllerTokenAttr
+func (c *config) HashedSchedulerToken() string {
+	return c.HashedSchedulerTokenAttr
 }
 
 func (c *config) TLSEnabled() bool {

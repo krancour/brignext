@@ -5,11 +5,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/krancour/brignext/v2/controller/internal/events"
+	"github.com/krancour/brignext/v2/scheduler/internal/events"
 	brignext "github.com/krancour/brignext/v2/sdk"
 )
 
-func (c *controller) runEventLoop(ctx context.Context, projectID string) {
+func (s *scheduler) runEventLoop(ctx context.Context, projectID string) {
 
 	var eventsReceiver events.Receiver
 
@@ -29,10 +29,10 @@ outerLoop:
 		default:
 		}
 
-		eventsReceiver, err := c.eventsReceiverFactory.NewReceiver(projectID)
+		eventsReceiver, err := s.eventsReceiverFactory.NewReceiver(projectID)
 		if err != nil { // It's fatal if we can't get an event receiver
 			select {
-			case c.errCh <- err:
+			case s.errCh <- err:
 			case <-ctx.Done():
 			}
 			return
@@ -46,7 +46,7 @@ outerLoop:
 				continue outerLoop // Try again with a new receiver
 			}
 
-			event, err := c.apiClient.Events().Get(ctx, asyncEvent.EventID)
+			event, err := s.apiClient.Events().Get(ctx, asyncEvent.EventID)
 			if err != nil {
 				// TODO: We should check what went wrong
 				log.Println(err)
@@ -64,7 +64,7 @@ outerLoop:
 
 			// Wait for system capacity
 			select {
-			case <-c.availabilityCh:
+			case <-s.availabilityCh:
 			case <-ctx.Done():
 				// We don't ack the event here because it hasn't been scheduled yet
 				continue outerLoop // This will do cleanup before returning
@@ -72,7 +72,7 @@ outerLoop:
 
 			// Now start the worker...
 
-			if err := c.createWorkspacePVC(ctx, event); err != nil {
+			if err := s.createWorkspacePVC(ctx, event); err != nil {
 				// TODO: Update the event in the database to reflect the error
 				log.Printf(
 					"error creating workspace for event %q worker: %s",
@@ -83,7 +83,7 @@ outerLoop:
 				continue // Next event
 			}
 
-			if err := c.createWorkerPod(ctx, event); err != nil {
+			if err := s.createWorkerPod(ctx, event); err != nil {
 				// TODO: Update the event in the database to reflect the error
 				log.Printf(
 					"error creating pod for event %q worker: %s",

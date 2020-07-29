@@ -17,7 +17,7 @@ spec:
         {{- include "brignext.selectorLabels" . | nindent 8 }}
         {{- include "brignext.apiserver.labels" . | nindent 8 }}
       annotations:
-        checksum/controller-password: {{ include (print $.Template.BasePath "/controller/secret.yaml") . | sha256sum }}
+        checksum/scheduler-password: {{ include (print $.Template.BasePath "/scheduler/secret.yaml") . | sha256sum }}
         {{- if .Values.apiserver.tls.enabled }}
         checksum/tls: {{ include (print $.Template.BasePath "/apiserver/cert-secret.yaml") . | sha256sum }}
         {{- end }}
@@ -39,10 +39,10 @@ spec:
               name: {{ include "brignext.apiserver.fullname" . }}
               key: root-user-password
         {{- end }}
-        - name: API_SERVER_CONTROLLER_TOKEN
+        - name: API_SERVER_SCHEDULER_TOKEN
           valueFrom:
             secretKeyRef:
-              name: {{ include "brignext.controller.fullname" . }}
+              name: {{ include "brignext.scheduler.fullname" . }}
               key: api-token
         - name: OIDC_ENABLED
           value: {{ quote .Values.apiserver.oidc.enabled }}

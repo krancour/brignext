@@ -15,7 +15,7 @@ import (
 
 // TODO: Rename this file or find other homes for these functions
 
-func (c *controller) createWorkspacePVC(
+func (s *scheduler) createWorkspacePVC(
 	ctx context.Context,
 	event brignext.Event,
 ) error {
@@ -44,7 +44,7 @@ func (c *controller) createWorkspacePVC(
 			},
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			StorageClassName: &c.controllerConfig.WorkspaceStorageClass,
+			StorageClassName: &s.schedulerConfig.WorkspaceStorageClass,
 			AccessModes: []corev1.PersistentVolumeAccessMode{
 				corev1.ReadWriteMany,
 			},
@@ -57,7 +57,7 @@ func (c *controller) createWorkspacePVC(
 	}
 
 	pvcClient :=
-		c.kubeClient.CoreV1().PersistentVolumeClaims(event.Kubernetes.Namespace)
+		s.kubeClient.CoreV1().PersistentVolumeClaims(event.Kubernetes.Namespace)
 	if _, err := pvcClient.Create(
 		ctx,
 		&workspacePVC,
@@ -73,7 +73,7 @@ func (c *controller) createWorkspacePVC(
 	return nil
 }
 
-func (c *controller) createWorkerPod(
+func (s *scheduler) createWorkerPod(
 	ctx context.Context,
 	event brignext.Event,
 ) error {
@@ -89,11 +89,11 @@ func (c *controller) createWorkerPod(
 
 	image := event.Worker.Container.Image
 	if image == "" {
-		image = c.controllerConfig.DefaultWorkerImage
+		image = s.schedulerConfig.DefaultWorkerImage
 	}
 	imagePullPolicy := event.Worker.Container.ImagePullPolicy
 	if imagePullPolicy == "" {
-		imagePullPolicy = c.controllerConfig.DefaultWorkerImagePullPolicy
+		imagePullPolicy = s.schedulerConfig.DefaultWorkerImagePullPolicy
 	}
 
 	volumes := []corev1.Volume{
@@ -244,7 +244,7 @@ func (c *controller) createWorkerPod(
 		},
 	}
 
-	podClient := c.kubeClient.CoreV1().Pods(event.Kubernetes.Namespace)
+	podClient := s.kubeClient.CoreV1().Pods(event.Kubernetes.Namespace)
 	if _, err := podClient.Create(
 		ctx,
 		&workerPod,

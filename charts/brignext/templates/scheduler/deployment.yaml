@@ -1,27 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "brignext.controller.fullname" . }}
+  name: {{ include "brignext.scheduler.fullname" . }}
   labels:
     {{- include "brignext.labels" . | nindent 4 }}
-    {{- include "brignext.controller.labels" . | nindent 4 }}
+    {{- include "brignext.scheduler.labels" . | nindent 4 }}
 spec:
   replicas: 1
   selector:
     matchLabels:
       {{- include "brignext.selectorLabels" . | nindent 6 }}
-      {{- include "brignext.controller.labels" . | nindent 6 }}
+      {{- include "brignext.scheduler.labels" . | nindent 6 }}
   template:
     metadata:
       labels:
         {{- include "brignext.selectorLabels" . | nindent 8 }}
-        {{- include "brignext.controller.labels" . | nindent 8 }}
+        {{- include "brignext.scheduler.labels" . | nindent 8 }}
     spec:
-      serviceAccount: {{ include "brignext.controller.fullname" . }}
+      serviceAccount: {{ include "brignext.scheduler.fullname" . }}
       containers:
-      - name: controller
-        image: {{ .Values.controller.image.repository }}:{{ default .Chart.AppVersion .Values.controller.image.tag }}
-        imagePullPolicy: {{ .Values.controller.image.pullPolicy }}
+      - name: scheduler
+        image: {{ .Values.scheduler.image.repository }}:{{ default .Chart.AppVersion .Values.scheduler.image.tag }}
+        imagePullPolicy: {{ .Values.scheduler.image.pullPolicy }}
         args:
         - --logtostderr=true
         env:
@@ -34,16 +34,16 @@ spec:
         - name: API_TOKEN
           valueFrom:
             secretKeyRef:
-              name: {{ include "brignext.controller.fullname" . }}
+              name: {{ include "brignext.scheduler.fullname" . }}
               key: api-token
         - name: IGNORE_API_CERT_WARNINGS
-          value: {{ quote (and .Values.apiserver.tls.enabled .Values.controller.tls.ignoreCertWarnings) }}
+          value: {{ quote (and .Values.apiserver.tls.enabled .Values.scheduler.tls.ignoreCertWarnings) }}
         - name: DEFAULT_WORKER_IMAGE
           value: {{ .Values.worker.image.repository }}:{{ default .Chart.AppVersion .Values.worker.image.tag }}
         - name: DEFAULT_WORKER_IMAGE_PULL_POLICY
           value: {{ .Values.worker.image.pullPolicy }}
         - name: WORKSPACE_STORAGE_CLASS
-          value: {{ .Values.controller.workspaceStorageClass }}
+          value: {{ .Values.scheduler.workspaceStorageClass }}
         {{- if eq .Values.messageBus "IncludedArtemis" }}
         - name: AMQP_ADDRESS
           value: amqp://{{ include "brignext.artemis.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:5672
@@ -65,13 +65,13 @@ spec:
         - name: AMQP_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: {{ include "brignext.controller.fullname" . }}
+              name: {{ include "brignext.scheduler.fullname" . }}
               key: amqp-password
-      {{- with .Values.controller.nodeSelector }}
+      {{- with .Values.scheduler.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.controller.tolerations }}
+      {{- with .Values.scheduler.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

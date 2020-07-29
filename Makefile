@@ -89,12 +89,12 @@ verify-vendored-go-code:
 .PHONY: lint-go
 lint-go:
 	$(GO_DOCKER_CMD) golangci-lint run --config ./golangci.yaml \
-		./apiserver/... ./controller/... ./internal/... ./sdk/...
+		./apiserver/... ./scheduler/... ./internal/... ./sdk/...
 
 .PHONY: test-unit-go
 test-unit-go:
 	$(GO_DOCKER_CMD) go test -v \
-		./apiserver/... ./controller/... ./internal/... ./sdk/...
+		./apiserver/... ./scheduler/... ./internal/... ./sdk/...
 
 .PHONY: verify-vendored-js-code
 verify-vendored-js-code:
@@ -112,7 +112,7 @@ test-unit-js:
 build: build-images xbuild-cli
 
 .PHONY: build-images
-build-images: build-apiserver build-controller build-worker build-logger-linux
+build-images: build-apiserver build-scheduler build-worker build-logger-linux
 
 .PHONY: build-apiserver
 build-apiserver:
@@ -124,15 +124,15 @@ build-apiserver:
 		.
 	docker tag $(DOCKER_IMAGE_PREFIX)brignext-apiserver:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-apiserver:$(MUTABLE_DOCKER_TAG)
 
-.PHONY: build-controller
-build-controller:
+.PHONY: build-scheduler
+build-scheduler:
 	docker build \
-		-f controller/Dockerfile \
-		-t $(DOCKER_IMAGE_PREFIX)brignext-controller:$(IMMUTABLE_DOCKER_TAG) \
+		-f scheduler/Dockerfile \
+		-t $(DOCKER_IMAGE_PREFIX)brignext-scheduler:$(IMMUTABLE_DOCKER_TAG) \
 		--build-arg VERSION='$(VERSION)' \
 		--build-arg COMMIT='$(GIT_VERSION)' \
 		.
-	docker tag $(DOCKER_IMAGE_PREFIX)brignext-controller:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-controller:$(MUTABLE_DOCKER_TAG)
+	docker tag $(DOCKER_IMAGE_PREFIX)brignext-scheduler:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-scheduler:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: build-worker
 build-worker:
@@ -166,17 +166,17 @@ xbuild-cli:
 	$(GO_DOCKER_CMD) bash -c "VERSION=\"$(VERSION)\" COMMIT=\"$(GIT_VERSION)\" scripts/build-cli.sh"
 
 .PHONY: push-images
-push-images: push-apiserver push-controller push-worker push-logger-linux
+push-images: push-apiserver push-scheduler push-worker push-logger-linux
 
 .PHONY: push-apiserver
 push-apiserver: build-apiserver
 	docker push $(DOCKER_IMAGE_PREFIX)brignext-apiserver:$(IMMUTABLE_DOCKER_TAG)
 	docker push $(DOCKER_IMAGE_PREFIX)brignext-apiserver:$(MUTABLE_DOCKER_TAG)
 
-.PHONY: push-controller
-push-controller: build-controller
-	docker push $(DOCKER_IMAGE_PREFIX)brignext-controller:$(IMMUTABLE_DOCKER_TAG)
-	docker push $(DOCKER_IMAGE_PREFIX)brignext-controller:$(MUTABLE_DOCKER_TAG)
+.PHONY: push-scheduler
+push-scheduler: build-scheduler
+	docker push $(DOCKER_IMAGE_PREFIX)brignext-scheduler:$(IMMUTABLE_DOCKER_TAG)
+	docker push $(DOCKER_IMAGE_PREFIX)brignext-scheduler:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: push-worker
 push-worker: build-worker
@@ -223,9 +223,9 @@ hack: push-images build-cli hack-namespace
 		--set apiserver.image.pullPolicy=Always \
 		--set apiserver.service.type=NodePort \
 		--set apiserver.service.nodePort=31600 \
-		--set controller.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-controller \
-		--set controller.image.tag=$(IMMUTABLE_DOCKER_TAG) \
-		--set controller.image.pullPolicy=Always \
+		--set scheduler.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-scheduler \
+		--set scheduler.image.tag=$(IMMUTABLE_DOCKER_TAG) \
+		--set scheduler.image.pullPolicy=Always \
 		--set worker.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-worker \
 		--set worker.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set worker.image.pullPolicy=Always \
@@ -245,15 +245,15 @@ hack-apiserver: push-apiserver hack-namespace
 		--set apiserver.service.type=NodePort \
 		--set apiserver.service.nodePort=31600
 
-.PHONY: hack-controller
-hack-controller: push-controller hack-namespace
+.PHONY: hack-scheduler
+hack-scheduler: push-scheduler hack-namespace
 	helm upgrade brignext charts/brignext \
 		--install \
 		--namespace brignext \
 		--reuse-values \
-		--set controller.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-controller \
-		--set controller.image.tag=$(IMMUTABLE_DOCKER_TAG) \
-		--set controller.image.pullPolicy=Always
+		--set scheduler.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-scheduler \
+		--set scheduler.image.tag=$(IMMUTABLE_DOCKER_TAG) \
+		--set scheduler.image.pullPolicy=Always
 
 .PHONY: hack-worker
 hack-worker: push-worker hack-namespace

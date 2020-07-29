@@ -3,16 +3,16 @@ package main
 import (
 	"log"
 
-	"github.com/krancour/brignext/v2/controller/internal/events/amqp"
 	"github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/krancour/brignext/v2/internal/signals"
 	"github.com/krancour/brignext/v2/internal/version"
+	"github.com/krancour/brignext/v2/scheduler/internal/events/amqp"
 	"github.com/krancour/brignext/v2/sdk/api"
 )
 
 func main() {
 	log.Printf(
-		"Starting BrigNext Controller -- version %s -- commit %s",
+		"Starting BrigNext Scheduler -- version %s -- commit %s",
 		version.Version(),
 		version.Commit(),
 	)
@@ -37,12 +37,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	controller := NewController(
+	scheduler := NewScheduler(
 		config,
 		apiClient,
 		eventsReceiverFactory,
 		kubeClient,
 	)
 
-	log.Println(controller.Run(signals.Context()))
+	log.Println(scheduler.Run(signals.Context()))
 }

@@ -101,7 +101,7 @@ func getAPIServerFromEnvironment() (api.Server, error) {
 			sessionsService.GetByToken,
 			usersService.Get,
 			apiConfig.RootUserEnabled(),
-			apiConfig.HashedControllerToken(),
+			apiConfig.HashedSchedulerToken(),
 		),
 	}
 

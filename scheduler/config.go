@@ -2,7 +2,7 @@ package main
 
 import "github.com/kelseyhightower/envconfig"
 
-const envconfigPrefix = "CONTROLLER"
+const envconfigPrefix = "SCHEDULER"
 
 type Config struct {
 	APIAddress                   string `envconfig:"API_ADDRESS" required:"true"`

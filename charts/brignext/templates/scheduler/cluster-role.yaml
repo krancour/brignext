@@ -2,10 +2,10 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "brignext.controller.fullname" . }}
+  name: {{ include "brignext.scheduler.fullname" . }}
   labels:
     {{- include "brignext.labels" . | nindent 4 }}
-    {{- include "brignext.controller.labels" . | nindent 4 }}
+    {{- include "brignext.scheduler.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - ""

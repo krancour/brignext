@@ -14,8 +14,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-func (c *controller) syncExistingWorkerPods(ctx context.Context) error {
-	workerPodList, err := c.podsClient.List(
+func (s *scheduler) syncExistingWorkerPods(ctx context.Context) error {
+	workerPodList, err := s.podsClient.List(
 		ctx,
 		metav1.ListOptions{
 			LabelSelector: workerPodsSelector,
@@ -25,21 +25,21 @@ func (c *controller) syncExistingWorkerPods(ctx context.Context) error {
 		return errors.Wrap(err, "error listing pods")
 	}
 	for _, workerPod := range workerPodList.Items {
-		c.syncWorkerPod(&workerPod)
+		s.syncWorkerPod(&workerPod)
 	}
 	return nil
 }
 
-func (c *controller) continuouslySyncWorkerPods(ctx context.Context) {
+func (s *scheduler) continuouslySyncWorkerPods(ctx context.Context) {
 	workerPodsInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				options.LabelSelector = workerPodsSelector
-				return c.podsClient.List(ctx, options)
+				return s.podsClient.List(ctx, options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				options.LabelSelector = workerPodsSelector
-				return c.podsClient.Watch(ctx, options)
+				return s.podsClient.Watch(ctx, options)
 			},
 		},
 		&corev1.Pod{},
@@ -48,32 +48,32 @@ func (c *controller) continuouslySyncWorkerPods(ctx context.Context) {
 	)
 	workerPodsInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: c.syncWorkerPod,
+			AddFunc: s.syncWorkerPod,
 			UpdateFunc: func(_, newObj interface{}) {
-				c.syncWorkerPod(newObj)
+				s.syncWorkerPod(newObj)
 			},
-			DeleteFunc: c.syncDeletedPod,
+			DeleteFunc: s.syncDeletedPod,
 		},
 	)
 	workerPodsInformer.Run(ctx.Done())
 }
 
-func (c *controller) syncWorkerPod(obj interface{}) {
-	c.podsLock.Lock()
-	defer c.podsLock.Unlock()
+func (s *scheduler) syncWorkerPod(obj interface{}) {
+	s.podsLock.Lock()
+	defer s.podsLock.Unlock()
 	workerPod := obj.(*corev1.Pod)
 
 	namespacedWorkerPodName :=
 		namespacedPodName(workerPod.Namespace, workerPod.Name)
 
 	// Worker pods are only deleted by the API (during event or worker abortion or
-	// cancelation) or by the controller. In EITHER case, the worker pod has
+	// cancelation) or by the scheduler. In EITHER case, the worker pod has
 	// already reached a a terminal state and that has already been recorded in
-	// the database, so there's nothing to do EXCEPT ensure this controller is not
+	// the database, so there's nothing to do EXCEPT ensure this worker is not
 	// counted among the pods currently consuming available capacity.
 	if workerPod.DeletionTimestamp != nil {
 		// Make sure this pod isn't counted as consuming capacity
-		delete(c.workerPodsSet, namespacedWorkerPodName)
+		delete(s.workerPodsSet, namespacedWorkerPodName)
 		return
 	}
 
@@ -85,30 +85,30 @@ func (c *controller) syncWorkerPod(obj interface{}) {
 	case corev1.PodPending:
 		// A pending pod is on its way up. We need to count this as consuming
 		// capacity
-		c.workerPodsSet[namespacedWorkerPodName] = struct{}{}
+		s.workerPodsSet[namespacedWorkerPodName] = struct{}{}
 
 		// For BrigNext's purposes, this counts as running
 		status.Phase = brignext.WorkerPhaseRunning
 	case corev1.PodRunning:
 		// Make sure this pod IS counted as consuming capacity
-		c.workerPodsSet[namespacedWorkerPodName] = struct{}{}
+		s.workerPodsSet[namespacedWorkerPodName] = struct{}{}
 
 		status.Phase = brignext.WorkerPhaseRunning
 	case corev1.PodSucceeded:
 		// Make sure this pod IS NOT counted as consuming capacity
-		delete(c.workerPodsSet, namespacedWorkerPodName)
+		delete(s.workerPodsSet, namespacedWorkerPodName)
 
 		status.Phase = brignext.WorkerPhaseSucceeded
 	case corev1.PodFailed:
 		// Make sure this pod IS NOT counted as consuming capacity
-		delete(c.workerPodsSet, namespacedWorkerPodName)
+		delete(s.workerPodsSet, namespacedWorkerPodName)
 
 		status.Phase = brignext.WorkerPhaseFailed
 	case corev1.PodUnknown:
 		// Make sure this pod IS counted as consuming capacity... because we just
 		// don't know. (If someone or something deletes it, it will all work itself
 		// out.)
-		c.workerPodsSet[namespacedWorkerPodName] = struct{}{}
+		s.workerPodsSet[namespacedWorkerPodName] = struct{}{}
 
 		status.Phase = brignext.WorkerPhaseUnknown
 	}
@@ -124,14 +124,14 @@ func (c *controller) syncWorkerPod(obj interface{}) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := c.apiClient.Events().UpdateWorkerStatus(
+	if err := s.apiClient.Events().UpdateWorkerStatus(
 		ctx,
 		eventID,
 		status,
 	); err != nil {
 		// TODO: Can we return this over the errCh somehow? Only problem is we
 		// don't want to block forever and we don't have access to the context
-		// here. Maybe we can make the context an attribute of the controller?
+		// here. Maybe we can make the context an attribute of the scheduler?
 		log.Printf(
 			"error updating status for event %q worker: %s",
 			eventID,
@@ -146,13 +146,13 @@ func (c *controller) syncWorkerPod(obj interface{}) {
 		// We want to delete this pod after a short delay, but first let's make
 		// sure we aren't already working on that. If we schedule this for
 		// deletion more than once, we'll end up causing some errors.
-		_, alreadyDeleting := c.deletingPodsSet[namespacedWorkerPodName]
+		_, alreadyDeleting := s.deletingPodsSet[namespacedWorkerPodName]
 		if !alreadyDeleting {
 			log.Printf("scheduling worker pod %s deletion\n", namespacedWorkerPodName)
-			c.deletingPodsSet[namespacedWorkerPodName] = struct{}{}
+			s.deletingPodsSet[namespacedWorkerPodName] = struct{}{}
 			// Do NOT pass the pointer. It seems to be reused by the informer.
 			// Pass the thing it points TO.
-			go c.deletePod(*workerPod)
+			go s.deletePod(*workerPod)
 		}
 	}
 

@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func (c *controller) manageProjectEventLoops(ctx context.Context) {
+func (s *scheduler) manageProjectEventLoops(ctx context.Context) {
 	// Maintain a map of functions for canceling the event loops for each known
 	// project
 	eventLoopCancelFns := map[string]func(){}
@@ -16,10 +16,10 @@ func (c *controller) manageProjectEventLoops(ctx context.Context) {
 	defer ticker.Stop()
 
 	for {
-		projectList, err := c.apiClient.Projects().List(ctx)
+		projectList, err := s.apiClient.Projects().List(ctx)
 		if err != nil {
 			select {
-			case c.errCh <- err:
+			case s.errCh <- err:
 			case <-ctx.Done():
 			}
 			return
@@ -52,7 +52,7 @@ func (c *controller) manageProjectEventLoops(ctx context.Context) {
 				eventLoopCtx, eventLoopCtxCancelFn := context.WithCancel(ctx)
 				eventLoopCancelFns[projectID] = eventLoopCtxCancelFn
 				log.Printf("DEBUG: starting event loop for project %q", projectID)
-				go c.runEventLoop(eventLoopCtx, projectID)
+				go s.runEventLoop(eventLoopCtx, projectID)
 			}
 		}
 

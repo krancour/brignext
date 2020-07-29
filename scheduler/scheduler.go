@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/krancour/brignext/v2/controller/internal/events"
+	"github.com/krancour/brignext/v2/scheduler/internal/events"
 	"github.com/krancour/brignext/v2/sdk/api"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/labels"
@@ -27,14 +27,14 @@ var (
 	).AsSelector().String()
 )
 
-type Controller interface {
+type Scheduler interface {
 	Run(context.Context) error
 }
 
 // TODO: Bust this up into two separate components-- scheduler and observer
-type controller struct {
-	controllerConfig Config
-	apiClient        api.Client
+type scheduler struct {
+	schedulerConfig Config
+	apiClient       api.Client
 	// TODO: This should be closed somewhere
 	eventsReceiverFactory events.ReceiverFactory
 	kubeClient            *kubernetes.Clientset
@@ -46,15 +46,15 @@ type controller struct {
 	errCh                 chan error // All goroutines will send fatal errors here
 }
 
-func NewController(
-	controllerConfig Config,
+func NewScheduler(
+	schedulerConfig Config,
 	apiClient api.Client,
 	eventsReceiverFactory events.ReceiverFactory,
 	kubeClient *kubernetes.Clientset,
-) Controller {
+) Scheduler {
 	podsClient := kubeClient.CoreV1().Pods("")
-	return &controller{
-		controllerConfig:      controllerConfig,
+	return &scheduler{
+		schedulerConfig:       schedulerConfig,
 		apiClient:             apiClient,
 		eventsReceiverFactory: eventsReceiverFactory,
 		kubeClient:            kubeClient,
@@ -66,14 +66,14 @@ func NewController(
 	}
 }
 
-func (c *controller) Run(ctx context.Context) error {
+func (s *scheduler) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	// Synchronously start tracking existing workers pods. This happens
-	// synchronously so that the controller is guaranteed a complete picture of
+	// synchronously so that the scheduler is guaranteed a complete picture of
 	// what capacity is available before we start taking on new work.
-	if err := c.syncExistingWorkerPods(ctx); err != nil {
+	if err := s.syncExistingWorkerPods(ctx); err != nil {
 		return errors.Wrap(err, "error syncing existing worker pods")
 	}
 
@@ -83,21 +83,21 @@ func (c *controller) Run(ctx context.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		c.continuouslySyncWorkerPods(ctx)
+		s.continuouslySyncWorkerPods(ctx)
 	}()
 
 	// Manage available capacity
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		c.manageCapacity(ctx)
+		s.manageCapacity(ctx)
 	}()
 
 	// Continuously sync job pods
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		c.continuouslySyncJobPods(ctx)
+		s.continuouslySyncJobPods(ctx)
 	}()
 
 	// Monitor for new/deleted projects at a regular interval. Launch or stop
@@ -105,13 +105,13 @@ func (c *controller) Run(ctx context.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		c.manageProjectEventLoops(ctx)
+		s.manageProjectEventLoops(ctx)
 	}()
 
 	// Wait for an error or a completed context
 	var err error
 	select {
-	case err = <-c.errCh:
+	case err = <-s.errCh:
 		cancel() // Shut it all down
 	case <-ctx.Done():
 	}
