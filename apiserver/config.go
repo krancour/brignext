@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/api"
+	"github.com/krancour/brignext/v2/apiserver/internal/api/auth"
 	"github.com/krancour/brignext/v2/apiserver/internal/events"
 	"github.com/krancour/brignext/v2/apiserver/internal/events/amqp"
 	"github.com/krancour/brignext/v2/apiserver/internal/mongodb"
@@ -12,7 +13,6 @@ import (
 	"github.com/krancour/brignext/v2/apiserver/internal/serviceaccounts"
 	"github.com/krancour/brignext/v2/apiserver/internal/sessions"
 	"github.com/krancour/brignext/v2/apiserver/internal/users"
-	"github.com/krancour/brignext/v2/internal/api/auth"
 	"github.com/krancour/brignext/v2/internal/kubernetes"
 )
 
