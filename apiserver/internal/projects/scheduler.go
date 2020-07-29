@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/krancour/brignext/v2/internal/crypto"
+	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"

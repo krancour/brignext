@@ -3,7 +3,7 @@ package auth
 import (
 	"time"
 
-	"github.com/krancour/brignext/v2/internal/crypto"
+	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	"github.com/krancour/brignext/v2/sdk/meta"
 	uuid "github.com/satori/go.uuid"
 )

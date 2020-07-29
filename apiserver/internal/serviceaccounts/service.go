@@ -3,7 +3,7 @@ package serviceaccounts
 import (
 	"context"
 
-	"github.com/krancour/brignext/v2/internal/crypto"
+	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 )

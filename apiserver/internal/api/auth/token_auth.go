@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/krancour/brignext/v2/internal/crypto"
+	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	errs "github.com/krancour/brignext/v2/internal/errors"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
