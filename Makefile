@@ -19,7 +19,7 @@ ifneq ($(SKIP_DOCKER),true)
 	# https://github.com/krancour/go-tools
 	# https://hub.docker.com/repository/docker/krancour/go-tools
 	GO_DEV_IMAGE := krancour/go-tools:v0.3.0
-	JS_DEV_IMAGE := vsc-brignext-4463e33a676ff70dda3c8745bab961cd
+	JS_DEV_IMAGE := node:12.16.2-alpine3.11
 
 	GO_DOCKER_CMD := docker run \
 		-it \
