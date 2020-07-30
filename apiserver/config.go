@@ -1,5 +1,6 @@
 package main
 
+// nolint: lll
 import (
 	"log"
 
@@ -7,12 +8,17 @@ import (
 	"github.com/krancour/brignext/v2/apiserver/internal/api/auth"
 	"github.com/krancour/brignext/v2/apiserver/internal/events"
 	"github.com/krancour/brignext/v2/apiserver/internal/events/amqp"
+	eventsMongodb "github.com/krancour/brignext/v2/apiserver/internal/events/mongodb"
 	"github.com/krancour/brignext/v2/apiserver/internal/mongodb"
 	"github.com/krancour/brignext/v2/apiserver/internal/oidc"
 	"github.com/krancour/brignext/v2/apiserver/internal/projects"
+	projectsMongodb "github.com/krancour/brignext/v2/apiserver/internal/projects/mongodb"
 	"github.com/krancour/brignext/v2/apiserver/internal/serviceaccounts"
+	serviceaccountsMongodb "github.com/krancour/brignext/v2/apiserver/internal/serviceaccounts/mongodb"
 	"github.com/krancour/brignext/v2/apiserver/internal/sessions"
+	sessionsMongodb "github.com/krancour/brignext/v2/apiserver/internal/sessions/mongodb"
 	"github.com/krancour/brignext/v2/apiserver/internal/users"
+	usersMongodb "github.com/krancour/brignext/v2/apiserver/internal/users/mongodb"
 	"github.com/krancour/brignext/v2/internal/kubernetes"
 )
 
@@ -35,7 +41,7 @@ func getAPIServerFromEnvironment() (api.Server, error) {
 	}
 
 	// Projects
-	projectsStore, err := mongodb.NewProjectsStore(database)
+	projectsStore, err := projectsMongodb.NewStore(database)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -49,7 +55,7 @@ func getAPIServerFromEnvironment() (api.Server, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	eventsStore, err := mongodb.NewEventsStore(database)
+	eventsStore, err := eventsMongodb.NewStore(database)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -59,19 +65,19 @@ func getAPIServerFromEnvironment() (api.Server, error) {
 	eventsService := events.NewService(
 		projectsStore,
 		eventsStore,
-		mongodb.NewLogsStore(database),
+		eventsMongodb.NewLogsStore(database),
 		events.NewScheduler(eventsSenderFactory, kubeClient),
 	)
 
 	// Service Accounts
-	serviceAccountsStore, err := mongodb.NewServiceAccountsStore(database)
+	serviceAccountsStore, err := serviceaccountsMongodb.NewStore(database)
 	if err != nil {
 		log.Fatal(err)
 	}
 	serviceAccountsService := serviceaccounts.NewService(serviceAccountsStore)
 
 	// Users
-	usersStore, err := mongodb.NewUsersStore(database)
+	usersStore, err := usersMongodb.NewStore(database)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -83,7 +89,7 @@ func getAPIServerFromEnvironment() (api.Server, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	sessionsStore, err := mongodb.NewSessionsStore(database)
+	sessionsStore, err := sessionsMongodb.NewStore(database)
 	if err != nil {
 		log.Fatal(err)
 	}

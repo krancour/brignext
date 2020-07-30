@@ -33,8 +33,4 @@ type Store interface {
 		jobName string,
 		status brignext.JobStatus,
 	) error
-
-	DoTx(context.Context, func(context.Context) error) error
-
-	CheckHealth(context.Context) error
 }

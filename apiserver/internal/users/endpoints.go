@@ -1,12 +1,10 @@
 package users
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/api"
-	"github.com/pkg/errors"
 )
 
 type endpoints struct {
@@ -48,13 +46,6 @@ func (e *endpoints) Register(router *mux.Router) {
 		"/v2/users/{id}/lock",
 		e.TokenAuthFilter.Decorate(e.unlock),
 	).Methods(http.MethodDelete)
-}
-
-func (e *endpoints) CheckHealth(ctx context.Context) error {
-	if err := e.service.CheckHealth(ctx); err != nil {
-		return errors.Wrap(err, "error checking users service health")
-	}
-	return nil
 }
 
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {

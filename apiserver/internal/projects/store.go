@@ -16,8 +16,4 @@ type Store interface {
 	Get(context.Context, string) (brignext.Project, error)
 	Update(context.Context, brignext.Project) error
 	Delete(context.Context, string) error
-
-	DoTx(context.Context, func(context.Context) error) error
-
-	CheckHealth(context.Context) error
 }

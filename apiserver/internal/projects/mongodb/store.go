@@ -14,13 +14,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type projectsStore struct {
-	*BaseStore
+const createIndexTimeout = 5 * time.Second
+
+type store struct {
 	collection       *mongo.Collection
 	eventsCollection *mongo.Collection
 }
 
-func NewProjectsStore(database *mongo.Database) (projects.Store, error) {
+func NewStore(database *mongo.Database) (projects.Store, error) {
 	ctx, cancel :=
 		context.WithTimeout(context.Background(), createIndexTimeout)
 	defer cancel()
@@ -67,22 +68,19 @@ func NewProjectsStore(database *mongo.Database) (projects.Store, error) {
 			"error adding indexes to projects collection",
 		)
 	}
-	return &projectsStore{
-		BaseStore: &BaseStore{
-			Database: database,
-		},
+	return &store{
 		collection:       collection,
 		eventsCollection: database.Collection("events"),
 	}, nil
 }
 
-func (p *projectsStore) Create(
+func (s *store) Create(
 	ctx context.Context,
 	project brignext.Project,
 ) error {
 	now := time.Now()
 	project.Created = &now
-	if _, err := p.collection.InsertOne(ctx, project); err != nil {
+	if _, err := s.collection.InsertOne(ctx, project); err != nil {
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
@@ -98,13 +96,13 @@ func (p *projectsStore) Create(
 	return nil
 }
 
-func (p *projectsStore) List(
+func (s *store) List(
 	ctx context.Context,
 ) (brignext.ProjectList, error) {
 	projectList := brignext.NewProjectList()
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})
-	cur, err := p.collection.Find(ctx, bson.M{}, findOptions)
+	cur, err := s.collection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		return projectList, errors.Wrap(err, "error finding projects")
 	}
@@ -114,7 +112,7 @@ func (p *projectsStore) List(
 	return projectList, nil
 }
 
-func (p *projectsStore) ListSubscribers(
+func (s *store) ListSubscribers(
 	ctx context.Context,
 	event brignext.Event,
 ) (brignext.ProjectList, error) {
@@ -143,7 +141,7 @@ func (p *projectsStore) ListSubscribers(
 	}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})
-	cur, err := p.collection.Find(
+	cur, err := s.collection.Find(
 		ctx,
 		bson.M{
 			"spec.eventSubscriptions": bson.M{
@@ -161,12 +159,12 @@ func (p *projectsStore) ListSubscribers(
 	return projectList, nil
 }
 
-func (p *projectsStore) Get(
+func (s *store) Get(
 	ctx context.Context,
 	id string,
 ) (brignext.Project, error) {
 	project := brignext.Project{}
-	res := p.collection.FindOne(ctx, bson.M{"id": id})
+	res := s.collection.FindOne(ctx, bson.M{"id": id})
 	if res.Err() == mongo.ErrNoDocuments {
 		return project, errs.NewErrNotFound("Project", id)
 	}
@@ -179,10 +177,10 @@ func (p *projectsStore) Get(
 	return project, nil
 }
 
-func (p *projectsStore) Update(
+func (s *store) Update(
 	ctx context.Context, project brignext.Project,
 ) error {
-	res, err := p.collection.UpdateOne(
+	res, err := s.collection.UpdateOne(
 		ctx,
 		bson.M{
 			"id": project.ID,
@@ -203,26 +201,28 @@ func (p *projectsStore) Update(
 	return nil
 }
 
-func (p *projectsStore) Delete(ctx context.Context, id string) error {
-	return p.DoTx(ctx, func(ctx context.Context) error {
-		res, err := p.collection.DeleteOne(ctx, bson.M{"id": id})
-		if err != nil {
-			return errors.Wrapf(err, "error deleting project %q", id)
-		}
-		if res.DeletedCount == 0 {
-			return errs.NewErrNotFound("Project", id)
-		}
+func (s *store) Delete(ctx context.Context, id string) error {
+	// TODO: We'd like to use transaction semantics here, but transactions in
+	// MongoDB are dicey, so we should refine this strategy to where a
+	// partially completed delete leaves us, overall, in a tolerable state.
 
-		// Cascade the delete to the project's events
-		if _, err := p.eventsCollection.DeleteMany(
-			ctx,
-			bson.M{
-				"projectID": id,
-			},
-		); err != nil {
-			return errors.Wrapf(err, "error deleting events for project %q", id)
-		}
+	res, err := s.collection.DeleteOne(ctx, bson.M{"id": id})
+	if err != nil {
+		return errors.Wrapf(err, "error deleting project %q", id)
+	}
+	if res.DeletedCount == 0 {
+		return errs.NewErrNotFound("Project", id)
+	}
 
-		return nil
-	})
+	// Cascade the delete to the project's events
+	if _, err := s.eventsCollection.DeleteMany(
+		ctx,
+		bson.M{
+			"projectID": id,
+		},
+	); err != nil {
+		return errors.Wrapf(err, "error deleting events for project %q", id)
+	}
+
+	return nil
 }

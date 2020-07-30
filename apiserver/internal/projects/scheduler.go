@@ -49,8 +49,6 @@ type Scheduler interface {
 		secret brignext.Secret,
 	) error
 	UnsetSecret(ctx context.Context, project brignext.Project, key string) error
-
-	CheckHealth(context.Context) error
 }
 
 type scheduler struct {
@@ -422,14 +420,15 @@ func (s *scheduler) UnsetSecret(
 	return nil
 }
 
-func (s *scheduler) CheckHealth(context.Context) error {
-	// We'll just ask the apiserver for version info since this like it's
-	// probably the simplest way to test that it is responding.
-	if _, err := s.kubeClient.Discovery().ServerVersion(); err != nil {
-		return errors.Wrap(err, "error pinging kubernetes apiserver")
-	}
-	return nil
-}
+// TODO: Move this functionality into a health check service
+// func (s *scheduler) CheckHealth(context.Context) error {
+// 	// We'll just ask the apiserver for version info since this like it's
+// 	// probably the simplest way to test that it is responding.
+// 	if _, err := s.kubeClient.Discovery().ServerVersion(); err != nil {
+// 		return errors.Wrap(err, "error pinging kubernetes apiserver")
+// 	}
+// 	return nil
+// }
 
 func (s *scheduler) projectWithDefaults(
 	project brignext.Project,

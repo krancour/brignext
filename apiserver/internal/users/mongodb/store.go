@@ -14,13 +14,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type usersStore struct {
-	*BaseStore
+const createIndexTimeout = 5 * time.Second
+
+type store struct {
 	collection         *mongo.Collection
 	sessionsCollection *mongo.Collection
 }
 
-func NewUsersStore(database *mongo.Database) (users.Store, error) {
+func NewStore(database *mongo.Database) (users.Store, error) {
 	ctx, cancel :=
 		context.WithTimeout(context.Background(), createIndexTimeout)
 	defer cancel()
@@ -39,20 +40,17 @@ func NewUsersStore(database *mongo.Database) (users.Store, error) {
 	); err != nil {
 		return nil, errors.Wrap(err, "error adding indexes to users collection")
 	}
-	return &usersStore{
-		BaseStore: &BaseStore{
-			Database: database,
-		},
+	return &store{
 		collection:         collection,
 		sessionsCollection: database.Collection("sessions"),
 	}, nil
 }
 
-func (u *usersStore) Create(ctx context.Context, user brignext.User) error {
+func (s *store) Create(ctx context.Context, user brignext.User) error {
 	now := time.Now()
 	user.Created = &now
 	if _, err :=
-		u.collection.InsertOne(ctx, user); err != nil {
+		s.collection.InsertOne(ctx, user); err != nil {
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
@@ -68,11 +66,11 @@ func (u *usersStore) Create(ctx context.Context, user brignext.User) error {
 	return nil
 }
 
-func (u *usersStore) List(ctx context.Context) (brignext.UserList, error) {
+func (s *store) List(ctx context.Context) (brignext.UserList, error) {
 	userList := brignext.NewUserList()
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})
-	cur, err := u.collection.Find(ctx, bson.M{}, findOptions)
+	cur, err := s.collection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		return userList, errors.Wrap(err, "error finding users")
 	}
@@ -82,12 +80,12 @@ func (u *usersStore) List(ctx context.Context) (brignext.UserList, error) {
 	return userList, nil
 }
 
-func (u *usersStore) Get(
+func (s *store) Get(
 	ctx context.Context,
 	id string,
 ) (brignext.User, error) {
 	user := brignext.User{}
-	res := u.collection.FindOne(ctx, bson.M{"id": id})
+	res := s.collection.FindOne(ctx, bson.M{"id": id})
 	if res.Err() == mongo.ErrNoDocuments {
 		return user, errs.NewErrNotFound("User", id)
 	}
@@ -100,8 +98,8 @@ func (u *usersStore) Get(
 	return user, nil
 }
 
-func (u *usersStore) Lock(ctx context.Context, id string) error {
-	res, err := u.collection.UpdateOne(
+func (s *store) Lock(ctx context.Context, id string) error {
+	res, err := s.collection.UpdateOne(
 		ctx,
 		bson.M{"id": id},
 		bson.M{
@@ -121,7 +119,7 @@ func (u *usersStore) Lock(ctx context.Context, id string) error {
 	// in a transaction. This way if an error occurs after successfully locking
 	// the user, but BEFORE OR WHILE deleting their existing sessions, at least
 	// the user will be locked.
-	if _, err = u.sessionsCollection.DeleteMany(
+	if _, err = s.sessionsCollection.DeleteMany(
 		ctx,
 		bson.M{
 			"userID": id,
@@ -133,8 +131,8 @@ func (u *usersStore) Lock(ctx context.Context, id string) error {
 	return nil
 }
 
-func (u *usersStore) Unlock(ctx context.Context, id string) error {
-	res, err := u.collection.UpdateOne(
+func (s *store) Unlock(ctx context.Context, id string) error {
+	res, err := s.collection.UpdateOne(
 		ctx,
 		bson.M{"id": id},
 		bson.M{

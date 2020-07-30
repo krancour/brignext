@@ -13,8 +13,6 @@ type Service interface {
 	Get(context.Context, string) (brignext.User, error)
 	Lock(context.Context, string) error
 	Unlock(context.Context, string) error
-
-	CheckHealth(context.Context) error
 }
 
 type service struct {
@@ -64,13 +62,6 @@ func (s *service) Lock(ctx context.Context, id string) error {
 func (s *service) Unlock(ctx context.Context, id string) error {
 	if err := s.store.Unlock(ctx, id); err != nil {
 		return errors.Wrapf(err, "error unlocking user %q in store", id)
-	}
-	return nil
-}
-
-func (s *service) CheckHealth(ctx context.Context) error {
-	if err := s.store.CheckHealth(ctx); err != nil {
-		return errors.Wrap(err, "error checking users store health")
 	}
 	return nil
 }

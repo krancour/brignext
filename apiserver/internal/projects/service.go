@@ -24,8 +24,6 @@ type Service interface {
 		secret brignext.Secret,
 	) error
 	UnsetSecret(ctx context.Context, projectID string, key string) error
-
-	CheckHealth(context.Context) error
 }
 
 type service struct {
@@ -46,7 +44,7 @@ func (s *service) Create(
 ) error {
 	project = s.projectWithDefaults(project)
 
-	// Let the scheduler add sheduler-specific details before we persist.
+	// Let the scheduler add scheduler-specific details before we persist.
 	var err error
 	if project, err = s.scheduler.PreCreate(ctx, project); err != nil {
 		return errors.Wrapf(
@@ -56,19 +54,21 @@ func (s *service) Create(
 		)
 	}
 
-	return s.store.DoTx(ctx, func(ctx context.Context) error {
-		if err = s.store.Create(ctx, project); err != nil {
-			return errors.Wrapf(err, "error storing new project %q", project.ID)
-		}
-		if err = s.scheduler.Create(ctx, project); err != nil {
-			return errors.Wrapf(
-				err,
-				"error creating project %q in the scheduler",
-				project.ID,
-			)
-		}
-		return nil
-	})
+	// TODO: We'd like to use transaction semantics here, but transactions in
+	// MongoDB are dicey, so we should refine this strategy to where a
+	// partially completed create leaves us, overall, in a tolerable state.
+
+	if err = s.store.Create(ctx, project); err != nil {
+		return errors.Wrapf(err, "error storing new project %q", project.ID)
+	}
+	if err = s.scheduler.Create(ctx, project); err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating project %q in the scheduler",
+			project.ID,
+		)
+	}
+	return nil
 }
 
 func (s *service) List(
@@ -112,23 +112,25 @@ func (s *service) Update(
 		)
 	}
 
-	return s.store.DoTx(ctx, func(ctx context.Context) error {
-		if err = s.store.Update(ctx, project); err != nil {
-			return errors.Wrapf(
-				err,
-				"error updating project %q in store",
-				project.ID,
-			)
-		}
-		if err = s.scheduler.Update(ctx, project); err != nil {
-			return errors.Wrapf(
-				err,
-				"error updating project %q in the scheduler",
-				project.ID,
-			)
-		}
-		return nil
-	})
+	// TODO: We'd like to use transaction semantics here, but transactions in
+	// MongoDB are dicey, so we should refine this strategy to where a
+	// partially completed update leaves us, overall, in a tolerable state.
+
+	if err = s.store.Update(ctx, project); err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating project %q in store",
+			project.ID,
+		)
+	}
+	if err = s.scheduler.Update(ctx, project); err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating project %q in the scheduler",
+			project.ID,
+		)
+	}
+	return nil
 }
 
 func (s *service) Delete(ctx context.Context, id string) error {
@@ -136,19 +138,22 @@ func (s *service) Delete(ctx context.Context, id string) error {
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving project %q from store", id)
 	}
-	return s.store.DoTx(ctx, func(ctx context.Context) error {
-		if err := s.store.Delete(ctx, id); err != nil {
-			return errors.Wrapf(err, "error removing project %q from store", id)
-		}
-		if err := s.scheduler.Delete(ctx, project); err != nil {
-			return errors.Wrapf(
-				err,
-				"error deleting project %q from scheduler",
-				id,
-			)
-		}
-		return nil
-	})
+
+	// TODO: We'd like to use transaction semantics here, but transactions in
+	// MongoDB are dicey, so we should refine this strategy to where a
+	// partially completed delete leaves us, overall, in a tolerable state.
+
+	if err := s.store.Delete(ctx, id); err != nil {
+		return errors.Wrapf(err, "error removing project %q from store", id)
+	}
+	if err := s.scheduler.Delete(ctx, project); err != nil {
+		return errors.Wrapf(
+			err,
+			"error deleting project %q from scheduler",
+			id,
+		)
+	}
+	return nil
 }
 
 func (s *service) ListSecrets(
@@ -221,16 +226,6 @@ func (s *service) UnsetSecret(
 			"error unsetting secrets for project %q worker in scheduler",
 			projectID,
 		)
-	}
-	return nil
-}
-
-func (s *service) CheckHealth(ctx context.Context) error {
-	if err := s.store.CheckHealth(ctx); err != nil {
-		return errors.Wrap(err, "error checking projects store health")
-	}
-	if err := s.scheduler.CheckHealth(ctx); err != nil {
-		return errors.Wrap(err, "error checking projects scheduler health")
 	}
 	return nil
 }

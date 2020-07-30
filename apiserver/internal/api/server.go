@@ -80,6 +80,8 @@ func (s *server) ListenAndServe() error {
 	)
 }
 
+// TODO: Develop a service whose whole job is to just check the status of
+// database and message bus connections.
 func (s *server) checkHealth(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -89,11 +91,11 @@ func (s *server) checkHealth(
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				for _, eps := range s.endpoints {
-					if err := eps.CheckHealth(r.Context()); err != nil {
-						return nil, err
-					}
-				}
+				// for _, eps := range s.endpoints {
+				// 	if err := eps.CheckHealth(r.Context()); err != nil {
+				// 		return nil, err
+				// 	}
+				// }
 				return struct{}{}, nil
 			},
 			SuccessCode: http.StatusOK,

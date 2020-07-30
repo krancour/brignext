@@ -14,12 +14,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type serviceAccountsStore struct {
-	*BaseStore
+const createIndexTimeout = 5 * time.Second
+
+type store struct {
 	collection *mongo.Collection
 }
 
-func NewServiceAccountsStore(database *mongo.Database) (serviceaccounts.Store, error) {
+func NewStore(database *mongo.Database) (serviceaccounts.Store, error) {
 	ctx, cancel :=
 		context.WithTimeout(context.Background(), createIndexTimeout)
 	defer cancel()
@@ -52,15 +53,12 @@ func NewServiceAccountsStore(database *mongo.Database) (serviceaccounts.Store, e
 			"error adding indexes to service accounts collection",
 		)
 	}
-	return &serviceAccountsStore{
-		BaseStore: &BaseStore{
-			Database: database,
-		},
+	return &store{
 		collection: collection,
 	}, nil
 }
 
-func (s *serviceAccountsStore) Create(
+func (s *store) Create(
 	ctx context.Context,
 	serviceAccount brignext.ServiceAccount,
 ) error {
@@ -92,7 +90,7 @@ func (s *serviceAccountsStore) Create(
 	return nil
 }
 
-func (s *serviceAccountsStore) List(
+func (s *store) List(
 	ctx context.Context,
 ) (brignext.ServiceAccountList, error) {
 	serviceAccountList := brignext.NewServiceAccountList()
@@ -110,7 +108,7 @@ func (s *serviceAccountsStore) List(
 	return serviceAccountList, nil
 }
 
-func (s *serviceAccountsStore) Get(
+func (s *store) Get(
 	ctx context.Context,
 	id string,
 ) (brignext.ServiceAccount, error) {
@@ -136,7 +134,7 @@ func (s *serviceAccountsStore) Get(
 	return serviceAccount, nil
 }
 
-func (s *serviceAccountsStore) GetByHashedToken(
+func (s *store) GetByHashedToken(
 	ctx context.Context,
 	hashedToken string,
 ) (brignext.ServiceAccount, error) {
@@ -161,7 +159,7 @@ func (s *serviceAccountsStore) GetByHashedToken(
 	return serviceAccount, nil
 }
 
-func (s *serviceAccountsStore) Lock(ctx context.Context, id string) error {
+func (s *store) Lock(ctx context.Context, id string) error {
 	res, err := s.collection.UpdateOne(
 		ctx,
 		bson.M{"id": id},
@@ -182,7 +180,7 @@ func (s *serviceAccountsStore) Lock(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *serviceAccountsStore) Unlock(
+func (s *store) Unlock(
 	ctx context.Context,
 	id string,
 	newHashedToken string,

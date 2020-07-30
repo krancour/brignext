@@ -1,7 +1,6 @@
 package events
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -99,13 +98,6 @@ func (e *endpoints) Register(router *mux.Router) {
 		"/v2/events/{id}/logs",
 		e.TokenAuthFilter.Decorate(e.getOrStreamLogs),
 	).Methods(http.MethodGet)
-}
-
-func (e *endpoints) CheckHealth(ctx context.Context) error {
-	if err := e.service.CheckHealth(ctx); err != nil {
-		return errors.Wrap(err, "error checking events service health")
-	}
-	return nil
 }
 
 func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {

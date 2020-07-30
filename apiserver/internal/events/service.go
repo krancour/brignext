@@ -52,8 +52,6 @@ type Service interface {
 		eventID string,
 		opts brignext.LogOptions,
 	) (<-chan brignext.LogEntry, error)
-
-	CheckHealth(context.Context) error
 }
 
 type service struct {
@@ -167,20 +165,19 @@ func (s *service) Create(
 		)
 	}
 
-	if err = s.store.DoTx(ctx, func(ctx context.Context) error {
-		if err = s.store.Create(ctx, event); err != nil {
-			return errors.Wrapf(err, "error storing new event %q", event.ID)
-		}
-		if err = s.scheduler.Create(ctx, project, event); err != nil {
-			return errors.Wrapf(
-				err,
-				"error creating event %q in scheduler",
-				event.ID,
-			)
-		}
-		return nil
-	}); err != nil {
-		return eventRefList, err
+	// TODO: We'd like to use transaction semantics here, but transactions in
+	// MongoDB are dicey, so we should refine this strategy to where a
+	// partially completed create leaves us, overall, in a tolerable state.
+
+	if err = s.store.Create(ctx, event); err != nil {
+		return eventRefList, errors.Wrapf(err, "error storing new event %q", event.ID)
+	}
+	if err = s.scheduler.Create(ctx, project, event); err != nil {
+		return eventRefList, errors.Wrapf(
+			err,
+			"error creating event %q in scheduler",
+			event.ID,
+		)
 	}
 
 	eventRefList.Items = []brignext.EventReference{
@@ -464,17 +461,4 @@ func (s *service) StreamLogs(
 		)
 	}
 	return s.logsStore.StreamLogs(ctx, eventID, opts)
-}
-
-func (s *service) CheckHealth(ctx context.Context) error {
-	if err := s.store.CheckHealth(ctx); err != nil {
-		return errors.Wrap(err, "error checking events store health")
-	}
-	if err := s.scheduler.CheckHealth(ctx); err != nil {
-		return errors.Wrap(err, "error checking events scheduler health")
-	}
-	if err := s.logsStore.CheckHealth(ctx); err != nil {
-		return errors.Wrap(err, "error checking logs store health")
-	}
-	return nil
 }

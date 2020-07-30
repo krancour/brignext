@@ -13,12 +13,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type sessionsStore struct {
-	*BaseStore
+const createIndexTimeout = 5 * time.Second
+
+type store struct {
 	collection *mongo.Collection
 }
 
-func NewSessionsStore(database *mongo.Database) (sessions.Store, error) {
+func NewStore(database *mongo.Database) (sessions.Store, error) {
 	ctx, cancel :=
 		context.WithTimeout(context.Background(), createIndexTimeout)
 	defer cancel()
@@ -68,15 +69,12 @@ func NewSessionsStore(database *mongo.Database) (sessions.Store, error) {
 	); err != nil {
 		return nil, errors.Wrap(err, "error adding indexes to sessions collection")
 	}
-	return &sessionsStore{
-		BaseStore: &BaseStore{
-			Database: database,
-		},
+	return &store{
 		collection: collection,
 	}, nil
 }
 
-func (s *sessionsStore) Create(
+func (s *store) Create(
 	ctx context.Context,
 	session auth.Session,
 ) error {
@@ -88,7 +86,7 @@ func (s *sessionsStore) Create(
 	return nil
 }
 
-func (s *sessionsStore) GetByHashedOAuth2State(
+func (s *store) GetByHashedOAuth2State(
 	ctx context.Context,
 	hashedOAuth2State string,
 ) (auth.Session, error) {
@@ -112,7 +110,7 @@ func (s *sessionsStore) GetByHashedOAuth2State(
 	return session, nil
 }
 
-func (s *sessionsStore) GetByHashedToken(
+func (s *store) GetByHashedToken(
 	ctx context.Context,
 	hashedToken string,
 ) (auth.Session, error) {
@@ -133,7 +131,7 @@ func (s *sessionsStore) GetByHashedToken(
 	return session, nil
 }
 
-func (s *sessionsStore) Authenticate(
+func (s *store) Authenticate(
 	ctx context.Context,
 	sessionID string,
 	userID string,
@@ -161,7 +159,7 @@ func (s *sessionsStore) Authenticate(
 	return nil
 }
 
-func (s *sessionsStore) Delete(ctx context.Context, id string) error {
+func (s *store) Delete(ctx context.Context, id string) error {
 	res, err := s.collection.DeleteOne(ctx, bson.M{"id": id})
 	if err != nil {
 		return errors.Wrapf(err, "error deleting session %q", id)

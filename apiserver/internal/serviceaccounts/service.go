@@ -15,8 +15,6 @@ type Service interface {
 	GetByToken(context.Context, string) (brignext.ServiceAccount, error)
 	Lock(context.Context, string) error
 	Unlock(context.Context, string) (brignext.Token, error)
-
-	CheckHealth(context.Context) error
 }
 
 type service struct {
@@ -116,11 +114,4 @@ func (s *service) Unlock(
 		)
 	}
 	return newToken, nil
-}
-
-func (s *service) CheckHealth(ctx context.Context) error {
-	if err := s.store.CheckHealth(ctx); err != nil {
-		return errors.Wrap(err, "error checking service accounts store health")
-	}
-	return nil
 }

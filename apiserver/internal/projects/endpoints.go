@@ -1,14 +1,12 @@
 package projects
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/api"
 	errs "github.com/krancour/brignext/v2/internal/errors"
 	brignext "github.com/krancour/brignext/v2/sdk"
-	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -80,13 +78,6 @@ func (e *endpoints) Register(router *mux.Router) {
 		"/v2/projects/{id}/secrets/{key}",
 		e.TokenAuthFilter.Decorate(e.unsetSecret),
 	).Methods(http.MethodDelete)
-}
-
-func (e *endpoints) CheckHealth(ctx context.Context) error {
-	if err := e.service.CheckHealth(ctx); err != nil {
-		return errors.Wrap(err, "error checking projects service health")
-	}
-	return nil
 }
 
 func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -17,7 +16,6 @@ import (
 
 type Endpoints interface {
 	Register(router *mux.Router)
-	CheckHealth(context.Context) error
 }
 
 type BaseEndpoints struct {

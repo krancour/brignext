@@ -17,6 +17,4 @@ type LogsStore interface {
 		eventID string,
 		opts brignext.LogOptions,
 	) (<-chan brignext.LogEntry, error)
-
-	CheckHealth(context.Context) error
 }

@@ -18,8 +18,4 @@ type Store interface {
 		expires time.Time,
 	) error
 	Delete(context.Context, string) error
-
-	DoTx(context.Context, func(context.Context) error) error
-
-	CheckHealth(context.Context) error
 }

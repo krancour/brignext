@@ -1,7 +1,6 @@
 package sessions
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 
@@ -27,13 +26,6 @@ func NewEndpoints(
 		BaseEndpoints: baseEndpoints,
 		service:       service,
 	}
-}
-
-func (e *endpoints) CheckHealth(ctx context.Context) error {
-	if err := e.service.CheckHealth(ctx); err != nil {
-		return errors.Wrap(err, "error checking sessions service health")
-	}
-	return nil
 }
 
 func (e *endpoints) Register(router *mux.Router) {

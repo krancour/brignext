@@ -28,8 +28,6 @@ type Service interface {
 	) error
 	GetByToken(context.Context, string) (auth.Session, error)
 	Delete(context.Context, string) error
-
-	CheckHealth(context.Context) error
 }
 
 type service struct {
@@ -225,13 +223,6 @@ func (s *service) GetByToken(
 func (s *service) Delete(ctx context.Context, id string) error {
 	if err := s.store.Delete(ctx, id); err != nil {
 		return errors.Wrapf(err, "error removing session %q from store", id)
-	}
-	return nil
-}
-
-func (s *service) CheckHealth(ctx context.Context) error {
-	if err := s.store.CheckHealth(ctx); err != nil {
-		return errors.Wrap(err, "error checking sessions store health")
 	}
 	return nil
 }

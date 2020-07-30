@@ -14,15 +14,11 @@ import (
 )
 
 type logsStore struct {
-	*BaseStore
 	logsCollection *mongo.Collection
 }
 
 func NewLogsStore(database *mongo.Database) events.LogsStore {
 	return &logsStore{
-		BaseStore: &BaseStore{
-			Database: database,
-		},
 		logsCollection: database.Collection("logs"),
 	}
 }

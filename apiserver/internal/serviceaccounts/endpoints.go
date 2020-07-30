@@ -1,13 +1,11 @@
 package serviceaccounts
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/api"
 	brignext "github.com/krancour/brignext/v2/sdk"
-	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -59,13 +57,6 @@ func (e *endpoints) Register(router *mux.Router) {
 		"/v2/service-accounts/{id}/lock",
 		e.TokenAuthFilter.Decorate(e.unlock),
 	).Methods(http.MethodDelete)
-}
-
-func (e *endpoints) CheckHealth(ctx context.Context) error {
-	if err := e.service.CheckHealth(ctx); err != nil {
-		return errors.Wrap(err, "error checking service accounts service health")
-	}
-	return nil
 }
 
 func (e *endpoints) create(
