@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc"
-	"github.com/krancour/brignext/v2/apiserver/internal/api/auth"
+	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	"github.com/krancour/brignext/v2/apiserver/internal/users"
 	errs "github.com/krancour/brignext/v2/internal/errors"

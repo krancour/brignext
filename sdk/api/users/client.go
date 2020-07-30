@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/krancour/brignext/v2/internal/api"
 	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
 type Client interface {
@@ -18,7 +18,7 @@ type Client interface {
 }
 
 type client struct {
-	*api.BaseClient
+	*apimachinery.BaseClient
 }
 
 func NewClient(
@@ -27,7 +27,7 @@ func NewClient(
 	allowInsecure bool,
 ) Client {
 	return &client{
-		BaseClient: &api.BaseClient{
+		BaseClient: &apimachinery.BaseClient{
 			APIAddress: apiAddress,
 			APIToken:   apiToken,
 			HTTPClient: &http.Client{
@@ -44,7 +44,7 @@ func NewClient(
 func (c *client) List(context.Context) (brignext.UserList, error) {
 	userList := brignext.UserList{}
 	return userList, c.ExecuteRequest(
-		api.OutboundRequest{
+		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        "v2/users",
 			AuthHeaders: c.BearerTokenAuthHeaders(),
@@ -57,7 +57,7 @@ func (c *client) List(context.Context) (brignext.UserList, error) {
 func (c *client) Get(_ context.Context, id string) (brignext.User, error) {
 	user := brignext.User{}
 	return user, c.ExecuteRequest(
-		api.OutboundRequest{
+		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/users/%s", id),
 			AuthHeaders: c.BearerTokenAuthHeaders(),
@@ -69,7 +69,7 @@ func (c *client) Get(_ context.Context, id string) (brignext.User, error) {
 
 func (c *client) Lock(_ context.Context, id string) error {
 	return c.ExecuteRequest(
-		api.OutboundRequest{
+		apimachinery.OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/users/%s/lock", id),
 			AuthHeaders: c.BearerTokenAuthHeaders(),
@@ -80,7 +80,7 @@ func (c *client) Lock(_ context.Context, id string) error {
 
 func (c *client) Unlock(_ context.Context, id string) error {
 	return c.ExecuteRequest(
-		api.OutboundRequest{
+		apimachinery.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        fmt.Sprintf("v2/users/%s/lock", id),
 			AuthHeaders: c.BearerTokenAuthHeaders(),

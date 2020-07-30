@@ -4,21 +4,21 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/api"
+	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/xeipuuv/gojsonschema"
 )
 
 type endpoints struct {
-	*api.BaseEndpoints
+	*apimachinery.BaseEndpoints
 	serviceAccountSchemaLoader gojsonschema.JSONLoader
 	service                    Service
 }
 
 func NewEndpoints(
-	baseEndpoints *api.BaseEndpoints,
+	baseEndpoints *apimachinery.BaseEndpoints,
 	service Service,
-) api.Endpoints {
+) apimachinery.Endpoints {
 	// nolint: lll
 	return &endpoints{
 		BaseEndpoints:              baseEndpoints,
@@ -65,7 +65,7 @@ func (e *endpoints) create(
 ) {
 	serviceAccount := brignext.ServiceAccount{}
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
 			ReqBodySchemaLoader: e.serviceAccountSchemaLoader,
@@ -80,7 +80,7 @@ func (e *endpoints) create(
 
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -93,7 +93,7 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 
 func (e *endpoints) get(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -105,7 +105,7 @@ func (e *endpoints) get(w http.ResponseWriter, r *http.Request) {
 
 func (e *endpoints) lock(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -121,7 +121,7 @@ func (e *endpoints) unlock(
 	r *http.Request,
 ) {
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/krancour/brignext/v2/apiserver/internal/api/auth"
+	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
 	"github.com/krancour/brignext/v2/apiserver/internal/sessions"
 	errs "github.com/krancour/brignext/v2/internal/errors"
 	"github.com/pkg/errors"

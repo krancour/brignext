@@ -1,4 +1,4 @@
-package api
+package apimachinery
 
 type OutboundRequest struct {
 	Method      string

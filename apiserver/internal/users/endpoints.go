@@ -4,18 +4,18 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/api"
+	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
 )
 
 type endpoints struct {
-	*api.BaseEndpoints
+	*apimachinery.BaseEndpoints
 	service Service
 }
 
 func NewEndpoints(
-	baseEndpoints *api.BaseEndpoints,
+	baseEndpoints *apimachinery.BaseEndpoints,
 	service Service,
-) api.Endpoints {
+) apimachinery.Endpoints {
 	return &endpoints{
 		BaseEndpoints: baseEndpoints,
 		service:       service,
@@ -50,7 +50,7 @@ func (e *endpoints) Register(router *mux.Router) {
 
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -63,7 +63,7 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 
 func (e *endpoints) get(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -76,7 +76,7 @@ func (e *endpoints) get(w http.ResponseWriter, r *http.Request) {
 
 func (e *endpoints) lock(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -89,7 +89,7 @@ func (e *endpoints) lock(w http.ResponseWriter, r *http.Request) {
 
 func (e *endpoints) unlock(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {

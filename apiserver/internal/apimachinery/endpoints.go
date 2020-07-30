@@ -1,4 +1,4 @@
-package api
+package apimachinery
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/api/auth"
+	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
 	errs "github.com/krancour/brignext/v2/internal/errors"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"

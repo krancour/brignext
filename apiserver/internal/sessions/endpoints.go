@@ -5,23 +5,23 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/api"
-	"github.com/krancour/brignext/v2/apiserver/internal/api/auth"
+	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
 	"github.com/krancour/brignext/v2/apiserver/internal/users"
 	errs "github.com/krancour/brignext/v2/internal/errors"
 	"github.com/pkg/errors"
 )
 
 type endpoints struct {
-	*api.BaseEndpoints
+	*apimachinery.BaseEndpoints
 	service      Service
 	usersService users.Service
 }
 
 func NewEndpoints(
-	baseEndpoints *api.BaseEndpoints,
+	baseEndpoints *apimachinery.BaseEndpoints,
 	service Service,
-) api.Endpoints {
+) apimachinery.Endpoints {
 	return &endpoints{
 		BaseEndpoints: baseEndpoints,
 		service:       service,
@@ -54,7 +54,7 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 
 	if rootSessionRequest {
 		e.ServeRequest(
-			api.InboundRequest{
+			apimachinery.InboundRequest{
 				W: w,
 				R: r,
 				EndpointLogic: func() (interface{}, error) {
@@ -74,7 +74,7 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -87,7 +87,7 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 
 func (e *endpoints) delete(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -111,7 +111,7 @@ func (e *endpoints) authenticate(w http.ResponseWriter, r *http.Request) {
 	oauth2State := r.URL.Query().Get("state")
 	oidcCode := r.URL.Query().Get("code")
 
-	e.ServeHumanRequest(api.HumanRequest{
+	e.ServeHumanRequest(apimachinery.HumanRequest{
 		W: w,
 		EndpointLogic: func() (interface{}, error) {
 			if oauth2State == "" || oidcCode == "" {

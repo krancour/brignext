@@ -4,8 +4,8 @@ package main
 import (
 	"log"
 
-	"github.com/krancour/brignext/v2/apiserver/internal/api"
-	"github.com/krancour/brignext/v2/apiserver/internal/api/auth"
+	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
 	"github.com/krancour/brignext/v2/apiserver/internal/events"
 	"github.com/krancour/brignext/v2/apiserver/internal/events/amqp"
 	eventsMongodb "github.com/krancour/brignext/v2/apiserver/internal/events/mongodb"
@@ -22,10 +22,10 @@ import (
 	"github.com/krancour/brignext/v2/internal/kubernetes"
 )
 
-func getAPIServerFromEnvironment() (api.Server, error) {
+func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 
 	// API server config
-	apiConfig, err := api.GetConfigFromEnvironment()
+	apiConfig, err := apimachinery.GetConfigFromEnvironment()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func getAPIServerFromEnvironment() (api.Server, error) {
 		oidcIdentityVerifier,
 	)
 
-	baseEndpoints := &api.BaseEndpoints{
+	baseEndpoints := &apimachinery.BaseEndpoints{
 		TokenAuthFilter: auth.NewTokenAuthFilter(
 			sessionsService.GetByToken,
 			usersService.Get,
@@ -112,10 +112,10 @@ func getAPIServerFromEnvironment() (api.Server, error) {
 		),
 	}
 
-	return api.NewServer(
+	return apimachinery.NewServer(
 		apiConfig,
 		baseEndpoints,
-		[]api.Endpoints{
+		[]apimachinery.Endpoints{
 			events.NewEndpoints(baseEndpoints, eventsService),
 			projects.NewEndpoints(baseEndpoints, projectsService),
 			serviceaccounts.NewEndpoints(baseEndpoints, serviceAccountsService),

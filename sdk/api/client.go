@@ -9,7 +9,7 @@ import (
 	"github.com/krancour/brignext/v2/sdk/api/serviceaccounts"
 	"github.com/krancour/brignext/v2/sdk/api/sessions"
 	"github.com/krancour/brignext/v2/sdk/api/users"
-	"github.com/krancour/brignext/v2/internal/api"
+	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
 type Client interface {
@@ -21,7 +21,7 @@ type Client interface {
 }
 
 type client struct {
-	*api.BaseClient
+	*apimachinery.BaseClient
 	eventsClient          events.Client
 	projectsClient        projects.Client
 	serviceAccountsClient serviceaccounts.Client
@@ -31,7 +31,7 @@ type client struct {
 
 func NewClient(apiAddress, apiToken string, allowInsecure bool) Client {
 	return &client{
-		BaseClient: &api.BaseClient{
+		BaseClient: &apimachinery.BaseClient{
 			APIAddress: apiAddress,
 			APIToken:   apiToken,
 			HTTPClient: &http.Client{

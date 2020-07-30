@@ -6,6 +6,9 @@ import (
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
 
+// TODO: Some of these errors should be part of the SDK. Some of them should
+// be part of the API machinery.
+
 type ErrAuthentication struct {
 	meta.TypeMeta `json:",inline"`
 	Reason        string `json:"reason"`

@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/api"
+	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
 	errs "github.com/krancour/brignext/v2/internal/errors"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
@@ -17,7 +17,7 @@ import (
 )
 
 type endpoints struct {
-	*api.BaseEndpoints
+	*apimachinery.BaseEndpoints
 	eventSchemaLoader        gojsonschema.JSONLoader
 	jobStatusSchemaLoader    gojsonschema.JSONLoader
 	workerStatusSchemaLoader gojsonschema.JSONLoader
@@ -25,9 +25,9 @@ type endpoints struct {
 }
 
 func NewEndpoints(
-	baseEndpoints *api.BaseEndpoints,
+	baseEndpoints *apimachinery.BaseEndpoints,
 	service Service,
-) api.Endpoints {
+) apimachinery.Endpoints {
 	// nolint: lll
 	return &endpoints{
 		BaseEndpoints:            baseEndpoints,
@@ -103,7 +103,7 @@ func (e *endpoints) Register(router *mux.Router) {
 func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 	event := brignext.Event{}
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
 			ReqBodySchemaLoader: e.eventSchemaLoader,
@@ -129,7 +129,7 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -142,7 +142,7 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 
 func (e *endpoints) get(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -155,7 +155,7 @@ func (e *endpoints) get(w http.ResponseWriter, r *http.Request) {
 
 func (e *endpoints) cancel(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -182,7 +182,7 @@ func (e *endpoints) cancelCollection(
 		}
 	}
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -195,7 +195,7 @@ func (e *endpoints) cancelCollection(
 
 func (e *endpoints) delete(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -222,7 +222,7 @@ func (e *endpoints) deleteCollection(
 		}
 	}
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -239,7 +239,7 @@ func (e *endpoints) updateWorkerStatus(
 ) {
 	status := brignext.WorkerStatus{}
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
 			ReqBodySchemaLoader: e.workerStatusSchemaLoader,
@@ -268,7 +268,7 @@ func (e *endpoints) getOrStreamLogs(
 
 	if !stream {
 		e.ServeRequest(
-			api.InboundRequest{
+			apimachinery.InboundRequest{
 				W: w,
 				R: r,
 				EndpointLogic: func() (interface{}, error) {
@@ -315,7 +315,7 @@ func (e *endpoints) updateJobStatus(
 ) {
 	status := brignext.JobStatus{}
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
 			ReqBodySchemaLoader: e.jobStatusSchemaLoader,

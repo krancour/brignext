@@ -5,8 +5,8 @@ import (
 	"crypto/tls"
 	"net/http"
 
-	"github.com/krancour/brignext/v2/internal/api"
 	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
 type Client interface {
@@ -19,7 +19,7 @@ type Client interface {
 }
 
 type client struct {
-	*api.BaseClient
+	*apimachinery.BaseClient
 }
 
 func NewClient(
@@ -28,7 +28,7 @@ func NewClient(
 	allowInsecure bool,
 ) Client {
 	return &client{
-		BaseClient: &api.BaseClient{
+		BaseClient: &apimachinery.BaseClient{
 			APIAddress: apiAddress,
 			APIToken:   apiToken,
 			HTTPClient: &http.Client{
@@ -48,7 +48,7 @@ func (c *client) CreateRootSession(
 ) (brignext.Token, error) {
 	token := brignext.Token{}
 	return token, c.ExecuteRequest(
-		api.OutboundRequest{
+		apimachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/sessions",
 			AuthHeaders: c.BasicAuthHeaders("root", password),
@@ -66,7 +66,7 @@ func (c *client) CreateUserSession(
 ) (brignext.UserSessionAuthDetails, error) {
 	userSessionAuthDetails := brignext.UserSessionAuthDetails{}
 	return userSessionAuthDetails, c.ExecuteRequest(
-		api.OutboundRequest{
+		apimachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/sessions",
 			SuccessCode: http.StatusCreated,
@@ -77,7 +77,7 @@ func (c *client) CreateUserSession(
 
 func (c *client) Delete(context.Context) error {
 	return c.ExecuteRequest(
-		api.OutboundRequest{
+		apimachinery.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        "v2/session",
 			AuthHeaders: c.BearerTokenAuthHeaders(),

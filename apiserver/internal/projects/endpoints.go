@@ -4,23 +4,23 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/api"
+	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
 	errs "github.com/krancour/brignext/v2/internal/errors"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/xeipuuv/gojsonschema"
 )
 
 type endpoints struct {
-	*api.BaseEndpoints
+	*apimachinery.BaseEndpoints
 	projectSchemaLoader gojsonschema.JSONLoader
 	secretSchemaLoader  gojsonschema.JSONLoader
 	service             Service
 }
 
 func NewEndpoints(
-	baseEndpoints *api.BaseEndpoints,
+	baseEndpoints *apimachinery.BaseEndpoints,
 	service Service,
-) api.Endpoints {
+) apimachinery.Endpoints {
 	// nolint: lll
 	return &endpoints{
 		BaseEndpoints:       baseEndpoints,
@@ -83,7 +83,7 @@ func (e *endpoints) Register(router *mux.Router) {
 func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 	project := brignext.Project{}
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
 			ReqBodySchemaLoader: e.projectSchemaLoader,
@@ -98,7 +98,7 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -111,7 +111,7 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 
 func (e *endpoints) get(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -125,7 +125,7 @@ func (e *endpoints) get(w http.ResponseWriter, r *http.Request) {
 func (e *endpoints) update(w http.ResponseWriter, r *http.Request) {
 	project := brignext.Project{}
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
 			ReqBodySchemaLoader: e.projectSchemaLoader,
@@ -145,7 +145,7 @@ func (e *endpoints) update(w http.ResponseWriter, r *http.Request) {
 
 func (e *endpoints) delete(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -158,7 +158,7 @@ func (e *endpoints) delete(w http.ResponseWriter, r *http.Request) {
 
 func (e *endpoints) listSecrets(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -173,7 +173,7 @@ func (e *endpoints) setSecret(w http.ResponseWriter, r *http.Request) {
 	key := mux.Vars(r)["key"]
 	secret := brignext.Secret{}
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
 			ReqBodySchemaLoader: e.secretSchemaLoader,
@@ -198,7 +198,7 @@ func (e *endpoints) setSecret(w http.ResponseWriter, r *http.Request) {
 func (e *endpoints) unsetSecret(w http.ResponseWriter, r *http.Request) {
 	key := mux.Vars(r)["key"]
 	e.ServeRequest(
-		api.InboundRequest{
+		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
