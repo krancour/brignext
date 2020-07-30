@@ -8,7 +8,7 @@ import (
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
 	"github.com/krancour/brignext/v2/apiserver/internal/users"
-	errs "github.com/krancour/brignext/v2/internal/errors"
+	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 )
 
@@ -60,7 +60,7 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 				EndpointLogic: func() (interface{}, error) {
 					username, password, ok := r.BasicAuth()
 					if !ok {
-						return nil, errs.NewErrBadRequest(
+						return nil, brignext.NewErrBadRequest(
 							"The request to create a new root session did not include a " +
 								"valid basic auth header.",
 						)
@@ -115,7 +115,7 @@ func (e *endpoints) authenticate(w http.ResponseWriter, r *http.Request) {
 		W: w,
 		EndpointLogic: func() (interface{}, error) {
 			if oauth2State == "" || oidcCode == "" {
-				return nil, errs.NewErrBadRequest(
+				return nil, brignext.NewErrBadRequest(
 					"The OpenID Connect authentication completion request lacked one " +
 						"or both of the \"oauth2State\" and \"oidcCode\" query parameters.",
 				)

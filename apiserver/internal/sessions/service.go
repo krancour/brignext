@@ -8,7 +8,6 @@ import (
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	"github.com/krancour/brignext/v2/apiserver/internal/users"
-	errs "github.com/krancour/brignext/v2/internal/errors"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
@@ -64,14 +63,14 @@ func (s *service) CreateRootSession(
 ) (brignext.Token, error) {
 	token := brignext.NewToken(crypto.NewToken(256))
 	if !s.rootUserEnabled {
-		return token, errs.NewErrNotSupported(
+		return token, brignext.NewErrNotSupported(
 			"Authentication using root credentials is not supported by " +
 				"this server.",
 		)
 	}
 	if username != "root" ||
 		crypto.ShortSHA(username, password) != s.hashedRootUserPassword {
-		return token, errs.NewErrAuthentication(
+		return token, brignext.NewErrAuthentication(
 			"Could not authenticate request using the supplied credentials.",
 		)
 	}
@@ -116,7 +115,7 @@ func (s *service) Authenticate(
 	oidcCode string,
 ) error {
 	if s.oauth2Config == nil || s.oidcTokenVerifier == nil {
-		return errs.NewErrNotSupported(
+		return brignext.NewErrNotSupported(
 			"Authentication using OpenID Connect is not supported by this " +
 				"server.",
 		)
@@ -160,7 +159,7 @@ func (s *service) Authenticate(
 	}
 	user, err := s.usersStore.Get(ctx, claims.Email)
 	if err != nil {
-		if _, ok := errors.Cause(err).(*errs.ErrNotFound); ok {
+		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
 			// User wasn't found. That's ok. We'll create one.
 			user = brignext.NewUser(claims.Email, claims.Name)
 			if err = s.usersStore.Create(ctx, user); err != nil {

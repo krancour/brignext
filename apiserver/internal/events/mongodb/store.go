@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/events"
-	errs "github.com/krancour/brignext/v2/internal/errors"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -104,7 +103,7 @@ func (s *store) Get(
 	event := brignext.Event{}
 	res := s.collection.FindOne(ctx, bson.M{"id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return event, errs.NewErrNotFound("Event", id)
+		return event, brignext.NewErrNotFound("Event", id)
 	}
 	if res.Err() != nil {
 		return event, errors.Wrapf(res.Err(), "error finding event %q", id)
@@ -157,7 +156,7 @@ func (s *store) Cancel(ctx context.Context, id string) error {
 	}
 
 	if res.MatchedCount == 0 {
-		return errs.NewErrConflict(
+		return brignext.NewErrConflict(
 			"Event",
 			id,
 			fmt.Sprintf(
@@ -261,7 +260,7 @@ func (s *store) Delete(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error deleting event %q", id)
 	}
 	if res.DeletedCount != 1 {
-		return errs.NewErrNotFound("Event", id)
+		return brignext.NewErrNotFound("Event", id)
 	}
 	return nil
 }
@@ -353,7 +352,7 @@ func (s *store) UpdateWorkerStatus(
 		)
 	}
 	if res.MatchedCount == 0 {
-		return errs.NewErrNotFound("Event", eventID)
+		return brignext.NewErrNotFound("Event", eventID)
 	}
 	return nil
 }
@@ -384,7 +383,7 @@ func (s *store) UpdateJobStatus(
 		)
 	}
 	if res.MatchedCount == 0 {
-		return errs.NewErrNotFound("Event", eventID)
+		return brignext.NewErrNotFound("Event", eventID)
 	}
 	return nil
 }

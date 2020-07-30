@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/projects"
-	errs "github.com/krancour/brignext/v2/internal/errors"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -255,13 +254,13 @@ func (s *service) CancelCollection(
 
 	// Refuse requests not qualified by project
 	if opts.ProjectID == "" {
-		return eventRefList, errs.NewErrBadRequest(
+		return eventRefList, brignext.NewErrBadRequest(
 			"Requests to cancel multiple events must be qualified by project.",
 		)
 	}
 	// Refuse requeets not qualified by worker phases
 	if len(opts.WorkerPhases) == 0 {
-		return eventRefList, errs.NewErrBadRequest(
+		return eventRefList, brignext.NewErrBadRequest(
 			"Requests to cancel multiple events must be qualified by worker " +
 				"phase(s).",
 		)
@@ -340,13 +339,13 @@ func (s *service) DeleteCollection(
 
 	// Refuse requests not qualified by project
 	if opts.ProjectID == "" {
-		return eventRefList, errs.NewErrBadRequest(
+		return eventRefList, brignext.NewErrBadRequest(
 			"Requests to delete multiple events must be qualified by project.",
 		)
 	}
 	// Refuse requeets not qualified by worker phases
 	if len(opts.WorkerPhases) == 0 {
-		return eventRefList, errs.NewErrBadRequest(
+		return eventRefList, brignext.NewErrBadRequest(
 			"Requests to delete multiple events must be qualified by worker " +
 				"phase(s).",
 		)

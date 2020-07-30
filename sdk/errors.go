@@ -1,13 +1,10 @@
-package errors
+package sdk
 
 import (
 	"fmt"
 
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
-
-// TODO: Some of these errors should be part of the SDK. Some of them should
-// be part of the API machinery.
 
 type ErrAuthentication struct {
 	meta.TypeMeta `json:",inline"`

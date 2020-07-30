@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/projects"
-	errs "github.com/krancour/brignext/v2/internal/errors"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -84,7 +83,7 @@ func (s *store) Create(
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
-				return errs.NewErrConflict(
+				return brignext.NewErrConflict(
 					"Project",
 					project.ID,
 					fmt.Sprintf("A project with the ID %q already exists.", project.ID),
@@ -166,7 +165,7 @@ func (s *store) Get(
 	project := brignext.Project{}
 	res := s.collection.FindOne(ctx, bson.M{"id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return project, errs.NewErrNotFound("Project", id)
+		return project, brignext.NewErrNotFound("Project", id)
 	}
 	if res.Err() != nil {
 		return project, errors.Wrapf(res.Err(), "error finding project %q", id)
@@ -196,7 +195,7 @@ func (s *store) Update(
 		return errors.Wrapf(err, "error replacing project %q", project.ID)
 	}
 	if res.MatchedCount == 0 {
-		return errs.NewErrNotFound("Project", project.ID)
+		return brignext.NewErrNotFound("Project", project.ID)
 	}
 	return nil
 }
@@ -211,7 +210,7 @@ func (s *store) Delete(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error deleting project %q", id)
 	}
 	if res.DeletedCount == 0 {
-		return errs.NewErrNotFound("Project", id)
+		return brignext.NewErrNotFound("Project", id)
 	}
 
 	// Cascade the delete to the project's events

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/serviceaccounts"
-	errs "github.com/krancour/brignext/v2/internal/errors"
 	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -71,7 +70,7 @@ func (s *store) Create(
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
-				return errs.NewErrConflict(
+				return brignext.NewErrConflict(
 					"ServiceAccount",
 					serviceAccount.ID,
 					fmt.Sprintf(
@@ -115,7 +114,7 @@ func (s *store) Get(
 	serviceAccount := brignext.ServiceAccount{}
 	res := s.collection.FindOne(ctx, bson.M{"id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return serviceAccount, errs.NewErrNotFound("ServiceAccount", id)
+		return serviceAccount, brignext.NewErrNotFound("ServiceAccount", id)
 	}
 	if res.Err() != nil {
 		return serviceAccount, errors.Wrapf(
@@ -142,7 +141,7 @@ func (s *store) GetByHashedToken(
 	res :=
 		s.collection.FindOne(ctx, bson.M{"hashedToken": hashedToken})
 	if res.Err() == mongo.ErrNoDocuments {
-		return serviceAccount, errs.NewErrNotFound("ServiceAccount", "")
+		return serviceAccount, brignext.NewErrNotFound("ServiceAccount", "")
 	}
 	if res.Err() != nil {
 		return serviceAccount, errors.Wrap(
@@ -173,7 +172,7 @@ func (s *store) Lock(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error updating service account %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return errs.NewErrNotFound("ServiceAccount", id)
+		return brignext.NewErrNotFound("ServiceAccount", id)
 	}
 	// Note, unlike the case of locking a user, there are no sessions to delete
 	// because service accounts use non-expiring, sessionless tokens.
@@ -199,7 +198,7 @@ func (s *store) Unlock(
 		return errors.Wrapf(err, "error updating service account %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return errs.NewErrNotFound("ServiceAccount", id)
+		return brignext.NewErrNotFound("ServiceAccount", id)
 	}
 	return nil
 }

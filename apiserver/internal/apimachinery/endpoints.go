@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
-	errs "github.com/krancour/brignext/v2/internal/errors"
+	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -38,7 +38,7 @@ func (b *BaseEndpoints) readAndValidateRequestBody(
 		b.WriteAPIResponse(
 			w,
 			http.StatusBadRequest,
-			errs.NewErrBadRequest("Could not read request body."),
+			brignext.NewErrBadRequest("Could not read request body."),
 		)
 		return false
 	}
@@ -57,7 +57,7 @@ func (b *BaseEndpoints) readAndValidateRequestBody(
 			b.WriteAPIResponse(
 				w,
 				http.StatusBadRequest,
-				errs.NewErrBadRequest("Could not validate request body."),
+				brignext.NewErrBadRequest("Could not validate request body."),
 			)
 			return false
 		}
@@ -70,7 +70,7 @@ func (b *BaseEndpoints) readAndValidateRequestBody(
 			b.WriteAPIResponse(
 				w,
 				http.StatusBadRequest,
-				errs.NewErrBadRequest(
+				brignext.NewErrBadRequest(
 					"Request body failed JSON validation",
 					verrStrs...,
 				),
@@ -87,7 +87,7 @@ func (b *BaseEndpoints) readAndValidateRequestBody(
 			b.WriteAPIResponse(
 				w,
 				http.StatusInternalServerError,
-				errs.NewErrInternalServer(),
+				brignext.NewErrInternalServer(),
 			)
 			return false
 		}
@@ -109,26 +109,26 @@ func (b *BaseEndpoints) ServeRequest(req InboundRequest) {
 	respBodyObj, err := req.EndpointLogic()
 	if err != nil {
 		switch e := errors.Cause(err).(type) {
-		case *errs.ErrAuthentication:
+		case *brignext.ErrAuthentication:
 			b.WriteAPIResponse(req.W, http.StatusUnauthorized, e)
-		case *errs.ErrAuthorization:
+		case *brignext.ErrAuthorization:
 			b.WriteAPIResponse(req.W, http.StatusForbidden, e)
-		case *errs.ErrBadRequest:
+		case *brignext.ErrBadRequest:
 			b.WriteAPIResponse(req.W, http.StatusBadRequest, e)
-		case *errs.ErrNotFound:
+		case *brignext.ErrNotFound:
 			b.WriteAPIResponse(req.W, http.StatusNotFound, e)
-		case *errs.ErrConflict:
+		case *brignext.ErrConflict:
 			b.WriteAPIResponse(req.W, http.StatusConflict, e)
-		case *errs.ErrNotSupported:
+		case *brignext.ErrNotSupported:
 			b.WriteAPIResponse(req.W, http.StatusNotImplemented, e)
-		case *errs.ErrInternalServer:
+		case *brignext.ErrInternalServer:
 			b.WriteAPIResponse(req.W, http.StatusInternalServerError, e)
 		default:
 			log.Println(err)
 			b.WriteAPIResponse(
 				req.W,
 				http.StatusInternalServerError,
-				errs.NewErrInternalServer(),
+				brignext.NewErrInternalServer(),
 			)
 		}
 		return
@@ -165,19 +165,19 @@ func (b *BaseEndpoints) ServeHumanRequest(humanReq HumanRequest) {
 	respBodyObj, err := humanReq.EndpointLogic()
 	if err != nil {
 		switch e := errors.Cause(err).(type) {
-		case *errs.ErrAuthentication:
+		case *brignext.ErrAuthentication:
 			http.Error(humanReq.W, e.Error(), http.StatusUnauthorized)
-		case *errs.ErrAuthorization:
+		case *brignext.ErrAuthorization:
 			http.Error(humanReq.W, e.Error(), http.StatusForbidden)
-		case *errs.ErrBadRequest:
+		case *brignext.ErrBadRequest:
 			http.Error(humanReq.W, e.Error(), http.StatusBadRequest)
-		case *errs.ErrNotFound:
+		case *brignext.ErrNotFound:
 			http.Error(humanReq.W, e.Error(), http.StatusNotFound)
-		case *errs.ErrConflict:
+		case *brignext.ErrConflict:
 			http.Error(humanReq.W, e.Error(), http.StatusConflict)
-		case *errs.ErrNotSupported:
+		case *brignext.ErrNotSupported:
 			http.Error(humanReq.W, e.Error(), http.StatusNotImplemented)
-		case *errs.ErrInternalServer:
+		case *brignext.ErrInternalServer:
 			http.Error(humanReq.W, e.Error(), http.StatusInternalServerError)
 		default:
 			log.Println(e)
