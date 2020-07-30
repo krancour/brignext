@@ -1,4 +1,4 @@
-package serviceaccounts
+package api
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
-type Client interface {
+type ServiceAccountsClient interface {
 	Create(context.Context, brignext.ServiceAccount) (brignext.Token, error)
 	List(context.Context) (brignext.ServiceAccountList, error)
 	Get(context.Context, string) (brignext.ServiceAccount, error)
@@ -18,12 +18,16 @@ type Client interface {
 	Unlock(context.Context, string) (brignext.Token, error)
 }
 
-type client struct {
+type serviceAccountsClient struct {
 	*apimachinery.BaseClient
 }
 
-func NewClient(apiAddress string, apiToken string, allowInsecure bool) Client {
-	return &client{
+func NewServiceAccountsClient(
+	apiAddress string,
+	apiToken string,
+	allowInsecure bool,
+) ServiceAccountsClient {
+	return &serviceAccountsClient{
 		BaseClient: &apimachinery.BaseClient{
 			APIAddress: apiAddress,
 			APIToken:   apiToken,
@@ -38,16 +42,16 @@ func NewClient(apiAddress string, apiToken string, allowInsecure bool) Client {
 	}
 }
 
-func (c *client) Create(
+func (s *serviceAccountsClient) Create(
 	_ context.Context,
 	serviceAccount brignext.ServiceAccount,
 ) (brignext.Token, error) {
 	token := brignext.Token{}
-	return token, c.ExecuteRequest(
+	return token, s.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/service-accounts",
-			AuthHeaders: c.BearerTokenAuthHeaders(),
+			AuthHeaders: s.BearerTokenAuthHeaders(),
 			ReqBodyObj:  serviceAccount,
 			SuccessCode: http.StatusCreated,
 			RespObj:     &token,
@@ -55,53 +59,58 @@ func (c *client) Create(
 	)
 }
 
-func (c *client) List(context.Context) (brignext.ServiceAccountList, error) {
+func (s *serviceAccountsClient) List(
+	context.Context,
+) (brignext.ServiceAccountList, error) {
 	serviceAccountList := brignext.ServiceAccountList{}
-	return serviceAccountList, c.ExecuteRequest(
+	return serviceAccountList, s.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        "v2/service-accounts",
-			AuthHeaders: c.BearerTokenAuthHeaders(),
+			AuthHeaders: s.BearerTokenAuthHeaders(),
 			SuccessCode: http.StatusOK,
 			RespObj:     &serviceAccountList,
 		},
 	)
 }
 
-func (c *client) Get(
+func (s *serviceAccountsClient) Get(
 	_ context.Context,
 	id string,
 ) (brignext.ServiceAccount, error) {
 	serviceAccount := brignext.ServiceAccount{}
-	return serviceAccount, c.ExecuteRequest(
+	return serviceAccount, s.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/service-accounts/%s", id),
-			AuthHeaders: c.BearerTokenAuthHeaders(),
+			AuthHeaders: s.BearerTokenAuthHeaders(),
 			SuccessCode: http.StatusOK,
 			RespObj:     &serviceAccount,
 		},
 	)
 }
 
-func (c *client) Lock(_ context.Context, id string) error {
-	return c.ExecuteRequest(
+func (s *serviceAccountsClient) Lock(_ context.Context, id string) error {
+	return s.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/service-accounts/%s/lock", id),
-			AuthHeaders: c.BearerTokenAuthHeaders(),
+			AuthHeaders: s.BearerTokenAuthHeaders(),
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (c *client) Unlock(_ context.Context, id string) (brignext.Token, error) {
+func (s *serviceAccountsClient) Unlock(
+	_ context.Context,
+	id string,
+) (brignext.Token, error) {
 	token := brignext.Token{}
-	return token, c.ExecuteRequest(
+	return token, s.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        fmt.Sprintf("v2/service-accounts/%s/lock", id),
-			AuthHeaders: c.BearerTokenAuthHeaders(),
+			AuthHeaders: s.BearerTokenAuthHeaders(),
 			SuccessCode: http.StatusOK,
 			RespObj:     &token,
 		},

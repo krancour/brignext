@@ -6,7 +6,7 @@ import (
 	"runtime"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/krancour/brignext/v2/sdk/api/sessions"
+	"github.com/krancour/brignext/v2/sdk/api"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -51,7 +51,7 @@ func login(c *cli.Context) error {
 	password := c.String(flagPassword)
 	rootLogin := c.Bool(flagRoot)
 
-	client := sessions.NewClient(
+	client := api.NewSessionsClient(
 		address,
 		"",
 		c.Bool(flagInsecure),

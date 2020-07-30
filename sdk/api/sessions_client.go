@@ -1,4 +1,4 @@
-package sessions
+package api
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
-type Client interface {
+type SessionsClient interface {
 	CreateRootSession(
 		ctx context.Context,
 		password string,
@@ -18,16 +18,16 @@ type Client interface {
 	Delete(context.Context) error
 }
 
-type client struct {
+type sessionsClient struct {
 	*apimachinery.BaseClient
 }
 
-func NewClient(
+func NewSessionsClient(
 	apiAddress string,
 	apiToken string,
 	allowInsecure bool,
-) Client {
-	return &client{
+) SessionsClient {
+	return &sessionsClient{
 		BaseClient: &apimachinery.BaseClient{
 			APIAddress: apiAddress,
 			APIToken:   apiToken,
@@ -42,16 +42,16 @@ func NewClient(
 	}
 }
 
-func (c *client) CreateRootSession(
+func (s *sessionsClient) CreateRootSession(
 	_ context.Context,
 	password string,
 ) (brignext.Token, error) {
 	token := brignext.Token{}
-	return token, c.ExecuteRequest(
+	return token, s.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/sessions",
-			AuthHeaders: c.BasicAuthHeaders("root", password),
+			AuthHeaders: s.BasicAuthHeaders("root", password),
 			QueryParams: map[string]string{
 				"root": "true",
 			},
@@ -61,11 +61,11 @@ func (c *client) CreateRootSession(
 	)
 }
 
-func (c *client) CreateUserSession(
+func (s *sessionsClient) CreateUserSession(
 	context.Context,
 ) (brignext.UserSessionAuthDetails, error) {
 	userSessionAuthDetails := brignext.UserSessionAuthDetails{}
-	return userSessionAuthDetails, c.ExecuteRequest(
+	return userSessionAuthDetails, s.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/sessions",
@@ -75,12 +75,12 @@ func (c *client) CreateUserSession(
 	)
 }
 
-func (c *client) Delete(context.Context) error {
-	return c.ExecuteRequest(
+func (s *sessionsClient) Delete(context.Context) error {
+	return s.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        "v2/session",
-			AuthHeaders: c.BearerTokenAuthHeaders(),
+			AuthHeaders: s.BearerTokenAuthHeaders(),
 			SuccessCode: http.StatusOK,
 		},
 	)

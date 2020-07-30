@@ -1,4 +1,4 @@
-package events
+package api
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
-type Client interface {
+type EventsClient interface {
 	Create(context.Context, brignext.Event) (brignext.EventReferenceList, error)
 	List(context.Context, brignext.EventListOptions) (brignext.EventList, error)
 	Get(context.Context, string) (brignext.Event, error)
@@ -53,16 +53,16 @@ type Client interface {
 	) (<-chan brignext.LogEntry, <-chan error, error)
 }
 
-type client struct {
+type eventsClient struct {
 	*apimachinery.BaseClient
 }
 
-func NewClient(
+func NewEventsClient(
 	apiAddress string,
 	apiToken string,
 	allowInsecure bool,
-) Client {
-	return &client{
+) EventsClient {
+	return &eventsClient{
 		BaseClient: &apimachinery.BaseClient{
 			APIAddress: apiAddress,
 			APIToken:   apiToken,
@@ -77,16 +77,16 @@ func NewClient(
 	}
 }
 
-func (c *client) Create(
+func (e *eventsClient) Create(
 	_ context.Context,
 	event brignext.Event,
 ) (brignext.EventReferenceList, error) {
 	eventRefList := brignext.EventReferenceList{}
-	return eventRefList, c.ExecuteRequest(
+	return eventRefList, e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/events",
-			AuthHeaders: c.BearerTokenAuthHeaders(),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
 			ReqBodyObj:  event,
 			SuccessCode: http.StatusCreated,
 			RespObj:     &eventRefList,
@@ -94,7 +94,7 @@ func (c *client) Create(
 	)
 }
 
-func (c *client) List(
+func (e *eventsClient) List(
 	_ context.Context,
 	opts brignext.EventListOptions,
 ) (brignext.EventList, error) {
@@ -110,11 +110,11 @@ func (c *client) List(
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
 	eventList := brignext.EventList{}
-	return eventList, c.ExecuteRequest(
+	return eventList, e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        "v2/events",
-			AuthHeaders: c.BearerTokenAuthHeaders(),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
 			QueryParams: queryParams,
 			SuccessCode: http.StatusOK,
 			RespObj:     &eventList,
@@ -122,31 +122,34 @@ func (c *client) List(
 	)
 }
 
-func (c *client) Get(_ context.Context, id string) (brignext.Event, error) {
+func (e *eventsClient) Get(
+	_ context.Context,
+	id string,
+) (brignext.Event, error) {
 	event := brignext.Event{}
-	return event, c.ExecuteRequest(
+	return event, e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/events/%s", id),
-			AuthHeaders: c.BearerTokenAuthHeaders(),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
 			SuccessCode: http.StatusOK,
 			RespObj:     &event,
 		},
 	)
 }
 
-func (c *client) Cancel(_ context.Context, id string) error {
-	return c.ExecuteRequest(
+func (e *eventsClient) Cancel(_ context.Context, id string) error {
+	return e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/events/%s/cancellation", id),
-			AuthHeaders: c.BearerTokenAuthHeaders(),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (c *client) CancelCollection(
+func (e *eventsClient) CancelCollection(
 	_ context.Context,
 	opts brignext.EventListOptions,
 ) (brignext.EventReferenceList, error) {
@@ -162,11 +165,11 @@ func (c *client) CancelCollection(
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
 	eventRefList := brignext.EventReferenceList{}
-	return eventRefList, c.ExecuteRequest(
+	return eventRefList, e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/events/cancellations",
-			AuthHeaders: c.BearerTokenAuthHeaders(),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
 			QueryParams: queryParams,
 			SuccessCode: http.StatusOK,
 			RespObj:     &eventRefList,
@@ -174,18 +177,18 @@ func (c *client) CancelCollection(
 	)
 }
 
-func (c *client) Delete(_ context.Context, id string) error {
-	return c.ExecuteRequest(
+func (e *eventsClient) Delete(_ context.Context, id string) error {
+	return e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        fmt.Sprintf("v2/events/%s", id),
-			AuthHeaders: c.BearerTokenAuthHeaders(),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (c *client) DeleteCollection(
+func (e *eventsClient) DeleteCollection(
 	_ context.Context,
 	opts brignext.EventListOptions,
 ) (brignext.EventReferenceList, error) {
@@ -201,11 +204,11 @@ func (c *client) DeleteCollection(
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
 	eventRefList := brignext.EventReferenceList{}
-	return eventRefList, c.ExecuteRequest(
+	return eventRefList, e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        "v2/events",
-			AuthHeaders: c.BearerTokenAuthHeaders(),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
 			QueryParams: queryParams,
 			SuccessCode: http.StatusOK,
 			RespObj:     &eventRefList,
@@ -213,29 +216,29 @@ func (c *client) DeleteCollection(
 	)
 }
 
-func (c *client) UpdateWorkerStatus(
+func (e *eventsClient) UpdateWorkerStatus(
 	_ context.Context,
 	eventID string,
 	status brignext.WorkerStatus,
 ) error {
-	return c.ExecuteRequest(
+	return e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
-			AuthHeaders: c.BearerTokenAuthHeaders(),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
 			ReqBodyObj:  status,
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (c *client) UpdateJobStatus(
+func (e *eventsClient) UpdateJobStatus(
 	_ context.Context,
 	eventID string,
 	jobName string,
 	status brignext.JobStatus,
 ) error {
-	return c.ExecuteRequest(
+	return e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method: http.MethodPut,
 			Path: fmt.Sprintf(
@@ -243,42 +246,42 @@ func (c *client) UpdateJobStatus(
 				eventID,
 				jobName,
 			),
-			AuthHeaders: c.BearerTokenAuthHeaders(),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
 			ReqBodyObj:  status,
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (c *client) GetLogs(
+func (e *eventsClient) GetLogs(
 	ctx context.Context,
 	eventID string,
 	opts brignext.LogOptions,
 ) (brignext.LogEntryList, error) {
 	logEntryList := brignext.LogEntryList{}
-	return logEntryList, c.ExecuteRequest(
+	return logEntryList, e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/events/%s/logs", eventID),
-			AuthHeaders: c.BearerTokenAuthHeaders(),
-			QueryParams: c.queryParamsFromLogOptions(opts, false), // Don't stream
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			QueryParams: e.queryParamsFromLogOptions(opts, false), // Don't stream
 			SuccessCode: http.StatusOK,
 			RespObj:     &logEntryList,
 		},
 	)
 }
 
-func (c *client) StreamLogs(
+func (e *eventsClient) StreamLogs(
 	ctx context.Context,
 	eventID string,
 	opts brignext.LogOptions,
 ) (<-chan brignext.LogEntry, <-chan error, error) {
-	resp, err := c.SubmitRequest(
+	resp, err := e.SubmitRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/events/%s/logs", eventID),
-			AuthHeaders: c.BearerTokenAuthHeaders(),
-			QueryParams: c.queryParamsFromLogOptions(opts, true), // Stream
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			QueryParams: e.queryParamsFromLogOptions(opts, true), // Stream
 			SuccessCode: http.StatusOK,
 		},
 	)
@@ -289,12 +292,12 @@ func (c *client) StreamLogs(
 	logCh := make(chan brignext.LogEntry)
 	errCh := make(chan error)
 
-	go c.receiveLogStream(ctx, resp.Body, logCh, errCh)
+	go e.receiveLogStream(ctx, resp.Body, logCh, errCh)
 
 	return logCh, errCh, nil
 }
 
-func (c *client) queryParamsFromLogOptions(
+func (e *eventsClient) queryParamsFromLogOptions(
 	opts brignext.LogOptions,
 	stream bool,
 ) map[string]string {
@@ -311,7 +314,7 @@ func (c *client) queryParamsFromLogOptions(
 	return queryParams
 }
 
-func (c *client) receiveLogStream(
+func (e *eventsClient) receiveLogStream(
 	ctx context.Context,
 	reader io.ReadCloser,
 	logEntryCh chan<- brignext.LogEntry,

@@ -1,75 +1,51 @@
 package api
 
-import (
-	"crypto/tls"
-	"net/http"
-
-	"github.com/krancour/brignext/v2/sdk/api/events"
-	"github.com/krancour/brignext/v2/sdk/api/projects"
-	"github.com/krancour/brignext/v2/sdk/api/serviceaccounts"
-	"github.com/krancour/brignext/v2/sdk/api/sessions"
-	"github.com/krancour/brignext/v2/sdk/api/users"
-	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
-)
-
 type Client interface {
-	Events() events.Client
-	Projects() projects.Client
-	ServiceAccounts() serviceaccounts.Client
-	Sessions() sessions.Client
-	Users() users.Client
+	Events() EventsClient
+	Projects() ProjectsClient
+	ServiceAccounts() ServiceAccountsClient
+	Sessions() SessionsClient
+	Users() UsersClient
 }
 
 type client struct {
-	*apimachinery.BaseClient
-	eventsClient          events.Client
-	projectsClient        projects.Client
-	serviceAccountsClient serviceaccounts.Client
-	sessionsClient        sessions.Client
-	usersClient           users.Client
+	eventsClient          EventsClient
+	projectsClient        ProjectsClient
+	serviceAccountsClient ServiceAccountsClient
+	sessionsClient        SessionsClient
+	usersClient           UsersClient
 }
 
 func NewClient(apiAddress, apiToken string, allowInsecure bool) Client {
 	return &client{
-		BaseClient: &apimachinery.BaseClient{
-			APIAddress: apiAddress,
-			APIToken:   apiToken,
-			HTTPClient: &http.Client{
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: allowInsecure,
-					},
-				},
-			},
-		},
-		sessionsClient: sessions.NewClient(apiAddress, apiToken, allowInsecure),
-		usersClient:    users.NewClient(apiAddress, apiToken, allowInsecure),
-		serviceAccountsClient: serviceaccounts.NewClient(
+		sessionsClient: NewSessionsClient(apiAddress, apiToken, allowInsecure),
+		usersClient:    NewUsersClient(apiAddress, apiToken, allowInsecure),
+		serviceAccountsClient: NewServiceAccountsClient(
 			apiAddress,
 			apiToken,
 			allowInsecure,
 		),
-		projectsClient: projects.NewClient(apiAddress, apiToken, allowInsecure),
-		eventsClient:   events.NewClient(apiAddress, apiToken, allowInsecure),
+		projectsClient: NewProjectsClient(apiAddress, apiToken, allowInsecure),
+		eventsClient:   NewEventsClient(apiAddress, apiToken, allowInsecure),
 	}
 }
 
-func (c *client) Events() events.Client {
+func (c *client) Events() EventsClient {
 	return c.eventsClient
 }
 
-func (c *client) Projects() projects.Client {
+func (c *client) Projects() ProjectsClient {
 	return c.projectsClient
 }
 
-func (c *client) ServiceAccounts() serviceaccounts.Client {
+func (c *client) ServiceAccounts() ServiceAccountsClient {
 	return c.serviceAccountsClient
 }
 
-func (c *client) Sessions() sessions.Client {
+func (c *client) Sessions() SessionsClient {
 	return c.sessionsClient
 }
 
-func (c *client) Users() users.Client {
+func (c *client) Users() UsersClient {
 	return c.usersClient
 }
