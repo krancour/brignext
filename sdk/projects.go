@@ -56,7 +56,7 @@ type ProjectSpec struct {
 
 // EventSubscription defines a set of Events of interest. ProjectSpecs utilize
 // these in defining the events that should trigger the execution of a new
-// worker. An Event matches a subscription if it meets ALL of the specified
+// Worker. An Event matches a subscription if it meets ALL of the specified
 // criteria.
 type EventSubscription struct {
 	// Source specifies the origin of an Event (e.g. a gateway).
@@ -69,4 +69,38 @@ type EventSubscription struct {
 	// must be labeled. An event must have ALL of these labels to match this
 	// subscription.
 	Labels Labels `json:"labels"`
+}
+
+// KubernetesConfig represents Kubernetes-specific configuration. This is used
+// primarily at the Project level, but is also denormalized onto Events so that
+// Event handling doesn't required a Project lookup to obtain
+// Kubernetes-specific configuration.
+type KubernetesConfig struct {
+	Namespace string `json:"namespace"`
+}
+
+// Secret represents Project-level sensitive information.
+type Secret struct {
+	// Key is a key by which the secret can referred.
+	Key string `json:"key"`
+	// Value is the sensitive information.
+	Value string `json:"value"`
+}
+
+// MarshalJSON amends Secret instances with type metadata so that clients do not
+// need to be concerned with the tedium of doing so.
+func (s Secret) MarshalJSON() ([]byte, error) {
+	type Alias Secret
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "Secret",
+			},
+			Alias: (Alias)(s),
+		},
+	)
 }

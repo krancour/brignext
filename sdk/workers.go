@@ -21,22 +21,6 @@ const (
 	LogLevelError LogLevel = "ERROR"
 )
 
-// ImagePullPolicy represents a policy for whether container hosts already
-// having a certain OCI image should attempt to re-pull that image prior to
-// launching a new container based on that image.
-type ImagePullPolicy string
-
-const (
-	// ImagePullPolicyIfNotPresent represents a policy wherein container hosts
-	// only attempt to pull an OCI image if that image does not already exist on
-	// the host.
-	ImagePullPolicyIfNotPresent ImagePullPolicy = "IfNotPresent"
-	// ImagePullPolicyAlways represents a policy wherein container hosts will
-	// always attempt to re-pull an OCI image before launching a container based
-	// on that image.
-	ImagePullPolicyAlways ImagePullPolicy = "Always"
-)
-
 // WorkerPhase represents where a Worker is within its lifecycle.
 type WorkerPhase string
 

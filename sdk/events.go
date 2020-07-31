@@ -79,7 +79,7 @@ func (e Event) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// WorkerGitConfig represents git-specific Event details. These may override
+// EventGitConfig represents git-specific Event details. These may override
 // similar details set at the Project level.
 type EventGitConfig struct {
 	// CloneURL specifies the location from where a source code repository may
