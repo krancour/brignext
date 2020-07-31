@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
@@ -235,7 +234,8 @@ func (s *scheduler) createWorkerPod(
 					Name:            "worker",
 					Image:           image,
 					ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),
-					Command:         strings.Split(event.Worker.Container.Command, ""),
+					Command:         event.Worker.Container.Command,
+					Args:            event.Worker.Container.Arguments,
 					Env:             env,
 					VolumeMounts:    volumeMounts,
 				},

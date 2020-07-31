@@ -11,6 +11,7 @@ import (
 	"github.com/gosuri/uitable"
 	"github.com/krancour/brignext/v2/internal/file"
 	"github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/api"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -388,7 +389,7 @@ func eventList(c *cli.Context) error {
 		return err
 	}
 
-	opts := sdk.EventListOptions{
+	opts := api.EventListOptions{
 		ProjectID:    projectID,
 		WorkerPhases: workerPhases,
 	}
@@ -573,7 +574,7 @@ func eventCancelMany(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	opts := sdk.EventListOptions{
+	opts := api.EventListOptions{
 		ProjectID:    projectID,
 		WorkerPhases: []sdk.WorkerPhase{sdk.WorkerPhasePending},
 	}
@@ -674,7 +675,7 @@ func eventDeleteMany(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	opts := sdk.EventListOptions{
+	opts := api.EventListOptions{
 		ProjectID:    projectID,
 		WorkerPhases: workerPhases,
 	}

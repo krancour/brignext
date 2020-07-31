@@ -4,16 +4,14 @@ import (
 	"context"
 	"crypto/tls"
 	"net/http"
-
-	"github.com/krancour/brignext/v2/sdk"
 )
 
 type SessionsClient interface {
 	CreateRootSession(
 		ctx context.Context,
 		password string,
-	) (sdk.Token, error)
-	CreateUserSession(context.Context) (sdk.UserSessionAuthDetails, error)
+	) (Token, error)
+	CreateUserSession(context.Context) (UserSessionAuthDetails, error)
 	Delete(context.Context) error
 }
 
@@ -44,8 +42,8 @@ func NewSessionsClient(
 func (s *sessionsClient) CreateRootSession(
 	_ context.Context,
 	password string,
-) (sdk.Token, error) {
-	token := sdk.Token{}
+) (Token, error) {
+	token := Token{}
 	return token, s.ExecuteRequest(
 		OutboundRequest{
 			Method:      http.MethodPost,
@@ -62,8 +60,8 @@ func (s *sessionsClient) CreateRootSession(
 
 func (s *sessionsClient) CreateUserSession(
 	context.Context,
-) (sdk.UserSessionAuthDetails, error) {
-	userSessionAuthDetails := sdk.UserSessionAuthDetails{}
+) (UserSessionAuthDetails, error) {
+	userSessionAuthDetails := UserSessionAuthDetails{}
 	return userSessionAuthDetails, s.ExecuteRequest(
 		OutboundRequest{
 			Method:      http.MethodPost,

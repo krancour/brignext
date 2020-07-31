@@ -2,7 +2,6 @@ package sdk
 
 import (
 	"encoding/json"
-	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"go.mongodb.org/mongo-driver/bson"
@@ -22,7 +21,6 @@ type Event struct {
 	// TODO: Some of these don't need to be pointers anymore
 	Worker     *WorkerSpec       `json:"worker,omitempty" bson:"worker"`
 	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
-	Canceled   *time.Time        `json:"canceled,omitempty" bson:"canceled"`
 	Status     *EventStatus      `json:"status,omitempty" bson:"status"`
 }
 

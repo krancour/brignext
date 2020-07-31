@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/api"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -43,7 +44,7 @@ func logs(c *cli.Context) error {
 	eventID := c.String(flagEvent)
 	follow := c.Bool(flagFollow)
 
-	opts := sdk.LogOptions{
+	opts := api.LogOptions{
 		Job:       c.String(flagJob),
 		Container: c.String(flagContainer),
 	}

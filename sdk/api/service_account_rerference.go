@@ -1,4 +1,4 @@
-package sdk
+package api
 
 import (
 	"encoding/json"
@@ -6,28 +6,6 @@ import (
 
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
-
-type ServiceAccount struct {
-	meta.ObjectMeta `json:"metadata"`
-	Description     string     `json:"description"`
-	Locked          *time.Time `json:"locked,omitempty"`
-}
-
-func (s ServiceAccount) MarshalJSON() ([]byte, error) {
-	type Alias ServiceAccount
-	return json.Marshal(
-		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
-		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
-				Kind:       "ServiceAccount",
-			},
-			Alias: (Alias)(s),
-		},
-	)
-}
 
 type ServiceAccountReference struct {
 	meta.ObjectReferenceMeta `json:"metadata"`

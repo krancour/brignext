@@ -5,13 +5,11 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-
-	"github.com/krancour/brignext/v2/sdk"
 )
 
 type UsersClient interface {
-	List(context.Context) (sdk.UserReferenceList, error)
-	Get(context.Context, string) (sdk.User, error)
+	List(context.Context) (UserReferenceList, error)
+	Get(context.Context, string) (User, error)
 	Lock(context.Context, string) error
 	Unlock(context.Context, string) error
 }
@@ -42,8 +40,8 @@ func NewUsersClient(
 
 func (u *usersClient) List(
 	context.Context,
-) (sdk.UserReferenceList, error) {
-	userList := sdk.UserReferenceList{}
+) (UserReferenceList, error) {
+	userList := UserReferenceList{}
 	return userList, u.ExecuteRequest(
 		OutboundRequest{
 			Method:      http.MethodGet,
@@ -55,8 +53,8 @@ func (u *usersClient) List(
 	)
 }
 
-func (u *usersClient) Get(_ context.Context, id string) (sdk.User, error) {
-	user := sdk.User{}
+func (u *usersClient) Get(_ context.Context, id string) (User, error) {
+	user := User{}
 	return user, u.ExecuteRequest(
 		OutboundRequest{
 			Method:      http.MethodGet,

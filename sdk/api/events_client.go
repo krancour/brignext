@@ -13,22 +13,22 @@ import (
 )
 
 type EventsClient interface {
-	Create(context.Context, sdk.Event) (sdk.EventReferenceList, error)
+	Create(context.Context, sdk.Event) (EventReferenceList, error)
 	List(
 		context.Context,
-		sdk.EventListOptions,
-	) (sdk.EventReferenceList, error)
+		EventListOptions,
+	) (EventReferenceList, error)
 	Get(context.Context, string) (sdk.Event, error)
 	Cancel(context.Context, string) error
 	CancelCollection(
 		context.Context,
-		sdk.EventListOptions,
-	) (sdk.EventReferenceList, error)
+		EventListOptions,
+	) (EventReferenceList, error)
 	Delete(context.Context, string) error
 	DeleteCollection(
 		context.Context,
-		sdk.EventListOptions,
-	) (sdk.EventReferenceList, error)
+		EventListOptions,
+	) (EventReferenceList, error)
 
 	UpdateWorkerStatus(
 		ctx context.Context,
@@ -46,12 +46,12 @@ type EventsClient interface {
 	GetLogs(
 		ctx context.Context,
 		eventID string,
-		opts sdk.LogOptions,
+		opts LogOptions,
 	) (sdk.LogEntryList, error)
 	StreamLogs(
 		ctx context.Context,
 		eventID string,
-		opts sdk.LogOptions,
+		opts LogOptions,
 	) (<-chan sdk.LogEntry, <-chan error, error)
 }
 
@@ -82,8 +82,8 @@ func NewEventsClient(
 func (e *eventsClient) Create(
 	_ context.Context,
 	event sdk.Event,
-) (sdk.EventReferenceList, error) {
-	eventRefList := sdk.EventReferenceList{}
+) (EventReferenceList, error) {
+	eventRefList := EventReferenceList{}
 	return eventRefList, e.ExecuteRequest(
 		OutboundRequest{
 			Method:      http.MethodPost,
@@ -98,8 +98,8 @@ func (e *eventsClient) Create(
 
 func (e *eventsClient) List(
 	_ context.Context,
-	opts sdk.EventListOptions,
-) (sdk.EventReferenceList, error) {
+	opts EventListOptions,
+) (EventReferenceList, error) {
 	queryParams := map[string]string{}
 	if opts.ProjectID != "" {
 		queryParams["projectID"] = opts.ProjectID
@@ -111,7 +111,7 @@ func (e *eventsClient) List(
 		}
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
-	eventList := sdk.EventReferenceList{}
+	eventList := EventReferenceList{}
 	return eventList, e.ExecuteRequest(
 		OutboundRequest{
 			Method:      http.MethodGet,
@@ -153,8 +153,8 @@ func (e *eventsClient) Cancel(_ context.Context, id string) error {
 
 func (e *eventsClient) CancelCollection(
 	_ context.Context,
-	opts sdk.EventListOptions,
-) (sdk.EventReferenceList, error) {
+	opts EventListOptions,
+) (EventReferenceList, error) {
 	queryParams := map[string]string{}
 	if opts.ProjectID != "" {
 		queryParams["projectID"] = opts.ProjectID
@@ -166,7 +166,7 @@ func (e *eventsClient) CancelCollection(
 		}
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
-	eventRefList := sdk.EventReferenceList{}
+	eventRefList := EventReferenceList{}
 	return eventRefList, e.ExecuteRequest(
 		OutboundRequest{
 			Method:      http.MethodPost,
@@ -192,8 +192,8 @@ func (e *eventsClient) Delete(_ context.Context, id string) error {
 
 func (e *eventsClient) DeleteCollection(
 	_ context.Context,
-	opts sdk.EventListOptions,
-) (sdk.EventReferenceList, error) {
+	opts EventListOptions,
+) (EventReferenceList, error) {
 	queryParams := map[string]string{}
 	if opts.ProjectID != "" {
 		queryParams["projectID"] = opts.ProjectID
@@ -205,7 +205,7 @@ func (e *eventsClient) DeleteCollection(
 		}
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
-	eventRefList := sdk.EventReferenceList{}
+	eventRefList := EventReferenceList{}
 	return eventRefList, e.ExecuteRequest(
 		OutboundRequest{
 			Method:      http.MethodDelete,
@@ -258,7 +258,7 @@ func (e *eventsClient) UpdateJobStatus(
 func (e *eventsClient) GetLogs(
 	ctx context.Context,
 	eventID string,
-	opts sdk.LogOptions,
+	opts LogOptions,
 ) (sdk.LogEntryList, error) {
 	logEntryList := sdk.LogEntryList{}
 	return logEntryList, e.ExecuteRequest(
@@ -276,7 +276,7 @@ func (e *eventsClient) GetLogs(
 func (e *eventsClient) StreamLogs(
 	ctx context.Context,
 	eventID string,
-	opts sdk.LogOptions,
+	opts LogOptions,
 ) (<-chan sdk.LogEntry, <-chan error, error) {
 	resp, err := e.SubmitRequest(
 		OutboundRequest{
@@ -300,7 +300,7 @@ func (e *eventsClient) StreamLogs(
 }
 
 func (e *eventsClient) queryParamsFromLogOptions(
-	opts sdk.LogOptions,
+	opts LogOptions,
 	stream bool,
 ) map[string]string {
 	queryParams := map[string]string{}

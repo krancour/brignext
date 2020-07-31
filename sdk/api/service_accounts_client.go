@@ -5,16 +5,14 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-
-	"github.com/krancour/brignext/v2/sdk"
 )
 
 type ServiceAccountsClient interface {
-	Create(context.Context, sdk.ServiceAccount) (sdk.Token, error)
-	List(context.Context) (sdk.ServiceAccountReferenceList, error)
-	Get(context.Context, string) (sdk.ServiceAccount, error)
+	Create(context.Context, ServiceAccount) (Token, error)
+	List(context.Context) (ServiceAccountReferenceList, error)
+	Get(context.Context, string) (ServiceAccount, error)
 	Lock(context.Context, string) error
-	Unlock(context.Context, string) (sdk.Token, error)
+	Unlock(context.Context, string) (Token, error)
 }
 
 type serviceAccountsClient struct {
@@ -43,9 +41,9 @@ func NewServiceAccountsClient(
 
 func (s *serviceAccountsClient) Create(
 	_ context.Context,
-	serviceAccount sdk.ServiceAccount,
-) (sdk.Token, error) {
-	token := sdk.Token{}
+	serviceAccount ServiceAccount,
+) (Token, error) {
+	token := Token{}
 	return token, s.ExecuteRequest(
 		OutboundRequest{
 			Method:      http.MethodPost,
@@ -60,8 +58,8 @@ func (s *serviceAccountsClient) Create(
 
 func (s *serviceAccountsClient) List(
 	context.Context,
-) (sdk.ServiceAccountReferenceList, error) {
-	serviceAccountList := sdk.ServiceAccountReferenceList{}
+) (ServiceAccountReferenceList, error) {
+	serviceAccountList := ServiceAccountReferenceList{}
 	return serviceAccountList, s.ExecuteRequest(
 		OutboundRequest{
 			Method:      http.MethodGet,
@@ -76,8 +74,8 @@ func (s *serviceAccountsClient) List(
 func (s *serviceAccountsClient) Get(
 	_ context.Context,
 	id string,
-) (sdk.ServiceAccount, error) {
-	serviceAccount := sdk.ServiceAccount{}
+) (ServiceAccount, error) {
+	serviceAccount := ServiceAccount{}
 	return serviceAccount, s.ExecuteRequest(
 		OutboundRequest{
 			Method:      http.MethodGet,
@@ -103,8 +101,8 @@ func (s *serviceAccountsClient) Lock(_ context.Context, id string) error {
 func (s *serviceAccountsClient) Unlock(
 	_ context.Context,
 	id string,
-) (sdk.Token, error) {
-	token := sdk.Token{}
+) (Token, error) {
+	token := Token{}
 	return token, s.ExecuteRequest(
 		OutboundRequest{
 			Method:      http.MethodDelete,

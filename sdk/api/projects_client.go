@@ -15,7 +15,7 @@ type ProjectsClient interface {
 	// necessarily beyond a client's interest.
 	Create(context.Context, sdk.Project) error
 	CreateFromBytes(context.Context, []byte) error
-	List(context.Context) (sdk.ProjectReferenceList, error)
+	List(context.Context) (ProjectReferenceList, error)
 	Get(context.Context, string) (sdk.Project, error)
 	// TODO: This should return the project because the system will have provided
 	// values for some fields that are beyond a client's control, but are not
@@ -27,7 +27,7 @@ type ProjectsClient interface {
 	ListSecrets(
 		ctx context.Context,
 		projectID string,
-	) (sdk.SecretReferenceList, error)
+	) (SecretReferenceList, error)
 	SetSecret(ctx context.Context, projectID string, secret sdk.Secret) error
 	UnsetSecret(ctx context.Context, projectID string, key string) error
 }
@@ -88,8 +88,8 @@ func (p *projectsClient) CreateFromBytes(
 
 func (p *projectsClient) List(
 	context.Context,
-) (sdk.ProjectReferenceList, error) {
-	projectList := sdk.ProjectReferenceList{}
+) (ProjectReferenceList, error) {
+	projectList := ProjectReferenceList{}
 	return projectList, p.ExecuteRequest(
 		OutboundRequest{
 			Method:      http.MethodGet,
@@ -162,8 +162,8 @@ func (p *projectsClient) Delete(_ context.Context, id string) error {
 func (p *projectsClient) ListSecrets(
 	ctx context.Context,
 	projectID string,
-) (sdk.SecretReferenceList, error) {
-	secretList := sdk.SecretReferenceList{}
+) (SecretReferenceList, error) {
+	secretList := SecretReferenceList{}
 	return secretList, p.ExecuteRequest(
 		OutboundRequest{
 			Method:      http.MethodGet,
