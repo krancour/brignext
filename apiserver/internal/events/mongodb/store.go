@@ -58,8 +58,6 @@ func NewStore(database *mongo.Database) (events.Store, error) {
 }
 
 func (s *store) Create(ctx context.Context, event brignext.Event) error {
-	now := time.Now()
-	event.Created = &now
 	if _, err := s.collection.InsertOne(ctx, event); err != nil {
 		return errors.Wrapf(err, "error inserting new event %q", event.ID)
 	}

@@ -1,31 +1,68 @@
 package sdk
 
-import "github.com/krancour/brignext/v2/sdk/meta"
+import (
+	"encoding/json"
+
+	"github.com/krancour/brignext/v2/sdk/meta"
+)
 
 type Secret struct {
-	meta.TypeMeta `json:",inline"`
-	Key           string `json:"key"`
-	Value         string `json:"value"`
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
-func NewSecret(key, value string) Secret {
-	return Secret{
-		TypeMeta: meta.TypeMeta{
-			APIVersion: meta.APIVersion,
-			Kind:       "Secret",
+func (s Secret) MarshalJSON() ([]byte, error) {
+	type Alias Secret
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "Secret",
+			},
+			Alias: (Alias)(s),
 		},
-		Key:   key,
-		Value: value,
-	}
+	)
 }
 
 type SecretReference struct {
-	meta.TypeMeta `json:",inline"`
-	Key           string `json:"key"`
+	Key string `json:"key"`
+}
+
+func (s SecretReference) MarshalJSON() ([]byte, error) {
+	type Alias SecretReference
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "SecretReference",
+			},
+			Alias: (Alias)(s),
+		},
+	)
 }
 
 type SecretReferenceList struct {
-	meta.TypeMeta `json:",inline"`
-	meta.ListMeta `json:"metadata"`
-	Items         []SecretReference `json:"items"`
+	Items []SecretReference `json:"items"`
+}
+
+func (s SecretReferenceList) MarshalJSON() ([]byte, error) {
+	type Alias SecretReferenceList
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "SecretReferenceList",
+			},
+			Alias: (Alias)(s),
+		},
+	)
 }

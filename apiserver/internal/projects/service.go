@@ -2,6 +2,7 @@ package projects
 
 import (
 	"context"
+	"time"
 
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
@@ -42,6 +43,9 @@ func (s *service) Create(
 	ctx context.Context,
 	project brignext.Project,
 ) error {
+	now := time.Now()
+	project.Created = &now
+
 	project = s.projectWithDefaults(project)
 
 	// Let the scheduler add scheduler-specific details before we persist.

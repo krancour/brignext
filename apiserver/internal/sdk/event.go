@@ -83,7 +83,7 @@ type EventReference struct {
 	Source                   string           `json:"source" bson:"source"`
 	Type                     string           `json:"type" bson:"type"`
 	Kubernetes               KubernetesConfig `json:"-" bson:"kubernetes"`
-	WorkerPhase              WorkerPhase      `json:"workerPhase" bson:"workerPhase"` // nolint: lll
+	WorkerPhase              WorkerPhase      `json:"workerPhase" bson:"-"`
 }
 
 func NewEventReference(event Event) EventReference {
@@ -110,21 +110,11 @@ func NewEventReference(event Event) EventReference {
 }
 
 func (e *EventReference) UnmarshalBSON(bytes []byte) error {
-	type EventReferenceAlias EventReference
-	if err := bson.Unmarshal(
-		bytes,
-		&struct {
-			*EventReferenceAlias `bson:",inline"`
-		}{
-			EventReferenceAlias: (*EventReferenceAlias)(e),
-		},
-	); err != nil {
+	event := Event{}
+	if err := bson.Unmarshal(bytes, &event); err != nil {
 		return err
 	}
-	e.TypeMeta = meta.TypeMeta{
-		APIVersion: meta.APIVersion,
-		Kind:       "EventReference",
-	}
+	*e = NewEventReference(event)
 	return nil
 }
 

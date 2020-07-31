@@ -61,8 +61,6 @@ func (s *store) Create(
 	ctx context.Context,
 	serviceAccount brignext.ServiceAccount,
 ) error {
-	now := time.Now()
-	serviceAccount.Created = &now
 	if _, err := s.collection.InsertOne(
 		ctx,
 		serviceAccount,

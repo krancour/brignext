@@ -77,8 +77,6 @@ func (s *store) Create(
 	ctx context.Context,
 	project brignext.Project,
 ) error {
-	now := time.Now()
-	project.Created = &now
 	if _, err := s.collection.InsertOne(ctx, project); err != nil {
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&

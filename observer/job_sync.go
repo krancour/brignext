@@ -58,10 +58,9 @@ func (o *observer) syncJobPod(obj interface{}) {
 	// primary container
 	eventID := jobPod.Labels["brignext.io/event"]
 	jobName := jobPod.Labels["brignext.io/job"]
-	status := brignext.NewJobStatus()
-	// If the pod exists, we consider the job running unless we discover the
-	// primary container has completed.
-	status.Phase = brignext.JobPhaseRunning
+	status := brignext.JobStatus{
+		Phase: brignext.JobPhaseRunning,
+	}
 
 	if jobPod.Status.StartTime != nil {
 		status.Started = &jobPod.Status.StartTime.Time

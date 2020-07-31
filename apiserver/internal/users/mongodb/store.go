@@ -46,8 +46,6 @@ func NewStore(database *mongo.Database) (users.Store, error) {
 }
 
 func (s *store) Create(ctx context.Context, user brignext.User) error {
-	now := time.Now()
-	user.Created = &now
 	if _, err :=
 		s.collection.InsertOne(ctx, user); err != nil {
 		if writeException, ok := err.(mongo.WriteException); ok {

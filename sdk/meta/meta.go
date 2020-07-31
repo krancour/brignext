@@ -27,6 +27,3 @@ type ObjectReferenceMeta struct {
 	ID      string    `json:"id,omitempty"`
 	Created time.Time `json:"created,omitempty"`
 }
-
-type ListMeta struct {
-}

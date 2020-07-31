@@ -2,6 +2,7 @@ package serviceaccounts
 
 import (
 	"context"
+	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
@@ -31,6 +32,8 @@ func (s *service) Create(
 	ctx context.Context,
 	serviceAccount brignext.ServiceAccount,
 ) (brignext.Token, error) {
+	now := time.Now()
+	serviceAccount.Created = &now
 	token := brignext.NewToken(crypto.NewToken(256))
 	serviceAccount.HashedToken = crypto.ShortSHA("", token.Value)
 	if err := s.store.Create(ctx, serviceAccount); err != nil {

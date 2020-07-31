@@ -1,11 +1,12 @@
 package sdk
 
 import (
+	"encoding/json"
+
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
 
 type Project struct {
-	meta.TypeMeta   `json:",inline"`
 	meta.ObjectMeta `json:"metadata"`
 	Description     string      `json:"description"`
 	Spec            ProjectSpec `json:"spec"`
@@ -14,15 +15,22 @@ type Project struct {
 	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty"`
 }
 
-// TODO: Add ProjectStatus type-- move KubernetesConfig under there
+// TODO: Add ProjectStatus type-- move KubernetesConfig under there? Maybe?
 
-func NewProject() Project {
-	return Project{
-		TypeMeta: meta.TypeMeta{
-			APIVersion: meta.APIVersion,
-			Kind:       "Project",
+func (p Project) MarshalJSON() ([]byte, error) {
+	type Alias Project
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "Project",
+			},
+			Alias: (Alias)(p),
 		},
-	}
+	)
 }
 
 type ProjectSpec struct {
@@ -38,13 +46,42 @@ type EventSubscription struct {
 }
 
 type ProjectReference struct {
-	meta.TypeMeta            `json:",inline"`
 	meta.ObjectReferenceMeta `json:"metadata"`
 	Description              string `json:"description"`
 }
 
+func (p ProjectReference) MarshalJSON() ([]byte, error) {
+	type Alias ProjectReference
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "ProjectReference",
+			},
+			Alias: (Alias)(p),
+		},
+	)
+}
+
 type ProjectReferenceList struct {
-	meta.TypeMeta `json:",inline"`
-	meta.ListMeta `json:"metadata"`
-	Items         []ProjectReference `json:"items"`
+	Items []ProjectReference `json:"items"`
+}
+
+func (p ProjectReferenceList) MarshalJSON() ([]byte, error) {
+	type Alias ProjectReferenceList
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "ProjectReferenceList",
+			},
+			Alias: (Alias)(p),
+		},
+	)
 }

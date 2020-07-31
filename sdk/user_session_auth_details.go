@@ -1,24 +1,29 @@
 package sdk
 
-import "github.com/krancour/brignext/v2/sdk/meta"
+import (
+	"encoding/json"
+
+	"github.com/krancour/brignext/v2/sdk/meta"
+)
 
 type UserSessionAuthDetails struct {
-	meta.TypeMeta `json:",inline"`
-	OAuth2State   string `json:"oauth2State"`
-	AuthURL       string `json:"authURL"`
-	Token         string `json:"token"`
+	OAuth2State string `json:"oauth2State"`
+	AuthURL     string `json:"authURL"`
+	Token       string `json:"token"`
 }
 
-func NewUserSessionAuthDetails(
-	oauth2State string,
-	token string,
-) UserSessionAuthDetails {
-	return UserSessionAuthDetails{
-		TypeMeta: meta.TypeMeta{
-			APIVersion: meta.APIVersion,
-			Kind:       "Token",
+func (u UserSessionAuthDetails) MarshalJSON() ([]byte, error) {
+	type Alias UserSessionAuthDetails
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "UserSessionAuthDetails",
+			},
+			Alias: (Alias)(u),
 		},
-		OAuth2State: oauth2State,
-		Token:       token,
-	}
+	)
 }

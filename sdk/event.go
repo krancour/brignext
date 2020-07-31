@@ -1,13 +1,13 @@
 package sdk
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
 
 type Event struct {
-	meta.TypeMeta   `json:",inline"`
 	meta.ObjectMeta `json:"metadata"`
 	ProjectID       string         `json:"projectID"`
 	Source          string         `json:"source"`
@@ -25,13 +25,20 @@ type Event struct {
 	Status     *EventStatus      `json:"status,omitempty"`
 }
 
-func NewEvent() Event {
-	return Event{
-		TypeMeta: meta.TypeMeta{
-			APIVersion: meta.APIVersion,
-			Kind:       "Event",
+func (e Event) MarshalJSON() ([]byte, error) {
+	type Alias Event
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "Event",
+			},
+			Alias: (Alias)(e),
 		},
-	}
+	)
 }
 
 type EventGitConfig struct {
@@ -51,16 +58,45 @@ type EventListOptions struct {
 }
 
 type EventReference struct {
-	meta.TypeMeta            `json:",inline"`
 	meta.ObjectReferenceMeta `json:"metadata"`
 	ProjectID                string      `json:"projectID"`
 	Source                   string      `json:"source"`
 	Type                     string      `json:"type"`
-	WorkerPhase              WorkerPhase `json:"workerPhase"` // nolint: lll
+	WorkerPhase              WorkerPhase `json:"workerPhase"`
+}
+
+func (e EventReference) MarshalJSON() ([]byte, error) {
+	type Alias EventReference
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "EventReference",
+			},
+			Alias: (Alias)(e),
+		},
+	)
 }
 
 type EventReferenceList struct {
-	meta.TypeMeta `json:",inline"`
-	meta.ListMeta `json:"metadata"`
-	Items         []EventReference `json:"items"`
+	Items []EventReference `json:"items"`
+}
+
+func (e EventReferenceList) MarshalJSON() ([]byte, error) {
+	type Alias EventReferenceList
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "EventReferenceList",
+			},
+			Alias: (Alias)(e),
+		},
+	)
 }

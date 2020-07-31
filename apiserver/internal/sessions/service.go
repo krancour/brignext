@@ -75,6 +75,8 @@ func (s *service) CreateRootSession(
 		)
 	}
 	session := auth.NewRootSession(token.Value)
+	now := time.Now()
+	session.Created = &now
 	if err := s.store.Create(ctx, session); err != nil {
 		return token, errors.Wrapf(
 			err,
@@ -96,6 +98,8 @@ func (s *service) CreateUserSession(
 		userSessionAuthDetails.OAuth2State,
 		userSessionAuthDetails.Token,
 	)
+	now := time.Now()
+	session.Created = &now
 	if err := s.store.Create(ctx, session); err != nil {
 		return userSessionAuthDetails, errors.Wrapf(
 			err,

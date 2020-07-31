@@ -57,7 +57,7 @@ func (o *observer) syncWorkerPod(obj interface{}) {
 	// Use the API to update worker phase so it corresponds to worker pod phase
 	eventID := workerPod.Labels["brignext.io/event"]
 
-	status := brignext.NewWorkerStatus()
+	status := brignext.WorkerStatus{}
 	switch workerPod.Status.Phase {
 	case corev1.PodPending:
 		// For BrigNext's purposes, this counts as running

@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"log"
+	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/projects"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
@@ -82,6 +83,9 @@ func (s *service) Create(
 	event brignext.Event,
 ) (brignext.EventReferenceList, error) {
 	eventRefList := brignext.NewEventReferenceList()
+
+	now := time.Now()
+	event.Created = &now
 
 	// If no project ID is specified, we use other criteria to locate projects
 	// that are subscribed to this event. We iterate over all of those and create

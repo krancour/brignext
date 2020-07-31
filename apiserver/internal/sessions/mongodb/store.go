@@ -78,8 +78,6 @@ func (s *store) Create(
 	ctx context.Context,
 	session auth.Session,
 ) error {
-	now := time.Now()
-	session.Created = &now
 	if _, err := s.collection.InsertOne(ctx, session); err != nil {
 		return errors.Wrapf(err, "error inserting new session %q", session.ID)
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/meta"
 	"k8s.io/apimachinery/pkg/util/duration"
 
 	"github.com/pkg/errors"
@@ -102,7 +103,12 @@ func serviceAccountCreate(c *cli.Context) error {
 
 	token, err := client.ServiceAccounts().Create(
 		c.Context,
-		brignext.NewServiceAccount(id, description),
+		brignext.ServiceAccount{
+			ObjectMeta: meta.ObjectMeta{
+				ID: id,
+			},
+			Description: description,
+		},
 	)
 	if err != nil {
 		return err

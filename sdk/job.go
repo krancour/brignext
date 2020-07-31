@@ -1,6 +1,7 @@
 package sdk
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/krancour/brignext/v2/sdk/meta"
@@ -38,17 +39,23 @@ type JobsKubernetesConfig struct {
 }
 
 type JobStatus struct {
-	*meta.TypeMeta `json:",inline,omitempty"`
-	Started        *time.Time `json:"started"`
-	Ended          *time.Time `json:"ended"`
-	Phase          JobPhase   `json:"phase"`
+	Started *time.Time `json:"started"`
+	Ended   *time.Time `json:"ended"`
+	Phase   JobPhase   `json:"phase"`
 }
 
-func NewJobStatus() JobStatus {
-	return JobStatus{
-		TypeMeta: &meta.TypeMeta{
-			APIVersion: meta.APIVersion,
-			Kind:       "JobStatus",
+func (j JobStatus) MarshalJSON() ([]byte, error) {
+	type Alias JobStatus
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "JobStatus",
+			},
+			Alias: (Alias)(j),
 		},
-	}
+	)
 }

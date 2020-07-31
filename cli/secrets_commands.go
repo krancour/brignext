@@ -150,7 +150,10 @@ func secretsSet(c *cli.Context) error {
 	// API call for each one. This can be revisited in the future if someone is
 	// aware of or discovers the right pattern for this.
 	for k, v := range kvPairs {
-		secret := brignext.NewSecret(k, v)
+		secret := brignext.Secret{
+			Key:   k,
+			Value: v,
+		}
 		if err := client.Projects().SetSecret(
 			c.Context,
 			projectID,

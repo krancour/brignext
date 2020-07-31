@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"time"
 
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
@@ -26,6 +27,8 @@ func NewService(store Store) Service {
 }
 
 func (s *service) Create(ctx context.Context, user brignext.User) error {
+	now := time.Now()
+	user.Created = &now
 	if err := s.store.Create(ctx, user); err != nil {
 		return errors.Wrapf(err, "error storing new user %q", user.ID)
 	}
