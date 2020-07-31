@@ -1,4 +1,4 @@
-package apimachinery
+package api
 
 import (
 	"bytes"
@@ -9,17 +9,16 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 )
 
-type BaseClient struct {
-	APIAddress string
-	APIToken   string
-	HTTPClient *http.Client
+type baseClient struct {
+	apiAddress string
+	apiToken   string
+	httpClient *http.Client
 }
 
-func (b *BaseClient) BasicAuthHeaders(
+func (b *baseClient) BasicAuthHeaders(
 	username string,
 	password string,
 ) map[string]string {
@@ -33,13 +32,13 @@ func (b *BaseClient) BasicAuthHeaders(
 	}
 }
 
-func (b *BaseClient) BearerTokenAuthHeaders() map[string]string {
+func (b *baseClient) BearerTokenAuthHeaders() map[string]string {
 	return map[string]string{
-		"Authorization": fmt.Sprintf("Bearer %s", b.APIToken),
+		"Authorization": fmt.Sprintf("Bearer %s", b.apiToken),
 	}
 }
 
-func (b *BaseClient) ExecuteRequest(req OutboundRequest) error {
+func (b *baseClient) ExecuteRequest(req OutboundRequest) error {
 	resp, err := b.SubmitRequest(req)
 	if err != nil {
 		return err
@@ -57,7 +56,7 @@ func (b *BaseClient) ExecuteRequest(req OutboundRequest) error {
 	return nil
 }
 
-func (b *BaseClient) SubmitRequest(
+func (b *baseClient) SubmitRequest(
 	req OutboundRequest,
 ) (*http.Response, error) {
 	var reqBodyReader io.Reader
@@ -76,7 +75,7 @@ func (b *BaseClient) SubmitRequest(
 
 	r, err := http.NewRequest(
 		req.Method,
-		fmt.Sprintf("%s/%s", b.APIAddress, req.Path),
+		fmt.Sprintf("%s/%s", b.apiAddress, req.Path),
 		reqBodyReader,
 	)
 	if err != nil {
@@ -101,7 +100,7 @@ func (b *BaseClient) SubmitRequest(
 		r.Header.Add(k, v)
 	}
 
-	resp, err := b.HTTPClient.Do(r)
+	resp, err := b.httpClient.Do(r)
 	if err != nil {
 		return nil, errors.Wrap(err, "error invoking API")
 	}
@@ -113,17 +112,17 @@ func (b *BaseClient) SubmitRequest(
 		var apiErr error
 		switch resp.StatusCode {
 		case http.StatusUnauthorized:
-			apiErr = &sdk.ErrAuthentication{}
+			apiErr = &ErrAuthentication{}
 		case http.StatusForbidden:
-			apiErr = &sdk.ErrAuthorization{}
+			apiErr = &ErrAuthorization{}
 		case http.StatusBadRequest:
-			apiErr = &sdk.ErrBadRequest{}
+			apiErr = &ErrBadRequest{}
 		case http.StatusNotFound:
-			apiErr = &sdk.ErrNotFound{}
+			apiErr = &ErrNotFound{}
 		case http.StatusConflict:
-			apiErr = &sdk.ErrConflict{}
+			apiErr = &ErrConflict{}
 		case http.StatusInternalServerError:
-			apiErr = &sdk.ErrInternalServer{}
+			apiErr = &ErrInternalServer{}
 		default:
 			return nil, errors.Errorf("received %d from API server", resp.StatusCode)
 		}

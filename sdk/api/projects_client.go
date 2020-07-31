@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/krancour/brignext/v2/sdk"
-	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
 type ProjectsClient interface {
@@ -34,7 +33,7 @@ type ProjectsClient interface {
 }
 
 type projectsClient struct {
-	*apimachinery.BaseClient
+	*baseClient
 }
 
 func NewProjectsClient(
@@ -43,10 +42,10 @@ func NewProjectsClient(
 	allowInsecure bool,
 ) ProjectsClient {
 	return &projectsClient{
-		BaseClient: &apimachinery.BaseClient{
-			APIAddress: apiAddress,
-			APIToken:   apiToken,
-			HTTPClient: &http.Client{
+		baseClient: &baseClient{
+			apiAddress: apiAddress,
+			apiToken:   apiToken,
+			httpClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,
@@ -62,7 +61,7 @@ func (p *projectsClient) Create(
 	project sdk.Project,
 ) error {
 	return p.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/projects",
 			AuthHeaders: p.BearerTokenAuthHeaders(),
@@ -77,7 +76,7 @@ func (p *projectsClient) CreateFromBytes(
 	projectBytes []byte,
 ) error {
 	return p.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/projects",
 			AuthHeaders: p.BearerTokenAuthHeaders(),
@@ -92,7 +91,7 @@ func (p *projectsClient) List(
 ) (sdk.ProjectReferenceList, error) {
 	projectList := sdk.ProjectReferenceList{}
 	return projectList, p.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        "v2/projects",
 			AuthHeaders: p.BearerTokenAuthHeaders(),
@@ -108,7 +107,7 @@ func (p *projectsClient) Get(
 ) (sdk.Project, error) {
 	project := sdk.Project{}
 	return project, p.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/projects/%s", id),
 			AuthHeaders: p.BearerTokenAuthHeaders(),
@@ -123,7 +122,7 @@ func (p *projectsClient) Update(
 	project sdk.Project,
 ) error {
 	return p.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/projects/%s", project.ID),
 			AuthHeaders: p.BearerTokenAuthHeaders(),
@@ -139,7 +138,7 @@ func (p *projectsClient) UpdateFromBytes(
 	projectBytes []byte,
 ) error {
 	return p.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/projects/%s", projectID),
 			AuthHeaders: p.BearerTokenAuthHeaders(),
@@ -151,7 +150,7 @@ func (p *projectsClient) UpdateFromBytes(
 
 func (p *projectsClient) Delete(_ context.Context, id string) error {
 	return p.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        fmt.Sprintf("v2/projects/%s", id),
 			AuthHeaders: p.BearerTokenAuthHeaders(),
@@ -166,7 +165,7 @@ func (p *projectsClient) ListSecrets(
 ) (sdk.SecretReferenceList, error) {
 	secretList := sdk.SecretReferenceList{}
 	return secretList, p.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/projects/%s/secrets", projectID),
 			AuthHeaders: p.BearerTokenAuthHeaders(),
@@ -182,7 +181,7 @@ func (p *projectsClient) SetSecret(
 	secret sdk.Secret,
 ) error {
 	return p.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method: http.MethodPut,
 			Path: fmt.Sprintf(
 				"v2/projects/%s/secrets/%s",
@@ -202,7 +201,7 @@ func (p *projectsClient) UnsetSecret(
 	key string,
 ) error {
 	return p.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method: http.MethodDelete,
 			Path: fmt.Sprintf(
 				"v2/projects/%s/secrets/%s",

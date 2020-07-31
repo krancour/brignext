@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/krancour/brignext/v2/sdk"
-	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
 type ServiceAccountsClient interface {
@@ -19,7 +18,7 @@ type ServiceAccountsClient interface {
 }
 
 type serviceAccountsClient struct {
-	*apimachinery.BaseClient
+	*baseClient
 }
 
 func NewServiceAccountsClient(
@@ -28,10 +27,10 @@ func NewServiceAccountsClient(
 	allowInsecure bool,
 ) ServiceAccountsClient {
 	return &serviceAccountsClient{
-		BaseClient: &apimachinery.BaseClient{
-			APIAddress: apiAddress,
-			APIToken:   apiToken,
-			HTTPClient: &http.Client{
+		baseClient: &baseClient{
+			apiAddress: apiAddress,
+			apiToken:   apiToken,
+			httpClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,
@@ -48,7 +47,7 @@ func (s *serviceAccountsClient) Create(
 ) (sdk.Token, error) {
 	token := sdk.Token{}
 	return token, s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/service-accounts",
 			AuthHeaders: s.BearerTokenAuthHeaders(),
@@ -64,7 +63,7 @@ func (s *serviceAccountsClient) List(
 ) (sdk.ServiceAccountReferenceList, error) {
 	serviceAccountList := sdk.ServiceAccountReferenceList{}
 	return serviceAccountList, s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        "v2/service-accounts",
 			AuthHeaders: s.BearerTokenAuthHeaders(),
@@ -80,7 +79,7 @@ func (s *serviceAccountsClient) Get(
 ) (sdk.ServiceAccount, error) {
 	serviceAccount := sdk.ServiceAccount{}
 	return serviceAccount, s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/service-accounts/%s", id),
 			AuthHeaders: s.BearerTokenAuthHeaders(),
@@ -92,7 +91,7 @@ func (s *serviceAccountsClient) Get(
 
 func (s *serviceAccountsClient) Lock(_ context.Context, id string) error {
 	return s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/service-accounts/%s/lock", id),
 			AuthHeaders: s.BearerTokenAuthHeaders(),
@@ -107,7 +106,7 @@ func (s *serviceAccountsClient) Unlock(
 ) (sdk.Token, error) {
 	token := sdk.Token{}
 	return token, s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        fmt.Sprintf("v2/service-accounts/%s/lock", id),
 			AuthHeaders: s.BearerTokenAuthHeaders(),

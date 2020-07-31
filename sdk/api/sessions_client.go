@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/krancour/brignext/v2/sdk"
-	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
 type SessionsClient interface {
@@ -19,7 +18,7 @@ type SessionsClient interface {
 }
 
 type sessionsClient struct {
-	*apimachinery.BaseClient
+	*baseClient
 }
 
 func NewSessionsClient(
@@ -28,10 +27,10 @@ func NewSessionsClient(
 	allowInsecure bool,
 ) SessionsClient {
 	return &sessionsClient{
-		BaseClient: &apimachinery.BaseClient{
-			APIAddress: apiAddress,
-			APIToken:   apiToken,
-			HTTPClient: &http.Client{
+		baseClient: &baseClient{
+			apiAddress: apiAddress,
+			apiToken:   apiToken,
+			httpClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,
@@ -48,7 +47,7 @@ func (s *sessionsClient) CreateRootSession(
 ) (sdk.Token, error) {
 	token := sdk.Token{}
 	return token, s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/sessions",
 			AuthHeaders: s.BasicAuthHeaders("root", password),
@@ -66,7 +65,7 @@ func (s *sessionsClient) CreateUserSession(
 ) (sdk.UserSessionAuthDetails, error) {
 	userSessionAuthDetails := sdk.UserSessionAuthDetails{}
 	return userSessionAuthDetails, s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/sessions",
 			SuccessCode: http.StatusCreated,
@@ -77,7 +76,7 @@ func (s *sessionsClient) CreateUserSession(
 
 func (s *sessionsClient) Delete(context.Context) error {
 	return s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        "v2/session",
 			AuthHeaders: s.BearerTokenAuthHeaders(),

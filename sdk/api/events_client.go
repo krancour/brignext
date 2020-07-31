@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/krancour/brignext/v2/sdk"
-	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
 type EventsClient interface {
@@ -57,7 +56,7 @@ type EventsClient interface {
 }
 
 type eventsClient struct {
-	*apimachinery.BaseClient
+	*baseClient
 }
 
 func NewEventsClient(
@@ -66,10 +65,10 @@ func NewEventsClient(
 	allowInsecure bool,
 ) EventsClient {
 	return &eventsClient{
-		BaseClient: &apimachinery.BaseClient{
-			APIAddress: apiAddress,
-			APIToken:   apiToken,
-			HTTPClient: &http.Client{
+		baseClient: &baseClient{
+			apiAddress: apiAddress,
+			apiToken:   apiToken,
+			httpClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,
@@ -86,7 +85,7 @@ func (e *eventsClient) Create(
 ) (sdk.EventReferenceList, error) {
 	eventRefList := sdk.EventReferenceList{}
 	return eventRefList, e.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/events",
 			AuthHeaders: e.BearerTokenAuthHeaders(),
@@ -114,7 +113,7 @@ func (e *eventsClient) List(
 	}
 	eventList := sdk.EventReferenceList{}
 	return eventList, e.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        "v2/events",
 			AuthHeaders: e.BearerTokenAuthHeaders(),
@@ -131,7 +130,7 @@ func (e *eventsClient) Get(
 ) (sdk.Event, error) {
 	event := sdk.Event{}
 	return event, e.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/events/%s", id),
 			AuthHeaders: e.BearerTokenAuthHeaders(),
@@ -143,7 +142,7 @@ func (e *eventsClient) Get(
 
 func (e *eventsClient) Cancel(_ context.Context, id string) error {
 	return e.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/events/%s/cancellation", id),
 			AuthHeaders: e.BearerTokenAuthHeaders(),
@@ -169,7 +168,7 @@ func (e *eventsClient) CancelCollection(
 	}
 	eventRefList := sdk.EventReferenceList{}
 	return eventRefList, e.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/events/cancellations",
 			AuthHeaders: e.BearerTokenAuthHeaders(),
@@ -182,7 +181,7 @@ func (e *eventsClient) CancelCollection(
 
 func (e *eventsClient) Delete(_ context.Context, id string) error {
 	return e.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        fmt.Sprintf("v2/events/%s", id),
 			AuthHeaders: e.BearerTokenAuthHeaders(),
@@ -208,7 +207,7 @@ func (e *eventsClient) DeleteCollection(
 	}
 	eventRefList := sdk.EventReferenceList{}
 	return eventRefList, e.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        "v2/events",
 			AuthHeaders: e.BearerTokenAuthHeaders(),
@@ -225,7 +224,7 @@ func (e *eventsClient) UpdateWorkerStatus(
 	status sdk.WorkerStatus,
 ) error {
 	return e.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
 			AuthHeaders: e.BearerTokenAuthHeaders(),
@@ -242,7 +241,7 @@ func (e *eventsClient) UpdateJobStatus(
 	status sdk.JobStatus,
 ) error {
 	return e.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method: http.MethodPut,
 			Path: fmt.Sprintf(
 				"v2/events/%s/worker/jobs/%s/status",
@@ -263,7 +262,7 @@ func (e *eventsClient) GetLogs(
 ) (sdk.LogEntryList, error) {
 	logEntryList := sdk.LogEntryList{}
 	return logEntryList, e.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/events/%s/logs", eventID),
 			AuthHeaders: e.BearerTokenAuthHeaders(),
@@ -280,7 +279,7 @@ func (e *eventsClient) StreamLogs(
 	opts sdk.LogOptions,
 ) (<-chan sdk.LogEntry, <-chan error, error) {
 	resp, err := e.SubmitRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/events/%s/logs", eventID),
 			AuthHeaders: e.BearerTokenAuthHeaders(),

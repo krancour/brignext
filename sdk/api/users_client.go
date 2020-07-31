@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/krancour/brignext/v2/sdk"
-	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
 type UsersClient interface {
@@ -18,7 +17,7 @@ type UsersClient interface {
 }
 
 type usersClient struct {
-	*apimachinery.BaseClient
+	*baseClient
 }
 
 func NewUsersClient(
@@ -27,10 +26,10 @@ func NewUsersClient(
 	allowInsecure bool,
 ) UsersClient {
 	return &usersClient{
-		BaseClient: &apimachinery.BaseClient{
-			APIAddress: apiAddress,
-			APIToken:   apiToken,
-			HTTPClient: &http.Client{
+		baseClient: &baseClient{
+			apiAddress: apiAddress,
+			apiToken:   apiToken,
+			httpClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,
@@ -46,7 +45,7 @@ func (u *usersClient) List(
 ) (sdk.UserReferenceList, error) {
 	userList := sdk.UserReferenceList{}
 	return userList, u.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        "v2/users",
 			AuthHeaders: u.BearerTokenAuthHeaders(),
@@ -59,7 +58,7 @@ func (u *usersClient) List(
 func (u *usersClient) Get(_ context.Context, id string) (sdk.User, error) {
 	user := sdk.User{}
 	return user, u.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/users/%s", id),
 			AuthHeaders: u.BearerTokenAuthHeaders(),
@@ -71,7 +70,7 @@ func (u *usersClient) Get(_ context.Context, id string) (sdk.User, error) {
 
 func (u *usersClient) Lock(_ context.Context, id string) error {
 	return u.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/users/%s/lock", id),
 			AuthHeaders: u.BearerTokenAuthHeaders(),
@@ -82,7 +81,7 @@ func (u *usersClient) Lock(_ context.Context, id string) error {
 
 func (u *usersClient) Unlock(_ context.Context, id string) error {
 	return u.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        fmt.Sprintf("v2/users/%s/lock", id),
 			AuthHeaders: u.BearerTokenAuthHeaders(),
