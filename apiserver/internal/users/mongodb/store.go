@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/krancour/brignext/v2/apiserver/internal/users"
-	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -65,8 +65,8 @@ func (s *store) Create(ctx context.Context, user brignext.User) error {
 	return nil
 }
 
-func (s *store) List(ctx context.Context) (brignext.UserList, error) {
-	userList := brignext.NewUserList()
+func (s *store) List(ctx context.Context) (brignext.UserReferenceList, error) {
+	userList := brignext.NewUserReferenceList()
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})
 	cur, err := s.collection.Find(ctx, bson.M{}, findOptions)

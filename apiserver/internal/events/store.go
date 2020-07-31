@@ -3,12 +3,15 @@ package events
 import (
 	"context"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 )
 
 type Store interface {
 	Create(context.Context, brignext.Event) error
-	List(context.Context, brignext.EventListOptions) (brignext.EventList, error)
+	List(
+		context.Context,
+		brignext.EventListOptions,
+	) (brignext.EventReferenceList, error)
 	Get(context.Context, string) (brignext.Event, error)
 	Cancel(context.Context, string) error
 	CancelCollection(

@@ -16,7 +16,7 @@ type ProjectsClient interface {
 	// necessarily beyond a client's interest.
 	Create(context.Context, brignext.Project) error
 	CreateFromBytes(context.Context, []byte) error
-	List(context.Context) (brignext.ProjectList, error)
+	List(context.Context) (brignext.ProjectReferenceList, error)
 	Get(context.Context, string) (brignext.Project, error)
 	// TODO: This should return the project because the system will have provided
 	// values for some fields that are beyond a client's control, but are not
@@ -28,7 +28,7 @@ type ProjectsClient interface {
 	ListSecrets(
 		ctx context.Context,
 		projectID string,
-	) (brignext.SecretList, error)
+	) (brignext.SecretReferenceList, error)
 	SetSecret(ctx context.Context, projectID string, secret brignext.Secret) error
 	UnsetSecret(ctx context.Context, projectID string, key string) error
 }
@@ -87,8 +87,10 @@ func (p *projectsClient) CreateFromBytes(
 	)
 }
 
-func (p *projectsClient) List(context.Context) (brignext.ProjectList, error) {
-	projectList := brignext.ProjectList{}
+func (p *projectsClient) List(
+	context.Context,
+) (brignext.ProjectReferenceList, error) {
+	projectList := brignext.ProjectReferenceList{}
 	return projectList, p.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
@@ -161,8 +163,8 @@ func (p *projectsClient) Delete(_ context.Context, id string) error {
 func (p *projectsClient) ListSecrets(
 	ctx context.Context,
 	projectID string,
-) (brignext.SecretList, error) {
-	secretList := brignext.SecretList{}
+) (brignext.SecretReferenceList, error) {
+	secretList := brignext.SecretReferenceList{}
 	return secretList, p.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,

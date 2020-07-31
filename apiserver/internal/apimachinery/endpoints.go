@@ -9,7 +9,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
-	brignext "github.com/krancour/brignext/v2/sdk"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )

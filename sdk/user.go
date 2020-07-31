@@ -6,27 +6,11 @@ import (
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
 
-type UserList struct {
-	meta.TypeMeta `json:",inline"`
-	meta.ListMeta `json:"metadata"`
-	Items         []User `json:"items"`
-}
-
-func NewUserList() UserList {
-	return UserList{
-		TypeMeta: meta.TypeMeta{
-			APIVersion: meta.APIVersion,
-			Kind:       "UserList",
-		},
-		Items: []User{},
-	}
-}
-
 type User struct {
-	meta.TypeMeta   `json:",inline" bson:",inline"`
-	meta.ObjectMeta `json:"metadata" bson:",inline"`
-	Name            string     `json:"name" bson:"name"`
-	Locked          *time.Time `json:"locked" bson:"locked"`
+	meta.TypeMeta   `json:",inline"`
+	meta.ObjectMeta `json:"metadata"`
+	Name            string     `json:"name"`
+	Locked          *time.Time `json:"locked"`
 }
 
 func NewUser(id, name string) User {
@@ -40,4 +24,17 @@ func NewUser(id, name string) User {
 		},
 		Name: name,
 	}
+}
+
+type UserReference struct {
+	meta.TypeMeta            `json:",inline"`
+	meta.ObjectReferenceMeta `json:"metadata"`
+	Name                     string     `json:"name"`
+	Locked                   *time.Time `json:"locked"`
+}
+
+type UserReferenceList struct {
+	meta.TypeMeta `json:",inline"`
+	meta.ListMeta `json:"metadata"`
+	Items         []UserReference `json:"items"`
 }

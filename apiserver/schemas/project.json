@@ -72,17 +72,6 @@
 			"description": "Project specification",
 			"additionalProperties": false,
 			"properties": {
-				"description": {
-					"oneOf": [
-						{
-							"$ref": "#/definitions/empty"
-						},
-						{
-							"$ref": "#/definitions/description"
-						}
-					],
-					"description": "A brief description of the project"
-				},
 				"eventSubscriptions": {
 					"type": [
 						"array",
@@ -313,6 +302,17 @@
 		},
 		"metadata": {
 			"$ref": "#/definitions/objectMeta"
+		},
+		"description": {
+			"oneOf": [
+				{
+					"$ref": "#/definitions/empty"
+				},
+				{
+					"$ref": "#/definitions/description"
+				}
+			],
+			"description": "A brief description of the project"
 		},
 		"spec": {
 			"$ref": "#/definitions/projectSpec"

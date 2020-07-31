@@ -3,13 +3,13 @@ package users
 import (
 	"context"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
 )
 
 type Service interface {
 	Create(context.Context, brignext.User) error
-	List(context.Context) (brignext.UserList, error)
+	List(context.Context) (brignext.UserReferenceList, error)
 	Get(context.Context, string) (brignext.User, error)
 	Lock(context.Context, string) error
 	Unlock(context.Context, string) error
@@ -32,7 +32,9 @@ func (s *service) Create(ctx context.Context, user brignext.User) error {
 	return nil
 }
 
-func (s *service) List(ctx context.Context) (brignext.UserList, error) {
+func (s *service) List(
+	ctx context.Context,
+) (brignext.UserReferenceList, error) {
 	userList, err := s.store.List(ctx)
 	if err != nil {
 		return userList, errors.Wrap(err, "error retrieving users from store")

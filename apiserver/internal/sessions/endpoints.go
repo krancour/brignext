@@ -7,8 +7,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/krancour/brignext/v2/apiserver/internal/users"
-	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 )
 

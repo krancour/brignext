@@ -1,10 +1,10 @@
 package sdk
 
-import "github.com/krancour/brignext/v2/sdk/meta"
+import "github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 
 type Token struct {
-	meta.TypeMeta `json:",inline"`
-	Value         string `json:"value"`
+	meta.TypeMeta `json:",inline" bson:",inline"`
+	Value         string `json:"value" bson:"value"`
 }
 
 func NewToken(value string) Token {

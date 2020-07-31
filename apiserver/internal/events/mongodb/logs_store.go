@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/events"
-	brignext "github.com/krancour/brignext/v2/sdk"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

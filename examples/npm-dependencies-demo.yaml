@@ -2,8 +2,8 @@ apiVersion: github.com/krancour/brignext/v2
 kind: Project
 metadata:
   id: npm-dependencies-demo
+description: A project that demonstrates installing pre-requisite npm packages
 spec:
-  description: A project that demonstrates installing pre-requisite npm packages
   worker:
     defaultConfigFiles:
       brignext.json: |-

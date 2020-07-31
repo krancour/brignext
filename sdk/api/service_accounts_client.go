@@ -12,7 +12,7 @@ import (
 
 type ServiceAccountsClient interface {
 	Create(context.Context, brignext.ServiceAccount) (brignext.Token, error)
-	List(context.Context) (brignext.ServiceAccountList, error)
+	List(context.Context) (brignext.ServiceAccountReferenceList, error)
 	Get(context.Context, string) (brignext.ServiceAccount, error)
 	Lock(context.Context, string) error
 	Unlock(context.Context, string) (brignext.Token, error)
@@ -61,8 +61,8 @@ func (s *serviceAccountsClient) Create(
 
 func (s *serviceAccountsClient) List(
 	context.Context,
-) (brignext.ServiceAccountList, error) {
-	serviceAccountList := brignext.ServiceAccountList{}
+) (brignext.ServiceAccountReferenceList, error) {
+	serviceAccountList := brignext.ServiceAccountReferenceList{}
 	return serviceAccountList, s.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,

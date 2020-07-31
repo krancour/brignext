@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/events"
-	brignext "github.com/krancour/brignext/v2/sdk"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -69,8 +69,8 @@ func (s *store) Create(ctx context.Context, event brignext.Event) error {
 func (s *store) List(
 	ctx context.Context,
 	opts brignext.EventListOptions,
-) (brignext.EventList, error) {
-	eventList := brignext.NewEventList()
+) (brignext.EventReferenceList, error) {
+	eventList := brignext.NewEventReferenceList()
 
 	criteria := bson.M{
 		"status.workerStatus.phase": bson.M{

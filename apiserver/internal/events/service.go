@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/projects"
-	brignext "github.com/krancour/brignext/v2/sdk"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
@@ -15,7 +15,10 @@ type Service interface {
 		brignext.EventReferenceList,
 		error,
 	)
-	List(context.Context, brignext.EventListOptions) (brignext.EventList, error)
+	List(
+		context.Context,
+		brignext.EventListOptions,
+	) (brignext.EventReferenceList, error)
 	Get(context.Context, string) (brignext.Event, error)
 	Cancel(context.Context, string) error
 	CancelCollection(
@@ -188,8 +191,8 @@ func (s *service) Create(
 func (s *service) List(
 	ctx context.Context,
 	opts brignext.EventListOptions,
-) (brignext.EventList, error) {
-	eventList := brignext.NewEventList()
+) (brignext.EventReferenceList, error) {
+	eventList := brignext.NewEventReferenceList()
 
 	// If no worker phase filters were applied, retrieve all phases
 	if len(opts.WorkerPhases) == 0 {

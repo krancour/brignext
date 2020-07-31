@@ -4,13 +4,13 @@ import (
 	"context"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
-	brignext "github.com/krancour/brignext/v2/sdk"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
 )
 
 type Service interface {
 	Create(context.Context, brignext.ServiceAccount) (brignext.Token, error)
-	List(context.Context) (brignext.ServiceAccountList, error)
+	List(context.Context) (brignext.ServiceAccountReferenceList, error)
 	Get(context.Context, string) (brignext.ServiceAccount, error)
 	GetByToken(context.Context, string) (brignext.ServiceAccount, error)
 	Lock(context.Context, string) error
@@ -45,7 +45,7 @@ func (s *service) Create(
 
 func (s *service) List(
 	ctx context.Context,
-) (brignext.ServiceAccountList, error) {
+) (brignext.ServiceAccountReferenceList, error) {
 	serviceAccountList, err := s.store.List(ctx)
 	if err != nil {
 		return serviceAccountList,

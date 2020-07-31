@@ -15,7 +15,10 @@ import (
 
 type EventsClient interface {
 	Create(context.Context, brignext.Event) (brignext.EventReferenceList, error)
-	List(context.Context, brignext.EventListOptions) (brignext.EventList, error)
+	List(
+		context.Context,
+		brignext.EventListOptions,
+	) (brignext.EventReferenceList, error)
 	Get(context.Context, string) (brignext.Event, error)
 	Cancel(context.Context, string) error
 	CancelCollection(
@@ -97,7 +100,7 @@ func (e *eventsClient) Create(
 func (e *eventsClient) List(
 	_ context.Context,
 	opts brignext.EventListOptions,
-) (brignext.EventList, error) {
+) (brignext.EventReferenceList, error) {
 	queryParams := map[string]string{}
 	if opts.ProjectID != "" {
 		queryParams["projectID"] = opts.ProjectID
@@ -109,7 +112,7 @@ func (e *eventsClient) List(
 		}
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
-	eventList := brignext.EventList{}
+	eventList := brignext.EventReferenceList{}
 	return eventList, e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,

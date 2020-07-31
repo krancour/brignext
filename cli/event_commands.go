@@ -9,8 +9,8 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
-	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/internal/file"
+	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -412,17 +412,13 @@ func eventList(c *cli.Context) error {
 		table := uitable.New()
 		table.AddRow("ID", "PROJECT", "SOURCE", "TYPE", "AGE", "WORKER PHASE")
 		for _, event := range eventList.Items {
-			var age string
-			if event.Created != nil {
-				age = duration.ShortHumanDuration(time.Since(*event.Created))
-			}
 			table.AddRow(
 				event.ID,
 				event.ProjectID,
 				event.Source,
 				event.Type,
-				age,
-				event.Status.WorkerStatus.Phase,
+				duration.ShortHumanDuration(time.Since(event.Created)),
+				event.WorkerPhase,
 			)
 		}
 		fmt.Println(table)

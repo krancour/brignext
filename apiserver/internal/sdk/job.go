@@ -3,7 +3,7 @@ package sdk
 import (
 	"time"
 
-	"github.com/krancour/brignext/v2/sdk/meta"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 )
 
 type JobPhase string
@@ -28,20 +28,20 @@ const (
 
 // nolint: lll
 type JobsSpec struct {
-	AllowPrivileged        bool                 `json:"allowPrivileged"`
-	AllowDockerSocketMount bool                 `json:"allowDockerSocketMount"`
-	Kubernetes             JobsKubernetesConfig `json:"kubernetes"`
+	AllowPrivileged        bool                 `json:"allowPrivileged" bson:"allowPrivileged"`
+	AllowDockerSocketMount bool                 `json:"allowDockerSocketMount" bson:"allowDockerSocketMount"`
+	Kubernetes             JobsKubernetesConfig `json:"kubernetes" bson:"kubernetes"`
 }
 
 type JobsKubernetesConfig struct {
-	ImagePullSecrets []string `json:"imagePullSecrets"`
+	ImagePullSecrets []string `json:"imagePullSecrets" bson:"imagePullSecrets"`
 }
 
 type JobStatus struct {
-	*meta.TypeMeta `json:",inline,omitempty"`
-	Started        *time.Time `json:"started"`
-	Ended          *time.Time `json:"ended"`
-	Phase          JobPhase   `json:"phase"`
+	*meta.TypeMeta `json:",inline,omitempty" bson:"-"`
+	Started        *time.Time `json:"started" bson:"started"`
+	Ended          *time.Time `json:"ended" bson:"ended"`
+	Phase          JobPhase   `json:"phase" bson:"phase"`
 }
 
 func NewJobStatus() JobStatus {

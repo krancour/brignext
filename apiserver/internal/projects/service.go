@@ -3,13 +3,13 @@ package projects
 import (
 	"context"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
 )
 
 type Service interface {
 	Create(context.Context, brignext.Project) error
-	List(context.Context) (brignext.ProjectList, error)
+	List(context.Context) (brignext.ProjectReferenceList, error)
 	Get(context.Context, string) (brignext.Project, error)
 	Update(context.Context, brignext.Project) error
 	Delete(context.Context, string) error
@@ -73,7 +73,7 @@ func (s *service) Create(
 
 func (s *service) List(
 	ctx context.Context,
-) (brignext.ProjectList, error) {
+) (brignext.ProjectReferenceList, error) {
 	projectList, err := s.store.List(ctx)
 	if err != nil {
 		return projectList, errors.Wrap(err, "error retrieving projects from store")

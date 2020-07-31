@@ -1,9 +1,9 @@
 package sdk
 
-import "github.com/krancour/brignext/v2/sdk/meta"
+import "github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 
 type UserSessionAuthDetails struct {
-	meta.TypeMeta `json:",inline"`
+	meta.TypeMeta `json:",inline" bson:",inline"`
 	OAuth2State   string `json:"oauth2State"`
 	AuthURL       string `json:"authURL"`
 	Token         string `json:"token"`

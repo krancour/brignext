@@ -2,15 +2,16 @@ package sdk
 
 import (
 	"github.com/krancour/brignext/v2/sdk/meta"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 type Project struct {
-	meta.TypeMeta   `json:",inline" bson:",inline"`
-	meta.ObjectMeta `json:"metadata" bson:",inline"`
-	Spec            ProjectSpec `json:"spec" bson:"spec"`
-	// The JSON schema doesn't permit the fields below to be set via the API.
-	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
+	meta.TypeMeta   `json:",inline"`
+	meta.ObjectMeta `json:"metadata"`
+	Description     string      `json:"description"`
+	Spec            ProjectSpec `json:"spec"`
+	// The JSON schema doesn't permit the fields below to be set via the API, so
+	// they are pointers. Their values must be nil when outbound.
+	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty"`
 }
 
 // TODO: Add ProjectStatus type-- move KubernetesConfig under there
@@ -25,49 +26,25 @@ func NewProject() Project {
 }
 
 type ProjectSpec struct {
-	Description        string              `json:"description" bson:"description"`
-	EventSubscriptions []EventSubscription `json:"eventSubscriptions" bson:"eventSubscriptions"` // nolint: lll
+	EventSubscriptions []EventSubscription `json:"eventSubscriptions"`
 	// TODO: Consider renaming this field to WorkerTemplate
-	Worker WorkerSpec `json:"worker" bson:"worker"`
+	Worker WorkerSpec `json:"worker"`
 }
 
 type EventSubscription struct {
-	Source string   `json:"source" bson:"source"`
-	Types  []string `json:"types" bson:"types"`
-	Labels Labels   `json:"labels" bson:"labels"`
+	Source string   `json:"source"`
+	Types  []string `json:"types"`
+	Labels Labels   `json:"labels"`
 }
 
-// UnmarshalBSON implements custom BSON unmarshaling for the EventSubscription
-// type. This does little more than guarantees that the Labels field isn't nil
-// so that custom unmarshaling of the EventLabels (which is more involved) can
-// succeed.
-func (e *EventSubscription) UnmarshalBSON(bytes []byte) error {
-	if e.Labels == nil {
-		e.Labels = Labels{}
-	}
-	type EventSubscriptionAlias EventSubscription
-	return bson.Unmarshal(
-		bytes,
-		&struct {
-			*EventSubscriptionAlias `bson:",inline"`
-		}{
-			EventSubscriptionAlias: (*EventSubscriptionAlias)(e),
-		},
-	)
+type ProjectReference struct {
+	meta.TypeMeta            `json:",inline"`
+	meta.ObjectReferenceMeta `json:"metadata"`
+	Description              string `json:"description"`
 }
 
-type ProjectList struct {
+type ProjectReferenceList struct {
 	meta.TypeMeta `json:",inline"`
 	meta.ListMeta `json:"metadata"`
-	Items         []Project `json:"items"`
-}
-
-func NewProjectList() ProjectList {
-	return ProjectList{
-		TypeMeta: meta.TypeMeta{
-			APIVersion: meta.APIVersion,
-			Kind:       "ProjectList",
-		},
-		Items: []Project{},
-	}
+	Items         []ProjectReference `json:"items"`
 }

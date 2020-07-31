@@ -9,7 +9,8 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
-	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
 )
 
@@ -18,7 +19,7 @@ type FindSessionFn func(ctx context.Context, token string) (Session, error)
 type FindUserFn func(
 	ctx context.Context,
 	id string,
-) (brignext.User, error)
+) (sdk.User, error)
 
 type tokenAuthFilter struct {
 	findSession          FindSessionFn

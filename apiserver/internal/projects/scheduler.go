@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
-	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"

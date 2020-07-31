@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/projects"
-	brignext "github.com/krancour/brignext/v2/sdk"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -97,8 +97,8 @@ func (s *store) Create(
 
 func (s *store) List(
 	ctx context.Context,
-) (brignext.ProjectList, error) {
-	projectList := brignext.NewProjectList()
+) (brignext.ProjectReferenceList, error) {
+	projectList := brignext.NewProjectReferenceList()
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})
 	cur, err := s.collection.Find(ctx, bson.M{}, findOptions)
@@ -114,8 +114,8 @@ func (s *store) List(
 func (s *store) ListSubscribers(
 	ctx context.Context,
 	event brignext.Event,
-) (brignext.ProjectList, error) {
-	projectList := brignext.NewProjectList()
+) (brignext.ProjectReferenceList, error) {
+	projectList := brignext.NewProjectReferenceList()
 	subscriptionMatchCriteria := bson.M{
 		"source": event.Source,
 		"types": bson.M{

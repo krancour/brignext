@@ -11,7 +11,7 @@ import (
 )
 
 type UsersClient interface {
-	List(context.Context) (brignext.UserList, error)
+	List(context.Context) (brignext.UserReferenceList, error)
 	Get(context.Context, string) (brignext.User, error)
 	Lock(context.Context, string) error
 	Unlock(context.Context, string) error
@@ -41,8 +41,10 @@ func NewUsersClient(
 	}
 }
 
-func (u *usersClient) List(context.Context) (brignext.UserList, error) {
-	userList := brignext.UserList{}
+func (u *usersClient) List(
+	context.Context,
+) (brignext.UserReferenceList, error) {
+	userList := brignext.UserReferenceList{}
 	return userList, u.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,

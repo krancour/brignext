@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
-	"github.com/krancour/brignext/v2/sdk/meta"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/stretchr/testify/require"
 )
 

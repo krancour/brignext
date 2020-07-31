@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/krancour/brignext/v2/apiserver/internal/sessions"
-	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

@@ -2,8 +2,8 @@ apiVersion: github.com/krancour/brignext/v2
 kind: Project
 metadata:
   id: hello-world
+description: The simplest possible demonstration
 spec:
-  description: The simplest possible demonstration
   worker:
     defaultConfigFiles:
       brignext.js: |-

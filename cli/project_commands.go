@@ -160,14 +160,10 @@ func projectList(c *cli.Context) error {
 		table := uitable.New()
 		table.AddRow("ID", "DESCRIPTION", "AGE")
 		for _, project := range projectList.Items {
-			var age string
-			if project.Created != nil {
-				age = duration.ShortHumanDuration(time.Since(*project.Created))
-			}
 			table.AddRow(
 				project.ID,
-				project.Spec.Description,
-				age,
+				project.Description,
+				duration.ShortHumanDuration(time.Since(project.Created)),
 			)
 		}
 		fmt.Println(table)
@@ -224,7 +220,7 @@ func projectGet(c *cli.Context) error {
 		}
 		table.AddRow(
 			project.ID,
-			project.Spec.Description,
+			project.Description,
 			age,
 		)
 		fmt.Println(table)

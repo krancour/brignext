@@ -3,7 +3,7 @@ package sdk
 import (
 	"time"
 
-	"github.com/krancour/brignext/v2/sdk/meta"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 )
 
 type LogLevel string
@@ -77,39 +77,39 @@ func WorkerPhasesNonTerminal() []WorkerPhase {
 
 // nolint: lll
 type WorkerSpec struct {
-	Container            ContainerSpec          `json:"container"`
-	WorkspaceSize        string                 `json:"workspaceSize"`
-	Git                  WorkerGitConfig        `json:"git"`
-	Kubernetes           WorkerKubernetesConfig `json:"kubernetes"`
-	Jobs                 JobsSpec               `json:"jobs"`
-	LogLevel             LogLevel               `json:"logLevel"`
-	ConfigFilesDirectory string                 `json:"configFilesDirectory"`
-	DefaultConfigFiles   map[string]string      `json:"defaultConfigFiles"`
+	Container            ContainerSpec          `json:"container" bson:"container"`
+	WorkspaceSize        string                 `json:"workspaceSize" bson:"workspaceSize"`
+	Git                  WorkerGitConfig        `json:"git" bson:"git"`
+	Kubernetes           WorkerKubernetesConfig `json:"kubernetes" bson:"kubernetes"`
+	Jobs                 JobsSpec               `json:"jobs" bson:"jobs"`
+	LogLevel             LogLevel               `json:"logLevel" bson:"logLevel"`
+	ConfigFilesDirectory string                 `json:"configFilesDirectory" bson:"configFilesDirectory"`
+	DefaultConfigFiles   map[string]string      `json:"defaultConfigFiles" bson:"defaultConfigFiles"`
 }
 
 type ContainerSpec struct {
-	Image           string            `json:"image"`
-	ImagePullPolicy string            `json:"imagePullPolicy"` // nolint: lll
-	Command         string            `json:"command"`
-	Environment     map[string]string `json:"environment"`
+	Image           string            `json:"image" bson:"image"`
+	ImagePullPolicy string            `json:"imagePullPolicy" bson:"imagePullPolicy"` // nolint: lll
+	Command         string            `json:"command" bson:"command"`
+	Environment     map[string]string `json:"environment" bson:"environment"`
 }
 
 type WorkerGitConfig struct {
-	CloneURL       string `json:"cloneURL"`
-	Commit         string `json:"commit"`
-	Ref            string `json:"ref"`
-	InitSubmodules bool   `json:"initSubmodules"`
+	CloneURL       string `json:"cloneURL" bson:"cloneURL"`
+	Commit         string `json:"commit" bson:"commit"`
+	Ref            string `json:"ref" bson:"ref"`
+	InitSubmodules bool   `json:"initSubmodules" bson:"initSubmodules"`
 }
 
 type WorkerKubernetesConfig struct {
-	ImagePullSecrets []string `json:"imagePullSecrets"`
+	ImagePullSecrets []string `json:"imagePullSecrets" bson:"imagePullSecrets"`
 }
 
 type WorkerStatus struct {
-	*meta.TypeMeta `json:",inline,omitempty"`
-	Started        *time.Time  `json:"started"`
-	Ended          *time.Time  `json:"ended"`
-	Phase          WorkerPhase `json:"phase"`
+	*meta.TypeMeta `json:",inline,omitempty" bson:"-"`
+	Started        *time.Time  `json:"started" bson:"started"`
+	Ended          *time.Time  `json:"ended" bson:"ended"`
+	Phase          WorkerPhase `json:"phase" bson:"phase"`
 }
 
 func NewWorkerStatus() WorkerStatus {

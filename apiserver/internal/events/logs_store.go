@@ -3,7 +3,7 @@ package events
 import (
 	"context"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 )
 
 type LogsStore interface {

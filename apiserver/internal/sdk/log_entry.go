@@ -3,7 +3,7 @@ package sdk
 import (
 	"time"
 
-	"github.com/krancour/brignext/v2/sdk/meta"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 )
 
 type LogEntryList struct {
@@ -24,8 +24,8 @@ func NewLogEntryList() LogEntryList {
 
 type LogEntry struct {
 	meta.TypeMeta `json:",inline"`
-	Time          time.Time `json:"time"`
-	Message       string    `json:"message"`
+	Time          time.Time `json:"time" bson:"time"`
+	Message       string    `json:"message" bson:"log"`
 }
 
 func NewLogEntry() LogEntry {

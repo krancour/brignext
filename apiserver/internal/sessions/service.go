@@ -7,8 +7,8 @@ import (
 	"github.com/coreos/go-oidc"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/krancour/brignext/v2/apiserver/internal/users"
-	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )

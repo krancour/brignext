@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/krancour/brignext/v2/apiserver/internal/serviceaccounts"
-	brignext "github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -91,8 +91,8 @@ func (s *store) Create(
 
 func (s *store) List(
 	ctx context.Context,
-) (brignext.ServiceAccountList, error) {
-	serviceAccountList := brignext.NewServiceAccountList()
+) (brignext.ServiceAccountReferenceList, error) {
+	serviceAccountList := brignext.NewServiceAccountReferenceList()
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})
 	cur, err := s.collection.Find(ctx, bson.M{}, findOptions)
