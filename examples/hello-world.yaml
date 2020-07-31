@@ -4,7 +4,7 @@ metadata:
   id: hello-world
 description: The simplest possible demonstration
 spec:
-  worker:
+  workerTemplate:
     defaultConfigFiles:
       brignext.js: |-
         const { events } = require("brigadier");

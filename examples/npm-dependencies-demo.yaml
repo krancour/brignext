@@ -4,7 +4,7 @@ metadata:
   id: npm-dependencies-demo
 description: A project that demonstrates installing pre-requisite npm packages
 spec:
-  worker:
+  workerTemplate:
     defaultConfigFiles:
       brignext.json: |-
         {

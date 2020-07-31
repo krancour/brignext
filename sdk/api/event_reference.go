@@ -13,10 +13,10 @@ import (
 // significantly as Events have the potentia to be quite large.
 type EventReference struct {
 	meta.ObjectReferenceMeta `json:"metadata"`
-	ProjectID                string          `json:"projectID"`
-	Source                   string          `json:"source"`
-	Type                     string          `json:"type"`
-	WorkerPhase              sdk.WorkerPhase `json:"workerPhase"`
+	ProjectID                string          `json:"projectID,omitempty"`
+	Source                   string          `json:"source,omitempty"`
+	Type                     string          `json:"type,omitempty"`
+	WorkerPhase              sdk.WorkerPhase `json:"workerPhase,omitempty"`
 }
 
 // MarshalJSON amends EventReference instances with type metadata so that
@@ -41,7 +41,7 @@ func (e EventReference) MarshalJSON() ([]byte, error) {
 type EventReferenceList struct {
 	// TODO: When pagination is implemented, list metadata will need to be added
 	// Items is a slice of EventReferences.
-	Items []EventReference `json:"items"`
+	Items []EventReference `json:"items,omitempty"`
 }
 
 // MarshalJSON amends EventReferenceList instances with type metadata so that

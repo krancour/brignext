@@ -16,7 +16,7 @@ type ProjectReference struct {
 	// metadata.
 	meta.ObjectReferenceMeta `json:"metadata"`
 	// Description is a natural language description of the Project.
-	Description string `json:"description"`
+	Description string `json:"description,omitempty"`
 }
 
 // MarshalJSON amends ProjectReference instances with type metadata so that
@@ -41,7 +41,7 @@ func (p ProjectReference) MarshalJSON() ([]byte, error) {
 type ProjectReferenceList struct {
 	// TODO: When pagination is implemented, list metadata will need to be added
 	// Items is a slice of ProjectReferences.
-	Items []ProjectReference `json:"items"`
+	Items []ProjectReference `json:"items,omitempty"`
 }
 
 // MarshalJSON amends ProjectReferenceList instances with type metadata so that

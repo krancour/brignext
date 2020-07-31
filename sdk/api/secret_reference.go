@@ -7,7 +7,7 @@ import (
 )
 
 type SecretReference struct {
-	Key string `json:"key"`
+	Key string `json:"key,omitempty"`
 }
 
 func (s SecretReference) MarshalJSON() ([]byte, error) {
@@ -27,7 +27,7 @@ func (s SecretReference) MarshalJSON() ([]byte, error) {
 }
 
 type SecretReferenceList struct {
-	Items []SecretReference `json:"items"`
+	Items []SecretReference `json:"items,omitempty"`
 }
 
 func (s SecretReferenceList) MarshalJSON() ([]byte, error) {

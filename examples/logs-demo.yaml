@@ -4,7 +4,7 @@ metadata:
   id: logs-demo
 description: A project that demonstrates outputting logs from a job
 spec:
-  worker:
+  workerTemplate:
     defaultConfigFiles:
       brignext.js: |-
         const { events, Job } = require("brigadier");

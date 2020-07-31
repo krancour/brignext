@@ -433,12 +433,12 @@ func (s *scheduler) UnsetSecret(
 func (s *scheduler) projectWithDefaults(
 	project brignext.Project,
 ) brignext.Project {
-	if project.Spec.Worker.Kubernetes.ImagePullSecrets == nil {
-		project.Spec.Worker.Kubernetes.ImagePullSecrets = []string{}
+	if project.Spec.WorkerTemplate.Kubernetes.ImagePullSecrets == nil {
+		project.Spec.WorkerTemplate.Kubernetes.ImagePullSecrets = []string{}
 	}
 
-	if project.Spec.Worker.Jobs.Kubernetes.ImagePullSecrets == nil {
-		project.Spec.Worker.Jobs.Kubernetes.ImagePullSecrets = []string{}
+	if project.Spec.WorkerTemplate.Jobs.Kubernetes.ImagePullSecrets == nil {
+		project.Spec.WorkerTemplate.Jobs.Kubernetes.ImagePullSecrets = []string{}
 	}
 
 	return project

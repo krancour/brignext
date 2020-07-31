@@ -7,9 +7,9 @@ import (
 )
 
 type UserSessionAuthDetails struct {
-	OAuth2State string `json:"oauth2State"`
-	AuthURL     string `json:"authURL"`
-	Token       string `json:"token"`
+	OAuth2State string `json:"oauth2State,omitempty"`
+	AuthURL     string `json:"authURL,omitempty"`
+	Token       string `json:"token,omitempty"`
 }
 
 func (u UserSessionAuthDetails) MarshalJSON() ([]byte, error) {

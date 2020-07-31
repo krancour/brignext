@@ -7,7 +7,7 @@ import (
 )
 
 type Token struct {
-	Value string `json:"value"`
+	Value string `json:"value,omitempty"`
 }
 
 func (t Token) MarshalJSON() ([]byte, error) {

@@ -9,7 +9,7 @@ import (
 
 type ServiceAccountReference struct {
 	meta.ObjectReferenceMeta `json:"metadata"`
-	Description              string     `json:"description"`
+	Description              string     `json:"description,omitempty"`
 	Locked                   *time.Time `json:"locked,omitempty"`
 }
 
@@ -30,7 +30,7 @@ func (s ServiceAccountReference) MarshalJSON() ([]byte, error) {
 }
 
 type ServiceAccountReferenceList struct {
-	Items []ServiceAccountReference `json:"items"`
+	Items []ServiceAccountReference `json:"items,omitempty"`
 }
 
 func (s ServiceAccountReferenceList) MarshalJSON() ([]byte, error) {

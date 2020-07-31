@@ -124,7 +124,7 @@ func (s *service) Create(
 
 	event.ID = uuid.NewV4().String()
 
-	event.Worker = &project.Spec.Worker
+	event.Worker = &project.Spec.WorkerTemplate
 
 	if event.Worker.WorkspaceSize == "" {
 		event.Worker.WorkspaceSize = "10Gi"

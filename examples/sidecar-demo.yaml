@@ -4,7 +4,7 @@ metadata:
   id: sidecar-demo
 description: A project that demonstrates a job that uses a sidecar container
 spec:
-  worker:
+  workerTemplate:
     defaultConfigFiles:
       brignext.js: |-
         const { events, Job, Group, Container} = require("brigadier");

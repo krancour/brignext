@@ -89,10 +89,15 @@ type WorkerSpec struct {
 }
 
 type ContainerSpec struct {
-	Image           string            `json:"image" bson:"image"`
-	ImagePullPolicy string            `json:"imagePullPolicy" bson:"imagePullPolicy"` // nolint: lll
-	Command         string            `json:"command" bson:"command"`
-	Environment     map[string]string `json:"environment" bson:"environment"`
+	Image           string `json:"image" bson:"image"`
+	ImagePullPolicy string `json:"imagePullPolicy" bson:"imagePullPolicy"`
+	// Command specifies the command to be executed by the OCI container. This
+	// can be used to optionally override the default command specified by the OCI
+	// image itself.
+	Command []string `json:"command" bson:"command"`
+	// Arguments specifies arguments to the command executed by the OCI container.
+	Arguments   []string          `json:"arguments" bson:"arguments"`
+	Environment map[string]string `json:"environment" bson:"environment"`
 }
 
 type WorkerGitConfig struct {

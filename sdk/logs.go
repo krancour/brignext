@@ -10,9 +10,9 @@ import (
 // LogEntry represents one line of output from an OCI container.
 type LogEntry struct {
 	// Time is the time the line was written.
-	Time time.Time `json:"time"`
+	Time time.Time `json:"time,omitempty"`
 	// Message is a single line of log output from an OCI container.
-	Message string `json:"message"`
+	Message string `json:"message,omitempty"`
 }
 
 // MarshalJSON amends LogEntry instances with type metadata so that clients do

@@ -102,62 +102,62 @@ func WorkerPhasesNonTerminal() []WorkerPhase {
 type WorkerSpec struct {
 	// Container encapsulates the details of an OCI container that forms the
 	// cornerstone of the Worker.
-	Container ContainerSpec `json:"container"`
+	Container *ContainerSpec `json:"container,omitempty"`
 	// WorkspaceSize specifies the size of a volume that will be provisioned as
 	// a shared workspace for the Worker and any Jobs it spawns.
 	// The value can be expressed in bytes (as a plain integer) or as a
 	// fixed-point integer using one of these suffixes: E, P, T, G, M, K.
 	// Power-of-two equivalents may also be used: Ei, Pi, Ti, Gi, Mi, Ki.
-	WorkspaceSize string `json:"workspaceSize"`
+	WorkspaceSize string `json:"workspaceSize,omitempty"`
 	// Git encapsulates git-specific Worker details.
-	Git WorkerGitConfig `json:"git"`
+	Git *WorkerGitConfig `json:"git,omitempty"`
 	// Kubernetes encapsulates Kubernetes-specific Worker details.
-	Kubernetes WorkerKubernetesConfig `json:"kubernetes"`
+	Kubernetes *WorkerKubernetesConfig `json:"kubernetes,omitempty"`
 	// JobsSpec encapsulates configuration and policies for any Jobs spawned by
 	// the Worker.
-	Jobs JobsSpec `json:"jobs"`
+	Jobs *JobsSpec `json:"jobs,omitempty"`
 	// LogLevel specifies the desired granularity of Worker log output.
-	LogLevel LogLevel `json:"logLevel"`
+	LogLevel LogLevel `json:"logLevel,omitempty"`
 	// ConfigFilesDirectory specifies a directory within the Worker's workspace
 	// where any relevant configuration files (e.g. brigade.json, brigade.js,
 	// etc.) can be located.
-	ConfigFilesDirectory string `json:"configFilesDirectory"`
+	ConfigFilesDirectory string `json:"configFilesDirectory,omitempty"`
 	// DefaultConfigFiles is a map of configuration file names to configuration
 	// file content. This is useful for Workers that do not integrate with any
 	// source control system and would like to embed configuration (e.g.
 	// brigade.json) or scripts (e.g. brigade.js) directly within the WorkerSpec.
-	DefaultConfigFiles map[string]string `json:"defaultConfigFiles"`
+	DefaultConfigFiles map[string]string `json:"defaultConfigFiles,omitempty"`
 }
 
 // ContainerSpec represents the technical details of an OCI container.
 type ContainerSpec struct {
 	// Image specified the OCI image on which the container should be based.
-	Image string `json:"image"`
+	Image string `json:"image,omitempty"`
 	// ImagePullPolicy specifies whether a container host already having the
 	// specified OCI image should attempt to re-pull that image prior to launching
 	// a new container.
-	ImagePullPolicy ImagePullPolicy `json:"imagePullPolicy"`
+	ImagePullPolicy ImagePullPolicy `json:"imagePullPolicy,omitempty"`
 	// Command specifies the command to be executed by the OCI container. This
 	// can be used to optionally override the default command specified by the OCI
 	// image itself.
-	Command []string `json:"command"`
+	Command []string `json:"command,omitempty"`
 	// Arguments specifies arguments to the command executed by the OCI container.
-	Arguments []string `json:"arguments"`
+	Arguments []string `json:"arguments,omitempty"`
 	// Environment is a map of key/value pairs that specify environment variables
 	// to be set within the OCI container.
-	Environment map[string]string `json:"environment"`
+	Environment map[string]string `json:"environment,omitempty"`
 }
 
 // WorkerGitConfig represents git-specific Worker details.
 type WorkerGitConfig struct {
 	// CloneURL specifies the location from where a source code repository may
 	// be cloned.
-	CloneURL string `json:"cloneURL"`
+	CloneURL string `json:"cloneURL,omitempty"`
 	// Commit specifies a commit (by sha) to be checked out.
-	Commit string `json:"commit"`
+	Commit string `json:"commit,omitempty"`
 	// Ref specifies a tag or branch to be checked out. If left blank, this will
 	// defualt to "master" at runtime.
-	Ref string `json:"ref"`
+	Ref string `json:"ref,omitempty"`
 	// InitSubmodules indicates whether to clone the repository's submodules.
 	InitSubmodules bool `json:"initSubmodules"`
 }
@@ -170,19 +170,19 @@ type WorkerKubernetesConfig struct {
 	// field only needs to be utilized in the case of private, custom worker
 	// images. The image pull secrets in question must be created out-of-band by a
 	// sufficiently authorized user of the Kubernetes cluster.
-	ImagePullSecrets []string `json:"imagePullSecrets"`
+	ImagePullSecrets []string `json:"imagePullSecrets,omitempty"`
 }
 
 // WorkerStatus represents the status of a Worker.
 type WorkerStatus struct {
 	// Started indicates the time the Worker began execution. It will be nil for
 	// a Worker that is not yet executing.
-	Started *time.Time `json:"started"`
+	Started *time.Time `json:"started,omitempty"`
 	// Started indicates the time the Worker concluded execution. It will be nil
 	// for a Worker that is not done executing (or hasn't started).
-	Ended *time.Time `json:"ended"`
+	Ended *time.Time `json:"ended,omitempty"`
 	// Phase indicates where the Worker is in its lifecycle.
-	Phase WorkerPhase `json:"phase"`
+	Phase WorkerPhase `json:"phase,omitempty"`
 }
 
 // MarshalJSON amends WorkerStatus instances with type metadata so that clients

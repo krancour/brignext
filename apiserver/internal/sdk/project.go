@@ -36,7 +36,7 @@ func (p Project) MarshalJSON() ([]byte, error) {
 type ProjectSpec struct {
 	EventSubscriptions []EventSubscription `json:"eventSubscriptions" bson:"eventSubscriptions"` // nolint: lll
 	// TODO: Consider renaming this field to WorkerTemplate
-	Worker WorkerSpec `json:"worker" bson:"worker"`
+	WorkerTemplate WorkerSpec `json:"workerTemplate" bson:"workerTemplate"`
 }
 
 type EventSubscription struct {

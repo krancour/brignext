@@ -1,6 +1,6 @@
 package api
 
 type LogOptions struct {
-	Job       string `json:"job"`
-	Container string `json:"container"`
+	Job       string `json:"job,omitempty"`
+	Container string `json:"container,omitempty"`
 }

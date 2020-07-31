@@ -12,7 +12,7 @@ type Project struct {
 	// ObjectMeta encapsulates Project metadata.
 	meta.ObjectMeta `json:"metadata"`
 	// Description is a natural language description of the Project.
-	Description string `json:"description"`
+	Description string `json:"description,omitempty"`
 	// Spec is an instance of a ProjectSpec that pairs EventSubscriptions with
 	// a WorkerTemplate.
 	Spec ProjectSpec `json:"spec"`
@@ -49,7 +49,7 @@ func (p Project) MarshalJSON() ([]byte, error) {
 type ProjectSpec struct {
 	// EventSubscription defines a set of trigger conditions under which a new
 	// Worker should be created.
-	EventSubscriptions []EventSubscription `json:"eventSubscriptions"`
+	EventSubscriptions []EventSubscription `json:"eventSubscriptions,omitempty"`
 	// WorkerTemplate is a prototypical WorkerSpec.
 	WorkerTemplate WorkerSpec `json:"workerTemplate"`
 }
@@ -60,15 +60,15 @@ type ProjectSpec struct {
 // criteria.
 type EventSubscription struct {
 	// Source specifies the origin of an Event (e.g. a gateway).
-	Source string `json:"source"`
+	Source string `json:"source,omitempty"`
 	// Types enumerates specific Events of interest from the specified source.
 	// This is useful in narrowing a subscription when a source also emits many
 	// events that are NOT of interest.
-	Types []string `json:"types"`
+	Types []string `json:"types,omitempty"`
 	// Labels enumerates specific key/value pairs with which Events of interest
 	// must be labeled. An event must have ALL of these labels to match this
 	// subscription.
-	Labels Labels `json:"labels"`
+	Labels Labels `json:"labels,omitempty"`
 }
 
 // KubernetesConfig represents Kubernetes-specific configuration. This is used
@@ -76,15 +76,15 @@ type EventSubscription struct {
 // Event handling doesn't required a Project lookup to obtain
 // Kubernetes-specific configuration.
 type KubernetesConfig struct {
-	Namespace string `json:"namespace"`
+	Namespace string `json:"namespace,omitempty"`
 }
 
 // Secret represents Project-level sensitive information.
 type Secret struct {
 	// Key is a key by which the secret can referred.
-	Key string `json:"key"`
+	Key string `json:"key,omitempty"`
 	// Value is the sensitive information.
-	Value string `json:"value"`
+	Value string `json:"value,omitempty"`
 }
 
 // MarshalJSON amends Secret instances with type metadata so that clients do not

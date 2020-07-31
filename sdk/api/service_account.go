@@ -14,7 +14,7 @@ type ServiceAccount struct {
 	meta.ObjectMeta `json:"metadata"`
 	// Description is a natural language description of the ServiceAccount's
 	// purpose.
-	Description string `json:"description"`
+	Description string `json:"description,omitempty"`
 	// Locked indicates whether the ServiceAccount has been locked out of the
 	// system by an administrator.
 	Locked *time.Time `json:"locked,omitempty"`

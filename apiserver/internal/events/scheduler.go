@@ -51,7 +51,7 @@ func (s *scheduler) PreCreate(
 ) (brignext.Event, error) {
 	// Fill in scheduler-specific details
 	event.Kubernetes = proj.Kubernetes
-	event.Worker.Kubernetes = proj.Spec.Worker.Kubernetes
+	event.Worker.Kubernetes = proj.Spec.WorkerTemplate.Kubernetes
 	return event, nil
 }
 

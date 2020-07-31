@@ -8,7 +8,7 @@ import (
 )
 
 type ErrAuthentication struct {
-	Reason string `json:"reason"`
+	Reason string `json:"reason,omitempty"`
 }
 
 func (e *ErrAuthentication) Error() string {
@@ -54,8 +54,8 @@ func (e ErrAuthorization) MarshalJSON() ([]byte, error) {
 }
 
 type ErrBadRequest struct {
-	Reason  string   `json:"reason"`
-	Details []string `json:"details"`
+	Reason  string   `json:"reason,omitempty"`
+	Details []string `json:"details,omitempty"`
 }
 
 func (e *ErrBadRequest) Error() string {
@@ -86,8 +86,8 @@ func (e ErrBadRequest) MarshalJSON() ([]byte, error) {
 }
 
 type ErrNotFound struct {
-	Type string `json:"type"`
-	ID   string `json:"id"`
+	Type string `json:"type,omitempty"`
+	ID   string `json:"id,omitempty"`
 }
 
 func (e *ErrNotFound) Error() string {
@@ -111,9 +111,9 @@ func (e ErrNotFound) MarshalJSON() ([]byte, error) {
 }
 
 type ErrConflict struct {
-	Type   string `json:"type"`
-	ID     string `json:"id"`
-	Reason string `json:"reason"`
+	Type   string `json:"type,omitempty"`
+	ID     string `json:"id,omitempty"`
+	Reason string `json:"reason,omitempty"`
 }
 
 func (e *ErrConflict) Error() string {
@@ -159,7 +159,7 @@ func (e ErrInternalServer) MarshalJSON() ([]byte, error) {
 }
 
 type ErrNotSupported struct {
-	Details string `json:"reason"`
+	Details string `json:"reason,omitempty"`
 }
 
 func (e *ErrNotSupported) Error() string {

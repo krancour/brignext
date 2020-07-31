@@ -13,6 +13,6 @@ spec:
     - push
     labels:
       repo: krancour/brignext-demo
-  worker:
+  workerTemplate:
     git:
       cloneURL: https://github.com/krancour/brignext-demo.git

@@ -36,9 +36,9 @@ const (
 // JobsSpec represents configuration and policies for any Jobs spawned by
 // a Worker.
 type JobsSpec struct {
-	AllowPrivileged        bool                 `json:"allowPrivileged"`
-	AllowDockerSocketMount bool                 `json:"allowDockerSocketMount"`
-	Kubernetes             JobsKubernetesConfig `json:"kubernetes"`
+	AllowPrivileged        bool                  `json:"allowPrivileged"`
+	AllowDockerSocketMount bool                  `json:"allowDockerSocketMount"`
+	Kubernetes             *JobsKubernetesConfig `json:"kubernetes,omitempty"`
 }
 
 // JobsKubernetesConfig represents Kubernetes-specific Jobs configuration.
@@ -47,18 +47,18 @@ type JobsKubernetesConfig struct {
 	// when pulling the OCI image on which the Jobs' containers are based. The
 	// image pull secrets in question must be created out-of-band by a
 	// sufficiently authorized user of the Kubernetes cluster.
-	ImagePullSecrets []string `json:"imagePullSecrets"`
+	ImagePullSecrets []string `json:"imagePullSecrets,omitempty"`
 }
 
 // JobStatus represents the status of a Job.
 type JobStatus struct {
 	// Started indicates the time the Job began execution.
-	Started *time.Time `json:"started"`
+	Started *time.Time `json:"started,omitempty"`
 	// Started indicates the time the Job concluded execution. It will be nil
 	// for a Job that is not done executing.
-	Ended *time.Time `json:"ended"`
+	Ended *time.Time `json:"ended,omitempty"`
 	// Phase indicates where the Job is in its lifecycle.
-	Phase JobPhase `json:"phase"`
+	Phase JobPhase `json:"phase,omitempty"`
 }
 
 // MarshalJSON amends JobStatus instances with type metadata so that clients do

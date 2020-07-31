@@ -70,6 +70,7 @@
 		"projectSpec": {
 			"type": "object",
 			"description": "Project specification",
+			"required": ["workerTemplate"],
 			"additionalProperties": false,
 			"properties": {
 				"eventSubscriptions": {
@@ -82,7 +83,7 @@
 						"$ref": "#/definitions/eventSubscription"
 					}
 				},
-				"worker": {
+				"workerTemplate": {
 					"$ref": "#/definitions/workerSpec"
 				}
 			}
@@ -143,8 +144,18 @@
 					]
 				},
 				"command": {
-					"type": "string",
-					"description": "The command to execute within the container"
+					"type": "array",
+					"description": "The command to execute within the container",
+					"items": {
+						"type": "string"
+					}
+				},
+				"arguments": {
+					"type": "array",
+					"description": "Arguments to the command to execute within the container",
+					"items": {
+						"type": "string"
+					}
 				},
 				"environment": {
 					"type": [
@@ -291,7 +302,7 @@
 
 	"title": "Project",
 	"type": "object",
-	"required": ["apiVersion", "kind", "metadata"],
+	"required": ["apiVersion", "kind", "metadata", "spec"],
 	"additionalProperties": false,
 	"properties": {
 		"apiVersion": {

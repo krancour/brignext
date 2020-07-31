@@ -12,10 +12,10 @@ type User struct {
 	// ObjectMeta encapsulates User metadata.
 	meta.ObjectMeta `json:"metadata"`
 	// Name is the given name and surname of the User.
-	Name string `json:"name"`
+	Name string `json:"name,omitempty"`
 	// Locked indicates whether the User has been locked out of the system by
 	// an administrator.
-	Locked *time.Time `json:"locked"`
+	Locked *time.Time `json:"locked,omitempty"`
 }
 
 // MarshalJSON amends User instances with type metadata so that clients do

@@ -9,8 +9,8 @@ import (
 
 type UserReference struct {
 	meta.ObjectReferenceMeta `json:"metadata"`
-	Name                     string     `json:"name"`
-	Locked                   *time.Time `json:"locked"`
+	Name                     string     `json:"name,omitempty"`
+	Locked                   *time.Time `json:"locked,omitempty"`
 }
 
 func (u UserReference) MarshalJSON() ([]byte, error) {
@@ -30,7 +30,7 @@ func (u UserReference) MarshalJSON() ([]byte, error) {
 }
 
 type UserReferenceList struct {
-	Items []UserReference `json:"items"`
+	Items []UserReference `json:"items,omitempty"`
 }
 
 func (u UserReferenceList) MarshalJSON() ([]byte, error) {
