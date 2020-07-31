@@ -291,7 +291,7 @@ func (e *endpoints) getOrStreamLogs(
 		e.WriteAPIResponse(
 			w,
 			http.StatusInternalServerError,
-			brignext.NewErrInternalServer(),
+			&brignext.ErrInternalServer{},
 		)
 		return
 	}

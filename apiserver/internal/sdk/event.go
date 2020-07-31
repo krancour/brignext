@@ -1,6 +1,7 @@
 package sdk
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
@@ -8,7 +9,6 @@ import (
 )
 
 type Event struct {
-	meta.TypeMeta   `json:",inline" bson:",inline"`
 	meta.ObjectMeta `json:"metadata" bson:",inline"`
 	ProjectID       string         `json:"projectID" bson:"projectID"`
 	Source          string         `json:"source" bson:"source"`
@@ -19,21 +19,27 @@ type Event struct {
 	Git             EventGitConfig `json:"git" bson:"git"`
 	Payload         string         `json:"payload" bson:"payload"`
 	// The JSON schema doesn't permit the fields below to be set via the API.
+	// TODO: Some of these don't need to be pointers anymore
 	Worker     *WorkerSpec       `json:"worker,omitempty" bson:"worker"`
 	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes"`
 	Canceled   *time.Time        `json:"canceled,omitempty" bson:"canceled"`
 	Status     *EventStatus      `json:"status,omitempty" bson:"status"`
 }
 
-// TODO: Add EventSpec type
-
-func NewEvent() Event {
-	return Event{
-		TypeMeta: meta.TypeMeta{
-			APIVersion: meta.APIVersion,
-			Kind:       "Event",
+func (e Event) MarshalJSON() ([]byte, error) {
+	type Alias Event
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "Event",
+			},
+			Alias: (Alias)(e),
 		},
-	}
+	)
 }
 
 // UnmarshalBSON implements custom BSON unmarshaling for the Event type.
@@ -71,13 +77,10 @@ type EventListOptions struct {
 }
 
 type EventList struct {
-	meta.TypeMeta `json:",inline"`
-	meta.ListMeta `json:"metadata"`
-	Items         []Event `json:"items"`
+	Items []Event `json:"items"`
 }
 
 type EventReference struct {
-	meta.TypeMeta            `json:",inline"`
 	meta.ObjectReferenceMeta `json:"metadata" bson:",inline"`
 	ProjectID                string           `json:"projectID" bson:"projectID"`
 	Source                   string           `json:"source" bson:"source"`
@@ -86,12 +89,24 @@ type EventReference struct {
 	WorkerPhase              WorkerPhase      `json:"workerPhase" bson:"-"`
 }
 
+func (e EventReference) MarshalJSON() ([]byte, error) {
+	type Alias EventReference
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "EventReference",
+			},
+			Alias: (Alias)(e),
+		},
+	)
+}
+
 func NewEventReference(event Event) EventReference {
 	eventRef := EventReference{
-		TypeMeta: meta.TypeMeta{
-			APIVersion: meta.APIVersion,
-			Kind:       "EventReference",
-		},
 		ObjectReferenceMeta: meta.ObjectReferenceMeta{
 			ID:      event.ID,
 			Created: *event.Created,
@@ -119,18 +134,21 @@ func (e *EventReference) UnmarshalBSON(bytes []byte) error {
 }
 
 type EventReferenceList struct {
-	meta.TypeMeta `json:",inline"`
-	meta.ListMeta `json:"metadata"`
-	Items         []EventReference `json:"items"`
+	Items []EventReference `json:"items"`
 }
 
-func NewEventReferenceList() EventReferenceList {
-	return EventReferenceList{
-		TypeMeta: meta.TypeMeta{
-			APIVersion: meta.APIVersion,
-			Kind:       "EventReferenceList",
+func (e EventReferenceList) MarshalJSON() ([]byte, error) {
+	type Alias EventReferenceList
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "EventReferenceList",
+			},
+			Alias: (Alias)(e),
 		},
-		ListMeta: meta.ListMeta{},
-		Items:    []EventReference{},
-	}
+	)
 }

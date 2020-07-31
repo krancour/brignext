@@ -68,7 +68,7 @@ func (s *store) List(
 	ctx context.Context,
 	opts brignext.EventListOptions,
 ) (brignext.EventReferenceList, error) {
-	eventList := brignext.NewEventReferenceList()
+	eventList := brignext.EventReferenceList{}
 
 	criteria := bson.M{
 		"status.workerStatus.phase": bson.M{
@@ -101,7 +101,10 @@ func (s *store) Get(
 	event := brignext.Event{}
 	res := s.collection.FindOne(ctx, bson.M{"id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return event, brignext.NewErrNotFound("Event", id)
+		return event, &brignext.ErrNotFound{
+			Type: "Event",
+			ID:   id,
+		}
 	}
 	if res.Err() != nil {
 		return event, errors.Wrapf(res.Err(), "error finding event %q", id)
@@ -154,14 +157,14 @@ func (s *store) Cancel(ctx context.Context, id string) error {
 	}
 
 	if res.MatchedCount == 0 {
-		return brignext.NewErrConflict(
-			"Event",
-			id,
-			fmt.Sprintf(
+		return &brignext.ErrConflict{
+			Type: "Event",
+			ID:   id,
+			Reason: fmt.Sprintf(
 				"Event %q was not canceled because it was already in a terminal state.",
 				id,
 			),
-		)
+		}
 	}
 
 	return nil
@@ -171,7 +174,7 @@ func (s *store) CancelCollection(
 	ctx context.Context,
 	opts brignext.EventListOptions,
 ) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.NewEventReferenceList()
+	eventRefList := brignext.EventReferenceList{}
 	// It only makes sense to cancel events that are in a pending or running
 	// state. We can ignore anything else.
 	var cancelPending bool
@@ -258,7 +261,10 @@ func (s *store) Delete(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error deleting event %q", id)
 	}
 	if res.DeletedCount != 1 {
-		return brignext.NewErrNotFound("Event", id)
+		return &brignext.ErrNotFound{
+			Type: "Event",
+			ID:   id,
+		}
 	}
 	return nil
 }
@@ -267,7 +273,7 @@ func (s *store) DeleteCollection(
 	ctx context.Context,
 	opts brignext.EventListOptions,
 ) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.NewEventReferenceList()
+	eventRefList := brignext.EventReferenceList{}
 
 	// The MongoDB driver for Go doesn't expose findAndModify(), which could be
 	// used to select events and delete them at the same time. As a workaround,
@@ -350,7 +356,10 @@ func (s *store) UpdateWorkerStatus(
 		)
 	}
 	if res.MatchedCount == 0 {
-		return brignext.NewErrNotFound("Event", eventID)
+		return &brignext.ErrNotFound{
+			Type: "Event",
+			ID:   eventID,
+		}
 	}
 	return nil
 }
@@ -381,7 +390,10 @@ func (s *store) UpdateJobStatus(
 		)
 	}
 	if res.MatchedCount == 0 {
-		return brignext.NewErrNotFound("Event", eventID)
+		return &brignext.ErrNotFound{
+			Type: "Event",
+			ID:   eventID,
+		}
 	}
 	return nil
 }

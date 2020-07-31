@@ -1,6 +1,7 @@
 package sdk
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
@@ -106,17 +107,23 @@ type WorkerKubernetesConfig struct {
 }
 
 type WorkerStatus struct {
-	*meta.TypeMeta `json:",inline,omitempty" bson:"-"`
-	Started        *time.Time  `json:"started" bson:"started"`
-	Ended          *time.Time  `json:"ended" bson:"ended"`
-	Phase          WorkerPhase `json:"phase" bson:"phase"`
+	Started *time.Time  `json:"started" bson:"started"`
+	Ended   *time.Time  `json:"ended" bson:"ended"`
+	Phase   WorkerPhase `json:"phase" bson:"phase"`
 }
 
-func NewWorkerStatus() WorkerStatus {
-	return WorkerStatus{
-		TypeMeta: &meta.TypeMeta{
-			APIVersion: meta.APIVersion,
-			Kind:       "WorkerStatus",
+func (w WorkerStatus) MarshalJSON() ([]byte, error) {
+	type Alias WorkerStatus
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "WorkerStatus",
+			},
+			Alias: (Alias)(w),
 		},
-	}
+	)
 }

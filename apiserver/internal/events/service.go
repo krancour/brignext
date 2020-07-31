@@ -82,7 +82,7 @@ func (s *service) Create(
 	ctx context.Context,
 	event brignext.Event,
 ) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.NewEventReferenceList()
+	eventRefList := brignext.EventReferenceList{}
 
 	now := time.Now()
 	event.Created = &now
@@ -196,7 +196,7 @@ func (s *service) List(
 	ctx context.Context,
 	opts brignext.EventListOptions,
 ) (brignext.EventReferenceList, error) {
-	eventList := brignext.NewEventReferenceList()
+	eventList := brignext.EventReferenceList{}
 
 	// If no worker phase filters were applied, retrieve all phases
 	if len(opts.WorkerPhases) == 0 {
@@ -257,20 +257,21 @@ func (s *service) CancelCollection(
 	ctx context.Context,
 	opts brignext.EventListOptions,
 ) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.NewEventReferenceList()
+	eventRefList := brignext.EventReferenceList{}
 
 	// Refuse requests not qualified by project
 	if opts.ProjectID == "" {
-		return eventRefList, brignext.NewErrBadRequest(
-			"Requests to cancel multiple events must be qualified by project.",
-		)
+		return eventRefList, &brignext.ErrBadRequest{
+			Reason: "Requests to cancel multiple events must be qualified by " +
+				"project.",
+		}
 	}
 	// Refuse requeets not qualified by worker phases
 	if len(opts.WorkerPhases) == 0 {
-		return eventRefList, brignext.NewErrBadRequest(
-			"Requests to cancel multiple events must be qualified by worker " +
-				"phase(s).",
-		)
+		return eventRefList, &brignext.ErrBadRequest{
+			Reason: "Requests to cancel multiple events must be qualified by " +
+				"worker phase(s).",
+		}
 	}
 
 	if opts.ProjectID != "" {
@@ -342,20 +343,21 @@ func (s *service) DeleteCollection(
 	ctx context.Context,
 	opts brignext.EventListOptions,
 ) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.NewEventReferenceList()
+	eventRefList := brignext.EventReferenceList{}
 
 	// Refuse requests not qualified by project
 	if opts.ProjectID == "" {
-		return eventRefList, brignext.NewErrBadRequest(
-			"Requests to delete multiple events must be qualified by project.",
-		)
+		return eventRefList, &brignext.ErrBadRequest{
+			Reason: "Requests to delete multiple events must be qualified by " +
+				"project.",
+		}
 	}
 	// Refuse requeets not qualified by worker phases
 	if len(opts.WorkerPhases) == 0 {
-		return eventRefList, brignext.NewErrBadRequest(
-			"Requests to delete multiple events must be qualified by worker " +
-				"phase(s).",
-		)
+		return eventRefList, &brignext.ErrBadRequest{
+			Reason: "Requests to delete multiple events must be qualified by " +
+				"worker phase(s).",
+		}
 	}
 
 	if opts.ProjectID != "" {

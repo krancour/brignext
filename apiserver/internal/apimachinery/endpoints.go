@@ -38,7 +38,9 @@ func (b *BaseEndpoints) readAndValidateRequestBody(
 		b.WriteAPIResponse(
 			w,
 			http.StatusBadRequest,
-			brignext.NewErrBadRequest("Could not read request body."),
+			&brignext.ErrBadRequest{
+				Reason: "Could not read request body.",
+			},
 		)
 		return false
 	}
@@ -57,7 +59,9 @@ func (b *BaseEndpoints) readAndValidateRequestBody(
 			b.WriteAPIResponse(
 				w,
 				http.StatusBadRequest,
-				brignext.NewErrBadRequest("Could not validate request body."),
+				&brignext.ErrBadRequest{
+					Reason: "Could not validate request body.",
+				},
 			)
 			return false
 		}
@@ -70,10 +74,10 @@ func (b *BaseEndpoints) readAndValidateRequestBody(
 			b.WriteAPIResponse(
 				w,
 				http.StatusBadRequest,
-				brignext.NewErrBadRequest(
-					"Request body failed JSON validation",
-					verrStrs...,
-				),
+				&brignext.ErrBadRequest{
+					Reason:  "Request body failed JSON validation",
+					Details: verrStrs,
+				},
 			)
 			return false
 		}
@@ -87,7 +91,7 @@ func (b *BaseEndpoints) readAndValidateRequestBody(
 			b.WriteAPIResponse(
 				w,
 				http.StatusInternalServerError,
-				brignext.NewErrInternalServer(),
+				&brignext.ErrInternalServer{},
 			)
 			return false
 		}
@@ -128,7 +132,7 @@ func (b *BaseEndpoints) ServeRequest(req InboundRequest) {
 			b.WriteAPIResponse(
 				req.W,
 				http.StatusInternalServerError,
-				brignext.NewErrInternalServer(),
+				&brignext.ErrInternalServer{},
 			)
 		}
 		return

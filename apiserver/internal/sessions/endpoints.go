@@ -60,10 +60,10 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 				EndpointLogic: func() (interface{}, error) {
 					username, password, ok := r.BasicAuth()
 					if !ok {
-						return nil, brignext.NewErrBadRequest(
-							"The request to create a new root session did not include a " +
-								"valid basic auth header.",
-						)
+						return nil, &brignext.ErrBadRequest{
+							Reason: "The request to create a new root session did not " +
+								"include a valid basic auth header.",
+						}
 					}
 					return e.service.CreateRootSession(r.Context(), username, password)
 				},
@@ -115,10 +115,11 @@ func (e *endpoints) authenticate(w http.ResponseWriter, r *http.Request) {
 		W: w,
 		EndpointLogic: func() (interface{}, error) {
 			if oauth2State == "" || oidcCode == "" {
-				return nil, brignext.NewErrBadRequest(
-					"The OpenID Connect authentication completion request lacked one " +
-						"or both of the \"oauth2State\" and \"oidcCode\" query parameters.",
-				)
+				return nil, &brignext.ErrBadRequest{
+					Reason: `The OpenID Connect authentication completion request ` +
+						`lacked one or both of the "oauth2State" and "oidcCode" ` +
+						`query parameters.`,
+				}
 			}
 			if err := e.service.Authenticate(
 				r.Context(),

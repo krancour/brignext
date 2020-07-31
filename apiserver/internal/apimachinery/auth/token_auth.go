@@ -53,7 +53,9 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			t.writeResponse(
 				w,
 				http.StatusUnauthorized,
-				brignext.NewErrAuthentication("\"Authorization\" header is missing."),
+				&brignext.ErrAuthentication{
+					Reason: `Authorization" header is missing.`,
+				},
 			)
 			return
 		}
@@ -66,7 +68,9 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			t.writeResponse(
 				w,
 				http.StatusUnauthorized,
-				brignext.NewErrAuthentication("\"Authorization\" header is malformed."),
+				&brignext.ErrAuthentication{
+					Reason: `Authorization" header is malformed.`,
+				},
 			)
 			return
 		}
@@ -100,9 +104,9 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 				t.writeResponse(
 					w,
 					http.StatusUnauthorized,
-					brignext.NewErrAuthentication(
-						"Session not found. Please log in again.",
-					),
+					&brignext.ErrAuthentication{
+						Reason: "Session not found. Please log in again.",
+					},
 				)
 				return
 			}
@@ -110,7 +114,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			t.writeResponse(
 				w,
 				http.StatusInternalServerError,
-				brignext.NewErrInternalServer(),
+				&brignext.ErrInternalServer{},
 			)
 			return
 		}
@@ -118,11 +122,11 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			t.writeResponse(
 				w,
 				http.StatusUnauthorized,
-				brignext.NewErrAuthentication(
-					"Supplied token was for an established root session, but "+
-						"authentication using root credentials is no longer supported "+
+				&brignext.ErrAuthentication{
+					Reason: "Supplied token was for an established root session, but " +
+						"authentication using root credentials is no longer supported " +
 						"by this server.",
-				),
+				},
 			)
 			return
 		}
@@ -130,9 +134,10 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			t.writeResponse(
 				w,
 				http.StatusUnauthorized,
-				brignext.NewErrAuthentication(
-					"Supplied token has not been authenticated. Please log in again.",
-				),
+				&brignext.ErrAuthentication{
+					Reason: "Supplied token has not been authenticated. Please log " +
+						"in again.",
+				},
 			)
 			return
 		}
@@ -140,9 +145,9 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			t.writeResponse(
 				w,
 				http.StatusUnauthorized,
-				brignext.NewErrAuthentication(
-					"Supplied token has expired. Please log in again.",
-				),
+				&brignext.ErrAuthentication{
+					Reason: "Supplied token has expired. Please log in again.",
+				},
 			)
 			return
 		}
@@ -158,7 +163,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 				t.writeResponse(
 					w,
 					http.StatusInternalServerError,
-					brignext.NewErrInternalServer(),
+					&brignext.ErrInternalServer{},
 				)
 				return
 			}

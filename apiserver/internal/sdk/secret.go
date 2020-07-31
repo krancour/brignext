@@ -1,37 +1,68 @@
 package sdk
 
-import "github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
+import (
+	"encoding/json"
 
-type SecretList struct {
-	meta.TypeMeta `json:",inline"`
-	meta.ListMeta `json:"metadata"`
-	Items         []Secret `json:"items"`
-}
-
-func NewSecretList() SecretList {
-	return SecretList{
-		TypeMeta: meta.TypeMeta{
-			APIVersion: meta.APIVersion,
-			Kind:       "SecretList",
-		},
-		ListMeta: meta.ListMeta{},
-		Items:    []Secret{},
-	}
-}
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
+)
 
 type Secret struct {
-	meta.TypeMeta `json:",inline" bson:",inline"`
-	Key           string `json:"key" bson:"value"`
-	Value         string `json:"value" bson:"value"`
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
-func NewSecret(key, value string) Secret {
-	return Secret{
-		TypeMeta: meta.TypeMeta{
-			APIVersion: meta.APIVersion,
-			Kind:       "Secret",
+func (s Secret) MarshalJSON() ([]byte, error) {
+	type Alias Secret
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "Secret",
+			},
+			Alias: (Alias)(s),
 		},
-		Key:   key,
-		Value: value,
-	}
+	)
+}
+
+type SecretReference struct {
+	Key string `json:"key"`
+}
+
+func (s SecretReference) MarshalJSON() ([]byte, error) {
+	type Alias SecretReference
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "SecretReference",
+			},
+			Alias: (Alias)(s),
+		},
+	)
+}
+
+type SecretReferenceList struct {
+	Items []SecretReference `json:"items"`
+}
+
+func (s SecretReferenceList) MarshalJSON() ([]byte, error) {
+	type Alias SecretReferenceList
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "SecretReferenceList",
+			},
+			Alias: (Alias)(s),
+		},
+	)
 }

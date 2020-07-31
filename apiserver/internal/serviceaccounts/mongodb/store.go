@@ -68,14 +68,14 @@ func (s *store) Create(
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
-				return brignext.NewErrConflict(
-					"ServiceAccount",
-					serviceAccount.ID,
-					fmt.Sprintf(
+				return &brignext.ErrConflict{
+					Type: "ServiceAccount",
+					ID:   serviceAccount.ID,
+					Reason: fmt.Sprintf(
 						"A service account with the ID %q already exists.",
 						serviceAccount.ID,
 					),
-				)
+				}
 			}
 		}
 		return errors.Wrapf(
@@ -90,7 +90,7 @@ func (s *store) Create(
 func (s *store) List(
 	ctx context.Context,
 ) (brignext.ServiceAccountReferenceList, error) {
-	serviceAccountList := brignext.NewServiceAccountReferenceList()
+	serviceAccountList := brignext.ServiceAccountReferenceList{}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})
 	cur, err := s.collection.Find(ctx, bson.M{}, findOptions)
@@ -112,7 +112,10 @@ func (s *store) Get(
 	serviceAccount := brignext.ServiceAccount{}
 	res := s.collection.FindOne(ctx, bson.M{"id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return serviceAccount, brignext.NewErrNotFound("ServiceAccount", id)
+		return serviceAccount, &brignext.ErrNotFound{
+			Type: "ServiceAccount",
+			ID:   id,
+		}
 	}
 	if res.Err() != nil {
 		return serviceAccount, errors.Wrapf(
@@ -139,7 +142,9 @@ func (s *store) GetByHashedToken(
 	res :=
 		s.collection.FindOne(ctx, bson.M{"hashedToken": hashedToken})
 	if res.Err() == mongo.ErrNoDocuments {
-		return serviceAccount, brignext.NewErrNotFound("ServiceAccount", "")
+		return serviceAccount, &brignext.ErrNotFound{
+			Type: "ServiceAccount",
+		}
 	}
 	if res.Err() != nil {
 		return serviceAccount, errors.Wrap(
@@ -170,7 +175,10 @@ func (s *store) Lock(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error updating service account %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return brignext.NewErrNotFound("ServiceAccount", id)
+		return &brignext.ErrNotFound{
+			Type: "ServiceAccount",
+			ID:   id,
+		}
 	}
 	// Note, unlike the case of locking a user, there are no sessions to delete
 	// because service accounts use non-expiring, sessionless tokens.
@@ -196,7 +204,10 @@ func (s *store) Unlock(
 		return errors.Wrapf(err, "error updating service account %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return brignext.NewErrNotFound("ServiceAccount", id)
+		return &brignext.ErrNotFound{
+			Type: "ServiceAccount",
+			ID:   id,
+		}
 	}
 	return nil
 }

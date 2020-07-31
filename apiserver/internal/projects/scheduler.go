@@ -42,7 +42,7 @@ type Scheduler interface {
 	ListSecrets(
 		ctx context.Context,
 		project brignext.Project,
-	) (brignext.SecretList, error)
+	) (brignext.SecretReferenceList, error)
 	SetSecret(
 		ctx context.Context,
 		project brignext.Project,
@@ -298,8 +298,8 @@ func (s *scheduler) Delete(
 func (s *scheduler) ListSecrets(
 	ctx context.Context,
 	project brignext.Project,
-) (brignext.SecretList, error) {
-	secretList := brignext.NewSecretList()
+) (brignext.SecretReferenceList, error) {
+	secretList := brignext.SecretReferenceList{}
 
 	k8sSecret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
@@ -311,10 +311,10 @@ func (s *scheduler) ListSecrets(
 			project.Kubernetes.Namespace,
 		)
 	}
-	secretList.Items = make([]brignext.Secret, len(k8sSecret.Data))
+	secretList.Items = make([]brignext.SecretReference, len(k8sSecret.Data))
 	var i int
 	for key := range k8sSecret.Data {
-		secretList.Items[i] = brignext.NewSecret(key, "*** REDACTED ***")
+		secretList.Items[i] = brignext.SecretReference{Key: key}
 		i++
 	}
 	return secretList, nil

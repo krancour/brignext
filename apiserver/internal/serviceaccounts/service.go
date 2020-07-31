@@ -34,7 +34,9 @@ func (s *service) Create(
 ) (brignext.Token, error) {
 	now := time.Now()
 	serviceAccount.Created = &now
-	token := brignext.NewToken(crypto.NewToken(256))
+	token := brignext.Token{
+		Value: crypto.NewToken(256),
+	}
 	serviceAccount.HashedToken = crypto.ShortSHA("", token.Value)
 	if err := s.store.Create(ctx, serviceAccount); err != nil {
 		return token, errors.Wrapf(
@@ -104,7 +106,9 @@ func (s *service) Unlock(
 	ctx context.Context,
 	id string,
 ) (brignext.Token, error) {
-	newToken := brignext.NewToken(crypto.NewToken(256))
+	newToken := brignext.Token{
+		Value: crypto.NewToken(256),
+	}
 	if err := s.store.Unlock(
 		ctx,
 		id,

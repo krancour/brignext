@@ -18,7 +18,7 @@ type Service interface {
 	ListSecrets(
 		ctx context.Context,
 		projectID string,
-	) (brignext.SecretList, error)
+	) (brignext.SecretReferenceList, error)
 	SetSecret(
 		ctx context.Context,
 		projectID string,
@@ -163,8 +163,8 @@ func (s *service) Delete(ctx context.Context, id string) error {
 func (s *service) ListSecrets(
 	ctx context.Context,
 	projectID string,
-) (brignext.SecretList, error) {
-	secretList := brignext.SecretList{}
+) (brignext.SecretReferenceList, error) {
+	secretList := brignext.SecretReferenceList{}
 	project, err := s.store.Get(ctx, projectID)
 	if err != nil {
 		return secretList, errors.Wrapf(

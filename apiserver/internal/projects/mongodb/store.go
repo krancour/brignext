@@ -81,11 +81,14 @@ func (s *store) Create(
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
-				return brignext.NewErrConflict(
-					"Project",
-					project.ID,
-					fmt.Sprintf("A project with the ID %q already exists.", project.ID),
-				)
+				return &brignext.ErrConflict{
+					Type: "Project",
+					ID:   project.ID,
+					Reason: fmt.Sprintf(
+						"A project with the ID %q already exists.",
+						project.ID,
+					),
+				}
 			}
 		}
 		return errors.Wrapf(err, "error inserting new project %q", project.ID)
@@ -96,7 +99,7 @@ func (s *store) Create(
 func (s *store) List(
 	ctx context.Context,
 ) (brignext.ProjectReferenceList, error) {
-	projectList := brignext.NewProjectReferenceList()
+	projectList := brignext.ProjectReferenceList{}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})
 	cur, err := s.collection.Find(ctx, bson.M{}, findOptions)
@@ -113,7 +116,7 @@ func (s *store) ListSubscribers(
 	ctx context.Context,
 	event brignext.Event,
 ) (brignext.ProjectReferenceList, error) {
-	projectList := brignext.NewProjectReferenceList()
+	projectList := brignext.ProjectReferenceList{}
 	subscriptionMatchCriteria := bson.M{
 		"source": event.Source,
 		"types": bson.M{
@@ -163,7 +166,10 @@ func (s *store) Get(
 	project := brignext.Project{}
 	res := s.collection.FindOne(ctx, bson.M{"id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return project, brignext.NewErrNotFound("Project", id)
+		return project, &brignext.ErrNotFound{
+			Type: "Project",
+			ID:   id,
+		}
 	}
 	if res.Err() != nil {
 		return project, errors.Wrapf(res.Err(), "error finding project %q", id)
@@ -193,7 +199,10 @@ func (s *store) Update(
 		return errors.Wrapf(err, "error replacing project %q", project.ID)
 	}
 	if res.MatchedCount == 0 {
-		return brignext.NewErrNotFound("Project", project.ID)
+		return &brignext.ErrNotFound{
+			Type: "Project",
+			ID:   project.ID,
+		}
 	}
 	return nil
 }
@@ -208,7 +217,10 @@ func (s *store) Delete(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error deleting project %q", id)
 	}
 	if res.DeletedCount == 0 {
-		return brignext.NewErrNotFound("Project", id)
+		return &brignext.ErrNotFound{
+			Type: "Project",
+			ID:   id,
+		}
 	}
 
 	// Cascade the delete to the project's events

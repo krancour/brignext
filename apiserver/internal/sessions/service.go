@@ -8,6 +8,7 @@ import (
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/krancour/brignext/v2/apiserver/internal/users"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
@@ -61,18 +62,20 @@ func (s *service) CreateRootSession(
 	username string,
 	password string,
 ) (brignext.Token, error) {
-	token := brignext.NewToken(crypto.NewToken(256))
+	token := brignext.Token{
+		Value: crypto.NewToken(256),
+	}
 	if !s.rootUserEnabled {
-		return token, brignext.NewErrNotSupported(
-			"Authentication using root credentials is not supported by " +
+		return token, &brignext.ErrNotSupported{
+			Details: "Authentication using root credentials is not supported by " +
 				"this server.",
-		)
+		}
 	}
 	if username != "root" ||
 		crypto.ShortSHA(username, password) != s.hashedRootUserPassword {
-		return token, brignext.NewErrAuthentication(
-			"Could not authenticate request using the supplied credentials.",
-		)
+		return token, &brignext.ErrAuthentication{
+			Reason: "Could not authenticate request using the supplied credentials.",
+		}
 	}
 	session := auth.NewRootSession(token.Value)
 	now := time.Now()
@@ -90,10 +93,10 @@ func (s *service) CreateRootSession(
 func (s *service) CreateUserSession(
 	ctx context.Context,
 ) (brignext.UserSessionAuthDetails, error) {
-	userSessionAuthDetails := brignext.NewUserSessionAuthDetails(
-		crypto.NewToken(30),
-		crypto.NewToken(256),
-	)
+	userSessionAuthDetails := brignext.UserSessionAuthDetails{
+		OAuth2State: crypto.NewToken(30),
+		Token:       crypto.NewToken(256),
+	}
 	session := auth.NewUserSession(
 		userSessionAuthDetails.OAuth2State,
 		userSessionAuthDetails.Token,
@@ -119,10 +122,10 @@ func (s *service) Authenticate(
 	oidcCode string,
 ) error {
 	if s.oauth2Config == nil || s.oidcTokenVerifier == nil {
-		return brignext.NewErrNotSupported(
-			"Authentication using OpenID Connect is not supported by this " +
+		return &brignext.ErrNotSupported{
+			Details: "Authentication using OpenID Connect is not supported by this " +
 				"server.",
-		)
+		}
 	}
 	session, err := s.store.GetByHashedOAuth2State(
 		ctx,
@@ -165,7 +168,12 @@ func (s *service) Authenticate(
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
 			// User wasn't found. That's ok. We'll create one.
-			user = brignext.NewUser(claims.Email, claims.Name)
+			user = brignext.User{
+				ObjectMeta: meta.ObjectMeta{
+					ID: claims.Email,
+				},
+				Name: claims.Name,
+			}
 			if err = s.usersStore.Create(ctx, user); err != nil {
 				return err
 			}
