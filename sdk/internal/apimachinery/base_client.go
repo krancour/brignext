@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 )
 
@@ -113,17 +113,17 @@ func (b *BaseClient) SubmitRequest(
 		var apiErr error
 		switch resp.StatusCode {
 		case http.StatusUnauthorized:
-			apiErr = &brignext.ErrAuthentication{}
+			apiErr = &sdk.ErrAuthentication{}
 		case http.StatusForbidden:
-			apiErr = &brignext.ErrAuthorization{}
+			apiErr = &sdk.ErrAuthorization{}
 		case http.StatusBadRequest:
-			apiErr = &brignext.ErrBadRequest{}
+			apiErr = &sdk.ErrBadRequest{}
 		case http.StatusNotFound:
-			apiErr = &brignext.ErrNotFound{}
+			apiErr = &sdk.ErrNotFound{}
 		case http.StatusConflict:
-			apiErr = &brignext.ErrConflict{}
+			apiErr = &sdk.ErrConflict{}
 		case http.StatusInternalServerError:
-			apiErr = &brignext.ErrInternalServer{}
+			apiErr = &sdk.ErrInternalServer{}
 		default:
 			return nil, errors.Errorf("received %d from API server", resp.StatusCode)
 		}

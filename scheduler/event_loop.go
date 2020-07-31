@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/scheduler/internal/events"
-	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk"
 )
 
 func (s *scheduler) runEventLoop(ctx context.Context, projectID string) {
@@ -55,7 +55,7 @@ outerLoop:
 			}
 
 			// If the worker's phase isn't PENDING, then there's nothing to do
-			if event.Status.WorkerStatus.Phase != brignext.WorkerPhasePending {
+			if event.Status.WorkerStatus.Phase != sdk.WorkerPhasePending {
 				asyncEvent.Ack()
 				continue // Next event
 			}

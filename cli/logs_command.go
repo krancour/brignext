@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -43,7 +43,7 @@ func logs(c *cli.Context) error {
 	eventID := c.String(flagEvent)
 	follow := c.Bool(flagFollow)
 
-	opts := brignext.LogOptions{
+	opts := sdk.LogOptions{
 		Job:       c.String(flagJob),
 		Container: c.String(flagContainer),
 	}
@@ -54,7 +54,7 @@ func logs(c *cli.Context) error {
 	}
 
 	if !follow {
-		var logEntryList brignext.LogEntryList
+		var logEntryList sdk.LogEntryList
 		if logEntryList, err =
 			client.Events().GetLogs(c.Context, eventID, opts); err != nil {
 			return err

@@ -6,16 +6,16 @@ import (
 	"fmt"
 	"net/http"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
 type ServiceAccountsClient interface {
-	Create(context.Context, brignext.ServiceAccount) (brignext.Token, error)
-	List(context.Context) (brignext.ServiceAccountReferenceList, error)
-	Get(context.Context, string) (brignext.ServiceAccount, error)
+	Create(context.Context, sdk.ServiceAccount) (sdk.Token, error)
+	List(context.Context) (sdk.ServiceAccountReferenceList, error)
+	Get(context.Context, string) (sdk.ServiceAccount, error)
 	Lock(context.Context, string) error
-	Unlock(context.Context, string) (brignext.Token, error)
+	Unlock(context.Context, string) (sdk.Token, error)
 }
 
 type serviceAccountsClient struct {
@@ -44,9 +44,9 @@ func NewServiceAccountsClient(
 
 func (s *serviceAccountsClient) Create(
 	_ context.Context,
-	serviceAccount brignext.ServiceAccount,
-) (brignext.Token, error) {
-	token := brignext.Token{}
+	serviceAccount sdk.ServiceAccount,
+) (sdk.Token, error) {
+	token := sdk.Token{}
 	return token, s.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodPost,
@@ -61,8 +61,8 @@ func (s *serviceAccountsClient) Create(
 
 func (s *serviceAccountsClient) List(
 	context.Context,
-) (brignext.ServiceAccountReferenceList, error) {
-	serviceAccountList := brignext.ServiceAccountReferenceList{}
+) (sdk.ServiceAccountReferenceList, error) {
+	serviceAccountList := sdk.ServiceAccountReferenceList{}
 	return serviceAccountList, s.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
@@ -77,8 +77,8 @@ func (s *serviceAccountsClient) List(
 func (s *serviceAccountsClient) Get(
 	_ context.Context,
 	id string,
-) (brignext.ServiceAccount, error) {
-	serviceAccount := brignext.ServiceAccount{}
+) (sdk.ServiceAccount, error) {
+	serviceAccount := sdk.ServiceAccount{}
 	return serviceAccount, s.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
@@ -104,8 +104,8 @@ func (s *serviceAccountsClient) Lock(_ context.Context, id string) error {
 func (s *serviceAccountsClient) Unlock(
 	_ context.Context,
 	id string,
-) (brignext.Token, error) {
-	token := brignext.Token{}
+) (sdk.Token, error) {
+	token := sdk.Token{}
 	return token, s.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodDelete,

@@ -10,7 +10,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/krancour/brignext/v2/internal/file"
-	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -314,7 +314,7 @@ func eventCreate(c *cli.Context) error {
 		payload = string(payloadBytes)
 	}
 
-	event := brignext.Event{
+	event := sdk.Event{
 		ProjectID: projectID,
 		Source:    source,
 		Type:      eventType,
@@ -339,31 +339,31 @@ func eventList(c *cli.Context) error {
 	output := c.String(flagOutput)
 	projectID := c.String(flagProject)
 
-	workerPhases := []brignext.WorkerPhase{}
+	workerPhases := []sdk.WorkerPhase{}
 
 	if c.Bool(flagAborted) {
-		workerPhases = append(workerPhases, brignext.WorkerPhaseAborted)
+		workerPhases = append(workerPhases, sdk.WorkerPhaseAborted)
 	}
 	if c.Bool(flagCanceled) {
-		workerPhases = append(workerPhases, brignext.WorkerPhaseCanceled)
+		workerPhases = append(workerPhases, sdk.WorkerPhaseCanceled)
 	}
 	if c.Bool(flagFailed) {
-		workerPhases = append(workerPhases, brignext.WorkerPhaseFailed)
+		workerPhases = append(workerPhases, sdk.WorkerPhaseFailed)
 	}
 	if c.Bool(flagPending) {
-		workerPhases = append(workerPhases, brignext.WorkerPhasePending)
+		workerPhases = append(workerPhases, sdk.WorkerPhasePending)
 	}
 	if c.Bool(flagRunning) {
-		workerPhases = append(workerPhases, brignext.WorkerPhaseRunning)
+		workerPhases = append(workerPhases, sdk.WorkerPhaseRunning)
 	}
 	if c.Bool(flagSucceeded) {
-		workerPhases = append(workerPhases, brignext.WorkerPhaseSucceeded)
+		workerPhases = append(workerPhases, sdk.WorkerPhaseSucceeded)
 	}
 	if c.Bool(flagTimedOut) {
-		workerPhases = append(workerPhases, brignext.WorkerPhaseTimedOut)
+		workerPhases = append(workerPhases, sdk.WorkerPhaseTimedOut)
 	}
 	if c.Bool(flagUnknown) {
-		workerPhases = append(workerPhases, brignext.WorkerPhaseUnknown)
+		workerPhases = append(workerPhases, sdk.WorkerPhaseUnknown)
 	}
 
 	if c.Bool(flagTerminal) {
@@ -372,7 +372,7 @@ func eventList(c *cli.Context) error {
 				"--terminal is mutually exclusive with all other state flags",
 			)
 		}
-		workerPhases = brignext.WorkerPhasesTerminal()
+		workerPhases = sdk.WorkerPhasesTerminal()
 	}
 
 	if c.Bool(flagNonTerminal) {
@@ -381,14 +381,14 @@ func eventList(c *cli.Context) error {
 				"--non-terminal is mutually exclusive with all other state flags",
 			)
 		}
-		workerPhases = brignext.WorkerPhasesNonTerminal()
+		workerPhases = sdk.WorkerPhasesNonTerminal()
 	}
 
 	if err := validateOutputFormat(output); err != nil {
 		return err
 	}
 
-	opts := brignext.EventListOptions{
+	opts := sdk.EventListOptions{
 		ProjectID:    projectID,
 		WorkerPhases: workerPhases,
 	}
@@ -573,12 +573,12 @@ func eventCancelMany(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	opts := brignext.EventListOptions{
+	opts := sdk.EventListOptions{
 		ProjectID:    projectID,
-		WorkerPhases: []brignext.WorkerPhase{brignext.WorkerPhasePending},
+		WorkerPhases: []sdk.WorkerPhase{sdk.WorkerPhasePending},
 	}
 	if cancelRunning {
-		opts.WorkerPhases = append(opts.WorkerPhases, brignext.WorkerPhaseRunning)
+		opts.WorkerPhases = append(opts.WorkerPhases, sdk.WorkerPhaseRunning)
 	}
 
 	eventRefList, err := client.Events().CancelCollection(c.Context, opts)
@@ -616,31 +616,31 @@ func eventDelete(c *cli.Context) error {
 
 func eventDeleteMany(c *cli.Context) error {
 	projectID := c.String(flagProject)
-	workerPhases := []brignext.WorkerPhase{}
+	workerPhases := []sdk.WorkerPhase{}
 
 	if c.Bool(flagAborted) {
-		workerPhases = append(workerPhases, brignext.WorkerPhaseAborted)
+		workerPhases = append(workerPhases, sdk.WorkerPhaseAborted)
 	}
 	if c.Bool(flagCanceled) {
-		workerPhases = append(workerPhases, brignext.WorkerPhaseCanceled)
+		workerPhases = append(workerPhases, sdk.WorkerPhaseCanceled)
 	}
 	if c.Bool(flagFailed) {
-		workerPhases = append(workerPhases, brignext.WorkerPhaseFailed)
+		workerPhases = append(workerPhases, sdk.WorkerPhaseFailed)
 	}
 	if c.Bool(flagPending) {
-		workerPhases = append(workerPhases, brignext.WorkerPhasePending)
+		workerPhases = append(workerPhases, sdk.WorkerPhasePending)
 	}
 	if c.Bool(flagRunning) {
-		workerPhases = append(workerPhases, brignext.WorkerPhaseRunning)
+		workerPhases = append(workerPhases, sdk.WorkerPhaseRunning)
 	}
 	if c.Bool(flagSucceeded) {
-		workerPhases = append(workerPhases, brignext.WorkerPhaseSucceeded)
+		workerPhases = append(workerPhases, sdk.WorkerPhaseSucceeded)
 	}
 	if c.Bool(flagTimedOut) {
-		workerPhases = append(workerPhases, brignext.WorkerPhaseTimedOut)
+		workerPhases = append(workerPhases, sdk.WorkerPhaseTimedOut)
 	}
 	if c.Bool(flagUnknown) {
-		workerPhases = append(workerPhases, brignext.WorkerPhaseUnknown)
+		workerPhases = append(workerPhases, sdk.WorkerPhaseUnknown)
 	}
 
 	if c.Bool(flagAnyState) {
@@ -649,7 +649,7 @@ func eventDeleteMany(c *cli.Context) error {
 				"--any-state is mutually exclusive with all other state flags",
 			)
 		}
-		workerPhases = brignext.WorkerPhasesAll()
+		workerPhases = sdk.WorkerPhasesAll()
 	}
 
 	if c.Bool(flagTerminal) {
@@ -658,7 +658,7 @@ func eventDeleteMany(c *cli.Context) error {
 				"--terminal is mutually exclusive with all other state flags",
 			)
 		}
-		workerPhases = brignext.WorkerPhasesTerminal()
+		workerPhases = sdk.WorkerPhasesTerminal()
 	}
 
 	confirmed, err := confirmed(c)
@@ -674,7 +674,7 @@ func eventDeleteMany(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	opts := brignext.EventListOptions{
+	opts := sdk.EventListOptions{
 		ProjectID:    projectID,
 		WorkerPhases: workerPhases,
 	}

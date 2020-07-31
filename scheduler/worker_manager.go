@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -17,7 +17,7 @@ import (
 
 func (s *scheduler) createWorkspacePVC(
 	ctx context.Context,
-	event brignext.Event,
+	event sdk.Event,
 ) error {
 	storageQuantityStr := event.Worker.WorkspaceSize
 	if storageQuantityStr == "" {
@@ -75,7 +75,7 @@ func (s *scheduler) createWorkspacePVC(
 
 func (s *scheduler) createWorkerPod(
 	ctx context.Context,
-	event brignext.Event,
+	event sdk.Event,
 ) error {
 	imagePullSecrets := []corev1.LocalObjectReference{}
 	for _, imagePullSecret := range event.Worker.Kubernetes.ImagePullSecrets {

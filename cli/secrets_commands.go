@@ -7,7 +7,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
-	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -150,7 +150,7 @@ func secretsSet(c *cli.Context) error {
 	// API call for each one. This can be revisited in the future if someone is
 	// aware of or discovers the right pattern for this.
 	for k, v := range kvPairs {
-		secret := brignext.Secret{
+		secret := sdk.Secret{
 			Key:   k,
 			Value: v,
 		}

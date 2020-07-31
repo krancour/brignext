@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -58,8 +58,8 @@ func (o *observer) syncJobPod(obj interface{}) {
 	// primary container
 	eventID := jobPod.Labels["brignext.io/event"]
 	jobName := jobPod.Labels["brignext.io/job"]
-	status := brignext.JobStatus{
-		Phase: brignext.JobPhaseRunning,
+	status := sdk.JobStatus{
+		Phase: sdk.JobPhaseRunning,
 	}
 
 	if jobPod.Status.StartTime != nil {
@@ -70,9 +70,9 @@ func (o *observer) syncJobPod(obj interface{}) {
 		if containerStatus.Name == jobPod.Spec.Containers[0].Name {
 			if containerStatus.State.Terminated != nil {
 				if containerStatus.State.Terminated.Reason == "Completed" {
-					status.Phase = brignext.JobPhaseSucceeded
+					status.Phase = sdk.JobPhaseSucceeded
 				} else {
-					status.Phase = brignext.JobPhaseFailed
+					status.Phase = sdk.JobPhaseFailed
 				}
 				status.Ended = &containerStatus.State.Terminated.FinishedAt.Time
 			}

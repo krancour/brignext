@@ -9,7 +9,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
-	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -113,7 +113,7 @@ func projectCreate(c *cli.Context) error {
 	// JSON schema validation is applied to what's in the file and NOT to a
 	// project description that was inadvertently scrubbed of non-permitted fields
 	// during client-side unmarshaling.
-	project := brignext.Project{}
+	project := sdk.Project{}
 	if err = json.Unmarshal(projectBytes, &project); err != nil {
 		return errors.Wrapf(err, "error unmarshaling project file %s", filename)
 	}
@@ -270,7 +270,7 @@ func projectUpdate(c *cli.Context) error {
 	// JSON schema validation is applied to what's in the file and NOT to a
 	// project description that was inadvertently scrubbed of non-permitted fields
 	// during client-side unmarshaling.
-	project := brignext.Project{}
+	project := sdk.Project{}
 	if err = json.Unmarshal(projectBytes, &project); err != nil {
 		return errors.Wrapf(err, "error unmarshaling project file %s", filename)
 	}

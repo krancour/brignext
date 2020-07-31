@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
@@ -14,22 +14,22 @@ type ProjectsClient interface {
 	// TODO: This should return the project because the system will have provided
 	// values for some fields that are beyond a client's control, but are not
 	// necessarily beyond a client's interest.
-	Create(context.Context, brignext.Project) error
+	Create(context.Context, sdk.Project) error
 	CreateFromBytes(context.Context, []byte) error
-	List(context.Context) (brignext.ProjectReferenceList, error)
-	Get(context.Context, string) (brignext.Project, error)
+	List(context.Context) (sdk.ProjectReferenceList, error)
+	Get(context.Context, string) (sdk.Project, error)
 	// TODO: This should return the project because the system will have provided
 	// values for some fields that are beyond a client's control, but are not
 	// necessarily beyond a client's interest.
-	Update(context.Context, brignext.Project) error
+	Update(context.Context, sdk.Project) error
 	UpdateFromBytes(context.Context, string, []byte) error
 	Delete(context.Context, string) error
 
 	ListSecrets(
 		ctx context.Context,
 		projectID string,
-	) (brignext.SecretReferenceList, error)
-	SetSecret(ctx context.Context, projectID string, secret brignext.Secret) error
+	) (sdk.SecretReferenceList, error)
+	SetSecret(ctx context.Context, projectID string, secret sdk.Secret) error
 	UnsetSecret(ctx context.Context, projectID string, key string) error
 }
 
@@ -59,7 +59,7 @@ func NewProjectsClient(
 
 func (p *projectsClient) Create(
 	_ context.Context,
-	project brignext.Project,
+	project sdk.Project,
 ) error {
 	return p.ExecuteRequest(
 		apimachinery.OutboundRequest{
@@ -89,8 +89,8 @@ func (p *projectsClient) CreateFromBytes(
 
 func (p *projectsClient) List(
 	context.Context,
-) (brignext.ProjectReferenceList, error) {
-	projectList := brignext.ProjectReferenceList{}
+) (sdk.ProjectReferenceList, error) {
+	projectList := sdk.ProjectReferenceList{}
 	return projectList, p.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
@@ -105,8 +105,8 @@ func (p *projectsClient) List(
 func (p *projectsClient) Get(
 	_ context.Context,
 	id string,
-) (brignext.Project, error) {
-	project := brignext.Project{}
+) (sdk.Project, error) {
+	project := sdk.Project{}
 	return project, p.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
@@ -120,7 +120,7 @@ func (p *projectsClient) Get(
 
 func (p *projectsClient) Update(
 	_ context.Context,
-	project brignext.Project,
+	project sdk.Project,
 ) error {
 	return p.ExecuteRequest(
 		apimachinery.OutboundRequest{
@@ -163,8 +163,8 @@ func (p *projectsClient) Delete(_ context.Context, id string) error {
 func (p *projectsClient) ListSecrets(
 	ctx context.Context,
 	projectID string,
-) (brignext.SecretReferenceList, error) {
-	secretList := brignext.SecretReferenceList{}
+) (sdk.SecretReferenceList, error) {
+	secretList := sdk.SecretReferenceList{}
 	return secretList, p.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
@@ -179,7 +179,7 @@ func (p *projectsClient) ListSecrets(
 func (p *projectsClient) SetSecret(
 	ctx context.Context,
 	projectID string,
-	secret brignext.Secret,
+	secret sdk.Secret,
 ) error {
 	return p.ExecuteRequest(
 		apimachinery.OutboundRequest{

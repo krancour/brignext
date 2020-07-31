@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"net/http"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
@@ -13,8 +13,8 @@ type SessionsClient interface {
 	CreateRootSession(
 		ctx context.Context,
 		password string,
-	) (brignext.Token, error)
-	CreateUserSession(context.Context) (brignext.UserSessionAuthDetails, error)
+	) (sdk.Token, error)
+	CreateUserSession(context.Context) (sdk.UserSessionAuthDetails, error)
 	Delete(context.Context) error
 }
 
@@ -45,8 +45,8 @@ func NewSessionsClient(
 func (s *sessionsClient) CreateRootSession(
 	_ context.Context,
 	password string,
-) (brignext.Token, error) {
-	token := brignext.Token{}
+) (sdk.Token, error) {
+	token := sdk.Token{}
 	return token, s.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodPost,
@@ -63,8 +63,8 @@ func (s *sessionsClient) CreateRootSession(
 
 func (s *sessionsClient) CreateUserSession(
 	context.Context,
-) (brignext.UserSessionAuthDetails, error) {
-	userSessionAuthDetails := brignext.UserSessionAuthDetails{}
+) (sdk.UserSessionAuthDetails, error) {
+	userSessionAuthDetails := sdk.UserSessionAuthDetails{}
 	return userSessionAuthDetails, s.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodPost,

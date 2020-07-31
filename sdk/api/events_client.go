@@ -9,51 +9,51 @@ import (
 	"net/http"
 	"strings"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
 type EventsClient interface {
-	Create(context.Context, brignext.Event) (brignext.EventReferenceList, error)
+	Create(context.Context, sdk.Event) (sdk.EventReferenceList, error)
 	List(
 		context.Context,
-		brignext.EventListOptions,
-	) (brignext.EventReferenceList, error)
-	Get(context.Context, string) (brignext.Event, error)
+		sdk.EventListOptions,
+	) (sdk.EventReferenceList, error)
+	Get(context.Context, string) (sdk.Event, error)
 	Cancel(context.Context, string) error
 	CancelCollection(
 		context.Context,
-		brignext.EventListOptions,
-	) (brignext.EventReferenceList, error)
+		sdk.EventListOptions,
+	) (sdk.EventReferenceList, error)
 	Delete(context.Context, string) error
 	DeleteCollection(
 		context.Context,
-		brignext.EventListOptions,
-	) (brignext.EventReferenceList, error)
+		sdk.EventListOptions,
+	) (sdk.EventReferenceList, error)
 
 	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
-		status brignext.WorkerStatus,
+		status sdk.WorkerStatus,
 	) error
 
 	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
 		jobName string,
-		status brignext.JobStatus,
+		status sdk.JobStatus,
 	) error
 
 	GetLogs(
 		ctx context.Context,
 		eventID string,
-		opts brignext.LogOptions,
-	) (brignext.LogEntryList, error)
+		opts sdk.LogOptions,
+	) (sdk.LogEntryList, error)
 	StreamLogs(
 		ctx context.Context,
 		eventID string,
-		opts brignext.LogOptions,
-	) (<-chan brignext.LogEntry, <-chan error, error)
+		opts sdk.LogOptions,
+	) (<-chan sdk.LogEntry, <-chan error, error)
 }
 
 type eventsClient struct {
@@ -82,9 +82,9 @@ func NewEventsClient(
 
 func (e *eventsClient) Create(
 	_ context.Context,
-	event brignext.Event,
-) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.EventReferenceList{}
+	event sdk.Event,
+) (sdk.EventReferenceList, error) {
+	eventRefList := sdk.EventReferenceList{}
 	return eventRefList, e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodPost,
@@ -99,8 +99,8 @@ func (e *eventsClient) Create(
 
 func (e *eventsClient) List(
 	_ context.Context,
-	opts brignext.EventListOptions,
-) (brignext.EventReferenceList, error) {
+	opts sdk.EventListOptions,
+) (sdk.EventReferenceList, error) {
 	queryParams := map[string]string{}
 	if opts.ProjectID != "" {
 		queryParams["projectID"] = opts.ProjectID
@@ -112,7 +112,7 @@ func (e *eventsClient) List(
 		}
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
-	eventList := brignext.EventReferenceList{}
+	eventList := sdk.EventReferenceList{}
 	return eventList, e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
@@ -128,8 +128,8 @@ func (e *eventsClient) List(
 func (e *eventsClient) Get(
 	_ context.Context,
 	id string,
-) (brignext.Event, error) {
-	event := brignext.Event{}
+) (sdk.Event, error) {
+	event := sdk.Event{}
 	return event, e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
@@ -154,8 +154,8 @@ func (e *eventsClient) Cancel(_ context.Context, id string) error {
 
 func (e *eventsClient) CancelCollection(
 	_ context.Context,
-	opts brignext.EventListOptions,
-) (brignext.EventReferenceList, error) {
+	opts sdk.EventListOptions,
+) (sdk.EventReferenceList, error) {
 	queryParams := map[string]string{}
 	if opts.ProjectID != "" {
 		queryParams["projectID"] = opts.ProjectID
@@ -167,7 +167,7 @@ func (e *eventsClient) CancelCollection(
 		}
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
-	eventRefList := brignext.EventReferenceList{}
+	eventRefList := sdk.EventReferenceList{}
 	return eventRefList, e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodPost,
@@ -193,8 +193,8 @@ func (e *eventsClient) Delete(_ context.Context, id string) error {
 
 func (e *eventsClient) DeleteCollection(
 	_ context.Context,
-	opts brignext.EventListOptions,
-) (brignext.EventReferenceList, error) {
+	opts sdk.EventListOptions,
+) (sdk.EventReferenceList, error) {
 	queryParams := map[string]string{}
 	if opts.ProjectID != "" {
 		queryParams["projectID"] = opts.ProjectID
@@ -206,7 +206,7 @@ func (e *eventsClient) DeleteCollection(
 		}
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
-	eventRefList := brignext.EventReferenceList{}
+	eventRefList := sdk.EventReferenceList{}
 	return eventRefList, e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodDelete,
@@ -222,7 +222,7 @@ func (e *eventsClient) DeleteCollection(
 func (e *eventsClient) UpdateWorkerStatus(
 	_ context.Context,
 	eventID string,
-	status brignext.WorkerStatus,
+	status sdk.WorkerStatus,
 ) error {
 	return e.ExecuteRequest(
 		apimachinery.OutboundRequest{
@@ -239,7 +239,7 @@ func (e *eventsClient) UpdateJobStatus(
 	_ context.Context,
 	eventID string,
 	jobName string,
-	status brignext.JobStatus,
+	status sdk.JobStatus,
 ) error {
 	return e.ExecuteRequest(
 		apimachinery.OutboundRequest{
@@ -259,9 +259,9 @@ func (e *eventsClient) UpdateJobStatus(
 func (e *eventsClient) GetLogs(
 	ctx context.Context,
 	eventID string,
-	opts brignext.LogOptions,
-) (brignext.LogEntryList, error) {
-	logEntryList := brignext.LogEntryList{}
+	opts sdk.LogOptions,
+) (sdk.LogEntryList, error) {
+	logEntryList := sdk.LogEntryList{}
 	return logEntryList, e.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
@@ -277,8 +277,8 @@ func (e *eventsClient) GetLogs(
 func (e *eventsClient) StreamLogs(
 	ctx context.Context,
 	eventID string,
-	opts brignext.LogOptions,
-) (<-chan brignext.LogEntry, <-chan error, error) {
+	opts sdk.LogOptions,
+) (<-chan sdk.LogEntry, <-chan error, error) {
 	resp, err := e.SubmitRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
@@ -292,7 +292,7 @@ func (e *eventsClient) StreamLogs(
 		return nil, nil, err
 	}
 
-	logCh := make(chan brignext.LogEntry)
+	logCh := make(chan sdk.LogEntry)
 	errCh := make(chan error)
 
 	go e.receiveLogStream(ctx, resp.Body, logCh, errCh)
@@ -301,7 +301,7 @@ func (e *eventsClient) StreamLogs(
 }
 
 func (e *eventsClient) queryParamsFromLogOptions(
-	opts brignext.LogOptions,
+	opts sdk.LogOptions,
 	stream bool,
 ) map[string]string {
 	queryParams := map[string]string{}
@@ -320,13 +320,13 @@ func (e *eventsClient) queryParamsFromLogOptions(
 func (e *eventsClient) receiveLogStream(
 	ctx context.Context,
 	reader io.ReadCloser,
-	logEntryCh chan<- brignext.LogEntry,
+	logEntryCh chan<- sdk.LogEntry,
 	errCh chan<- error,
 ) {
 	defer reader.Close()
 	decoder := json.NewDecoder(reader)
 	for {
-		logEntry := brignext.LogEntry{}
+		logEntry := sdk.LogEntry{}
 		if err := decoder.Decode(&logEntry); err != nil {
 			select {
 			case errCh <- err:

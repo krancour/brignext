@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"net/http"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
 type UsersClient interface {
-	List(context.Context) (brignext.UserReferenceList, error)
-	Get(context.Context, string) (brignext.User, error)
+	List(context.Context) (sdk.UserReferenceList, error)
+	Get(context.Context, string) (sdk.User, error)
 	Lock(context.Context, string) error
 	Unlock(context.Context, string) error
 }
@@ -43,8 +43,8 @@ func NewUsersClient(
 
 func (u *usersClient) List(
 	context.Context,
-) (brignext.UserReferenceList, error) {
-	userList := brignext.UserReferenceList{}
+) (sdk.UserReferenceList, error) {
+	userList := sdk.UserReferenceList{}
 	return userList, u.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,
@@ -56,8 +56,8 @@ func (u *usersClient) List(
 	)
 }
 
-func (u *usersClient) Get(_ context.Context, id string) (brignext.User, error) {
-	user := brignext.User{}
+func (u *usersClient) Get(_ context.Context, id string) (sdk.User, error) {
+	user := sdk.User{}
 	return user, u.ExecuteRequest(
 		apimachinery.OutboundRequest{
 			Method:      http.MethodGet,

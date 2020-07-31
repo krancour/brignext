@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	brignext "github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -57,19 +57,19 @@ func (o *observer) syncWorkerPod(obj interface{}) {
 	// Use the API to update worker phase so it corresponds to worker pod phase
 	eventID := workerPod.Labels["brignext.io/event"]
 
-	status := brignext.WorkerStatus{}
+	status := sdk.WorkerStatus{}
 	switch workerPod.Status.Phase {
 	case corev1.PodPending:
 		// For BrigNext's purposes, this counts as running
-		status.Phase = brignext.WorkerPhaseRunning
+		status.Phase = sdk.WorkerPhaseRunning
 	case corev1.PodRunning:
-		status.Phase = brignext.WorkerPhaseRunning
+		status.Phase = sdk.WorkerPhaseRunning
 	case corev1.PodSucceeded:
-		status.Phase = brignext.WorkerPhaseSucceeded
+		status.Phase = sdk.WorkerPhaseSucceeded
 	case corev1.PodFailed:
-		status.Phase = brignext.WorkerPhaseFailed
+		status.Phase = sdk.WorkerPhaseFailed
 	case corev1.PodUnknown:
-		status.Phase = brignext.WorkerPhaseUnknown
+		status.Phase = sdk.WorkerPhaseUnknown
 	}
 
 	if workerPod.Status.StartTime != nil {
