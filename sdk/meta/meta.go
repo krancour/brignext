@@ -7,8 +7,8 @@ import (
 const APIVersion = "github.com/krancour/brignext/v2"
 
 type TypeMeta struct {
-	Kind       string `json:"kind"`
-	APIVersion string `json:"apiVersion"`
+	Kind       string `json:"kind,omitempty"`
+	APIVersion string `json:"apiVersion,omitempty"`
 }
 
 // nolint: lll
