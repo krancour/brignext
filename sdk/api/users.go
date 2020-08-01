@@ -82,6 +82,8 @@ func (u UserReferenceList) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// UsersClient is the specialized interface for managing Users with the BrigNext
+// API.
 type UsersClient interface {
 	List(context.Context) (UserReferenceList, error)
 	Get(context.Context, string) (User, error)
@@ -93,6 +95,7 @@ type usersClient struct {
 	*baseClient
 }
 
+// NewUsersClient returns a specialized client for managing Users.
 func NewUsersClient(
 	apiAddress string,
 	apiToken string,

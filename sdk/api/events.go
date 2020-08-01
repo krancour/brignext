@@ -84,6 +84,8 @@ type LogOptions struct {
 	Container string `json:"container,omitempty"`
 }
 
+// EventsClient is the specialized interface for managing Events with the
+// BrigNext API.
 type EventsClient interface {
 	Create(context.Context, sdk.Event) (EventReferenceList, error)
 	List(
@@ -131,6 +133,7 @@ type eventsClient struct {
 	*baseClient
 }
 
+// NewEventsClient returns a specialized client for managing Events.
 func NewEventsClient(
 	apiAddress string,
 	apiToken string,

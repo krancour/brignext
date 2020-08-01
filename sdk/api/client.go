@@ -1,10 +1,18 @@
 package api
 
+// Client is the general interface for the BrigNext API. It does little more
+// than expose functions for obtaining more specialized clients for different
+// areas of concern, like User management or Project management.
 type Client interface {
+	// Events returns a specialized client for Event management.
 	Events() EventsClient
+	// Projects returns a specialized client for Project management.
 	Projects() ProjectsClient
+	// ServiceAccounts returns a specialized client for ServiceAccount management.
 	ServiceAccounts() ServiceAccountsClient
+	// Sessions returns a specialized client for Session management.
 	Sessions() SessionsClient
+	// Users returns a specialized client for User management.
 	Users() UsersClient
 }
 
@@ -16,6 +24,7 @@ type client struct {
 	usersClient           UsersClient
 }
 
+// NewClient returns a BrigNext client.
 func NewClient(apiAddress, apiToken string, allowInsecure bool) Client {
 	return &client{
 		sessionsClient: NewSessionsClient(apiAddress, apiToken, allowInsecure),

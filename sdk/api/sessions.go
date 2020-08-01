@@ -31,6 +31,8 @@ func (u UserSessionAuthDetails) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// SessionsClient is the specialized interface for managing BrigNext API
+// Sessions.
 type SessionsClient interface {
 	CreateRootSession(
 		ctx context.Context,
@@ -44,6 +46,8 @@ type sessionsClient struct {
 	*baseClient
 }
 
+// NewSessionsClient returns a specialized client for managing BrigNext API
+// Sessions.
 func NewSessionsClient(
 	apiAddress string,
 	apiToken string,
