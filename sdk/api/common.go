@@ -13,21 +13,37 @@ import (
 	"github.com/pkg/errors"
 )
 
+// outboundRequest models of an outbound API call.
 type outboundRequest struct {
-	method      string
-	path        string
+	// method specifies the HTTP method to be used.
+	method string
+	// path specifies a path (relative to the root of the API) to be used.
+	path string
+	// queryParams optionally specifies any URL query parameters to be used.
 	queryParams map[string]string
+	// authHeaders optionally specifies any authentication headers to be used.
 	authHeaders map[string]string
-	headers     map[string]string
-	reqBodyObj  interface{}
+	// headers optionally specifies any miscellaneous HTTP headers to be used.
+	headers map[string]string
+	// reqBodyObj optionally provides an object that can be marshaled to create
+	// the body of the HTTP request.
+	reqBodyObj interface{}
+	// successCode specifies what HTTP response code should indicate a successful
+	// API call.
 	successCode int
-	respObj     interface{}
+	// respObj optionally provides an object into which the HTTP response body can
+	// be unmarshaled.
+	respObj interface{}
 }
 
+// Token represents an opaque bearer token used to authenticate to the BrigNext
+// API.
 type Token struct {
 	Value string `json:"value,omitempty"`
 }
 
+// MarshalJSON amends Token instances with type metadata so that clients do not
+// need to be concerned with the tedium of doing so.
 func (t Token) MarshalJSON() ([]byte, error) {
 	type Alias Token
 	return json.Marshal(
@@ -44,12 +60,18 @@ func (t Token) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// baseClient provides "API machinery" used by all the specialized API clients.
+// Its various functions remove the tedium from common API-related operations
+// like managing authentication headers, encoding request bodies, interpretting
+// response codes, decoding responses bodies, and more.
 type baseClient struct {
 	apiAddress string
 	apiToken   string
 	httpClient *http.Client
 }
 
+// basicAuthHeaders, given a username and password, returns a map[string]string
+// populated with a Basic Auth header.
 func (b *baseClient) basicAuthHeaders(
 	username string,
 	password string,
@@ -64,12 +86,19 @@ func (b *baseClient) basicAuthHeaders(
 	}
 }
 
+// bearerTokenAuthHeaders returns a map[string]string populated with an
+// authentication header that makes use of the client's bearer token.
 func (b *baseClient) bearerTokenAuthHeaders() map[string]string {
 	return map[string]string{
 		"Authorization": fmt.Sprintf("Bearer %s", b.apiToken),
 	}
 }
 
+// executeRequest accepts one argument-- an outboundRequest-- that models all
+// aspects of a single API call in a succinct fashion. Based on this
+// information, this function prepares and executes an HTTP request, interprets
+// the HTTP response code and decodes the response body into a user-supplied
+// type.
 func (b *baseClient) executeRequest(req outboundRequest) error {
 	resp, err := b.submitRequest(req)
 	if err != nil {
@@ -88,6 +117,12 @@ func (b *baseClient) executeRequest(req outboundRequest) error {
 	return nil
 }
 
+// submitRequest accepts one argument-- an outboundRequest-- that models all
+// aspects of a single API call in a succinct fashion. Based on this
+// information, this function prepares and executes an HTTP request and returns
+// the HTTP response. This is a lower-level function than executeRequest().
+// It is used by executeRequest(), but is also suitable for uses in cases where
+// specialized response handling is required.
 func (b *baseClient) submitRequest(
 	req outboundRequest,
 ) (*http.Response, error) {
