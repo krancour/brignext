@@ -98,9 +98,20 @@ func WorkerPhasesNonTerminal() []WorkerPhase {
 	}
 }
 
+// Worker represents a component that orchestrates handling of a single Event.
+type Worker struct {
+	// Spec is the technical blueprint for the Worker.
+	Spec WorkerSpec `json:"spec"`
+	// Status contains details of the Worker's current state.
+	Status WorkerStatus `json:"status"`
+	// Jobs contains details of all Jobs spawned by the Worker during handling of
+	// the Event.
+	Jobs map[string]Job `json:"jobs,omitempty"`
+}
+
 // WorkerSpec is the technical blueprint for a Worker.
 type WorkerSpec struct {
-	// Container encapsulates the details of an OCI container that forms the
+	// Container specifies the details of an OCI container that forms the
 	// cornerstone of the Worker.
 	Container *ContainerSpec `json:"container,omitempty"`
 	// WorkspaceSize specifies the size of a volume that will be provisioned as
@@ -109,13 +120,12 @@ type WorkerSpec struct {
 	// fixed-point integer using one of these suffixes: E, P, T, G, M, K.
 	// Power-of-two equivalents may also be used: Ei, Pi, Ti, Gi, Mi, Ki.
 	WorkspaceSize string `json:"workspaceSize,omitempty"`
-	// Git encapsulates git-specific Worker details.
+	// Git contains git-specific Worker details.
 	Git *WorkerGitConfig `json:"git,omitempty"`
-	// Kubernetes encapsulates Kubernetes-specific Worker details.
+	// Kubernetes contains Kubernetes-specific Worker details.
 	Kubernetes *WorkerKubernetesConfig `json:"kubernetes,omitempty"`
-	// JobsSpec encapsulates configuration and policies for any Jobs spawned by
-	// the Worker.
-	Jobs *JobsSpec `json:"jobs,omitempty"`
+	// JobPolicies specifies policies for any Jobs spawned by the Worker.
+	JobPolicies *JobPolicies `json:"jobPolicies,omitempty"`
 	// LogLevel specifies the desired granularity of Worker log output.
 	LogLevel LogLevel `json:"logLevel,omitempty"`
 	// ConfigFilesDirectory specifies a directory within the Worker's workspace
@@ -129,31 +139,12 @@ type WorkerSpec struct {
 	DefaultConfigFiles map[string]string `json:"defaultConfigFiles,omitempty"`
 }
 
-// ContainerSpec represents the technical details of an OCI container.
-type ContainerSpec struct {
-	// Image specified the OCI image on which the container should be based.
-	Image string `json:"image,omitempty"`
-	// ImagePullPolicy specifies whether a container host already having the
-	// specified OCI image should attempt to re-pull that image prior to launching
-	// a new container.
-	ImagePullPolicy ImagePullPolicy `json:"imagePullPolicy,omitempty"`
-	// Command specifies the command to be executed by the OCI container. This
-	// can be used to optionally override the default command specified by the OCI
-	// image itself.
-	Command []string `json:"command,omitempty"`
-	// Arguments specifies arguments to the command executed by the OCI container.
-	Arguments []string `json:"arguments,omitempty"`
-	// Environment is a map of key/value pairs that specify environment variables
-	// to be set within the OCI container.
-	Environment map[string]string `json:"environment,omitempty"`
-}
-
 // WorkerGitConfig represents git-specific Worker details.
 type WorkerGitConfig struct {
 	// CloneURL specifies the location from where a source code repository may
 	// be cloned.
 	CloneURL string `json:"cloneURL,omitempty"`
-	// Commit specifies a commit (by sha) to be checked out.
+	// Commit specifies a commit (by SHA) to be checked out.
 	Commit string `json:"commit,omitempty"`
 	// Ref specifies a tag or branch to be checked out. If left blank, this will
 	// defualt to "master" at runtime.
@@ -173,12 +164,36 @@ type WorkerKubernetesConfig struct {
 	ImagePullSecrets []string `json:"imagePullSecrets,omitempty"`
 }
 
+// JobPolicies represents policies for any Jobs spawned by a Worker.
+type JobPolicies struct {
+	// AllowPrivileged specifies whether the Worker is permitted to launch Jobs
+	// that utilize privileged containers.
+	AllowPrivileged bool `json:"allowPrivileged"`
+	// AllowDockerSocketMount specifies whether the Worker is permitted to launch
+	// Jobs that mount the underlying host's Docker socket into its own file
+	// system.
+	AllowDockerSocketMount bool `json:"allowDockerSocketMount"`
+	// Kubernetes specifies Kubernetes-specific policies for any Jobs spawned by
+	// the Worker.
+	Kubernetes *KubernetesJobPolicies `json:"kubernetes,omitempty"`
+}
+
+// KubernetesJobPolicies represents Kubernetes-specific policies for any Jobs
+// spawned by a Worker.
+type KubernetesJobPolicies struct {
+	// ImagePullSecrets enumerates any image pull secrets that Kubernetes may use
+	// when pulling the OCI image on which the Jobs' containers are based. The
+	// image pull secrets in question must be created out-of-band by a
+	// sufficiently authorized user of the Kubernetes cluster.
+	ImagePullSecrets []string `json:"imagePullSecrets,omitempty"`
+}
+
 // WorkerStatus represents the status of a Worker.
 type WorkerStatus struct {
 	// Started indicates the time the Worker began execution. It will be nil for
 	// a Worker that is not yet executing.
 	Started *time.Time `json:"started,omitempty"`
-	// Started indicates the time the Worker concluded execution. It will be nil
+	// Ended indicates the time the Worker concluded execution. It will be nil
 	// for a Worker that is not done executing (or hasn't started).
 	Ended *time.Time `json:"ended,omitempty"`
 	// Phase indicates where the Worker is in its lifecycle.

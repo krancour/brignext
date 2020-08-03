@@ -14,7 +14,7 @@ import (
 )
 
 // EventListOptions represents useful filter criteria when selecting multiple
-// options for API group operations like list, cancel, or delete.
+// Events for API group operations like list, cancel, or delete.
 type EventListOptions struct {
 	// ProjectID specifies that Events belonging to the indicated Project should
 	// be selected.
@@ -79,6 +79,8 @@ func (e EventReferenceList) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// LogOptions represents useful criteria for identifying a specific container
+// of a specific Job when requesting Event logs.
 type LogOptions struct {
 	Job       string `json:"job,omitempty"`
 	Container string `json:"container,omitempty"`

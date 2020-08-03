@@ -9,14 +9,14 @@ import (
 // Project is Brignext's fundamental management construct. Through a
 // ProjectSpec, it pairs EventSubscriptions with a template WorkerSpec.
 type Project struct {
-	// ObjectMeta encapsulates Project metadata.
+	// ObjectMeta contains Project metadata.
 	meta.ObjectMeta `json:"metadata"`
 	// Description is a natural language description of the Project.
 	Description string `json:"description,omitempty"`
 	// Spec is an instance of a ProjectSpec that pairs EventSubscriptions with
 	// a WorkerTemplate.
 	Spec ProjectSpec `json:"spec"`
-	// Kubernetes encapsulates Kubernetes-specific details of the Project's
+	// Kubernetes contains Kubernetes-specific details of the Project's
 	// environment. These details are populated by BrigNext so that sufficiently
 	// authorized Kubernetes users may obtain the information needed to directly
 	// modify a Project's environment to facilitate certain advanced use cases.
@@ -55,7 +55,7 @@ type ProjectSpec struct {
 }
 
 // EventSubscription defines a set of Events of interest. ProjectSpecs utilize
-// these in defining the events that should trigger the execution of a new
+// these in defining the Events that should trigger the execution of a new
 // Worker. An Event matches a subscription if it meets ALL of the specified
 // criteria.
 type EventSubscription struct {
@@ -76,6 +76,10 @@ type EventSubscription struct {
 // Event handling doesn't required a Project lookup to obtain
 // Kubernetes-specific configuration.
 type KubernetesConfig struct {
+	// Namespace is the dedicated Kubernetes namespace for the Project. This is
+	// NOT specified by clients when creating a new Project. The namespace is
+	// created by / assigned by the system. This detail is a necessity to prevent
+	// clients from naming existing namespaces in an attempt to hijack them.
 	Namespace string `json:"namespace,omitempty"`
 }
 

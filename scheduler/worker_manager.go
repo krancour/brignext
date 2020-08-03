@@ -18,7 +18,7 @@ func (s *scheduler) createWorkspacePVC(
 	ctx context.Context,
 	event sdk.Event,
 ) error {
-	storageQuantityStr := event.Worker.WorkspaceSize
+	storageQuantityStr := event.Worker.Spec.WorkspaceSize
 	if storageQuantityStr == "" {
 		storageQuantityStr = "1G"
 	}
@@ -77,7 +77,7 @@ func (s *scheduler) createWorkerPod(
 	event sdk.Event,
 ) error {
 	imagePullSecrets := []corev1.LocalObjectReference{}
-	for _, imagePullSecret := range event.Worker.Kubernetes.ImagePullSecrets {
+	for _, imagePullSecret := range event.Worker.Spec.Kubernetes.ImagePullSecrets { // nolint: lll
 		imagePullSecrets = append(
 			imagePullSecrets,
 			corev1.LocalObjectReference{
@@ -86,11 +86,11 @@ func (s *scheduler) createWorkerPod(
 		)
 	}
 
-	image := event.Worker.Container.Image
+	image := event.Worker.Spec.Container.Image
 	if image == "" {
 		image = s.schedulerConfig.DefaultWorkerImage
 	}
-	imagePullPolicy := event.Worker.Container.ImagePullPolicy
+	imagePullPolicy := event.Worker.Spec.Container.ImagePullPolicy
 	if imagePullPolicy == "" {
 		imagePullPolicy = s.schedulerConfig.DefaultWorkerImagePullPolicy
 	}
@@ -128,7 +128,7 @@ func (s *scheduler) createWorkerPod(
 	}
 
 	initContainers := []corev1.Container{}
-	if event.Worker.Git.CloneURL != "" {
+	if event.Worker.Spec.Git.CloneURL != "" {
 		volumes = append(
 			volumes,
 			corev1.Volume{
@@ -158,15 +158,15 @@ func (s *scheduler) createWorkerPod(
 				Env: []corev1.EnvVar{
 					{
 						Name:  "BRIGADE_REMOTE_URL",
-						Value: event.Worker.Git.CloneURL,
+						Value: event.Worker.Spec.Git.CloneURL,
 					},
 					{
 						Name:  "BRIGADE_COMMIT_ID",
-						Value: event.Worker.Git.Commit,
+						Value: event.Worker.Spec.Git.Commit,
 					},
 					{
 						Name:  "BRIGADE_COMMIT_REF",
-						Value: event.Worker.Git.Ref,
+						Value: event.Worker.Spec.Git.Ref,
 					},
 					{
 						Name: "BRIGADE_REPO_KEY",
@@ -192,7 +192,7 @@ func (s *scheduler) createWorkerPod(
 					},
 					{
 						Name:  "BRIGADE_SUBMODULES",
-						Value: strconv.FormatBool(event.Worker.Git.InitSubmodules),
+						Value: strconv.FormatBool(event.Worker.Spec.Git.InitSubmodules),
 					},
 					{
 						Name:  "BRIGADE_WORKSPACE",
@@ -204,7 +204,7 @@ func (s *scheduler) createWorkerPod(
 	}
 
 	env := []corev1.EnvVar{}
-	for key, val := range event.Worker.Container.Environment {
+	for key, val := range event.Worker.Spec.Container.Environment {
 		env = append(
 			env,
 			corev1.EnvVar{
@@ -234,8 +234,8 @@ func (s *scheduler) createWorkerPod(
 					Name:            "worker",
 					Image:           image,
 					ImagePullPolicy: corev1.PullPolicy(imagePullPolicy),
-					Command:         event.Worker.Container.Command,
-					Args:            event.Worker.Container.Arguments,
+					Command:         event.Worker.Spec.Container.Command,
+					Args:            event.Worker.Spec.Container.Arguments,
 					Env:             env,
 					VolumeMounts:    volumeMounts,
 				},

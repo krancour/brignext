@@ -17,7 +17,7 @@ import (
 // and accounts for the reality that not all clients with authorization to list
 // projects are authorized to view the details of every Project.
 type ProjectReference struct {
-	// ObjectReferenceMeta encapsulates an abridged representation of Project
+	// ObjectReferenceMeta contains an abridged representation of Project
 	// metadata.
 	meta.ObjectReferenceMeta `json:"metadata"`
 	// Description is a natural language description of the Project.

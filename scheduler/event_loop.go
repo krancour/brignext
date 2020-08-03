@@ -55,7 +55,7 @@ outerLoop:
 			}
 
 			// If the worker's phase isn't PENDING, then there's nothing to do
-			if event.Status.WorkerStatus.Phase != sdk.WorkerPhasePending {
+			if event.Worker.Status.Phase != sdk.WorkerPhasePending {
 				asyncEvent.Ack()
 				continue // Next event
 			}

@@ -33,28 +33,37 @@ const (
 	JobPhaseUnknown WorkerPhase = "UNKNOWN"
 )
 
-// JobsSpec represents configuration and policies for any Jobs spawned by
-// a Worker.
-type JobsSpec struct {
-	AllowPrivileged        bool                  `json:"allowPrivileged"`
-	AllowDockerSocketMount bool                  `json:"allowDockerSocketMount"`
-	Kubernetes             *JobsKubernetesConfig `json:"kubernetes,omitempty"`
+// Job represents a component spawned by a Worker to complete a single task
+// during the handling of an Event.
+type Job struct {
+	// Spec is the technical blueprint for the Job.
+	Spec JobSpec `json:"spec"`
+	// Status contains details of the Job's current state.
+	Status JobStatus `json:"status"`
 }
 
-// JobsKubernetesConfig represents Kubernetes-specific Jobs configuration.
-type JobsKubernetesConfig struct {
-	// ImagePullSecrets enumerates any image pull secrets that Kubernetes may use
-	// when pulling the OCI image on which the Jobs' containers are based. The
-	// image pull secrets in question must be created out-of-band by a
-	// sufficiently authorized user of the Kubernetes cluster.
-	ImagePullSecrets []string `json:"imagePullSecrets,omitempty"`
+// JobSpec is the technical blueprint for a Job.
+type JobSpec struct {
+	// PrimaryContainer specifies the details of an OCI container that forms the
+	// cornerstone of the Job. Job success or failure is tied to completion and
+	// exit code of this container.
+	PrimaryContainer ContainerSpec `json:"primaryContainer"`
+	// SidecarContainers specifies the details of supplemental, "sidecar"
+	// containers. Their completion and exit code do not directly impact Job
+	// status. BrigNext does not understand dependencies between a Job's multiple
+	// containers and cannot enforce any specific startup or shutdown order. When
+	// such dependencies exist (for instance, a primary container than cannot
+	// proceed with a suite of tests until a database is launched and READY in a
+	// sidecar container), then logic within those containers must account for
+	// these constraints.
+	SidecarContainers map[string]ContainerSpec `json:"sidecarContainers,omitempty"`
 }
 
 // JobStatus represents the status of a Job.
 type JobStatus struct {
 	// Started indicates the time the Job began execution.
 	Started *time.Time `json:"started,omitempty"`
-	// Started indicates the time the Job concluded execution. It will be nil
+	// Ended indicates the time the Job concluded execution. It will be nil
 	// for a Job that is not done executing.
 	Ended *time.Time `json:"ended,omitempty"`
 	// Phase indicates where the Job is in its lifecycle.
