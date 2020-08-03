@@ -231,7 +231,7 @@ export class Job extends jobs.Job {
 
     // If ANY container wants access to the host's Docker socket AND project
     // configuration permits that, prepare a volume.
-    if (useDockerSocket && currentEvent.worker.jobs.allowDockerSocketMount) {
+    if (useDockerSocket && currentEvent.worker.jobPolicies.allowDockerSocketMount) {
       pod.spec.volumes.push({
         name: "docker-socket",
         hostPath: {
@@ -288,7 +288,7 @@ export class Job extends jobs.Job {
 
       // If the container requests access to the host's Docker daemon AND it's
       // allowed, mount it...
-      if (c.docker.enabled && currentEvent.worker.jobs.allowDockerSocketMount) {
+      if (c.docker.enabled && currentEvent.worker.jobPolicies.allowDockerSocketMount) {
         container.volumeMounts.push({
           name: "docker-socket",
           mountPath: "/var/run/docker.sock"
@@ -297,7 +297,7 @@ export class Job extends jobs.Job {
 
       // If the job requests a privileged security context and it's allowed,
       // enable it...
-      if (c.privileged && currentEvent.worker.jobs.allowPrivileged) {
+      if (c.privileged && currentEvent.worker.jobPolicies.allowPrivileged) {
         container.securityContext = {
           privileged: true
         }
@@ -317,9 +317,9 @@ export class Job extends jobs.Job {
     // project.
     pod.spec.serviceAccountName = "jobs"
 
-    if (currentEvent.worker.jobs.kubernetes.imagePullSecrets) { 
+    if (currentEvent.worker.jobPolicies.kubernetes.imagePullSecrets) { 
       pod.spec.imagePullSecrets = []
-      for (let imagePullSecret of currentEvent.worker.jobs.kubernetes.imagePullSecrets) {
+      for (let imagePullSecret of currentEvent.worker.jobPolicies.kubernetes.imagePullSecrets) {
         pod.spec.imagePullSecrets.push(
           { name: imagePullSecret }
         )

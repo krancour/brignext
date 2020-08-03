@@ -51,7 +51,7 @@ func (s *scheduler) PreCreate(
 ) (brignext.Event, error) {
 	// Fill in scheduler-specific details
 	event.Kubernetes = proj.Kubernetes
-	event.Worker.Kubernetes = proj.Spec.WorkerTemplate.Kubernetes
+	event.Worker.Spec.Kubernetes = proj.Spec.WorkerTemplate.Kubernetes
 	return event, nil
 }
 
@@ -77,17 +77,17 @@ func (s *scheduler) Create(
 	}
 
 	type project struct {
-		ID         string                    `json:"id"`
-		Kubernetes brignext.KubernetesConfig `json:"kubernetes"`
-		Secrets    map[string]string         `json:"secrets"`
+		ID         string                     `json:"id"`
+		Kubernetes *brignext.KubernetesConfig `json:"kubernetes"`
+		Secrets    map[string]string          `json:"secrets"`
 	}
 
 	type worker struct {
-		Git                  brignext.WorkerGitConfig `json:"git"`
-		Jobs                 brignext.JobsSpec        `json:"jobs"`
-		LogLevel             brignext.LogLevel        `json:"logLevel"`
-		ConfigFilesDirectory string                   `json:"configFilesDirectory"`
-		DefaultConfigFiles   map[string]string        `json:"defaultConfigFiles" bson:"defaultConfigFiles"` // nolint: lll
+		Git                  *brignext.WorkerGitConfig `json:"git"`
+		JobPolicies          *brignext.JobPolicies     `json:"jobPolicies"`
+		LogLevel             brignext.LogLevel         `json:"logLevel"`
+		ConfigFilesDirectory string                    `json:"configFilesDirectory"`
+		DefaultConfigFiles   map[string]string         `json:"defaultConfigFiles" bson:"defaultConfigFiles"` // nolint: lll
 	}
 
 	// Create a secret with event details
@@ -105,7 +105,7 @@ func (s *scheduler) Create(
 			ID: event.ID,
 			Project: project{
 				ID:         event.ProjectID,
-				Kubernetes: *event.Kubernetes,
+				Kubernetes: event.Kubernetes,
 				Secrets:    secrets,
 			},
 			Source:     event.Source,
@@ -114,11 +114,11 @@ func (s *scheduler) Create(
 			LongTitle:  event.LongTitle,
 			Payload:    event.Payload,
 			Worker: worker{
-				Git:                  event.Worker.Git,
-				Jobs:                 event.Worker.Jobs,
-				LogLevel:             event.Worker.LogLevel,
-				ConfigFilesDirectory: event.Worker.ConfigFilesDirectory,
-				DefaultConfigFiles:   event.Worker.DefaultConfigFiles,
+				Git:                  event.Worker.Spec.Git,
+				JobPolicies:          event.Worker.Spec.JobPolicies,
+				LogLevel:             event.Worker.Spec.LogLevel,
+				ConfigFilesDirectory: event.Worker.Spec.ConfigFilesDirectory,
+				DefaultConfigFiles:   event.Worker.Spec.DefaultConfigFiles,
 			},
 		},
 		"",

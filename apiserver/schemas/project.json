@@ -170,9 +170,9 @@
 			}
 		},
 
-		"jobsSpec": {
+		"jobPolicies": {
 			"type": "object",
-			"description": "Configuration for any job containers the worker container might fan out to",
+			"description": "Policies for any job containers the worker container might fan out to",
 			"properties": {
 				"allowPrivileged": {
 					"type": "boolean",
@@ -183,12 +183,12 @@
 					"description": "Whether job containers are permitted to mount the host's Docker socket"
 				},
 				"kubernetes": {
-					"$ref": "#/definitions/jobsKubernetesConfig"
+					"$ref": "#/definitions/kubernetesJobPolicies"
 				}
 			}
 		},
 
-		"jobsKubernetesConfig": {
+		"kubernetesJobPolicies": {
 			"type": "object",
 			"description": "Jobs configuration pertaining specifically to Kubernetes",
 			"properties": {
@@ -267,8 +267,8 @@
 				"kubernetes": {
 					"$ref": "#/definitions/kubernetesConfig"
 				},
-				"jobs": {
-					"$ref": "#/definitions/jobsSpec"
+				"jobPolicies": {
+					"$ref": "#/definitions/jobPolicies"
 				},
 				"logLevel": {
 					"type": "string",

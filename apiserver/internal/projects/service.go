@@ -106,7 +106,7 @@ func (s *service) Update(
 ) error {
 	project = s.projectWithDefaults(project)
 
-	// Let the scheduler update sheduler-specific details before we persist.
+	// Let the scheduler update scheduler-specific details before we persist.
 	var err error
 	if project, err = s.scheduler.PreUpdate(ctx, project); err != nil {
 		return errors.Wrapf(
@@ -234,20 +234,25 @@ func (s *service) UnsetSecret(
 	return nil
 }
 
+// TODO: Should some of this be deferred until later, like when we actually
+// start the worker?
 func (s *service) projectWithDefaults(
 	project brignext.Project,
 ) brignext.Project {
-	if project.Spec.EventSubscriptions == nil {
-		project.Spec.EventSubscriptions = []brignext.EventSubscription{}
-	}
+	// TODO: Do we need this?
+	// if project.Spec.EventSubscriptions == nil {
+	// 	project.Spec.EventSubscriptions = []brignext.EventSubscription{}
+	// }
 
-	if project.Spec.WorkerTemplate.Container.Environment == nil {
-		project.Spec.WorkerTemplate.Container.Environment = map[string]string{}
-	}
+	// TODO: Do we need this?
+	// if project.Spec.WorkerTemplate.Container.Environment == nil {
+	// 	project.Spec.WorkerTemplate.Container.Environment = map[string]string{}
+	// }
 
-	if project.Spec.WorkerTemplate.DefaultConfigFiles == nil {
-		project.Spec.WorkerTemplate.DefaultConfigFiles = map[string]string{}
-	}
+	// TODO: Do we need this?
+	// if project.Spec.WorkerTemplate.DefaultConfigFiles == nil {
+	// 	project.Spec.WorkerTemplate.DefaultConfigFiles = map[string]string{}
+	// }
 
 	return project
 }

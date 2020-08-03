@@ -78,6 +78,8 @@ func NewService(
 	}
 }
 
+// TODO: There's a lot of stuff that happens in this function that maybe we
+// should defer until later-- like when the worker pod actually gets created.
 func (s *service) Create(
 	ctx context.Context,
 	event brignext.Event,
@@ -124,45 +126,52 @@ func (s *service) Create(
 
 	event.ID = uuid.NewV4().String()
 
-	event.Worker = &project.Spec.WorkerTemplate
+	workerSpec := project.Spec.WorkerTemplate
 
-	if event.Worker.WorkspaceSize == "" {
-		event.Worker.WorkspaceSize = "10Gi"
-	}
-
-	// VCS details from the event override project-level details
-	if event.Git.CloneURL != "" {
-		event.Worker.Git.CloneURL = event.Git.CloneURL
-	}
-	if event.Git.Commit != "" {
-		event.Worker.Git.Commit = event.Git.Commit
-	}
-	if event.Git.Ref != "" {
-		event.Worker.Git.Ref = event.Git.Ref
+	if workerSpec.WorkspaceSize == "" {
+		workerSpec.WorkspaceSize = "10Gi"
 	}
 
-	if event.Worker.Git.CloneURL != "" &&
-		event.Worker.Git.Commit == "" &&
-		event.Worker.Git.Ref == "" {
-		event.Worker.Git.Ref = "master"
+	if event.Git != nil {
+		if workerSpec.Git == nil {
+			workerSpec.Git = &brignext.WorkerGitConfig{}
+		}
+		// VCS details from the event override project-level details
+		// TODO: Might need some nil checks below
+		if event.Git.CloneURL != "" {
+			workerSpec.Git.CloneURL = event.Git.CloneURL
+		}
+		if event.Git.Commit != "" {
+			workerSpec.Git.Commit = event.Git.Commit
+		}
+		if event.Git.Ref != "" {
+			workerSpec.Git.Ref = event.Git.Ref
+		}
+	}
+	if workerSpec.Git != nil {
+		if workerSpec.Git.CloneURL != "" &&
+			workerSpec.Git.Commit == "" &&
+			workerSpec.Git.Ref == "" {
+			workerSpec.Git.Ref = "master"
+		}
 	}
 
-	if event.Worker.LogLevel == "" {
-		event.Worker.LogLevel = brignext.LogLevelInfo
+	if workerSpec.LogLevel == "" {
+		workerSpec.LogLevel = brignext.LogLevelInfo
 	}
 
-	if event.Worker.ConfigFilesDirectory == "" {
-		event.Worker.ConfigFilesDirectory = "."
+	if workerSpec.ConfigFilesDirectory == "" {
+		workerSpec.ConfigFilesDirectory = "."
 	}
 
-	event.Status = &brignext.EventStatus{
-		WorkerStatus: brignext.WorkerStatus{
+	event.Worker = brignext.Worker{
+		Spec: workerSpec,
+		Status: brignext.WorkerStatus{
 			Phase: brignext.WorkerPhasePending,
 		},
-		JobStatuses: map[string]brignext.JobStatus{},
 	}
 
-	// Let the scheduler add sheduler-specific details before we persist.
+	// Let the scheduler add scheduler-specific details before we persist.
 	if event, err = s.scheduler.PreCreate(ctx, project, event); err != nil {
 		return eventRefList, errors.Wrapf(
 			err,

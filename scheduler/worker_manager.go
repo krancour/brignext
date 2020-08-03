@@ -77,15 +77,22 @@ func (s *scheduler) createWorkerPod(
 	event sdk.Event,
 ) error {
 	imagePullSecrets := []corev1.LocalObjectReference{}
-	for _, imagePullSecret := range event.Worker.Spec.Kubernetes.ImagePullSecrets { // nolint: lll
-		imagePullSecrets = append(
-			imagePullSecrets,
-			corev1.LocalObjectReference{
-				Name: imagePullSecret,
-			},
-		)
+	if event.Worker.Spec.Kubernetes != nil {
+		for _, imagePullSecret := range event.Worker.Spec.Kubernetes.ImagePullSecrets { // nolint: lll
+			imagePullSecrets = append(
+				imagePullSecrets,
+				corev1.LocalObjectReference{
+					Name: imagePullSecret,
+				},
+			)
+		}
 	}
 
+	// TODO: Decide on the right place to do this stuff. Probably it should be
+	// when (near future state), this scheduler uses the API to start the worker.
+	if event.Worker.Spec.Container == nil {
+		event.Worker.Spec.Container = &sdk.ContainerSpec{}
+	}
 	image := event.Worker.Spec.Container.Image
 	if image == "" {
 		image = s.schedulerConfig.DefaultWorkerImage
@@ -128,7 +135,7 @@ func (s *scheduler) createWorkerPod(
 	}
 
 	initContainers := []corev1.Container{}
-	if event.Worker.Spec.Git.CloneURL != "" {
+	if event.Worker.Spec.Git != nil && event.Worker.Spec.Git.CloneURL != "" {
 		volumes = append(
 			volumes,
 			corev1.Volume{

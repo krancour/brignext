@@ -430,16 +430,22 @@ func (s *scheduler) UnsetSecret(
 // 	return nil
 // }
 
+// TODO: We might not want to set this stuff now, but rather defer it to later.
 func (s *scheduler) projectWithDefaults(
 	project brignext.Project,
 ) brignext.Project {
-	if project.Spec.WorkerTemplate.Kubernetes.ImagePullSecrets == nil {
-		project.Spec.WorkerTemplate.Kubernetes.ImagePullSecrets = []string{}
-	}
 
-	if project.Spec.WorkerTemplate.Jobs.Kubernetes.ImagePullSecrets == nil {
-		project.Spec.WorkerTemplate.Jobs.Kubernetes.ImagePullSecrets = []string{}
-	}
+	// if project.Spec.WorkerTemplate.JobPolicies == nil {
+	// 	project.Spec.WorkerTemplate.JobPolicies = &brignext.JobPolicies{}
+	// }
+	// if project.Spec.WorkerTemplate.JobPolicies.Kubernetes == nil {
+	// 	project.Spec.WorkerTemplate.JobPolicies.Kubernetes =
+	// 		&brignext.KubernetesJobPolicies{}
+	// }
+	// if project.Spec.WorkerTemplate.JobPolicies.Kubernetes.ImagePullSecrets == nil { // nolint: lll
+	// 	project.Spec.WorkerTemplate.JobPolicies.Kubernetes.ImagePullSecrets =
+	// 		[]string{}
+	// }
 
 	return project
 }

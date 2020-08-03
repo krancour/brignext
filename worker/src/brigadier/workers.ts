@@ -1,6 +1,6 @@
 export interface Worker {
   git: GitConfig
-  jobs: JobsSpec
+  jobPolicies: JobPolicies
   configFilesDirectory: string
   defaultConfigFiles: { [key: string]: string }
 }
@@ -12,12 +12,12 @@ export interface GitConfig {
   initSubmodules: boolean
 }
 
-export interface JobsSpec {
+export interface JobPolicies {
   allowPrivileged: boolean
   allowDockerSocketMount: boolean
-  kubernetes: JobsKubernetesConfig
+  kubernetes: KubernetesJobPolicies
 }
 
-export interface JobsKubernetesConfig {
+export interface KubernetesJobPolicies {
   imagePullSecrets: string[]
 }

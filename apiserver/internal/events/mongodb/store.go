@@ -71,7 +71,7 @@ func (s *store) List(
 	eventList := brignext.EventReferenceList{}
 
 	criteria := bson.M{
-		"status.workerStatus.phase": bson.M{
+		"worker.status.phase": bson.M{
 			"$in": opts.WorkerPhases,
 		},
 		"deleted": bson.M{
@@ -122,13 +122,13 @@ func (s *store) Cancel(ctx context.Context, id string) error {
 	res, err := s.collection.UpdateOne(
 		ctx,
 		bson.M{
-			"id":                        id,
-			"status.workerStatus.phase": brignext.WorkerPhasePending,
+			"id":                  id,
+			"worker.status.phase": brignext.WorkerPhasePending,
 		},
 		bson.M{
 			"$set": bson.M{
-				"canceled":                  time.Now(),
-				"status.workerStatus.phase": brignext.WorkerPhaseCanceled,
+				"canceled":            time.Now(),
+				"worker.status.phase": brignext.WorkerPhaseCanceled,
 			},
 		},
 	)
@@ -142,13 +142,13 @@ func (s *store) Cancel(ctx context.Context, id string) error {
 	res, err = s.collection.UpdateOne(
 		ctx,
 		bson.M{
-			"id":                        id,
-			"status.workerStatus.phase": brignext.WorkerPhaseRunning,
+			"id":                  id,
+			"worker.status.phase": brignext.WorkerPhaseRunning,
 		},
 		bson.M{
 			"$set": bson.M{
-				"canceled":                  time.Now(),
-				"status.workerStatus.phase": brignext.WorkerPhaseAborted,
+				"canceled":            time.Now(),
+				"worker.status.phase": brignext.WorkerPhaseAborted,
 			},
 		},
 	)
@@ -204,14 +204,14 @@ func (s *store) CancelCollection(
 	}
 
 	if cancelPending {
-		criteria["status.workerStatus.phase"] = brignext.WorkerPhasePending
+		criteria["worker.status.phase"] = brignext.WorkerPhasePending
 		if _, err := s.collection.UpdateMany(
 			ctx,
 			criteria,
 			bson.M{
 				"$set": bson.M{
-					"canceled":                  cancellationTime,
-					"status.workerStatus.phase": brignext.WorkerPhaseCanceled,
+					"canceled":            cancellationTime,
+					"worker.status.phase": brignext.WorkerPhaseCanceled,
 				},
 			},
 		); err != nil {
@@ -220,14 +220,14 @@ func (s *store) CancelCollection(
 	}
 
 	if cancelRunning {
-		criteria["status.workerStatus.phase"] = brignext.WorkerPhaseRunning
+		criteria["worker.status.phase"] = brignext.WorkerPhaseRunning
 		if _, err := s.collection.UpdateMany(
 			ctx,
 			criteria,
 			bson.M{
 				"$set": bson.M{
-					"canceled":                  cancellationTime,
-					"status.workerStatus.phase": brignext.WorkerPhaseAborted,
+					"canceled":            cancellationTime,
+					"worker.status.phase": brignext.WorkerPhaseAborted,
 				},
 			},
 		); err != nil {
@@ -235,7 +235,7 @@ func (s *store) CancelCollection(
 		}
 	}
 
-	delete(criteria, "status.workerStatus.phase")
+	delete(criteria, "worker.status.phase")
 	criteria["canceled"] = cancellationTime
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"created": -1})
@@ -289,7 +289,7 @@ func (s *store) DeleteCollection(
 	// Logical delete...
 	criteria := bson.M{
 		"projectID": opts.ProjectID,
-		"status.workerStatus.phase": bson.M{
+		"worker.status.phase": bson.M{
 			"$in": opts.WorkerPhases,
 		},
 		"deleted": bson.M{
@@ -344,7 +344,7 @@ func (s *store) UpdateWorkerStatus(
 		bson.M{"id": eventID},
 		bson.M{
 			"$set": bson.M{
-				"status.workerStatus": status,
+				"worker.status": status,
 			},
 		},
 	)
@@ -370,6 +370,9 @@ func (s *store) UpdateJobStatus(
 	jobName string,
 	status brignext.JobStatus,
 ) error {
+	job := brignext.Job{
+		Status: status,
+	}
 	res, err := s.collection.UpdateOne(
 		ctx,
 		bson.M{
@@ -377,7 +380,7 @@ func (s *store) UpdateJobStatus(
 		},
 		bson.M{
 			"$set": bson.M{
-				fmt.Sprintf("status.jobStatuses.%s", jobName): status,
+				fmt.Sprintf("worker.jobs.%s", jobName): job,
 			},
 		},
 	)
