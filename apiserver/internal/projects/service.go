@@ -8,28 +8,48 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Service is the specialized interface for managing Projects. It's decoupled
+// from underlying technology choices (e.g. data store, message bus, etc.) to
+// keep business logic reusable and consistent while the underlying tech stack
+// remains free to change.
 type Service interface {
+	// Create creates a new Project.
+	//
 	// TODO: This should return the project because the system will have provided
 	// values for some fields that are beyond a client's control, but are not
 	// necessarily beyond a client's interest.
 	Create(context.Context, brignext.Project) error
+	// List returns a ProjectReferenceList, with its ProjectReferences ordered
+	// alphabetically by Project ID.
+	//
+	// TODO: This should take some list options because we may want them in the
+	// future and they would be hard to add later.
 	List(context.Context) (brignext.ProjectReferenceList, error)
+	// Get retrieves a single Project specified by its identifier.
 	Get(context.Context, string) (brignext.Project, error)
+	// Update updates an existing Project.
+	//
 	// TODO: This should return the project because the system will have provided
 	// values for some fields that are beyond a client's control, but are not
 	// necessarily beyond a client's interest.
 	Update(context.Context, brignext.Project) error
+	// Delete deletes a single Project specified by its identifier.
 	Delete(context.Context, string) error
 
+	// ListSecrets returns a SecretReferenceList containing references to all the
+	// Project's secrets.
 	ListSecrets(
 		ctx context.Context,
 		projectID string,
 	) (brignext.SecretReferenceList, error)
+	// SetSecret set the value of a new Secret or updates the value of an existing
+	// Secret.
 	SetSecret(
 		ctx context.Context,
 		projectID string,
 		secret brignext.Secret,
 	) error
+	// UnsetSecret clears the value of an existing Secret.
 	UnsetSecret(ctx context.Context, projectID string, key string) error
 }
 
@@ -38,6 +58,7 @@ type service struct {
 	scheduler Scheduler
 }
 
+// NewService returns a specialized interface for managing Projects.
 func NewService(store Store, scheduler Scheduler) Service {
 	return &service{
 		store:     store,

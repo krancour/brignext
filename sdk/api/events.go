@@ -91,8 +91,8 @@ type LogOptions struct {
 type EventsClient interface {
 	// Create creates a new Event.
 	Create(context.Context, sdk.Event) (EventReferenceList, error)
-	// List returns EventReferenceList, with its EventReferences ordered by age,
-	// newest first. Criteria for which Events should be retrieved can be
+	// List returns an EventReferenceList, with its EventReferences ordered by
+	// age, newest first. Criteria for which Events should be retrieved can be
 	// specified using the EventListOptions parameter.
 	List(
 		context.Context,

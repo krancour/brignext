@@ -67,10 +67,14 @@ func (p ProjectReferenceList) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// SecretReference is a reference to a Secret, containing only its Key and NOT
+// its Value.
 type SecretReference struct {
 	Key string `json:"key,omitempty"`
 }
 
+// MarshalJSON amends SecretReference instances with type metadata so that
+// clients do not need to be concerned with the tedium of doing so.
 func (s SecretReference) MarshalJSON() ([]byte, error) {
 	type Alias SecretReference
 	return json.Marshal(
@@ -87,10 +91,13 @@ func (s SecretReference) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// SecretReferenceList is an ordered list of SecretReferences.
 type SecretReferenceList struct {
 	Items []SecretReference `json:"items,omitempty"`
 }
 
+// MarshalJSON amends SecretReferenceList instances with type metadata so that
+// clients do not need to be concerned with the tedium of doing so.
 func (s SecretReferenceList) MarshalJSON() ([]byte, error) {
 	type Alias SecretReferenceList
 	return json.Marshal(
@@ -110,25 +117,64 @@ func (s SecretReferenceList) MarshalJSON() ([]byte, error) {
 // ProjectsClient is the specialized client for managing Projects with the
 // BrigNext API.
 type ProjectsClient interface {
+	// Create creates a new Project.
+	//
 	// TODO: This should return the project because the system will have provided
 	// values for some fields that are beyond a client's control, but are not
 	// necessarily beyond a client's interest.
 	Create(context.Context, sdk.Project) error
+	// CreateFromBytes creates a new Project using raw (unprocessed by the client)
+	// bytes, presumably originating from a file. This is the preferred way to
+	// create Projects defined by an end user since server-side validation will
+	// then be applied directly to the Project definition as the user has written
+	// it (i.e. WITHOUT any normalization or corrections the client may have made
+	// when unmarshaling the original data or when marshaling the outbound
+	// request).
+	//
+	// TODO: This should return the project because the system will have provided
+	// values for some fields that are beyond a client's control, but are not
+	// necessarily beyond a client's interest.
 	CreateFromBytes(context.Context, []byte) error
+	// List returns a ProjectReferenceList, with its ProjectReferences ordered
+	// alphabetically by Project ID.
+	//
+	// TODO: This should take some list options because we may want them in the
+	// future and they would be hard to add later.
 	List(context.Context) (ProjectReferenceList, error)
+	// Get retrieves a single Project specified by its identifier.
 	Get(context.Context, string) (sdk.Project, error)
+	// Update updates an existing Project.
+	//
 	// TODO: This should return the project because the system will have provided
 	// values for some fields that are beyond a client's control, but are not
 	// necessarily beyond a client's interest.
 	Update(context.Context, sdk.Project) error
+	// UpdateFromBytes updates an existing Project using raw (unprocessed by the
+	// client) bytes, presumably originating from a file. This is the preferred
+	// way to update Projects defined by an end user since server-side validation
+	// will then be applied directly to the Project definition as the user has
+	// written it (i.e. WITHOUT any normalization or corrections the client may
+	// have made when unmarshaling the original data or when marshaling the
+	// outbound request).
+	//
+	// TODO: This should return the project because the system will have provided
+	// values for some fields that are beyond a client's control, but are not
+	// necessarily beyond a client's interest.
 	UpdateFromBytes(context.Context, string, []byte) error
+	// Delete deletes a single Project specified by its identifier.
 	Delete(context.Context, string) error
 
+	// ListSecrets returns a SecretReferenceList containing references to all the
+	// Project's secrets. These references contain Keys only and not Values. i.e.
+	// Once a secret is set, end clients are unable to retrieve values.
 	ListSecrets(
 		ctx context.Context,
 		projectID string,
 	) (SecretReferenceList, error)
+	// SetSecret set the value of a new Secret or updates the value of an existing
+	// Secret.
 	SetSecret(ctx context.Context, projectID string, secret sdk.Secret) error
+	// UnsetSecret clears the value of an existing Secret.
 	UnsetSecret(ctx context.Context, projectID string, key string) error
 }
 
