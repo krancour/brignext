@@ -9,12 +9,27 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Service is the specialized interface for managing ServiceAccounts. It's
+// decoupled from underlying technology choices (e.g. data store) to keep
+// business logic reusable and consistent while the underlying tech stack
+// remains free to change.
 type Service interface {
+	// Create creates a new ServiceAccount.
 	Create(context.Context, brignext.ServiceAccount) (brignext.Token, error)
+	// List returns a ServiceAccountReferenceList.
+	//
+	// TODO: This should take some list options because we may want them in the
+	// future and they would be hard to add later.
 	List(context.Context) (brignext.ServiceAccountReferenceList, error)
+	// Get retrieves a single ServiceAccount specified by its identifier.
 	Get(context.Context, string) (brignext.ServiceAccount, error)
+	// GetByToken retrieves a single ServiceAccount specified by token.
 	GetByToken(context.Context, string) (brignext.ServiceAccount, error)
+	// Lock removes access to the API for a single ServiceAccount specified by its
+	// identifier.
 	Lock(context.Context, string) error
+	// Unlock restores access to the API for a single ServiceAccount specified by
+	// its identifier. It returns a new Token.
 	Unlock(context.Context, string) (brignext.Token, error)
 }
 
@@ -22,6 +37,7 @@ type service struct {
 	store Store
 }
 
+// NewService returns a specialized interface for managing ServiceAccounts.
 func NewService(store Store) Service {
 	return &service{
 		store: store,

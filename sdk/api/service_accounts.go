@@ -19,8 +19,9 @@ type ServiceAccount struct {
 	// Description is a natural language description of the ServiceAccount's
 	// purpose.
 	Description string `json:"description,omitempty"`
-	// Locked indicates whether the ServiceAccount has been locked out of the
-	// system by an administrator.
+	// Locked indicates when the ServiceAccount has been locked out of the system
+	// by an administrator. If this field's value is nil, the User can be presumed
+	// NOT to be locked.
 	Locked *time.Time `json:"locked,omitempty"`
 }
 
@@ -42,12 +43,23 @@ func (s ServiceAccount) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// ServiceAccountReference is an abridged representation of a ServiceAccount
+// useful to API operations that construct and return potentially large
+// collections of service accounts.
 type ServiceAccountReference struct {
+	// ObjectReferenceMeta contains abridged ServiceAccount metadata.
 	meta.ObjectReferenceMeta `json:"metadata"`
-	Description              string     `json:"description,omitempty"`
-	Locked                   *time.Time `json:"locked,omitempty"`
+	// Description is a natural language description of the ServiceAccount's
+	// purpose.
+	Description string `json:"description,omitempty"`
+	// Locked indicates when the ServiceAccount has been locked out of the system
+	// by an administrator. If this field's value is nil, the User can be presumed
+	// NOT to be locked.
+	Locked *time.Time `json:"locked,omitempty"`
 }
 
+// MarshalJSON amends ServiceAccountReference instances with type metadata so
+// that clients do not need to be concerned with the tedium of doing so.
 func (s ServiceAccountReference) MarshalJSON() ([]byte, error) {
 	type Alias ServiceAccountReference
 	return json.Marshal(
@@ -64,10 +76,16 @@ func (s ServiceAccountReference) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// ServiceAccountReferenceList is an ordered list of ServiceAccountReferences.
 type ServiceAccountReferenceList struct {
+	// Items is a slice of ServiceAccountReferences.
+	//
+	// TODO: When pagination is implemented, list metadata will need to be added
 	Items []ServiceAccountReference `json:"items,omitempty"`
 }
 
+// MarshalJSON amends ServiceAccountReferenceList instances with type metadata
+// so that clients do not need to be concerned with the tedium of doing so.
 func (s ServiceAccountReferenceList) MarshalJSON() ([]byte, error) {
 	type Alias ServiceAccountReferenceList
 	return json.Marshal(
@@ -87,10 +105,20 @@ func (s ServiceAccountReferenceList) MarshalJSON() ([]byte, error) {
 // ServiceAccountsClient is the specialized client for managing ServiceAccounts
 // with the BrigNext API.
 type ServiceAccountsClient interface {
+	// Create creates a new ServiceAccount.
 	Create(context.Context, ServiceAccount) (Token, error)
+	// List returns a ServiceAccountReferenceList.
+	//
+	// TODO: This should take some list options because we may want them in the
+	// future and they would be hard to add later.
 	List(context.Context) (ServiceAccountReferenceList, error)
+	// Get retrieves a single ServiceAccount specified by its identifier.
 	Get(context.Context, string) (ServiceAccount, error)
+	// Lock removes access to the API for a single ServiceAccount specified by its
+	// identifier.
 	Lock(context.Context, string) error
+	// Unlock restores access to the API for a single ServiceAccount specified by
+	// its identifier. It returns a new Token.
 	Unlock(context.Context, string) (Token, error)
 }
 
