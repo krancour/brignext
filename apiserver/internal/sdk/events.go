@@ -116,12 +116,20 @@ type EventListOptions struct {
 // events. Utilizing such an abridged representation limits response size
 // significantly as Events have the potentia to be quite large.
 type EventReference struct {
+	// ObjectReferenceMeta contains abridged Event metadata.
 	meta.ObjectReferenceMeta `json:"metadata" bson:",inline"`
-	ProjectID                string            `json:"projectID,omitempty" bson:"projectID,omitempty"`
-	Source                   string            `json:"source,omitempty" bson:"source,omitempty"`
-	Type                     string            `json:"type,omitempty" bson:"type,omitempty"`
-	Kubernetes               *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
-	WorkerPhase              WorkerPhase       `json:"workerPhase,omitempty" bson:"-"`
+	// ProjectID specifies the Project this Event is for.
+	ProjectID string `json:"projectID,omitempty" bson:"projectID,omitempty"`
+	// Source specifies the source of the event, e.g. what gateway created it.
+	Source string `json:"source,omitempty" bson:"source,omitempty"`
+	// Type specifies the exact event that has occurred in the upstream system.
+	// These are source-specific.
+	Type string `json:"type,omitempty" bson:"type,omitempty"`
+	// Kubernetes contains Kubernetes-specific Event configuration.
+	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"` // nolint: lll
+	// WorkerPhase specifies where the Event's Worker currently is in its
+	// lifecycle.
+	WorkerPhase WorkerPhase `json:"workerPhase,omitempty" bson:"-"`
 }
 
 // MarshalJSON amends EventReference instances with type metadata.
@@ -167,10 +175,11 @@ func NewEventReference(event Event) EventReference {
 	return eventRef
 }
 
-// EventReferenceList is an ordered list of EventtReferences.
+// EventReferenceList is an ordered list of EventReferences.
 type EventReferenceList struct {
-	// TODO: When pagination is implemented, list metadata will need to be added
 	// Items is a slice of EventReferences.
+	//
+	// TODO: When pagination is implemented, list metadata will need to be added
 	Items []EventReference `json:"items,omitempty"`
 }
 
@@ -194,7 +203,12 @@ func (e EventReferenceList) MarshalJSON() ([]byte, error) {
 // LogOptions represents useful criteria for identifying a specific container
 // of a specific Job when requesting Event logs.
 type LogOptions struct {
-	Job       string `json:"job,omitempty"`
+	// Job specifies, by name, a Job spawned by the Worker. If this field is
+	// left blank, it is presumed logs are desired for the Worker itself.
+	Job string `json:"job,omitempty"`
+	// Container specifies, by name, a container belonging to the Worker or Job
+	// whose logs are being retrieved. If left blank, a container with the same
+	// name as the Worker or Job is assumed.
 	Container string `json:"container,omitempty"`
 }
 
@@ -226,8 +240,9 @@ func (l LogEntry) MarshalJSON() ([]byte, error) {
 
 // LogEntryList is an ordered list of LogEntries.
 type LogEntryList struct {
-	// TODO: When pagination is implemented, list metadata will need to be added
 	// Items is a slice of LogEntries.
+	//
+	// TODO: When pagination is implemented, list metadata will need to be added
 	Items []LogEntry `json:"items"`
 }
 

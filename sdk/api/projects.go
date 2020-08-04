@@ -44,8 +44,9 @@ func (p ProjectReference) MarshalJSON() ([]byte, error) {
 
 // ProjectReferenceList is an ordered list of ProjectReferences.
 type ProjectReferenceList struct {
-	// TODO: When pagination is implemented, list metadata will need to be added
 	// Items is a slice of ProjectReferences.
+	//
+	// TODO: When pagination is implemented, list metadata will need to be added
 	Items []ProjectReference `json:"items,omitempty"`
 }
 

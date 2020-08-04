@@ -29,11 +29,18 @@ type EventListOptions struct {
 // events. Utilizing such an abridged representation limits response size
 // significantly as Events have the potentia to be quite large.
 type EventReference struct {
+	// ObjectReferenceMeta contains abridged Event metadata.
 	meta.ObjectReferenceMeta `json:"metadata"`
-	ProjectID                string          `json:"projectID,omitempty"`
-	Source                   string          `json:"source,omitempty"`
-	Type                     string          `json:"type,omitempty"`
-	WorkerPhase              sdk.WorkerPhase `json:"workerPhase,omitempty"`
+	// ProjectID specifies the Project this Event is for.
+	ProjectID string `json:"projectID,omitempty"`
+	// Source specifies the source of the event, e.g. what gateway created it.
+	Source string `json:"source,omitempty"`
+	// Type specifies the exact event that has occurred in the upstream system.
+	// These are source-specific.
+	Type string `json:"type,omitempty"`
+	// WorkerPhase specifies where the Event's Worker currently is in its
+	// lifecycle.
+	WorkerPhase sdk.WorkerPhase `json:"workerPhase,omitempty"`
 }
 
 // MarshalJSON amends EventReference instances with type metadata so that
@@ -54,10 +61,11 @@ func (e EventReference) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// EventReferenceList is an ordered list of EventtReferences.
+// EventReferenceList is an ordered list of EventReferences.
 type EventReferenceList struct {
-	// TODO: When pagination is implemented, list metadata will need to be added
 	// Items is a slice of EventReferences.
+	//
+	// TODO: When pagination is implemented, list metadata will need to be added
 	Items []EventReference `json:"items,omitempty"`
 }
 
@@ -82,7 +90,12 @@ func (e EventReferenceList) MarshalJSON() ([]byte, error) {
 // LogOptions represents useful criteria for identifying a specific container
 // of a specific Job when requesting Event logs.
 type LogOptions struct {
-	Job       string `json:"job,omitempty"`
+	// Job specifies, by name, a Job spawned by the Worker. If this field is
+	// left blank, it is presumed logs are desired for the Worker itself.
+	Job string `json:"job,omitempty"`
+	// Container specifies, by name, a container belonging to the Worker or Job
+	// whose logs are being retrieved. If left blank, a container with the same
+	// name as the Worker or Job is assumed.
 	Container string `json:"container,omitempty"`
 }
 

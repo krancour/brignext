@@ -99,7 +99,8 @@ type LogEntry struct {
 
 // LogEntryList is an ordered list of LogEntries.
 type LogEntryList struct {
-	// TODO: When pagination is implemented, list metadata will need to be added
 	// Items is a slice of LogEntries.
+	//
+	// TODO: When pagination is implemented, list metadata will need to be added
 	Items []LogEntry `json:"items"`
 }

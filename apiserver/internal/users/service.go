@@ -8,11 +8,25 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Service is the specialized interface for managing Users. It's decoupled from
+// underlying technology choices (e.g. data store) to keep business logic
+// reusable and consistent while the underlying tech stack remains free to
+// change.
 type Service interface {
+	// Create creates a new User.
 	Create(context.Context, brignext.User) error
+	// List returns a UserReferenceList.
+	//
+	// TODO: This should take some list options because we may want them in the
+	// future and they would be hard to add later.
 	List(context.Context) (brignext.UserReferenceList, error)
+	// Get retrieves a single User specified by their identifier.
 	Get(context.Context, string) (brignext.User, error)
+	// Lock removes access to the API for a single User specified by their
+	// identifier.
 	Lock(context.Context, string) error
+	// Unlock restores access to the API for a single User specified by their
+	// identifier.
 	Unlock(context.Context, string) error
 }
 
@@ -20,6 +34,7 @@ type service struct {
 	store Store
 }
 
+// NewService returns a specialized interface for managing Users.
 func NewService(store Store) Service {
 	return &service{
 		store: store,
