@@ -11,33 +11,51 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
+// Service is the specialized interface for managing Events. It's decoupled from
+// underlying technology choices (e.g. data store, message bus, etc.) to keep
+// business logic reusable and consistent while the underlying tech stack
+// remains free to change.
 type Service interface {
+	// Create creates a new Event.
 	Create(context.Context, brignext.Event) (
 		brignext.EventReferenceList,
 		error,
 	)
+	// List returns EventReferenceList, with its EventReferences ordered by age,
+	// newest first. Criteria for which Events should be retrieved can be
+	// specified using the EventListOptions parameter.
 	List(
 		context.Context,
 		brignext.EventListOptions,
 	) (brignext.EventReferenceList, error)
+	// Get retrieves a single Event specified by its identifier.
 	Get(context.Context, string) (brignext.Event, error)
+	// Cancel cancels a single Event specified by its identifier.
 	Cancel(context.Context, string) error
-	CancelCollection(
+	// CancelMany cancels multiple Events specified by the EventListOptions
+	// parameter.
+	CancelMany(
 		context.Context,
 		brignext.EventListOptions,
 	) (brignext.EventReferenceList, error)
+	// Delete deletes a single Event specified by its identifier.
 	Delete(context.Context, string) error
-	DeleteCollection(
+	// DeleteMany deletes multiple Events specified by the EventListOptions
+	// parameter.
+	DeleteMany(
 		context.Context,
 		brignext.EventListOptions,
 	) (brignext.EventReferenceList, error)
 
+	// UpdateWorkerStatus updates the status of an Event's Worker.
 	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
 		status brignext.WorkerStatus,
 	) error
 
+	// UpdateJobStatus, given an Event identifier and Job name, updates the status
+	// of that Job.
 	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
@@ -45,11 +63,16 @@ type Service interface {
 		status brignext.JobStatus,
 	) error
 
+	// GetLogs retrieves logs for an Event's Worker, or using the LogOptions
+	// parameter, a Job spawned by that Worker (or specific container thereof).
 	GetLogs(
 		ctx context.Context,
 		eventID string,
 		opts brignext.LogOptions,
 	) (brignext.LogEntryList, error)
+	// StreamLogs returns a channel over which logs for an Event's Worker, or
+	// using the LogOptions parameter, a Job spawned by that Worker (or specific
+	// container thereof), are streamed.
 	StreamLogs(
 		ctx context.Context,
 		eventID string,
@@ -64,6 +87,7 @@ type service struct {
 	scheduler     Scheduler
 }
 
+// NewService returns a specialized interface for managing Events.
 func NewService(
 	projectsStore projects.Store,
 	store Store,
@@ -185,7 +209,11 @@ func (s *service) Create(
 	// partially completed create leaves us, overall, in a tolerable state.
 
 	if err = s.store.Create(ctx, event); err != nil {
-		return eventRefList, errors.Wrapf(err, "error storing new event %q", event.ID)
+		return eventRefList, errors.Wrapf(
+			err,
+			"error storing new event %q",
+			event.ID,
+		)
 	}
 	if err = s.scheduler.Create(ctx, project, event); err != nil {
 		return eventRefList, errors.Wrapf(
@@ -262,7 +290,7 @@ func (s *service) Cancel(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *service) CancelCollection(
+func (s *service) CancelMany(
 	ctx context.Context,
 	opts brignext.EventListOptions,
 ) (brignext.EventReferenceList, error) {
@@ -295,7 +323,7 @@ func (s *service) CancelCollection(
 		}
 	}
 
-	eventRefList, err := s.store.CancelCollection(ctx, opts)
+	eventRefList, err := s.store.CancelMany(ctx, opts)
 	if err != nil {
 		return eventRefList, errors.Wrap(err, "error canceling events in store")
 	}
@@ -348,7 +376,7 @@ func (s *service) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *service) DeleteCollection(
+func (s *service) DeleteMany(
 	ctx context.Context,
 	opts brignext.EventListOptions,
 ) (brignext.EventReferenceList, error) {
@@ -381,7 +409,7 @@ func (s *service) DeleteCollection(
 		}
 	}
 
-	eventRefList, err := s.store.DeleteCollection(ctx, opts)
+	eventRefList, err := s.store.DeleteMany(ctx, opts)
 	if err != nil {
 		return eventRefList, errors.Wrap(err, "error deleting events from store")
 	}

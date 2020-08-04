@@ -65,7 +65,7 @@ func (e *endpoints) Register(router *mux.Router) {
 	// Cancel a collection of events
 	router.HandleFunc(
 		"/v2/events/cancellations",
-		e.TokenAuthFilter.Decorate(e.cancelCollection),
+		e.TokenAuthFilter.Decorate(e.cancelMany),
 	).Methods(http.MethodPost)
 
 	// Delete event
@@ -77,7 +77,7 @@ func (e *endpoints) Register(router *mux.Router) {
 	// Delete a collection of events
 	router.HandleFunc(
 		"/v2/events",
-		e.TokenAuthFilter.Decorate(e.deleteCollection),
+		e.TokenAuthFilter.Decorate(e.deleteMany),
 	).Methods(http.MethodDelete)
 
 	// Update worker status
@@ -165,7 +165,7 @@ func (e *endpoints) cancel(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (e *endpoints) cancelCollection(
+func (e *endpoints) cancelMany(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -185,7 +185,7 @@ func (e *endpoints) cancelCollection(
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.CancelCollection(r.Context(), opts)
+				return e.service.CancelMany(r.Context(), opts)
 			},
 			SuccessCode: http.StatusOK,
 		},
@@ -205,10 +205,7 @@ func (e *endpoints) delete(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (e *endpoints) deleteCollection(
-	w http.ResponseWriter,
-	r *http.Request,
-) {
+func (e *endpoints) deleteMany(w http.ResponseWriter, r *http.Request) {
 	opts := brignext.EventListOptions{
 		ProjectID: r.URL.Query().Get("projectID"),
 	}
@@ -225,7 +222,7 @@ func (e *endpoints) deleteCollection(
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.DeleteCollection(r.Context(), opts)
+				return e.service.DeleteMany(r.Context(), opts)
 			},
 			SuccessCode: http.StatusOK,
 		},

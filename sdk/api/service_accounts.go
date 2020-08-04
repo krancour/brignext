@@ -84,8 +84,8 @@ func (s ServiceAccountReferenceList) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// ServiceAccountsClient is the specialized interface for managing
-// ServiceAccounts with the BrigNext API.
+// ServiceAccountsClient is the specialized client for managing ServiceAccounts
+// with the BrigNext API.
 type ServiceAccountsClient interface {
 	Create(context.Context, ServiceAccount) (Token, error)
 	List(context.Context) (ServiceAccountReferenceList, error)

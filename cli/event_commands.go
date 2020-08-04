@@ -583,7 +583,7 @@ func eventCancelMany(c *cli.Context) error {
 		opts.WorkerPhases = append(opts.WorkerPhases, sdk.WorkerPhaseRunning)
 	}
 
-	eventRefList, err := client.Events().CancelCollection(c.Context, opts)
+	eventRefList, err := client.Events().CancelMany(c.Context, opts)
 	if err != nil {
 		return err
 	}
@@ -681,7 +681,7 @@ func eventDeleteMany(c *cli.Context) error {
 		WorkerPhases: workerPhases,
 	}
 
-	eventRefList, err := client.Events().DeleteCollection(c.Context, opts)
+	eventRefList, err := client.Events().DeleteMany(c.Context, opts)
 	if err != nil {
 		return err
 	}

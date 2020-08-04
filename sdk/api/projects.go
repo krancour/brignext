@@ -107,7 +107,7 @@ func (s SecretReferenceList) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// ProjectsClient is the specialized interface for managing Projects with the
+// ProjectsClient is the specialized client for managing Projects with the
 // BrigNext API.
 type ProjectsClient interface {
 	// TODO: This should return the project because the system will have provided

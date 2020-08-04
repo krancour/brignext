@@ -14,12 +14,12 @@ type Store interface {
 	) (brignext.EventReferenceList, error)
 	Get(context.Context, string) (brignext.Event, error)
 	Cancel(context.Context, string) error
-	CancelCollection(
+	CancelMany(
 		context.Context,
 		brignext.EventListOptions,
 	) (brignext.EventReferenceList, error)
 	Delete(context.Context, string) error
-	DeleteCollection(
+	DeleteMany(
 		context.Context,
 		brignext.EventListOptions,
 	) (brignext.EventReferenceList, error)

@@ -170,7 +170,7 @@ func (s *store) Cancel(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *store) CancelCollection(
+func (s *store) CancelMany(
 	ctx context.Context,
 	opts brignext.EventListOptions,
 ) (brignext.EventReferenceList, error) {
@@ -269,7 +269,7 @@ func (s *store) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *store) DeleteCollection(
+func (s *store) DeleteMany(
 	ctx context.Context,
 	opts brignext.EventListOptions,
 ) (brignext.EventReferenceList, error) {

@@ -12,8 +12,7 @@ type UserSessionAuthDetails struct {
 	Token       string `json:"token,omitempty"`
 }
 
-// SessionsClient is the specialized interface for managing BrigNext API
-// Sessions.
+// SessionsClient is the specialized client for managing BrigNext API Sessions.
 type SessionsClient interface {
 	CreateRootSession(
 		ctx context.Context,

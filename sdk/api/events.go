@@ -86,32 +86,46 @@ type LogOptions struct {
 	Container string `json:"container,omitempty"`
 }
 
-// EventsClient is the specialized interface for managing Events with the
-// BrigNext API.
+// EventsClient is the specialized client for managing Events with the BrigNext
+// API.
 type EventsClient interface {
+	// Create creates a new Event.
 	Create(context.Context, sdk.Event) (EventReferenceList, error)
+	// List returns EventReferenceList, with its EventReferences ordered by age,
+	// newest first. Criteria for which Events should be retrieved can be
+	// specified using the EventListOptions parameter.
 	List(
 		context.Context,
 		EventListOptions,
 	) (EventReferenceList, error)
+	// Get retrieves a single Event specified by its identifier.
 	Get(context.Context, string) (sdk.Event, error)
+	// Cancel cancels a single Event specified by its identifier.
 	Cancel(context.Context, string) error
-	CancelCollection(
+	// CancelMany cancels multiple Events specified by the EventListOptions
+	// parameter.
+	CancelMany(
 		context.Context,
 		EventListOptions,
 	) (EventReferenceList, error)
+	// Delete deletes a single Event specified by its identifier.
 	Delete(context.Context, string) error
-	DeleteCollection(
+	// DeleteMany deletes multiple Events specified by the EventListOptions
+	// parameter.
+	DeleteMany(
 		context.Context,
 		EventListOptions,
 	) (EventReferenceList, error)
 
+	// UpdateWorkerStatus updates the status of an Event's Worker.
 	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
 		status sdk.WorkerStatus,
 	) error
 
+	// UpdateJobStatus, given an Event identifier and Job name, updates the status
+	// of that Job.
 	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
@@ -119,11 +133,16 @@ type EventsClient interface {
 		status sdk.JobStatus,
 	) error
 
+	// GetLogs retrieves logs for an Event's Worker, or using the LogOptions
+	// parameter, a Job spawned by that Worker (or specific container thereof).
 	GetLogs(
 		ctx context.Context,
 		eventID string,
 		opts LogOptions,
 	) (sdk.LogEntryList, error)
+	// StreamLogs returns a channel over which logs for an Event's Worker, or
+	// using the LogOptions parameter, a Job spawned by that Worker (or specific
+	// container thereof), are streamed.
 	StreamLogs(
 		ctx context.Context,
 		eventID string,
@@ -228,7 +247,7 @@ func (e *eventsClient) Cancel(_ context.Context, id string) error {
 	)
 }
 
-func (e *eventsClient) CancelCollection(
+func (e *eventsClient) CancelMany(
 	_ context.Context,
 	opts EventListOptions,
 ) (EventReferenceList, error) {
@@ -267,7 +286,7 @@ func (e *eventsClient) Delete(_ context.Context, id string) error {
 	)
 }
 
-func (e *eventsClient) DeleteCollection(
+func (e *eventsClient) DeleteMany(
 	_ context.Context,
 	opts EventListOptions,
 ) (EventReferenceList, error) {
