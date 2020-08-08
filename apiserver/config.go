@@ -2,8 +2,6 @@ package main
 
 // nolint: lll
 import (
-	"log"
-
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
 	"github.com/krancour/brignext/v2/apiserver/internal/events"
@@ -27,23 +25,23 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 	// API server config
 	apiConfig, err := apimachinery.GetConfigFromEnvironment()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	// Common
 	database, err := mongodb.Database()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	kubeClient, err := kubernetes.Client()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	// Projects
 	projectsStore, err := projectsMongodb.NewStore(database)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	projectsService := projects.NewService(
 		projectsStore,
@@ -53,14 +51,14 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 	// Events-- depends on projects
 	eventsSenderFactory, err := amqp.GetEventsSenderFactoryFromEnvironment()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	eventsStore, err := eventsMongodb.NewStore(database)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	eventsService := events.NewService(
 		projectsStore,
@@ -72,14 +70,14 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 	// Service Accounts
 	serviceAccountsStore, err := serviceaccountsMongodb.NewStore(database)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	serviceAccountsService := serviceaccounts.NewService(serviceAccountsStore)
 
 	// Users
 	usersStore, err := usersMongodb.NewStore(database)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	usersService := users.NewService(usersStore)
 
@@ -87,11 +85,11 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 	oauth2Config, oidcIdentityVerifier, err :=
 		oidc.GetConfigAndVerifierFromEnvironment()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	sessionsStore, err := sessionsMongodb.NewStore(database)
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	sessionsService := sessions.NewService(
 		sessionsStore,

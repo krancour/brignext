@@ -408,6 +408,10 @@ func (e *eventsClient) StreamLogs(
 	return logCh, errCh, nil
 }
 
+// queryParamsFromLogOptions creates a map[string]string of query parameters
+// based on the values of each field in the provided LogOptions and a boolean
+// indicating whether the client is requesting a log stream (and not a static
+// list of log messages).
 func (e *eventsClient) queryParamsFromLogOptions(
 	opts LogOptions,
 	stream bool,
@@ -425,6 +429,8 @@ func (e *eventsClient) queryParamsFromLogOptions(
 	return queryParams
 }
 
+// receiveLogStream is used to receive log messages as SSEs (server sent
+// events), decode those, and publish them to a channel.
 func (e *eventsClient) receiveLogStream(
 	ctx context.Context,
 	reader io.ReadCloser,

@@ -85,7 +85,7 @@ type EventGitConfig struct {
 	// Commit specifies a commit (by sha) to be checked out.
 	Commit string `json:"commit,omitempty"`
 	// Ref specifies a tag or branch to be checked out. If left blank, this will
-	// defualt to "master" at runtime.
+	// default to "master" at runtime.
 	Ref string `json:"ref,omitempty"`
 }
 

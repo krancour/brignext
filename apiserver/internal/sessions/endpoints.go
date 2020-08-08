@@ -8,14 +8,12 @@ import (
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
-	"github.com/krancour/brignext/v2/apiserver/internal/users"
 	"github.com/pkg/errors"
 )
 
 type endpoints struct {
 	*apimachinery.BaseEndpoints
-	service      Service
-	usersService users.Service
+	service Service
 }
 
 func NewEndpoints(

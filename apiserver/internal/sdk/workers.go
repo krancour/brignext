@@ -44,7 +44,7 @@ const (
 
 // WorkerPhasesAll returns a slice of WorkerPhases containing ALL possible
 // phases. Note that instead of utilizing a package-level slice, this a function
-// returns ad-hoc copies of the slice in order to preculde the possibility of
+// returns ad-hoc copies of the slice in order to preclude the possibility of
 // this important collection being modified at runtime.
 func WorkerPhasesAll() []WorkerPhase {
 	return []WorkerPhase{
@@ -74,6 +74,7 @@ type Worker struct {
 }
 
 // WorkerSpec is the technical blueprint for a Worker.
+// nolint: lll
 type WorkerSpec struct {
 	// Container specifies the details of an OCI container that forms the
 	// cornerstone of the Worker.
@@ -83,24 +84,24 @@ type WorkerSpec struct {
 	// The value can be expressed in bytes (as a plain integer) or as a
 	// fixed-point integer using one of these suffixes: E, P, T, G, M, K.
 	// Power-of-two equivalents may also be used: Ei, Pi, Ti, Gi, Mi, Ki.
-	WorkspaceSize string `json:"workspaceSize,omitempty" bson:"workspaceSize,omitempty"` // nolint: lll
+	WorkspaceSize string `json:"workspaceSize,omitempty" bson:"workspaceSize,omitempty"`
 	// Git contains git-specific Worker details.
 	Git *WorkerGitConfig `json:"git,omitempty" bson:"git,omitempty"`
 	// Kubernetes contains Kubernetes-specific Worker details.
-	Kubernetes *WorkerKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"` // nolint: lll
+	Kubernetes *WorkerKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
 	// JobPolicies specifies policies for any Jobs spawned by the Worker.
-	JobPolicies *JobPolicies `json:"jobPolicies,omitempty" bson:"jobPolicies,omitempty"` // nolint: lll
+	JobPolicies *JobPolicies `json:"jobPolicies,omitempty" bson:"jobPolicies,omitempty"`
 	// LogLevel specifies the desired granularity of Worker log output.
 	LogLevel LogLevel `json:"logLevel,omitempty" bson:"logLevel,omitempty"`
 	// ConfigFilesDirectory specifies a directory within the Worker's workspace
 	// where any relevant configuration files (e.g. brigade.json, brigade.js,
 	// etc.) can be located.
-	ConfigFilesDirectory string `json:"configFilesDirectory,omitempty" bson:"configFilesDirectory,omitempty"` // nolint: lll
+	ConfigFilesDirectory string `json:"configFilesDirectory,omitempty" bson:"configFilesDirectory,omitempty"`
 	// DefaultConfigFiles is a map of configuration file names to configuration
 	// file content. This is useful for Workers that do not integrate with any
 	// source control system and would like to embed configuration (e.g.
 	// brigade.json) or scripts (e.g. brigade.js) directly within the WorkerSpec.
-	DefaultConfigFiles map[string]string `json:"defaultConfigFiles,omitempty" bson:"defaultConfigFiles,omitempty"` // nolint: lll
+	DefaultConfigFiles map[string]string `json:"defaultConfigFiles,omitempty" bson:"defaultConfigFiles,omitempty"`
 }
 
 // WorkerGitConfig represents git-specific Worker details.
@@ -111,7 +112,7 @@ type WorkerGitConfig struct {
 	// Commit specifies a commit (by SHA) to be checked out.
 	Commit string `json:"commit,omitempty" bson:"commit,omitempty"`
 	// Ref specifies a tag or branch to be checked out. If left blank, this will
-	// defualt to "master" at runtime.
+	// default to "master" at runtime.
 	Ref string `json:"ref,omitempty" bson:"ref,omitempty"`
 	// InitSubmodules indicates whether to clone the repository's submodules.
 	InitSubmodules bool `json:"initSubmodules" bson:"initSubmodules"`

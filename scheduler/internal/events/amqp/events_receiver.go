@@ -14,7 +14,9 @@ type eventsReceiver struct {
 	amqpReceiver *amqp.Receiver
 }
 
-func (e *eventsReceiver) Receive(ctx context.Context) (*events.AsyncEvent, error) {
+func (e *eventsReceiver) Receive(
+	ctx context.Context,
+) (*events.AsyncEvent, error) {
 	amqpMsg, err := e.amqpReceiver.Receive(ctx)
 	if err != nil {
 		return nil, errors.Wrapf(

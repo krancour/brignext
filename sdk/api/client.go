@@ -17,11 +17,17 @@ type Client interface {
 }
 
 type client struct {
-	eventsClient          EventsClient
-	projectsClient        ProjectsClient
+	// eventsClient is a specialized client for Event management.
+	eventsClient EventsClient
+	// projectsClient is a specialized client for Project management.
+	projectsClient ProjectsClient
+	// serviceAccountsClient is a specialized client for ServiceAccount
+	// management.
 	serviceAccountsClient ServiceAccountsClient
-	sessionsClient        SessionsClient
-	usersClient           UsersClient
+	// sessionsClient is a specialized client for Session management.
+	sessionsClient SessionsClient
+	// usersClient is a specialized client for User managament.
+	usersClient UsersClient
 }
 
 // NewClient returns a BrigNext client.

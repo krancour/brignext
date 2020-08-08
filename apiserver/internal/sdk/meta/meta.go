@@ -25,11 +25,11 @@ type ObjectMeta struct {
 	// Created indicates the time at which a resource was created.
 	Created *time.Time `json:"created,omitempty" bson:"created,omitempty"`
 	// CreatedBy indicates who or what created the resource.
-	CreatedBy *PrincipalReference `json:"createdBy,omitempty" bson:"createdBy,omitempty"`
+	CreatedBy *PrincipalReference `json:"createdBy,omitempty" bson:"createdBy,omitempty"` // nolint: lll
 	// LastUpdated indicates the time at which a resource was last updated.
 	LastUpdated *time.Time `json:"lastUpdated,omitempty" bson:"lastUpdated,omitempty"` // nolint: lll
 	// LastUpdatedBy indicates who or what last updated the resource.
-	LastUpdatedBy *PrincipalReference `json:"lastUpdatedBy,omitempty" bson:"lastUpdatedBy,omitempty"`
+	LastUpdatedBy *PrincipalReference `json:"lastUpdatedBy,omitempty" bson:"lastUpdatedBy,omitempty"` // nolint: lll
 }
 
 // PrincipalReference is a reference to a user of the system-- either a human

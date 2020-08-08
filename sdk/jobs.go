@@ -56,7 +56,7 @@ type JobSpec struct {
 	// proceed with a suite of tests until a database is launched and READY in a
 	// sidecar container), then logic within those containers must account for
 	// these constraints.
-	SidecarContainers map[string]ContainerSpec `json:"sidecarContainers,omitempty"`
+	SidecarContainers map[string]ContainerSpec `json:"sidecarContainers,omitempty"` // nolint: lll
 }
 
 // JobStatus represents the status of a Job.

@@ -40,11 +40,12 @@ type Job struct {
 }
 
 // JobSpec is the technical blueprint for a Job.
+// nolint: lll
 type JobSpec struct {
 	// PrimaryContainer specifies the details of an OCI container that forms the
 	// cornerstone of the Job. Job success or failure is tied to completion and
 	// exit code of this container.
-	PrimaryContainer ContainerSpec `json:"primaryContainer bson:"primaryContainer`
+	PrimaryContainer ContainerSpec `json:"primaryContainer" bson:"primaryContainer"`
 	// SidecarContainers specifies the details of supplemental, "sidecar"
 	// containers. Their completion and exit code do not directly impact Job
 	// status. BrigNext does not understand dependencies between a Job's multiple
@@ -53,7 +54,7 @@ type JobSpec struct {
 	// proceed with a suite of tests until a database is launched and READY in a
 	// sidecar container), then logic within those containers must account for
 	// these constraints.
-	SidecarContainers map[string]ContainerSpec `json:"sidecarContainers,omitempty" bson:"sidecarContainers,omitempty"` // nolint: lll
+	SidecarContainers map[string]ContainerSpec `json:"sidecarContainers,omitempty" bson:"sidecarContainers,omitempty"`
 }
 
 // JobStatus represents the status of a Job.

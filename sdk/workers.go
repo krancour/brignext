@@ -55,7 +55,7 @@ const (
 
 // WorkerPhasesAll returns a slice of WorkerPhases containing ALL possible
 // phases. Note that instead of utilizing a package-level slice, this a function
-// returns ad-hoc copies of the slice in order to preculde the possibility of
+// returns ad-hoc copies of the slice in order to preclude the possibility of
 // this important collection being modified at runtime by a client.
 func WorkerPhasesAll() []WorkerPhase {
 	return []WorkerPhase{
@@ -73,7 +73,7 @@ func WorkerPhasesAll() []WorkerPhase {
 // WorkerPhasesTerminal returns a slice of WorkerPhases containing ALL phases
 // that are considered terminal. Note that instead of utilizing a package-level
 // slice, this a function returns ad-hoc copies of the slice in order to
-// preculde the possibility of this important collection being modified at
+// preclude the possibility of this important collection being modified at
 // runtime by a client.
 func WorkerPhasesTerminal() []WorkerPhase {
 	return []WorkerPhase{
@@ -88,7 +88,7 @@ func WorkerPhasesTerminal() []WorkerPhase {
 // WorkerPhasesNonTerminal returns a slice of WorkerPhases containing ALL phases
 // that are considered non-terminal. Note that instead of utilizing a
 // package-level slice, this a function returns ad-hoc copies of the slice in
-// order to preculde the possibility of this important collection being modified
+// order to preclude the possibility of this important collection being modified
 // at runtime by a client.
 func WorkerPhasesNonTerminal() []WorkerPhase {
 	return []WorkerPhase{
@@ -147,7 +147,7 @@ type WorkerGitConfig struct {
 	// Commit specifies a commit (by SHA) to be checked out.
 	Commit string `json:"commit,omitempty"`
 	// Ref specifies a tag or branch to be checked out. If left blank, this will
-	// defualt to "master" at runtime.
+	// default to "master" at runtime.
 	Ref string `json:"ref,omitempty"`
 	// InitSubmodules indicates whether to clone the repository's submodules.
 	InitSubmodules bool `json:"initSubmodules"`

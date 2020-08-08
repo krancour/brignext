@@ -50,14 +50,14 @@ outerLoop:
 			if err != nil {
 				// TODO: We should check what went wrong
 				log.Println(err)
-				asyncEvent.Ack()
-				continue // Next event
+				asyncEvent.Ack() // nolint: errcheck
+				continue         // Next event
 			}
 
 			// If the worker's phase isn't PENDING, then there's nothing to do
 			if event.Worker.Status.Phase != sdk.WorkerPhasePending {
-				asyncEvent.Ack()
-				continue // Next event
+				asyncEvent.Ack() // nolint: errcheck
+				continue         // Next event
 			}
 
 			// TODO: We should still check k8s for the existence of the pod before
@@ -84,8 +84,8 @@ outerLoop:
 					asyncEvent.EventID,
 					err,
 				)
-				asyncEvent.Ack()
-				continue // Next event
+				asyncEvent.Ack() // nolint: errcheck
+				continue         // Next event
 			}
 
 			if err := s.createWorkerPod(ctx, event); err != nil {
@@ -95,11 +95,11 @@ outerLoop:
 					asyncEvent.EventID,
 					err,
 				)
-				asyncEvent.Ack()
-				continue // Next event
+				asyncEvent.Ack() // nolint: errcheck
+				continue         // Next event
 			}
 
-			asyncEvent.Ack()
+			asyncEvent.Ack() // nolint: errcheck
 		}
 
 	}
