@@ -123,7 +123,7 @@ func projectCreate(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err :=
+	if _, err :=
 		client.Projects().CreateFromBytes(c.Context, projectBytes); err != nil {
 		return err
 	}
@@ -287,7 +287,7 @@ func projectUpdate(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err = client.Projects().UpdateFromBytes(
+	if _, err = client.Projects().UpdateFromBytes(
 		c.Context,
 		project.ID,
 		projectBytes,

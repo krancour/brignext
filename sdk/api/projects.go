@@ -119,11 +119,7 @@ func (s SecretReferenceList) MarshalJSON() ([]byte, error) {
 // BrigNext API.
 type ProjectsClient interface {
 	// Create creates a new Project.
-	//
-	// TODO: This should return the project because the system will have provided
-	// values for some fields that are beyond a client's control, but are not
-	// necessarily beyond a client's interest.
-	Create(context.Context, sdk.Project) error
+	Create(context.Context, sdk.Project) (sdk.Project, error)
 	// CreateFromBytes creates a new Project using raw (unprocessed by the client)
 	// bytes, presumably originating from a file. This is the preferred way to
 	// create Projects defined by an end user since server-side validation will
@@ -131,11 +127,7 @@ type ProjectsClient interface {
 	// it (i.e. WITHOUT any normalization or corrections the client may have made
 	// when unmarshaling the original data or when marshaling the outbound
 	// request).
-	//
-	// TODO: This should return the project because the system will have provided
-	// values for some fields that are beyond a client's control, but are not
-	// necessarily beyond a client's interest.
-	CreateFromBytes(context.Context, []byte) error
+	CreateFromBytes(context.Context, []byte) (sdk.Project, error)
 	// List returns a ProjectReferenceList, with its ProjectReferences ordered
 	// alphabetically by Project ID.
 	//
@@ -145,11 +137,7 @@ type ProjectsClient interface {
 	// Get retrieves a single Project specified by its identifier.
 	Get(context.Context, string) (sdk.Project, error)
 	// Update updates an existing Project.
-	//
-	// TODO: This should return the project because the system will have provided
-	// values for some fields that are beyond a client's control, but are not
-	// necessarily beyond a client's interest.
-	Update(context.Context, sdk.Project) error
+	Update(context.Context, sdk.Project) (sdk.Project, error)
 	// UpdateFromBytes updates an existing Project using raw (unprocessed by the
 	// client) bytes, presumably originating from a file. This is the preferred
 	// way to update Projects defined by an end user since server-side validation
@@ -157,11 +145,7 @@ type ProjectsClient interface {
 	// written it (i.e. WITHOUT any normalization or corrections the client may
 	// have made when unmarshaling the original data or when marshaling the
 	// outbound request).
-	//
-	// TODO: This should return the project because the system will have provided
-	// values for some fields that are beyond a client's control, but are not
-	// necessarily beyond a client's interest.
-	UpdateFromBytes(context.Context, string, []byte) error
+	UpdateFromBytes(context.Context, string, []byte) (sdk.Project, error)
 	// Delete deletes a single Project specified by its identifier.
 	Delete(context.Context, string) error
 
@@ -207,14 +191,16 @@ func NewProjectsClient(
 func (p *projectsClient) Create(
 	_ context.Context,
 	project sdk.Project,
-) error {
-	return p.executeRequest(
+) (sdk.Project, error) {
+	createdProject := sdk.Project{}
+	return createdProject, p.executeRequest(
 		outboundRequest{
 			method:      http.MethodPost,
 			path:        "v2/projects",
 			authHeaders: p.bearerTokenAuthHeaders(),
 			reqBodyObj:  project,
 			successCode: http.StatusCreated,
+			respObj:     &createdProject,
 		},
 	)
 }
@@ -222,14 +208,16 @@ func (p *projectsClient) Create(
 func (p *projectsClient) CreateFromBytes(
 	_ context.Context,
 	projectBytes []byte,
-) error {
-	return p.executeRequest(
+) (sdk.Project, error) {
+	createdProject := sdk.Project{}
+	return createdProject, p.executeRequest(
 		outboundRequest{
 			method:      http.MethodPost,
 			path:        "v2/projects",
 			authHeaders: p.bearerTokenAuthHeaders(),
 			reqBodyObj:  projectBytes,
 			successCode: http.StatusCreated,
+			respObj:     &createdProject,
 		},
 	)
 }
@@ -268,14 +256,16 @@ func (p *projectsClient) Get(
 func (p *projectsClient) Update(
 	_ context.Context,
 	project sdk.Project,
-) error {
-	return p.executeRequest(
+) (sdk.Project, error) {
+	updatedProject := sdk.Project{}
+	return updatedProject, p.executeRequest(
 		outboundRequest{
 			method:      http.MethodPut,
 			path:        fmt.Sprintf("v2/projects/%s", project.ID),
 			authHeaders: p.bearerTokenAuthHeaders(),
 			reqBodyObj:  project,
 			successCode: http.StatusOK,
+			respObj:     &updatedProject,
 		},
 	)
 }
@@ -284,14 +274,16 @@ func (p *projectsClient) UpdateFromBytes(
 	_ context.Context,
 	projectID string,
 	projectBytes []byte,
-) error {
-	return p.executeRequest(
+) (sdk.Project, error) {
+	updatedProject := sdk.Project{}
+	return updatedProject, p.executeRequest(
 		outboundRequest{
 			method:      http.MethodPut,
 			path:        fmt.Sprintf("v2/projects/%s", projectID),
 			authHeaders: p.bearerTokenAuthHeaders(),
 			reqBodyObj:  projectBytes,
 			successCode: http.StatusOK,
+			respObj:     &updatedProject,
 		},
 	)
 }

@@ -14,11 +14,7 @@ import (
 // remains free to change.
 type Service interface {
 	// Create creates a new Project.
-	//
-	// TODO: This should return the project because the system will have provided
-	// values for some fields that are beyond a client's control, but are not
-	// necessarily beyond a client's interest.
-	Create(context.Context, brignext.Project) error
+	Create(context.Context, brignext.Project) (brignext.Project, error)
 	// List returns a ProjectReferenceList, with its ProjectReferences ordered
 	// alphabetically by Project ID.
 	//
@@ -28,11 +24,7 @@ type Service interface {
 	// Get retrieves a single Project specified by its identifier.
 	Get(context.Context, string) (brignext.Project, error)
 	// Update updates an existing Project.
-	//
-	// TODO: This should return the project because the system will have provided
-	// values for some fields that are beyond a client's control, but are not
-	// necessarily beyond a client's interest.
-	Update(context.Context, brignext.Project) error
+	Update(context.Context, brignext.Project) (brignext.Project, error)
 	// Delete deletes a single Project specified by its identifier.
 	Delete(context.Context, string) error
 
@@ -69,7 +61,7 @@ func NewService(store Store, scheduler Scheduler) Service {
 func (s *service) Create(
 	ctx context.Context,
 	project brignext.Project,
-) error {
+) (brignext.Project, error) {
 	now := time.Now()
 	project.Created = &now
 
@@ -78,7 +70,7 @@ func (s *service) Create(
 	// Let the scheduler add scheduler-specific details before we persist.
 	var err error
 	if project, err = s.scheduler.PreCreate(ctx, project); err != nil {
-		return errors.Wrapf(
+		return project, errors.Wrapf(
 			err,
 			"error pre-creating project %q in the scheduler",
 			project.ID,
@@ -90,16 +82,16 @@ func (s *service) Create(
 	// partially completed create leaves us, overall, in a tolerable state.
 
 	if err = s.store.Create(ctx, project); err != nil {
-		return errors.Wrapf(err, "error storing new project %q", project.ID)
+		return project, errors.Wrapf(err, "error storing new project %q", project.ID)
 	}
 	if err = s.scheduler.Create(ctx, project); err != nil {
-		return errors.Wrapf(
+		return project, errors.Wrapf(
 			err,
 			"error creating project %q in the scheduler",
 			project.ID,
 		)
 	}
-	return nil
+	return project, nil
 }
 
 func (s *service) List(
@@ -130,13 +122,13 @@ func (s *service) Get(
 func (s *service) Update(
 	ctx context.Context,
 	project brignext.Project,
-) error {
+) (brignext.Project, error) {
 	project = s.projectWithDefaults(project)
 
 	// Let the scheduler update scheduler-specific details before we persist.
 	var err error
 	if project, err = s.scheduler.PreUpdate(ctx, project); err != nil {
-		return errors.Wrapf(
+		return project, errors.Wrapf(
 			err,
 			"error pre-updating project %q in the scheduler",
 			project.ID,
@@ -148,20 +140,20 @@ func (s *service) Update(
 	// partially completed update leaves us, overall, in a tolerable state.
 
 	if err = s.store.Update(ctx, project); err != nil {
-		return errors.Wrapf(
+		return project, errors.Wrapf(
 			err,
 			"error updating project %q in store",
 			project.ID,
 		)
 	}
 	if err = s.scheduler.Update(ctx, project); err != nil {
-		return errors.Wrapf(
+		return project, errors.Wrapf(
 			err,
 			"error updating project %q in the scheduler",
 			project.ID,
 		)
 	}
-	return nil
+	return project, nil
 }
 
 func (s *service) Delete(ctx context.Context, id string) error {

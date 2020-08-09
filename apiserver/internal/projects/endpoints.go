@@ -88,7 +88,7 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 			ReqBodySchemaLoader: e.projectSchemaLoader,
 			ReqBodyObj:          &project,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, e.service.Create(r.Context(), project)
+				return e.service.Create(r.Context(), project)
 			},
 			SuccessCode: http.StatusCreated,
 		},
@@ -136,7 +136,7 @@ func (e *endpoints) update(w http.ResponseWriter, r *http.Request) {
 							"not match.",
 					}
 				}
-				return nil, e.service.Update(r.Context(), project)
+				return e.service.Update(r.Context(), project)
 			},
 			SuccessCode: http.StatusOK,
 		},
