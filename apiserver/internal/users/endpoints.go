@@ -50,12 +50,15 @@ func (e *endpoints) Register(router *mux.Router) {
 }
 
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
+	opts := brignext.UserListOptions{
+		Continue: r.URL.Query().Get("continue"),
+	}
 	e.ServeRequest(
 		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.List(r.Context(), brignext.UserListOptions{})
+				return e.service.List(r.Context(), opts)
 			},
 			SuccessCode: http.StatusOK,
 		},

@@ -44,6 +44,7 @@ func (u User) MarshalJSON() ([]byte, error) {
 // UserListOptions represents useful filter criteria when selecting multiple
 // Users for API group operations like list.
 type UserListOptions struct {
+	Continue string // TODO: Clean this up
 }
 
 // UserList is an ordered and pageable list of Users.
@@ -112,13 +113,22 @@ func NewUsersClient(
 	}
 }
 
-func (u *usersClient) List(context.Context, UserListOptions) (UserList, error) {
+func (u *usersClient) List(
+	_ context.Context,
+	opts UserListOptions,
+) (UserList, error) {
+	queryParams := map[string]string{}
+	// TODO: Clean this up
+	if opts.Continue != "" {
+		queryParams["continue"] = opts.Continue
+	}
 	users := UserList{}
 	return users, u.executeRequest(
 		outboundRequest{
 			method:      http.MethodGet,
 			path:        "v2/users",
 			authHeaders: u.bearerTokenAuthHeaders(),
+			queryParams: queryParams,
 			successCode: http.StatusOK,
 			respObj:     &users,
 		},

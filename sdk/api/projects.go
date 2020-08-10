@@ -14,6 +14,7 @@ import (
 // ProjectListOptions represents useful filter criteria when selecting multiple
 // Projects for API group operations like list.
 type ProjectListOptions struct {
+	Continue string // TODO: Clean this up
 }
 
 // ProjectList is an ordered and pageable list of ProjectS.
@@ -170,15 +171,21 @@ func (p *projectsClient) CreateFromBytes(
 }
 
 func (p *projectsClient) List(
-	context.Context,
-	ProjectListOptions,
+	_ context.Context,
+	opts ProjectListOptions,
 ) (ProjectList, error) {
+	queryParams := map[string]string{}
+	// TODO: Clean this up
+	if opts.Continue != "" {
+		queryParams["continue"] = opts.Continue
+	}
 	projects := ProjectList{}
 	return projects, p.executeRequest(
 		outboundRequest{
 			method:      http.MethodGet,
 			path:        "v2/projects",
 			authHeaders: p.bearerTokenAuthHeaders(),
+			queryParams: queryParams,
 			successCode: http.StatusOK,
 			respObj:     &projects,
 		},

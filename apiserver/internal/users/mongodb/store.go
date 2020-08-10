@@ -65,19 +65,41 @@ func (s *store) Create(ctx context.Context, user brignext.User) error {
 
 func (s *store) List(
 	ctx context.Context,
-	_ brignext.UserListOptions,
+	opts brignext.UserListOptions,
 ) (brignext.UserList, error) {
-	userList := brignext.UserList{}
+	const limit = 2 // TODO: Don't hard code this
+	users := brignext.UserList{}
+
+	criteria := bson.M{}
+	if opts.Continue != "" {
+		criteria["id"] = bson.M{"$gt": opts.Continue}
+	}
+
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})
-	cur, err := s.collection.Find(ctx, bson.M{}, findOptions)
+	findOptions.SetLimit(limit)
+	cur, err := s.collection.Find(ctx, criteria, findOptions)
 	if err != nil {
-		return userList, errors.Wrap(err, "error finding users")
+		return users, errors.Wrap(err, "error finding users")
 	}
-	if err := cur.All(ctx, &userList.Items); err != nil {
-		return userList, errors.Wrap(err, "error decoding users")
+	if err := cur.All(ctx, &users.Items); err != nil {
+		return users, errors.Wrap(err, "error decoding users")
 	}
-	return userList, nil
+
+	if len(users.Items) == limit {
+		continueID := users.Items[limit-1].ID
+		criteria["id"] = bson.M{"$gt": continueID}
+		remaining, err := s.collection.CountDocuments(ctx, criteria)
+		if err != nil {
+			return users, errors.Wrap(err, "error counting remaining users")
+		}
+		if remaining > 0 {
+			users.Continue = continueID
+			users.RemainingItemCount = remaining
+		}
+	}
+
+	return users, nil
 }
 
 func (s *store) Get(

@@ -79,12 +79,15 @@ func (e *endpoints) create(
 }
 
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
+	opts := brignext.ServiceAccountListOptions{
+		Continue: r.URL.Query().Get("continue"),
+	}
 	e.ServeRequest(
 		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.List(r.Context(), brignext.ServiceAccountListOptions{})
+				return e.service.List(r.Context(), opts)
 			},
 			SuccessCode: http.StatusOK,
 		},

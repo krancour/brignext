@@ -146,49 +146,61 @@ func projectList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	projectList, err :=
-		client.Projects().List(c.Context, api.ProjectListOptions{})
-	if err != nil {
-		return err
-	}
+	opts := api.ProjectListOptions{}
 
-	if len(projectList.Items) == 0 {
-		fmt.Println("No projects found.")
-		return nil
-	}
-
-	switch strings.ToLower(output) {
-	case "table":
-		table := uitable.New()
-		table.AddRow("ID", "DESCRIPTION", "AGE")
-		for _, project := range projectList.Items {
-			table.AddRow(
-				project.ID,
-				project.Description,
-				duration.ShortHumanDuration(time.Since(*project.Created)),
-			)
-		}
-		fmt.Println(table)
-
-	case "yaml":
-		yamlBytes, err := yaml.Marshal(projectList)
+	for {
+		projects, err :=
+			client.Projects().List(c.Context, opts)
 		if err != nil {
-			return errors.Wrap(
-				err,
-				"error formatting output from get projects operation",
-			)
+			return err
 		}
-		fmt.Println(string(yamlBytes))
 
-	case "json":
-		prettyJSON, err := json.MarshalIndent(projectList, "", "  ")
-		if err != nil {
-			return errors.Wrap(
-				err,
-				"error formatting output from get projects operation",
-			)
+		if len(projects.Items) == 0 {
+			fmt.Println("No projects found.")
+			return nil
 		}
-		fmt.Println(string(prettyJSON))
+
+		switch strings.ToLower(output) {
+		case "table":
+			table := uitable.New()
+			table.AddRow("ID", "DESCRIPTION", "AGE")
+			for _, project := range projects.Items {
+				table.AddRow(
+					project.ID,
+					project.Description,
+					duration.ShortHumanDuration(time.Since(*project.Created)),
+				)
+			}
+			fmt.Println(table)
+
+		case "yaml":
+			yamlBytes, err := yaml.Marshal(projects)
+			if err != nil {
+				return errors.Wrap(
+					err,
+					"error formatting output from get projects operation",
+				)
+			}
+			fmt.Println(string(yamlBytes))
+
+		case "json":
+			prettyJSON, err := json.MarshalIndent(projects, "", "  ")
+			if err != nil {
+				return errors.Wrap(
+					err,
+					"error formatting output from get projects operation",
+				)
+			}
+			fmt.Println(string(prettyJSON))
+		}
+
+		// TODO: Figure out how to skip this if there's no tty
+		if projects.RemainingItemCount < 1 || projects.Continue == "" {
+			break
+		}
+
+		opts.Continue = projects.Continue
+
 	}
 
 	return nil

@@ -32,6 +32,7 @@ func (u User) MarshalJSON() ([]byte, error) {
 // UserListOptions represents useful filter criteria when selecting multiple
 // Users for API group operations like list.
 type UserListOptions struct {
+	Continue string // TODO: Clean this up
 }
 
 // UserList is an ordered and pageable list of Users.

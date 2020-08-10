@@ -22,6 +22,7 @@ type EventListOptions struct {
 	// WorkerPhases specifies that Events with their Worker's in any of the
 	// indicated phases should be selected.
 	WorkerPhases []sdk.WorkerPhase
+	Continue     string // TODO: Clean this up
 }
 
 // EventList is an ordered and pageable list of Events.
@@ -166,6 +167,10 @@ func (e *eventsClient) List(
 	queryParams := map[string]string{}
 	if opts.ProjectID != "" {
 		queryParams["projectID"] = opts.ProjectID
+	}
+	// TODO: Clean this up
+	if opts.Continue != "" {
+		queryParams["continue"] = opts.Continue
 	}
 	if len(opts.WorkerPhases) > 0 {
 		workerPhaseStrs := make([]string, len(opts.WorkerPhases))

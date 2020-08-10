@@ -109,6 +109,7 @@ type EventListOptions struct {
 	// WorkerPhases specifies that Events with their Worker's in any of the
 	// indicated phases should be selected.
 	WorkerPhases []WorkerPhase
+	Continue     string // TODO: Clean this up
 }
 
 // EventList is an ordered and pageable list of Events.

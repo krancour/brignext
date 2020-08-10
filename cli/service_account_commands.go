@@ -136,50 +136,63 @@ func serviceAccountList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	serviceAccountList, err :=
-		client.ServiceAccounts().List(c.Context, api.ServiceAccountListOptions{})
-	if err != nil {
-		return err
-	}
+	opts := api.ServiceAccountListOptions{}
 
-	if len(serviceAccountList.Items) == 0 {
-		fmt.Println("No service accounts found.")
-		return nil
-	}
-
-	switch strings.ToLower(output) {
-	case "table":
-		table := uitable.New()
-		table.AddRow("ID", "DESCRIPTION", "AGE", "LOCKED?")
-		for _, serviceAccount := range serviceAccountList.Items {
-			table.AddRow(
-				serviceAccount.ID,
-				serviceAccount.Description,
-				duration.ShortHumanDuration(time.Since(*serviceAccount.Created)),
-				serviceAccount.Locked != nil,
-			)
-		}
-		fmt.Println(table)
-
-	case "yaml":
-		yamlBytes, err := yaml.Marshal(serviceAccountList)
+	for {
+		serviceAccounts, err :=
+			client.ServiceAccounts().List(c.Context, opts)
 		if err != nil {
-			return errors.Wrap(
-				err,
-				"error formatting output from get service accounts operation",
-			)
+			return err
 		}
-		fmt.Println(string(yamlBytes))
 
-	case "json":
-		prettyJSON, err := json.MarshalIndent(serviceAccountList, "", "  ")
-		if err != nil {
-			return errors.Wrap(
-				err,
-				"error formatting output from get service accounts operation",
-			)
+		if len(serviceAccounts.Items) == 0 {
+			fmt.Println("No service accounts found.")
+			return nil
 		}
-		fmt.Println(string(prettyJSON))
+
+		switch strings.ToLower(output) {
+		case "table":
+			table := uitable.New()
+			table.AddRow("ID", "DESCRIPTION", "AGE", "LOCKED?")
+			for _, serviceAccounts := range serviceAccounts.Items {
+				table.AddRow(
+					serviceAccounts.ID,
+					serviceAccounts.Description,
+					duration.ShortHumanDuration(time.Since(*serviceAccounts.Created)),
+					serviceAccounts.Locked != nil,
+				)
+			}
+			fmt.Println(table)
+
+		case "yaml":
+			yamlBytes, err := yaml.Marshal(serviceAccounts)
+			if err != nil {
+				return errors.Wrap(
+					err,
+					"error formatting output from get service accounts operation",
+				)
+			}
+			fmt.Println(string(yamlBytes))
+
+		case "json":
+			prettyJSON, err := json.MarshalIndent(serviceAccounts, "", "  ")
+			if err != nil {
+				return errors.Wrap(
+					err,
+					"error formatting output from get service accounts operation",
+				)
+			}
+			fmt.Println(string(prettyJSON))
+		}
+
+		// TODO: Figure out how to skip this if there's no tty
+		if serviceAccounts.RemainingItemCount < 1 ||
+			serviceAccounts.Continue == "" {
+			break
+		}
+
+		opts.Continue = serviceAccounts.Continue
+
 	}
 
 	return nil

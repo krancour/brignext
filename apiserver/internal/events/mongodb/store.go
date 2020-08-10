@@ -68,7 +68,8 @@ func (s *store) List(
 	ctx context.Context,
 	opts brignext.EventListOptions,
 ) (brignext.EventList, error) {
-	eventList := brignext.EventList{}
+	const limit = 2 // TODO: Don't hard code this
+	events := brignext.EventList{}
 
 	criteria := bson.M{
 		"worker.status.phase": bson.M{
@@ -81,17 +82,39 @@ func (s *store) List(
 	if opts.ProjectID != "" {
 		criteria["projectID"] = opts.ProjectID
 	}
+	if opts.Continue != "" {
+		continueTime, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", opts.Continue)
+		if err != nil {
+			return events, errors.Wrap(err, "error parsing continue time")
+		}
+		criteria["created"] = bson.M{"$lt": continueTime}
+	}
 
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"created": -1})
+	findOptions.SetLimit(limit)
 	cur, err := s.collection.Find(ctx, criteria, findOptions)
 	if err != nil {
-		return eventList, errors.Wrap(err, "error finding events")
+		return events, errors.Wrap(err, "error finding events")
 	}
-	if err := cur.All(ctx, &eventList.Items); err != nil {
-		return eventList, errors.Wrap(err, "error decoding events")
+	if err := cur.All(ctx, &events.Items); err != nil {
+		return events, errors.Wrap(err, "error decoding events")
 	}
-	return eventList, nil
+
+	if len(events.Items) == limit {
+		continueTime := events.Items[limit-1].Created
+		criteria["created"] = bson.M{"$lt": continueTime}
+		remaining, err := s.collection.CountDocuments(ctx, criteria)
+		if err != nil {
+			return events, errors.Wrap(err, "error counting remaining events")
+		}
+		if remaining > 0 {
+			events.Continue = continueTime.String()
+			events.RemainingItemCount = remaining
+		}
+	}
+
+	return events, nil
 }
 
 func (s *store) Get(

@@ -46,6 +46,7 @@ func (s ServiceAccount) MarshalJSON() ([]byte, error) {
 // ServiceAccountListOptions represents useful filter criteria when selecting
 // multiple ServiceAccounts for API group operations like list.
 type ServiceAccountListOptions struct {
+	Continue string // TODO: Clean this up
 }
 
 // ServiceAccountList is an ordered and pageable list of ServiceAccounts.
@@ -135,15 +136,21 @@ func (s *serviceAccountsClient) Create(
 }
 
 func (s *serviceAccountsClient) List(
-	context.Context,
-	ServiceAccountListOptions,
+	_ context.Context,
+	opts ServiceAccountListOptions,
 ) (ServiceAccountList, error) {
+	queryParams := map[string]string{}
+	// TODO: Clean this up
+	if opts.Continue != "" {
+		queryParams["continue"] = opts.Continue
+	}
 	serviceAccounts := ServiceAccountList{}
 	return serviceAccounts, s.executeRequest(
 		outboundRequest{
 			method:      http.MethodGet,
 			path:        "v2/service-accounts",
 			authHeaders: s.bearerTokenAuthHeaders(),
+			queryParams: queryParams,
 			successCode: http.StatusOK,
 			respObj:     &serviceAccounts,
 		},

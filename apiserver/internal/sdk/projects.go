@@ -101,6 +101,7 @@ type KubernetesConfig struct {
 // ProjectListOptions represents useful filter criteria when selecting multiple
 // Projects for API group operations like list.
 type ProjectListOptions struct {
+	Continue string // TODO: Clean this up
 }
 
 // ProjectList is an ordered and pageable list of Projects.

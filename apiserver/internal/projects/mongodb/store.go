@@ -98,18 +98,40 @@ func (s *store) Create(
 
 func (s *store) List(
 	ctx context.Context,
-	_ brignext.ProjectListOptions,
+	opts brignext.ProjectListOptions,
 ) (brignext.ProjectList, error) {
+	const limit = 2 // TODO: Don't hard code this
 	projects := brignext.ProjectList{}
+
+	criteria := bson.M{}
+	if opts.Continue != "" {
+		criteria["id"] = bson.M{"$gt": opts.Continue}
+	}
+
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})
-	cur, err := s.collection.Find(ctx, bson.M{}, findOptions)
+	findOptions.SetLimit(limit)
+	cur, err := s.collection.Find(ctx, criteria, findOptions)
 	if err != nil {
 		return projects, errors.Wrap(err, "error finding projects")
 	}
 	if err := cur.All(ctx, &projects.Items); err != nil {
 		return projects, errors.Wrap(err, "error decoding projects")
 	}
+
+	if len(projects.Items) == limit {
+		continueID := projects.Items[limit-1].ID
+		criteria["id"] = bson.M{"$gt": continueID}
+		remaining, err := s.collection.CountDocuments(ctx, criteria)
+		if err != nil {
+			return projects, errors.Wrap(err, "error counting remaining projects")
+		}
+		if remaining > 0 {
+			projects.Continue = continueID
+			projects.RemainingItemCount = remaining
+		}
+	}
+
 	return projects, nil
 }
 

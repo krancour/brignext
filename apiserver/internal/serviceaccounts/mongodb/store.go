@@ -89,12 +89,20 @@ func (s *store) Create(
 
 func (s *store) List(
 	ctx context.Context,
-	_ brignext.ServiceAccountListOptions,
+	opts brignext.ServiceAccountListOptions,
 ) (brignext.ServiceAccountList, error) {
+	const limit = 2 // TODO: Don't hard code this
 	serviceAccounts := brignext.ServiceAccountList{}
+
+	criteria := bson.M{}
+	if opts.Continue != "" {
+		criteria["id"] = bson.M{"$gt": opts.Continue}
+	}
+
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})
-	cur, err := s.collection.Find(ctx, bson.M{}, findOptions)
+	findOptions.SetLimit(limit)
+	cur, err := s.collection.Find(ctx, criteria, findOptions)
 	if err != nil {
 		return serviceAccounts,
 			errors.Wrap(err, "error finding service accounts")
@@ -103,6 +111,21 @@ func (s *store) List(
 		return serviceAccounts,
 			errors.Wrap(err, "error decoding service accounts")
 	}
+
+	if len(serviceAccounts.Items) == limit {
+		continueID := serviceAccounts.Items[limit-1].ID
+		criteria["id"] = bson.M{"$gt": continueID}
+		remaining, err := s.collection.CountDocuments(ctx, criteria)
+		if err != nil {
+			return serviceAccounts,
+				errors.Wrap(err, "error counting remaining service accounts")
+		}
+		if remaining > 0 {
+			serviceAccounts.Continue = continueID
+			serviceAccounts.RemainingItemCount = remaining
+		}
+	}
+
 	return serviceAccounts, nil
 }
 

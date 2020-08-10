@@ -33,6 +33,7 @@ func (s ServiceAccount) MarshalJSON() ([]byte, error) {
 // ServiceAccountListOptions represents useful filter criteria when selecting
 // multiple ServiceAccounts for API group operations like list.
 type ServiceAccountListOptions struct {
+	Continue string // TODO: Clean this up
 }
 
 // ServiceAccountList is an ordered and pageable list of ServiceAccounts.

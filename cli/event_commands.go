@@ -389,61 +389,71 @@ func eventList(c *cli.Context) error {
 		return err
 	}
 
-	opts := api.EventListOptions{
-		ProjectID:    projectID,
-		WorkerPhases: workerPhases,
-	}
-
 	client, err := getClient(c)
 	if err != nil {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	eventList, err := client.Events().List(c.Context, opts)
-	if err != nil {
-		return err
+	opts := api.EventListOptions{
+		ProjectID:    projectID,
+		WorkerPhases: workerPhases,
 	}
 
-	if len(eventList.Items) == 0 {
-		fmt.Println("No events found.")
-		return nil
-	}
-
-	switch strings.ToLower(output) {
-	case "table":
-		table := uitable.New()
-		table.AddRow("ID", "PROJECT", "SOURCE", "TYPE", "AGE", "WORKER PHASE")
-		for _, event := range eventList.Items {
-			table.AddRow(
-				event.ID,
-				event.ProjectID,
-				event.Source,
-				event.Type,
-				duration.ShortHumanDuration(time.Since(*event.Created)),
-				event.Worker.Status.Phase,
-			)
-		}
-		fmt.Println(table)
-
-	case "yaml":
-		yamlBytes, err := yaml.Marshal(eventList)
+	for {
+		events, err := client.Events().List(c.Context, opts)
 		if err != nil {
-			return errors.Wrap(
-				err,
-				"error formatting output from get events operation",
-			)
+			return err
 		}
-		fmt.Println(string(yamlBytes))
 
-	case "json":
-		prettyJSON, err := json.MarshalIndent(eventList, "", "  ")
-		if err != nil {
-			return errors.Wrap(
-				err,
-				"error formatting output from get events operation",
-			)
+		if len(events.Items) == 0 {
+			fmt.Println("No events found.")
+			return nil
 		}
-		fmt.Println(string(prettyJSON))
+
+		switch strings.ToLower(output) {
+		case "table":
+			table := uitable.New()
+			table.AddRow("ID", "PROJECT", "SOURCE", "TYPE", "AGE", "WORKER PHASE")
+			for _, event := range events.Items {
+				table.AddRow(
+					event.ID,
+					event.ProjectID,
+					event.Source,
+					event.Type,
+					duration.ShortHumanDuration(time.Since(*event.Created)),
+					event.Worker.Status.Phase,
+				)
+			}
+			fmt.Println(table)
+
+		case "yaml":
+			yamlBytes, err := yaml.Marshal(events)
+			if err != nil {
+				return errors.Wrap(
+					err,
+					"error formatting output from get events operation",
+				)
+			}
+			fmt.Println(string(yamlBytes))
+
+		case "json":
+			prettyJSON, err := json.MarshalIndent(events, "", "  ")
+			if err != nil {
+				return errors.Wrap(
+					err,
+					"error formatting output from get events operation",
+				)
+			}
+			fmt.Println(string(prettyJSON))
+		}
+
+		// TODO: Figure out how to skip this if there's no tty
+		if events.RemainingItemCount < 1 || events.Continue == "" {
+			break
+		}
+
+		opts.Continue = events.Continue
+
 	}
 
 	return nil

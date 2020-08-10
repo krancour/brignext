@@ -50,5 +50,5 @@ type ListMeta struct {
 	Continue string `json:"continue,omitempty"`
 	// RemainingItemCount, when non-nil indicates that an API operation returned
 	// partial (pageable) results and indicates how many results remain.
-	RemainingItemCount *int64 `json:"remainingItemCount,omitempty"`
+	RemainingItemCount int64 `json:"remainingItemCount"`
 }

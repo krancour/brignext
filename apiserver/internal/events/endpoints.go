@@ -118,6 +118,7 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 	opts := brignext.EventListOptions{
 		ProjectID: r.URL.Query().Get("projectID"),
+		Continue:  r.URL.Query().Get("continue"),
 	}
 	workerPhasesStr := r.URL.Query().Get("workerPhases")
 	if workerPhasesStr != "" {

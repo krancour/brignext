@@ -79,49 +79,61 @@ func userList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	userList, err := client.Users().List(c.Context, api.UserListOptions{})
-	if err != nil {
-		return err
-	}
+	opts := api.UserListOptions{}
 
-	if len(userList.Items) == 0 {
-		fmt.Println("No users found.")
-		return nil
-	}
-
-	switch strings.ToLower(output) {
-	case "table":
-		table := uitable.New()
-		table.AddRow("ID", "NAME", "FIRST SEEN", "LOCKED?")
-		for _, user := range userList.Items {
-			table.AddRow(
-				user.ID,
-				user.Name,
-				user.Created,
-				user.Locked != nil,
-			)
-		}
-		fmt.Println(table)
-
-	case "yaml":
-		yamlBytes, err := yaml.Marshal(userList)
+	for {
+		users, err := client.Users().List(c.Context, opts)
 		if err != nil {
-			return errors.Wrap(
-				err,
-				"error formatting output from get users operation",
-			)
+			return err
 		}
-		fmt.Println(string(yamlBytes))
 
-	case "json":
-		prettyJSON, err := json.MarshalIndent(userList, "", "  ")
-		if err != nil {
-			return errors.Wrap(
-				err,
-				"error formatting output from get users operation",
-			)
+		if len(users.Items) == 0 {
+			fmt.Println("No users found.")
+			return nil
 		}
-		fmt.Println(string(prettyJSON))
+
+		switch strings.ToLower(output) {
+		case "table":
+			table := uitable.New()
+			table.AddRow("ID", "NAME", "FIRST SEEN", "LOCKED?")
+			for _, user := range users.Items {
+				table.AddRow(
+					user.ID,
+					user.Name,
+					user.Created,
+					user.Locked != nil,
+				)
+			}
+			fmt.Println(table)
+
+		case "yaml":
+			yamlBytes, err := yaml.Marshal(users)
+			if err != nil {
+				return errors.Wrap(
+					err,
+					"error formatting output from get users operation",
+				)
+			}
+			fmt.Println(string(yamlBytes))
+
+		case "json":
+			prettyJSON, err := json.MarshalIndent(users, "", "  ")
+			if err != nil {
+				return errors.Wrap(
+					err,
+					"error formatting output from get users operation",
+				)
+			}
+			fmt.Println(string(prettyJSON))
+		}
+
+		// TODO: Figure out how to skip this if there's no tty
+		if users.RemainingItemCount < 1 || users.Continue == "" {
+			break
+		}
+
+		opts.Continue = users.Continue
+
 	}
 
 	return nil
