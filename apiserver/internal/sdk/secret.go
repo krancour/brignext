@@ -27,12 +27,12 @@ func (s Secret) MarshalJSON() ([]byte, error) {
 	)
 }
 
-type SecretReference struct {
-	Key string `json:"key"`
+type SecretList struct {
+	Items []Secret `json:"items"`
 }
 
-func (s SecretReference) MarshalJSON() ([]byte, error) {
-	type Alias SecretReference
+func (s SecretList) MarshalJSON() ([]byte, error) {
+	type Alias SecretList
 	return json.Marshal(
 		struct {
 			meta.TypeMeta `json:",inline"`
@@ -40,27 +40,7 @@ func (s SecretReference) MarshalJSON() ([]byte, error) {
 		}{
 			TypeMeta: meta.TypeMeta{
 				APIVersion: meta.APIVersion,
-				Kind:       "SecretReference",
-			},
-			Alias: (Alias)(s),
-		},
-	)
-}
-
-type SecretReferenceList struct {
-	Items []SecretReference `json:"items"`
-}
-
-func (s SecretReferenceList) MarshalJSON() ([]byte, error) {
-	type Alias SecretReferenceList
-	return json.Marshal(
-		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
-		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
-				Kind:       "SecretReferenceList",
+				Kind:       "SecretList",
 			},
 			Alias: (Alias)(s),
 		},

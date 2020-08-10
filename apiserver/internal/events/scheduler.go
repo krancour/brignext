@@ -26,7 +26,7 @@ type Scheduler interface {
 		project brignext.Project,
 		event brignext.Event,
 	) error
-	Delete(context.Context, brignext.EventReference) error
+	Delete(context.Context, brignext.Event) error
 }
 
 type scheduler struct {
@@ -181,12 +181,12 @@ func (s *scheduler) Create(
 
 func (s *scheduler) Delete(
 	ctx context.Context,
-	eventRef brignext.EventReference,
+	event brignext.Event,
 ) error {
 	matchesEvent, _ := labels.NewRequirement(
 		myk8s.EventLabel,
 		selection.Equals,
-		[]string{eventRef.ID},
+		[]string{event.ID},
 	)
 	labelSelector := labels.NewSelector()
 	labelSelector = labelSelector.Add(*matchesEvent)
@@ -194,28 +194,28 @@ func (s *scheduler) Delete(
 	// Delete all pods related to this event
 	if err := s.deletePodsByLabelSelector(
 		ctx,
-		eventRef.Kubernetes.Namespace,
+		event.Kubernetes.Namespace,
 		labelSelector,
 	); err != nil {
 		return errors.Wrapf(
 			err,
 			"error deleting event %q pods in namespace %q",
-			eventRef.ID,
-			eventRef.Kubernetes.Namespace,
+			event.ID,
+			event.Kubernetes.Namespace,
 		)
 	}
 
 	// Delete all persistent volume claims related to this event
 	if err := s.deletePersistentVolumeClaimsByLabelSelector(
 		ctx,
-		eventRef.Kubernetes.Namespace,
+		event.Kubernetes.Namespace,
 		labelSelector,
 	); err != nil {
 		return errors.Wrapf(
 			err,
 			"error deleting event %q persistent volume claims in namespace %q",
-			eventRef.ID,
-			eventRef.Kubernetes.Namespace,
+			event.ID,
+			event.Kubernetes.Namespace,
 		)
 	}
 
@@ -225,28 +225,28 @@ func (s *scheduler) Delete(
 	// worker or job is labeled appropriately.
 	if err := s.deleteConfigMapsByLabelSelector(
 		ctx,
-		eventRef.Kubernetes.Namespace,
+		event.Kubernetes.Namespace,
 		labelSelector,
 	); err != nil {
 		return errors.Wrapf(
 			err,
 			"error deleting event %q config maps in namespace %q",
-			eventRef.ID,
-			eventRef.Kubernetes.Namespace,
+			event.ID,
+			event.Kubernetes.Namespace,
 		)
 	}
 
 	// Delete all secrets related to this event
 	if err := s.deleteSecretsByLabelSelector(
 		ctx,
-		eventRef.Kubernetes.Namespace,
+		event.Kubernetes.Namespace,
 		labelSelector,
 	); err != nil {
 		return errors.Wrapf(
 			err,
 			"error deleting event %q secrets in namespace %q",
-			eventRef.ID,
-			eventRef.Kubernetes.Namespace,
+			event.ID,
+			event.Kubernetes.Namespace,
 		)
 	}
 

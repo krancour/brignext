@@ -29,14 +29,12 @@ func (u User) MarshalJSON() ([]byte, error) {
 	)
 }
 
-type UserReference struct {
-	meta.ObjectReferenceMeta `json:"metadata" bson:",inline"`
-	Name                     string     `json:"name" bson:"name"`
-	Locked                   *time.Time `json:"locked" bson:"locked"`
+type UserList struct {
+	Items []User `json:"items"`
 }
 
-func (u UserReference) MarshalJSON() ([]byte, error) {
-	type Alias UserReference
+func (u UserList) MarshalJSON() ([]byte, error) {
+	type Alias UserList
 	return json.Marshal(
 		struct {
 			meta.TypeMeta `json:",inline"`
@@ -44,27 +42,7 @@ func (u UserReference) MarshalJSON() ([]byte, error) {
 		}{
 			TypeMeta: meta.TypeMeta{
 				APIVersion: meta.APIVersion,
-				Kind:       "UserReference",
-			},
-			Alias: (Alias)(u),
-		},
-	)
-}
-
-type UserReferenceList struct {
-	Items []UserReference `json:"items"`
-}
-
-func (u UserReferenceList) MarshalJSON() ([]byte, error) {
-	type Alias UserReferenceList
-	return json.Marshal(
-		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
-		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
-				Kind:       "UserReferenceList",
+				Kind:       "UserList",
 			},
 			Alias: (Alias)(u),
 		},

@@ -63,8 +63,8 @@ func (s *store) Create(ctx context.Context, user brignext.User) error {
 	return nil
 }
 
-func (s *store) List(ctx context.Context) (brignext.UserReferenceList, error) {
-	userList := brignext.UserReferenceList{}
+func (s *store) List(ctx context.Context) (brignext.UserList, error) {
+	userList := brignext.UserList{}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})
 	cur, err := s.collection.Find(ctx, bson.M{}, findOptions)

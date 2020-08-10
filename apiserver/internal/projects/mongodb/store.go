@@ -96,27 +96,25 @@ func (s *store) Create(
 	return nil
 }
 
-func (s *store) List(
-	ctx context.Context,
-) (brignext.ProjectReferenceList, error) {
-	projectList := brignext.ProjectReferenceList{}
+func (s *store) List(ctx context.Context) (brignext.ProjectList, error) {
+	projects := brignext.ProjectList{}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})
 	cur, err := s.collection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
-		return projectList, errors.Wrap(err, "error finding projects")
+		return projects, errors.Wrap(err, "error finding projects")
 	}
-	if err := cur.All(ctx, &projectList.Items); err != nil {
-		return projectList, errors.Wrap(err, "error decoding projects")
+	if err := cur.All(ctx, &projects.Items); err != nil {
+		return projects, errors.Wrap(err, "error decoding projects")
 	}
-	return projectList, nil
+	return projects, nil
 }
 
 func (s *store) ListSubscribers(
 	ctx context.Context,
 	event brignext.Event,
-) (brignext.ProjectReferenceList, error) {
-	projectList := brignext.ProjectReferenceList{}
+) (brignext.ProjectList, error) {
+	projects := brignext.ProjectList{}
 	subscriptionMatchCriteria := bson.M{
 		"source": event.Source,
 		"types": bson.M{
@@ -151,12 +149,12 @@ func (s *store) ListSubscribers(
 		findOptions,
 	)
 	if err != nil {
-		return projectList, errors.Wrap(err, "error finding projects")
+		return projects, errors.Wrap(err, "error finding projects")
 	}
-	if err := cur.All(ctx, &projectList.Items); err != nil {
-		return projectList, errors.Wrap(err, "error decoding projects")
+	if err := cur.All(ctx, &projects.Items); err != nil {
+		return projects, errors.Wrap(err, "error decoding projects")
 	}
-	return projectList, nil
+	return projects, nil
 }
 
 func (s *store) Get(

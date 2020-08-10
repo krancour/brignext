@@ -98,47 +98,17 @@ type KubernetesConfig struct {
 	Namespace string `json:"namespace,omitempty" bson:"namespace,omitempty"`
 }
 
-// ProjectReference is an abridged representation of a Project useful to
-// API operations that construct and return potentially large collections of
-// projects. Utilizing such an abridged representation both limits response size
-// and accounts for the reality that not all clients with authorization to list
-// projects are authorized to view the details of every Project.
-type ProjectReference struct {
-	// ObjectReferenceMeta contains an abridged representation of Project
-	// metadata.
-	meta.ObjectReferenceMeta `json:"metadata" bson:",inline"`
-	// Description is a natural language description of the Project.
-	Description string `json:"description,omitempty" bson:"description,omitempty"`
-}
-
-// MarshalJSON amends ProjectReference instances with type metadata.
-func (p ProjectReference) MarshalJSON() ([]byte, error) {
-	type Alias ProjectReference
-	return json.Marshal(
-		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
-		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
-				Kind:       "ProjectReference",
-			},
-			Alias: (Alias)(p),
-		},
-	)
-}
-
-// ProjectReferenceList is an ordered list of ProjectReferences.
-type ProjectReferenceList struct {
-	// Items is a slice of ProjectReferences.
+// ProjectList is an ordered and pageable list of Projects.
+type ProjectList struct {
+	// Items is a slice of Projects.
 	//
 	// TODO: When pagination is implemented, list metadata will need to be added
-	Items []ProjectReference `json:"items"`
+	Items []Project `json:"items"`
 }
 
-// MarshalJSON amends ProjectReferenceList instances with type metadata.
-func (p ProjectReferenceList) MarshalJSON() ([]byte, error) {
-	type Alias ProjectReferenceList
+// MarshalJSON amends ProjectList instances with type metadata.
+func (p ProjectList) MarshalJSON() ([]byte, error) {
+	type Alias ProjectList
 	return json.Marshal(
 		struct {
 			meta.TypeMeta `json:",inline"`
@@ -146,7 +116,7 @@ func (p ProjectReferenceList) MarshalJSON() ([]byte, error) {
 		}{
 			TypeMeta: meta.TypeMeta{
 				APIVersion: meta.APIVersion,
-				Kind:       "ProjectReferenceList",
+				Kind:       "ProjectList",
 			},
 			Alias: (Alias)(p),
 		},

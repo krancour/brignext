@@ -8,7 +8,7 @@ import (
 
 type Store interface {
 	Create(context.Context, brignext.ServiceAccount) error
-	List(context.Context) (brignext.ServiceAccountReferenceList, error)
+	List(context.Context) (brignext.ServiceAccountList, error)
 	Get(context.Context, string) (brignext.ServiceAccount, error)
 	GetByHashedToken(context.Context, string) (brignext.ServiceAccount, error)
 	Lock(context.Context, string) error

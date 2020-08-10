@@ -40,10 +40,3 @@ type PrincipalReference struct {
 	// ServiceAccount references a ServiceAccount by its ID.
 	ServiceAccount string `json:"serviceAcount,omitempty" bson:"serviceAcount,omitempty"` // nolint: lll
 }
-
-// ObjectReferenceMeta is an abridged representation of resource metadata used
-// by other abridged representations of various resource types.
-type ObjectReferenceMeta struct {
-	ID      string    `json:"id,omitempty" bson:"id"`
-	Created time.Time `json:"created,omitempty" bson:"created"`
-}

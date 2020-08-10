@@ -154,7 +154,7 @@ func serviceAccountList(c *cli.Context) error {
 			table.AddRow(
 				serviceAccount.ID,
 				serviceAccount.Description,
-				duration.ShortHumanDuration(time.Since(serviceAccount.Created)),
+				duration.ShortHumanDuration(time.Since(*serviceAccount.Created)),
 				serviceAccount.Locked != nil,
 			)
 		}

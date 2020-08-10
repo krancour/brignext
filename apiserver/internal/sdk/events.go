@@ -111,81 +111,17 @@ type EventListOptions struct {
 	WorkerPhases []WorkerPhase
 }
 
-// EventReference is an abridged representation of an Event useful to
-// API operations that construct and return potentially large collections of
-// events. Utilizing such an abridged representation limits response size
-// significantly as Events have the potentia to be quite large.
-type EventReference struct {
-	// ObjectReferenceMeta contains abridged Event metadata.
-	meta.ObjectReferenceMeta `json:"metadata" bson:",inline"`
-	// ProjectID specifies the Project this Event is for.
-	ProjectID string `json:"projectID,omitempty" bson:"projectID,omitempty"`
-	// Source specifies the source of the event, e.g. what gateway created it.
-	Source string `json:"source,omitempty" bson:"source,omitempty"`
-	// Type specifies the exact event that has occurred in the upstream system.
-	// These are source-specific.
-	Type string `json:"type,omitempty" bson:"type,omitempty"`
-	// Kubernetes contains Kubernetes-specific Event configuration.
-	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"` // nolint: lll
-	// WorkerPhase specifies where the Event's Worker currently is in its
-	// lifecycle.
-	WorkerPhase WorkerPhase `json:"workerPhase,omitempty" bson:"-"`
-}
-
-// MarshalJSON amends EventReference instances with type metadata.
-func (e EventReference) MarshalJSON() ([]byte, error) {
-	type Alias EventReference
-	return json.Marshal(
-		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
-		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
-				Kind:       "EventReference",
-			},
-			Alias: (Alias)(e),
-		},
-	)
-}
-
-// TODO: Document this
-func (e *EventReference) UnmarshalBSON(bytes []byte) error {
-	event := Event{}
-	if err := bson.Unmarshal(bytes, &event); err != nil {
-		return err
-	}
-	*e = NewEventReference(event)
-	return nil
-}
-
-// TODO: Do we need this still? If we do, it should be documented.
-func NewEventReference(event Event) EventReference {
-	eventRef := EventReference{
-		ObjectReferenceMeta: meta.ObjectReferenceMeta{
-			ID:      event.ID,
-			Created: *event.Created,
-		},
-		ProjectID: event.ProjectID,
-	}
-	eventRef.Source = event.Source
-	eventRef.Type = event.Type
-	eventRef.Kubernetes = event.Kubernetes
-	eventRef.WorkerPhase = event.Worker.Status.Phase
-	return eventRef
-}
-
-// EventReferenceList is an ordered list of EventReferences.
-type EventReferenceList struct {
-	// Items is a slice of EventReferences.
+// EventList is an ordered and pageable list of Evens.
+type EventList struct {
+	// Items is a slice of Events.
 	//
 	// TODO: When pagination is implemented, list metadata will need to be added
-	Items []EventReference `json:"items,omitempty"`
+	Items []Event `json:"items,omitempty"`
 }
 
-// MarshalJSON amends EventReferenceList instances with type metadata.
-func (e EventReferenceList) MarshalJSON() ([]byte, error) {
-	type Alias EventReferenceList
+// MarshalJSON amends EventList instances with type metadata.
+func (e EventList) MarshalJSON() ([]byte, error) {
+	type Alias EventList
 	return json.Marshal(
 		struct {
 			meta.TypeMeta `json:",inline"`
@@ -193,7 +129,7 @@ func (e EventReferenceList) MarshalJSON() ([]byte, error) {
 		}{
 			TypeMeta: meta.TypeMeta{
 				APIVersion: meta.APIVersion,
-				Kind:       "EventReferenceList",
+				Kind:       "EventList",
 			},
 			Alias: (Alias)(e),
 		},

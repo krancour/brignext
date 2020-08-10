@@ -24,55 +24,18 @@ type EventListOptions struct {
 	WorkerPhases []sdk.WorkerPhase
 }
 
-// EventReference is an abridged representation of an Event useful to
-// API operations that construct and return potentially large collections of
-// events. Utilizing such an abridged representation limits response size
-// significantly as Events have the potentia to be quite large.
-type EventReference struct {
-	// ObjectReferenceMeta contains abridged Event metadata.
-	meta.ObjectReferenceMeta `json:"metadata"`
-	// ProjectID specifies the Project this Event is for.
-	ProjectID string `json:"projectID,omitempty"`
-	// Source specifies the source of the event, e.g. what gateway created it.
-	Source string `json:"source,omitempty"`
-	// Type specifies the exact event that has occurred in the upstream system.
-	// These are source-specific.
-	Type string `json:"type,omitempty"`
-	// WorkerPhase specifies where the Event's Worker currently is in its
-	// lifecycle.
-	WorkerPhase sdk.WorkerPhase `json:"workerPhase,omitempty"`
-}
-
-// MarshalJSON amends EventReference instances with type metadata so that
-// clients do not need to be concerned with the tedium of doing so.
-func (e EventReference) MarshalJSON() ([]byte, error) {
-	type Alias EventReference
-	return json.Marshal(
-		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
-		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
-				Kind:       "EventReference",
-			},
-			Alias: (Alias)(e),
-		},
-	)
-}
-
-// EventReferenceList is an ordered list of EventReferences.
-type EventReferenceList struct {
-	// Items is a slice of EventReferences.
+// EventList is an ordered and pageable list of Events.
+type EventList struct {
+	// Items is a slice of Events.
 	//
 	// TODO: When pagination is implemented, list metadata will need to be added
-	Items []EventReference `json:"items,omitempty"`
+	Items []sdk.Event `json:"items,omitempty"`
 }
 
-// MarshalJSON amends EventReferenceList instances with type metadata so that
-// clients do not need to be concerned with the tedium of doing so.
-func (e EventReferenceList) MarshalJSON() ([]byte, error) {
-	type Alias EventReferenceList
+// MarshalJSON amends EventList instances with type metadata so that clients do
+// not need to be concerned with the tedium of doing so.
+func (e EventList) MarshalJSON() ([]byte, error) {
+	type Alias EventList
 	return json.Marshal(
 		struct {
 			meta.TypeMeta `json:",inline"`
@@ -80,7 +43,7 @@ func (e EventReferenceList) MarshalJSON() ([]byte, error) {
 		}{
 			TypeMeta: meta.TypeMeta{
 				APIVersion: meta.APIVersion,
-				Kind:       "EventReferenceList",
+				Kind:       "EventList",
 			},
 			Alias: (Alias)(e),
 		},
@@ -103,32 +66,23 @@ type LogOptions struct {
 // API.
 type EventsClient interface {
 	// Create creates a new Event.
-	Create(context.Context, sdk.Event) (EventReferenceList, error)
-	// List returns an EventReferenceList, with its EventReferences ordered by
-	// age, newest first. Criteria for which Events should be retrieved can be
-	// specified using the EventListOptions parameter.
-	List(
-		context.Context,
-		EventListOptions,
-	) (EventReferenceList, error)
+	Create(context.Context, sdk.Event) (EventList, error)
+	// List returns an EventList, with its Items (Events) ordered by age, newest
+	// first. Criteria for which Events should be retrieved can be specified using
+	// the EventListOptions parameter.
+	List(context.Context, EventListOptions) (EventList, error)
 	// Get retrieves a single Event specified by its identifier.
 	Get(context.Context, string) (sdk.Event, error)
 	// Cancel cancels a single Event specified by its identifier.
 	Cancel(context.Context, string) error
 	// CancelMany cancels multiple Events specified by the EventListOptions
 	// parameter.
-	CancelMany(
-		context.Context,
-		EventListOptions,
-	) (EventReferenceList, error)
+	CancelMany(context.Context, EventListOptions) (EventList, error)
 	// Delete deletes a single Event specified by its identifier.
 	Delete(context.Context, string) error
 	// DeleteMany deletes multiple Events specified by the EventListOptions
 	// parameter.
-	DeleteMany(
-		context.Context,
-		EventListOptions,
-	) (EventReferenceList, error)
+	DeleteMany(context.Context, EventListOptions) (EventList, error)
 
 	// UpdateWorkerStatus updates the status of an Event's Worker.
 	UpdateWorkerStatus(
@@ -191,16 +145,16 @@ func NewEventsClient(
 func (e *eventsClient) Create(
 	_ context.Context,
 	event sdk.Event,
-) (EventReferenceList, error) {
-	eventRefList := EventReferenceList{}
-	return eventRefList, e.executeRequest(
+) (EventList, error) {
+	events := EventList{}
+	return events, e.executeRequest(
 		outboundRequest{
 			method:      http.MethodPost,
 			path:        "v2/events",
 			authHeaders: e.bearerTokenAuthHeaders(),
 			reqBodyObj:  event,
 			successCode: http.StatusCreated,
-			respObj:     &eventRefList,
+			respObj:     &events,
 		},
 	)
 }
@@ -208,7 +162,7 @@ func (e *eventsClient) Create(
 func (e *eventsClient) List(
 	_ context.Context,
 	opts EventListOptions,
-) (EventReferenceList, error) {
+) (EventList, error) {
 	queryParams := map[string]string{}
 	if opts.ProjectID != "" {
 		queryParams["projectID"] = opts.ProjectID
@@ -220,15 +174,15 @@ func (e *eventsClient) List(
 		}
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
-	eventList := EventReferenceList{}
-	return eventList, e.executeRequest(
+	events := EventList{}
+	return events, e.executeRequest(
 		outboundRequest{
 			method:      http.MethodGet,
 			path:        "v2/events",
 			authHeaders: e.bearerTokenAuthHeaders(),
 			queryParams: queryParams,
 			successCode: http.StatusOK,
-			respObj:     &eventList,
+			respObj:     &events,
 		},
 	)
 }
@@ -263,7 +217,7 @@ func (e *eventsClient) Cancel(_ context.Context, id string) error {
 func (e *eventsClient) CancelMany(
 	_ context.Context,
 	opts EventListOptions,
-) (EventReferenceList, error) {
+) (EventList, error) {
 	queryParams := map[string]string{}
 	if opts.ProjectID != "" {
 		queryParams["projectID"] = opts.ProjectID
@@ -275,15 +229,15 @@ func (e *eventsClient) CancelMany(
 		}
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
-	eventRefList := EventReferenceList{}
-	return eventRefList, e.executeRequest(
+	events := EventList{}
+	return events, e.executeRequest(
 		outboundRequest{
 			method:      http.MethodPost,
 			path:        "v2/events/cancellations",
 			authHeaders: e.bearerTokenAuthHeaders(),
 			queryParams: queryParams,
 			successCode: http.StatusOK,
-			respObj:     &eventRefList,
+			respObj:     &events,
 		},
 	)
 }
@@ -302,7 +256,7 @@ func (e *eventsClient) Delete(_ context.Context, id string) error {
 func (e *eventsClient) DeleteMany(
 	_ context.Context,
 	opts EventListOptions,
-) (EventReferenceList, error) {
+) (EventList, error) {
 	queryParams := map[string]string{}
 	if opts.ProjectID != "" {
 		queryParams["projectID"] = opts.ProjectID
@@ -314,15 +268,15 @@ func (e *eventsClient) DeleteMany(
 		}
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
-	eventRefList := EventReferenceList{}
-	return eventRefList, e.executeRequest(
+	events := EventList{}
+	return events, e.executeRequest(
 		outboundRequest{
 			method:      http.MethodDelete,
 			path:        "v2/events",
 			authHeaders: e.bearerTokenAuthHeaders(),
 			queryParams: queryParams,
 			successCode: http.StatusOK,
-			respObj:     &eventRefList,
+			respObj:     &events,
 		},
 	)
 }

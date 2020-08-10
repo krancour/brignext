@@ -163,7 +163,7 @@ func projectList(c *cli.Context) error {
 			table.AddRow(
 				project.ID,
 				project.Description,
-				duration.ShortHumanDuration(time.Since(project.Created)),
+				duration.ShortHumanDuration(time.Since(*project.Created)),
 			)
 		}
 		fmt.Println(table)

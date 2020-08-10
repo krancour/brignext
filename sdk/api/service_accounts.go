@@ -43,51 +43,18 @@ func (s ServiceAccount) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// ServiceAccountReference is an abridged representation of a ServiceAccount
-// useful to API operations that construct and return potentially large
-// collections of service accounts.
-type ServiceAccountReference struct {
-	// ObjectReferenceMeta contains abridged ServiceAccount metadata.
-	meta.ObjectReferenceMeta `json:"metadata"`
-	// Description is a natural language description of the ServiceAccount's
-	// purpose.
-	Description string `json:"description,omitempty"`
-	// Locked indicates when the ServiceAccount has been locked out of the system
-	// by an administrator. If this field's value is nil, the User can be presumed
-	// NOT to be locked.
-	Locked *time.Time `json:"locked,omitempty"`
-}
-
-// MarshalJSON amends ServiceAccountReference instances with type metadata so
-// that clients do not need to be concerned with the tedium of doing so.
-func (s ServiceAccountReference) MarshalJSON() ([]byte, error) {
-	type Alias ServiceAccountReference
-	return json.Marshal(
-		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
-		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
-				Kind:       "ServiceAccountReference",
-			},
-			Alias: (Alias)(s),
-		},
-	)
-}
-
-// ServiceAccountReferenceList is an ordered list of ServiceAccountReferences.
-type ServiceAccountReferenceList struct {
-	// Items is a slice of ServiceAccountReferences.
+// ServiceAccountList is an ordered and pageable list of ServiceAccounts.
+type ServiceAccountList struct {
+	// Items is a slice of ServiceAccounts.
 	//
 	// TODO: When pagination is implemented, list metadata will need to be added
-	Items []ServiceAccountReference `json:"items,omitempty"`
+	Items []ServiceAccount `json:"items,omitempty"`
 }
 
-// MarshalJSON amends ServiceAccountReferenceList instances with type metadata
-// so that clients do not need to be concerned with the tedium of doing so.
-func (s ServiceAccountReferenceList) MarshalJSON() ([]byte, error) {
-	type Alias ServiceAccountReferenceList
+// MarshalJSON amends ServiceAccountList instances with type metadata so that
+// clients do not need to be concerned with the tedium of doing so.
+func (s ServiceAccountList) MarshalJSON() ([]byte, error) {
+	type Alias ServiceAccountList
 	return json.Marshal(
 		struct {
 			meta.TypeMeta `json:",inline"`
@@ -95,7 +62,7 @@ func (s ServiceAccountReferenceList) MarshalJSON() ([]byte, error) {
 		}{
 			TypeMeta: meta.TypeMeta{
 				APIVersion: meta.APIVersion,
-				Kind:       "ServiceAccountReferenceList",
+				Kind:       "ServiceAccountList",
 			},
 			Alias: (Alias)(s),
 		},
@@ -107,11 +74,11 @@ func (s ServiceAccountReferenceList) MarshalJSON() ([]byte, error) {
 type ServiceAccountsClient interface {
 	// Create creates a new ServiceAccount.
 	Create(context.Context, ServiceAccount) (Token, error)
-	// List returns a ServiceAccountReferenceList.
+	// List returns a ServiceAccountList.
 	//
 	// TODO: This should take some list options because we may want them in the
 	// future and they would be hard to add later.
-	List(context.Context) (ServiceAccountReferenceList, error)
+	List(context.Context) (ServiceAccountList, error)
 	// Get retrieves a single ServiceAccount specified by its identifier.
 	Get(context.Context, string) (ServiceAccount, error)
 	// Lock removes access to the API for a single ServiceAccount specified by its
@@ -167,15 +134,15 @@ func (s *serviceAccountsClient) Create(
 
 func (s *serviceAccountsClient) List(
 	context.Context,
-) (ServiceAccountReferenceList, error) {
-	serviceAccountList := ServiceAccountReferenceList{}
-	return serviceAccountList, s.executeRequest(
+) (ServiceAccountList, error) {
+	serviceAccounts := ServiceAccountList{}
+	return serviceAccounts, s.executeRequest(
 		outboundRequest{
 			method:      http.MethodGet,
 			path:        "v2/service-accounts",
 			authHeaders: s.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
-			respObj:     &serviceAccountList,
+			respObj:     &serviceAccounts,
 		},
 	)
 }

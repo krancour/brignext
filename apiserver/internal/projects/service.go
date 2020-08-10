@@ -15,12 +15,12 @@ import (
 type Service interface {
 	// Create creates a new Project.
 	Create(context.Context, brignext.Project) (brignext.Project, error)
-	// List returns a ProjectReferenceList, with its ProjectReferences ordered
+	// List returns a ProjectList, with its Items (Projects) ordered
 	// alphabetically by Project ID.
 	//
 	// TODO: This should take some list options because we may want them in the
 	// future and they would be hard to add later.
-	List(context.Context) (brignext.ProjectReferenceList, error)
+	List(context.Context) (brignext.ProjectList, error)
 	// Get retrieves a single Project specified by its identifier.
 	Get(context.Context, string) (brignext.Project, error)
 	// Update updates an existing Project.
@@ -28,12 +28,13 @@ type Service interface {
 	// Delete deletes a single Project specified by its identifier.
 	Delete(context.Context, string) error
 
-	// ListSecrets returns a SecretReferenceList containing references to all the
-	// Project's secrets.
+	// ListSecrets returns a SecretList who Items (Secrets) contain Keys only and
+	// not Values (all Value fields are empty). i.e. Once a secret is set, end
+	// clients are unable to retrieve values.
 	ListSecrets(
 		ctx context.Context,
 		projectID string,
-	) (brignext.SecretReferenceList, error)
+	) (brignext.SecretList, error)
 	// SetSecret set the value of a new Secret or updates the value of an existing
 	// Secret.
 	SetSecret(
@@ -96,7 +97,7 @@ func (s *service) Create(
 
 func (s *service) List(
 	ctx context.Context,
-) (brignext.ProjectReferenceList, error) {
+) (brignext.ProjectList, error) {
 	projectList, err := s.store.List(ctx)
 	if err != nil {
 		return projectList, errors.Wrap(err, "error retrieving projects from store")
@@ -182,8 +183,8 @@ func (s *service) Delete(ctx context.Context, id string) error {
 func (s *service) ListSecrets(
 	ctx context.Context,
 	projectID string,
-) (brignext.SecretReferenceList, error) {
-	secretList := brignext.SecretReferenceList{}
+) (brignext.SecretList, error) {
+	secretList := brignext.SecretList{}
 	project, err := s.store.Get(ctx, projectID)
 	if err != nil {
 		return secretList, errors.Wrapf(

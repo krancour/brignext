@@ -87,7 +87,7 @@ type KubernetesConfig struct {
 type Secret struct {
 	// Key is a key by which the secret can referred.
 	Key string `json:"key,omitempty"`
-	// Value is the sensitive information.
+	// Value is the sensitive information. This is a write-only field.
 	Value string `json:"value,omitempty"`
 }
 

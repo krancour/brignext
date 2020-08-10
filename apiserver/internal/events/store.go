@@ -11,18 +11,18 @@ type Store interface {
 	List(
 		context.Context,
 		brignext.EventListOptions,
-	) (brignext.EventReferenceList, error)
+	) (brignext.EventList, error)
 	Get(context.Context, string) (brignext.Event, error)
 	Cancel(context.Context, string) error
 	CancelMany(
 		context.Context,
 		brignext.EventListOptions,
-	) (brignext.EventReferenceList, error)
+	) (brignext.EventList, error)
 	Delete(context.Context, string) error
 	DeleteMany(
 		context.Context,
 		brignext.EventListOptions,
-	) (brignext.EventReferenceList, error)
+	) (brignext.EventList, error)
 
 	UpdateWorkerStatus(
 		ctx context.Context,

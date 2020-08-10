@@ -18,16 +18,16 @@ import (
 type Service interface {
 	// Create creates a new Event.
 	Create(context.Context, brignext.Event) (
-		brignext.EventReferenceList,
+		brignext.EventList,
 		error,
 	)
-	// List returns an EventReferenceList, with its EventReferences ordered by
+	// List returns an EventList, with its Items (Events) ordered by
 	// age, newest first. Criteria for which Events should be retrieved can be
 	// specified using the EventListOptions parameter.
 	List(
 		context.Context,
 		brignext.EventListOptions,
-	) (brignext.EventReferenceList, error)
+	) (brignext.EventList, error)
 	// Get retrieves a single Event specified by its identifier.
 	Get(context.Context, string) (brignext.Event, error)
 	// Cancel cancels a single Event specified by its identifier.
@@ -37,7 +37,7 @@ type Service interface {
 	CancelMany(
 		context.Context,
 		brignext.EventListOptions,
-	) (brignext.EventReferenceList, error)
+	) (brignext.EventList, error)
 	// Delete deletes a single Event specified by its identifier.
 	Delete(context.Context, string) error
 	// DeleteMany deletes multiple Events specified by the EventListOptions
@@ -45,7 +45,7 @@ type Service interface {
 	DeleteMany(
 		context.Context,
 		brignext.EventListOptions,
-	) (brignext.EventReferenceList, error)
+	) (brignext.EventList, error)
 
 	// UpdateWorkerStatus updates the status of an Event's Worker.
 	UpdateWorkerStatus(
@@ -107,8 +107,8 @@ func NewService(
 func (s *service) Create(
 	ctx context.Context,
 	event brignext.Event,
-) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.EventReferenceList{}
+) (brignext.EventList, error) {
+	events := brignext.EventList{}
 
 	now := time.Now()
 	event.Created = &now
@@ -120,28 +120,28 @@ func (s *service) Create(
 	if event.ProjectID == "" {
 		projectList, err := s.projectsStore.ListSubscribers(ctx, event)
 		if err != nil {
-			return eventRefList, errors.Wrap(
+			return events, errors.Wrap(
 				err,
 				"error retrieving subscribed projects from store",
 			)
 		}
-		eventRefList.Items = make([]brignext.EventReference, len(projectList.Items))
+		events.Items = make([]brignext.Event, len(projectList.Items))
 		for i, project := range projectList.Items {
 			event.ProjectID = project.ID
-			eRefs, err := s.Create(ctx, event)
+			projectEvents, err := s.Create(ctx, event)
 			if err != nil {
-				return eventRefList, err
+				return events, err
 			}
-			// eids will always contain precisely one element
-			eventRefList.Items[i] = eRefs.Items[0]
+			// projectEvents.Items will always contain precisely one element
+			events.Items[i] = projectEvents.Items[0]
 		}
-		return eventRefList, nil
+		return events, nil
 	}
 
 	// Make sure the project exists
 	project, err := s.projectsStore.Get(ctx, event.ProjectID)
 	if err != nil {
-		return eventRefList, errors.Wrapf(
+		return events, errors.Wrapf(
 			err,
 			"error retrieving project %q from store",
 			event.ProjectID,
@@ -197,7 +197,7 @@ func (s *service) Create(
 
 	// Let the scheduler add scheduler-specific details before we persist.
 	if event, err = s.scheduler.PreCreate(ctx, project, event); err != nil {
-		return eventRefList, errors.Wrapf(
+		return events, errors.Wrapf(
 			err,
 			"error pre-creating event %q in scheduler",
 			event.ID,
@@ -209,31 +209,29 @@ func (s *service) Create(
 	// partially completed create leaves us, overall, in a tolerable state.
 
 	if err = s.store.Create(ctx, event); err != nil {
-		return eventRefList, errors.Wrapf(
+		return events, errors.Wrapf(
 			err,
 			"error storing new event %q",
 			event.ID,
 		)
 	}
 	if err = s.scheduler.Create(ctx, project, event); err != nil {
-		return eventRefList, errors.Wrapf(
+		return events, errors.Wrapf(
 			err,
 			"error creating event %q in scheduler",
 			event.ID,
 		)
 	}
 
-	eventRefList.Items = []brignext.EventReference{
-		brignext.NewEventReference(event),
-	}
-	return eventRefList, nil
+	events.Items = []brignext.Event{event}
+	return events, nil
 }
 
 func (s *service) List(
 	ctx context.Context,
 	opts brignext.EventListOptions,
-) (brignext.EventReferenceList, error) {
-	eventList := brignext.EventReferenceList{}
+) (brignext.EventList, error) {
+	eventList := brignext.EventList{}
 
 	// If no worker phase filters were applied, retrieve all phases
 	if len(opts.WorkerPhases) == 0 {
@@ -275,7 +273,7 @@ func (s *service) Cancel(ctx context.Context, id string) error {
 	go func() {
 		if err = s.scheduler.Delete(
 			context.Background(), // Deliberately not using request context
-			brignext.NewEventReference(event),
+			event,
 		); err != nil {
 			log.Println(
 				errors.Wrapf(
@@ -293,19 +291,19 @@ func (s *service) Cancel(ctx context.Context, id string) error {
 func (s *service) CancelMany(
 	ctx context.Context,
 	opts brignext.EventListOptions,
-) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.EventReferenceList{}
+) (brignext.EventList, error) {
+	events := brignext.EventList{}
 
 	// Refuse requests not qualified by project
 	if opts.ProjectID == "" {
-		return eventRefList, &brignext.ErrBadRequest{
+		return events, &brignext.ErrBadRequest{
 			Reason: "Requests to cancel multiple events must be qualified by " +
 				"project.",
 		}
 	}
-	// Refuse requeets not qualified by worker phases
+	// Refuse requests not qualified by worker phases
 	if len(opts.WorkerPhases) == 0 {
-		return eventRefList, &brignext.ErrBadRequest{
+		return events, &brignext.ErrBadRequest{
 			Reason: "Requests to cancel multiple events must be qualified by " +
 				"worker phase(s).",
 		}
@@ -313,9 +311,9 @@ func (s *service) CancelMany(
 
 	if opts.ProjectID != "" {
 		// Make sure the project exists
-		_, err := s.store.Get(ctx, opts.ProjectID)
+		_, err := s.projectsStore.Get(ctx, opts.ProjectID)
 		if err != nil {
-			return eventRefList, errors.Wrapf(
+			return events, errors.Wrapf(
 				err,
 				"error retrieving project %q from store",
 				opts.ProjectID,
@@ -323,29 +321,29 @@ func (s *service) CancelMany(
 		}
 	}
 
-	eventRefList, err := s.store.CancelMany(ctx, opts)
+	events, err := s.store.CancelMany(ctx, opts)
 	if err != nil {
-		return eventRefList, errors.Wrap(err, "error canceling events in store")
+		return events, errors.Wrap(err, "error canceling events in store")
 	}
 
 	go func() {
-		for _, eventRef := range eventRefList.Items {
+		for _, event := range events.Items {
 			if err := s.scheduler.Delete(
 				context.Background(), // Deliberately not using request context
-				eventRef,
+				event,
 			); err != nil {
 				log.Println(
 					errors.Wrapf(
 						err,
 						"error deleting event %q from scheduler",
-						eventRef.ID,
+						event.ID,
 					),
 				)
 			}
 		}
 	}()
 
-	return eventRefList, nil
+	return events, nil
 }
 
 func (s *service) Delete(ctx context.Context, id string) error {
@@ -361,7 +359,7 @@ func (s *service) Delete(ctx context.Context, id string) error {
 	go func() {
 		if err = s.scheduler.Delete(
 			context.Background(), // Deliberately not using request context
-			brignext.NewEventReference(event),
+			event,
 		); err != nil {
 			log.Println(
 				errors.Wrapf(
@@ -379,19 +377,19 @@ func (s *service) Delete(ctx context.Context, id string) error {
 func (s *service) DeleteMany(
 	ctx context.Context,
 	opts brignext.EventListOptions,
-) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.EventReferenceList{}
+) (brignext.EventList, error) {
+	events := brignext.EventList{}
 
 	// Refuse requests not qualified by project
 	if opts.ProjectID == "" {
-		return eventRefList, &brignext.ErrBadRequest{
+		return events, &brignext.ErrBadRequest{
 			Reason: "Requests to delete multiple events must be qualified by " +
 				"project.",
 		}
 	}
-	// Refuse requeets not qualified by worker phases
+	// Refuse requests not qualified by worker phases
 	if len(opts.WorkerPhases) == 0 {
-		return eventRefList, &brignext.ErrBadRequest{
+		return events, &brignext.ErrBadRequest{
 			Reason: "Requests to delete multiple events must be qualified by " +
 				"worker phase(s).",
 		}
@@ -401,7 +399,7 @@ func (s *service) DeleteMany(
 		// Make sure the project exists
 		_, err := s.projectsStore.Get(ctx, opts.ProjectID)
 		if err != nil {
-			return eventRefList, errors.Wrapf(
+			return events, errors.Wrapf(
 				err,
 				"error retrieving project %q from store",
 				opts.ProjectID,
@@ -409,29 +407,29 @@ func (s *service) DeleteMany(
 		}
 	}
 
-	eventRefList, err := s.store.DeleteMany(ctx, opts)
+	events, err := s.store.DeleteMany(ctx, opts)
 	if err != nil {
-		return eventRefList, errors.Wrap(err, "error deleting events from store")
+		return events, errors.Wrap(err, "error deleting events from store")
 	}
 
 	go func() {
-		for _, eventRef := range eventRefList.Items {
+		for _, event := range events.Items {
 			if err := s.scheduler.Delete(
 				context.Background(), // Deliberately not using request context
-				eventRef,
+				event,
 			); err != nil {
 				log.Println(
 					errors.Wrapf(
 						err,
 						"error deleting event %q from scheduler",
-						eventRef.ID,
+						event.ID,
 					),
 				)
 			}
 		}
 	}()
 
-	return eventRefList, nil
+	return events, nil
 }
 
 func (s *service) UpdateWorkerStatus(

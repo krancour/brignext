@@ -67,8 +67,8 @@ func (s *store) Create(ctx context.Context, event brignext.Event) error {
 func (s *store) List(
 	ctx context.Context,
 	opts brignext.EventListOptions,
-) (brignext.EventReferenceList, error) {
-	eventList := brignext.EventReferenceList{}
+) (brignext.EventList, error) {
+	eventList := brignext.EventList{}
 
 	criteria := bson.M{
 		"worker.status.phase": bson.M{
@@ -173,8 +173,8 @@ func (s *store) Cancel(ctx context.Context, id string) error {
 func (s *store) CancelMany(
 	ctx context.Context,
 	opts brignext.EventListOptions,
-) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.EventReferenceList{}
+) (brignext.EventList, error) {
+	events := brignext.EventList{}
 	// It only makes sense to cancel events that are in a pending or running
 	// state. We can ignore anything else.
 	var cancelPending bool
@@ -190,7 +190,7 @@ func (s *store) CancelMany(
 
 	// Bail if we're not canceling pending or running events
 	if !cancelPending && !cancelRunning {
-		return eventRefList, nil
+		return events, nil
 	}
 
 	// The MongoDB driver for Go doesn't expose findAndModify(), which could be
@@ -215,7 +215,7 @@ func (s *store) CancelMany(
 				},
 			},
 		); err != nil {
-			return eventRefList, errors.Wrap(err, "error updating events")
+			return events, errors.Wrap(err, "error updating events")
 		}
 	}
 
@@ -231,7 +231,7 @@ func (s *store) CancelMany(
 				},
 			},
 		); err != nil {
-			return eventRefList, errors.Wrap(err, "error updating events")
+			return events, errors.Wrap(err, "error updating events")
 		}
 	}
 
@@ -241,13 +241,13 @@ func (s *store) CancelMany(
 	findOptions.SetSort(bson.M{"created": -1})
 	cur, err := s.collection.Find(ctx, criteria, findOptions)
 	if err != nil {
-		return eventRefList, errors.Wrapf(err, "error finding canceled events")
+		return events, errors.Wrapf(err, "error finding canceled events")
 	}
-	if err := cur.All(ctx, &eventRefList.Items); err != nil {
-		return eventRefList, errors.Wrap(err, "error decoding canceled events")
+	if err := cur.All(ctx, &events.Items); err != nil {
+		return events, errors.Wrap(err, "error decoding canceled events")
 	}
 
-	return eventRefList, nil
+	return events, nil
 }
 
 func (s *store) Delete(ctx context.Context, id string) error {
@@ -272,8 +272,8 @@ func (s *store) Delete(ctx context.Context, id string) error {
 func (s *store) DeleteMany(
 	ctx context.Context,
 	opts brignext.EventListOptions,
-) (brignext.EventReferenceList, error) {
-	eventRefList := brignext.EventReferenceList{}
+) (brignext.EventList, error) {
+	events := brignext.EventList{}
 
 	// The MongoDB driver for Go doesn't expose findAndModify(), which could be
 	// used to select events and delete them at the same time. As a workaround,
@@ -305,7 +305,7 @@ func (s *store) DeleteMany(
 			},
 		},
 	); err != nil {
-		return eventRefList, errors.Wrap(err, "error logically deleting events")
+		return events, errors.Wrap(err, "error logically deleting events")
 	}
 
 	// Select the logically deleted documents...
@@ -314,13 +314,13 @@ func (s *store) DeleteMany(
 	findOptions.SetSort(bson.M{"created": -1})
 	cur, err := s.collection.Find(ctx, criteria, findOptions)
 	if err != nil {
-		return eventRefList, errors.Wrapf(
+		return events, errors.Wrapf(
 			err,
 			"error finding logically deleted events",
 		)
 	}
-	if err := cur.All(ctx, &eventRefList.Items); err != nil {
-		return eventRefList, errors.Wrap(
+	if err := cur.All(ctx, &events.Items); err != nil {
+		return events, errors.Wrap(
 			err,
 			"error decoding logically deleted events",
 		)
@@ -328,10 +328,10 @@ func (s *store) DeleteMany(
 
 	// Final deletion
 	if _, err := s.collection.DeleteMany(ctx, criteria); err != nil {
-		return eventRefList, errors.Wrap(err, "error deleting events")
+		return events, errors.Wrap(err, "error deleting events")
 	}
 
-	return eventRefList, nil
+	return events, nil
 }
 
 func (s *store) UpdateWorkerStatus(

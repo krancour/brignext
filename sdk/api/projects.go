@@ -11,49 +11,18 @@ import (
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
 
-// ProjectReference is an abridged representation of a Project useful to
-// API operations that construct and return potentially large collections of
-// projects. Utilizing such an abridged representation both limits response size
-// and accounts for the reality that not all clients with authorization to list
-// projects are authorized to view the details of every Project.
-type ProjectReference struct {
-	// ObjectReferenceMeta contains an abridged representation of Project
-	// metadata.
-	meta.ObjectReferenceMeta `json:"metadata"`
-	// Description is a natural language description of the Project.
-	Description string `json:"description,omitempty"`
-}
-
-// MarshalJSON amends ProjectReference instances with type metadata so that
-// clients do not need to be concerned with the tedium of doing so.
-func (p ProjectReference) MarshalJSON() ([]byte, error) {
-	type Alias ProjectReference
-	return json.Marshal(
-		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
-		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
-				Kind:       "ProjectReference",
-			},
-			Alias: (Alias)(p),
-		},
-	)
-}
-
-// ProjectReferenceList is an ordered list of ProjectReferences.
-type ProjectReferenceList struct {
-	// Items is a slice of ProjectReferences.
+// ProjectList is an ordered and pageable list of ProjectS.
+type ProjectList struct {
+	// Items is a slice of Projects.
 	//
 	// TODO: When pagination is implemented, list metadata will need to be added
-	Items []ProjectReference `json:"items,omitempty"`
+	Items []sdk.Project `json:"items,omitempty"`
 }
 
-// MarshalJSON amends ProjectReferenceList instances with type metadata so that
-// clients do not need to be concerned with the tedium of doing so.
-func (p ProjectReferenceList) MarshalJSON() ([]byte, error) {
-	type Alias ProjectReferenceList
+// MarshalJSON amends ProjectList instances with type metadata so that clients
+// do not need to be concerned with the tedium of doing so.
+func (p ProjectList) MarshalJSON() ([]byte, error) {
+	type Alias ProjectList
 	return json.Marshal(
 		struct {
 			meta.TypeMeta `json:",inline"`
@@ -61,23 +30,22 @@ func (p ProjectReferenceList) MarshalJSON() ([]byte, error) {
 		}{
 			TypeMeta: meta.TypeMeta{
 				APIVersion: meta.APIVersion,
-				Kind:       "ProjectReferenceList",
+				Kind:       "ProjectList",
 			},
 			Alias: (Alias)(p),
 		},
 	)
 }
 
-// SecretReference is a reference to a Secret, containing only its Key and NOT
-// its Value.
-type SecretReference struct {
-	Key string `json:"key,omitempty"`
+// SecretList is an ordered and pageable list of Secrets.
+type SecretList struct {
+	Items []sdk.Secret `json:"items,omitempty"`
 }
 
-// MarshalJSON amends SecretReference instances with type metadata so that
-// clients do not need to be concerned with the tedium of doing so.
-func (s SecretReference) MarshalJSON() ([]byte, error) {
-	type Alias SecretReference
+// MarshalJSON amends SecretList instances with type metadata so that clients do
+// not need to be concerned with the tedium of doing so.
+func (s SecretList) MarshalJSON() ([]byte, error) {
+	type Alias SecretList
 	return json.Marshal(
 		struct {
 			meta.TypeMeta `json:",inline"`
@@ -85,30 +53,7 @@ func (s SecretReference) MarshalJSON() ([]byte, error) {
 		}{
 			TypeMeta: meta.TypeMeta{
 				APIVersion: meta.APIVersion,
-				Kind:       "SecretReference",
-			},
-			Alias: (Alias)(s),
-		},
-	)
-}
-
-// SecretReferenceList is an ordered list of SecretReferences.
-type SecretReferenceList struct {
-	Items []SecretReference `json:"items,omitempty"`
-}
-
-// MarshalJSON amends SecretReferenceList instances with type metadata so that
-// clients do not need to be concerned with the tedium of doing so.
-func (s SecretReferenceList) MarshalJSON() ([]byte, error) {
-	type Alias SecretReferenceList
-	return json.Marshal(
-		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
-		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
-				Kind:       "SecretReferenceList",
+				Kind:       "SecretList",
 			},
 			Alias: (Alias)(s),
 		},
@@ -128,12 +73,12 @@ type ProjectsClient interface {
 	// when unmarshaling the original data or when marshaling the outbound
 	// request).
 	CreateFromBytes(context.Context, []byte) (sdk.Project, error)
-	// List returns a ProjectReferenceList, with its ProjectReferences ordered
+	// List returns a ProjecteList, with its Items (Projects) ordered
 	// alphabetically by Project ID.
 	//
 	// TODO: This should take some list options because we may want them in the
 	// future and they would be hard to add later.
-	List(context.Context) (ProjectReferenceList, error)
+	List(context.Context) (ProjectList, error)
 	// Get retrieves a single Project specified by its identifier.
 	Get(context.Context, string) (sdk.Project, error)
 	// Update updates an existing Project.
@@ -149,13 +94,13 @@ type ProjectsClient interface {
 	// Delete deletes a single Project specified by its identifier.
 	Delete(context.Context, string) error
 
-	// ListSecrets returns a SecretReferenceList containing references to all the
-	// Project's secrets. These references contain Keys only and not Values. i.e.
-	// Once a secret is set, end clients are unable to retrieve values.
+	// ListSecrets returns a SecretList who Items (Secrets) contain Keys only and
+	// not Values (all Value fields are empty). i.e. Once a secret is set, end
+	// clients are unable to retrieve values.
 	ListSecrets(
 		ctx context.Context,
 		projectID string,
-	) (SecretReferenceList, error)
+	) (SecretList, error)
 	// SetSecret set the value of a new Secret or updates the value of an existing
 	// Secret.
 	SetSecret(ctx context.Context, projectID string, secret sdk.Secret) error
@@ -222,17 +167,15 @@ func (p *projectsClient) CreateFromBytes(
 	)
 }
 
-func (p *projectsClient) List(
-	context.Context,
-) (ProjectReferenceList, error) {
-	projectList := ProjectReferenceList{}
-	return projectList, p.executeRequest(
+func (p *projectsClient) List(context.Context) (ProjectList, error) {
+	projects := ProjectList{}
+	return projects, p.executeRequest(
 		outboundRequest{
 			method:      http.MethodGet,
 			path:        "v2/projects",
 			authHeaders: p.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
-			respObj:     &projectList,
+			respObj:     &projects,
 		},
 	)
 }
@@ -302,15 +245,15 @@ func (p *projectsClient) Delete(_ context.Context, id string) error {
 func (p *projectsClient) ListSecrets(
 	ctx context.Context,
 	projectID string,
-) (SecretReferenceList, error) {
-	secretList := SecretReferenceList{}
-	return secretList, p.executeRequest(
+) (SecretList, error) {
+	secrets := SecretList{}
+	return secrets, p.executeRequest(
 		outboundRequest{
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/projects/%s/secrets", projectID),
 			authHeaders: p.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
-			respObj:     &secretList,
+			respObj:     &secrets,
 		},
 	)
 }

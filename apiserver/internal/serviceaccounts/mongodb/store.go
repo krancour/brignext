@@ -89,20 +89,20 @@ func (s *store) Create(
 
 func (s *store) List(
 	ctx context.Context,
-) (brignext.ServiceAccountReferenceList, error) {
-	serviceAccountList := brignext.ServiceAccountReferenceList{}
+) (brignext.ServiceAccountList, error) {
+	serviceAccounts := brignext.ServiceAccountList{}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})
 	cur, err := s.collection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
-		return serviceAccountList,
+		return serviceAccounts,
 			errors.Wrap(err, "error finding service accounts")
 	}
-	if err := cur.All(ctx, &serviceAccountList.Items); err != nil {
-		return serviceAccountList,
+	if err := cur.All(ctx, &serviceAccounts.Items); err != nil {
+		return serviceAccounts,
 			errors.Wrap(err, "error decoding service accounts")
 	}
-	return serviceAccountList, nil
+	return serviceAccounts, nil
 }
 
 func (s *store) Get(

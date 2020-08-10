@@ -327,11 +327,11 @@ func eventCreate(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	eventRefList, err := client.Events().Create(c.Context, event)
+	events, err := client.Events().Create(c.Context, event)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Created event %q.\n\n", eventRefList.Items[0].ID)
+	fmt.Printf("Created event %q.\n\n", events.Items[0].ID)
 
 	return nil
 }
@@ -419,8 +419,8 @@ func eventList(c *cli.Context) error {
 				event.ProjectID,
 				event.Source,
 				event.Type,
-				duration.ShortHumanDuration(time.Since(event.Created)),
-				event.WorkerPhase,
+				duration.ShortHumanDuration(time.Since(*event.Created)),
+				event.Worker.Status.Phase,
 			)
 		}
 		fmt.Println(table)
@@ -583,11 +583,11 @@ func eventCancelMany(c *cli.Context) error {
 		opts.WorkerPhases = append(opts.WorkerPhases, sdk.WorkerPhaseRunning)
 	}
 
-	eventRefList, err := client.Events().CancelMany(c.Context, opts)
+	events, err := client.Events().CancelMany(c.Context, opts)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Canceled %d events.\n", len(eventRefList.Items))
+	fmt.Printf("Canceled %d events.\n", len(events.Items))
 
 	return nil
 }
@@ -681,11 +681,11 @@ func eventDeleteMany(c *cli.Context) error {
 		WorkerPhases: workerPhases,
 	}
 
-	eventRefList, err := client.Events().DeleteMany(c.Context, opts)
+	events, err := client.Events().DeleteMany(c.Context, opts)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Deleted %d events.\n", len(eventRefList.Items))
+	fmt.Printf("Deleted %d events.\n", len(events.Items))
 
 	return nil
 }
