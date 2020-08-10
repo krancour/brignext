@@ -41,11 +41,16 @@ func (u User) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// UserListOptions represents useful filter criteria when selecting multiple
+// Users for API group operations like list.
+type UserListOptions struct {
+}
+
 // UserList is an ordered and pageable list of Users.
 type UserList struct {
+	// ListMeta contains list metadata.
+	meta.ListMeta `json:"metadata"`
 	// Items is a slice of Users.
-	//
-	// TODO: When pagination is implemented, list metadata will need to be added
 	Items []User `json:"items,omitempty"`
 }
 
@@ -71,10 +76,7 @@ func (u UserList) MarshalJSON() ([]byte, error) {
 // API.
 type UsersClient interface {
 	// List returns a UserList.
-	//
-	// TODO: This should take some list options because we may want them in the
-	// future and they would be hard to add later.
-	List(context.Context) (UserList, error)
+	List(context.Context, UserListOptions) (UserList, error)
 	// Get retrieves a single User specified by their identifier.
 	Get(context.Context, string) (User, error)
 	// Lock removes access to the API for a single User specified by their
@@ -110,7 +112,7 @@ func NewUsersClient(
 	}
 }
 
-func (u *usersClient) List(context.Context) (UserList, error) {
+func (u *usersClient) List(context.Context, UserListOptions) (UserList, error) {
 	users := UserList{}
 	return users, u.executeRequest(
 		outboundRequest{

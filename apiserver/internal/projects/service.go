@@ -17,10 +17,10 @@ type Service interface {
 	Create(context.Context, brignext.Project) (brignext.Project, error)
 	// List returns a ProjectList, with its Items (Projects) ordered
 	// alphabetically by Project ID.
-	//
-	// TODO: This should take some list options because we may want them in the
-	// future and they would be hard to add later.
-	List(context.Context) (brignext.ProjectList, error)
+	List(
+		context.Context,
+		brignext.ProjectListOptions,
+	) (brignext.ProjectList, error)
 	// Get retrieves a single Project specified by its identifier.
 	Get(context.Context, string) (brignext.Project, error)
 	// Update updates an existing Project.
@@ -97,8 +97,9 @@ func (s *service) Create(
 
 func (s *service) List(
 	ctx context.Context,
+	opts brignext.ProjectListOptions,
 ) (brignext.ProjectList, error) {
-	projectList, err := s.store.List(ctx)
+	projectList, err := s.store.List(ctx, opts)
 	if err != nil {
 		return projectList, errors.Wrap(err, "error retrieving projects from store")
 	}

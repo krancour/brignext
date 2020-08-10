@@ -10,6 +10,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/api"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -145,7 +146,8 @@ func projectList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	projectList, err := client.Projects().List(c.Context)
+	projectList, err :=
+		client.Projects().List(c.Context, api.ProjectListOptions{})
 	if err != nil {
 		return err
 	}

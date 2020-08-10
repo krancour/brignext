@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"time"
+
+	"github.com/krancour/brignext/v2/sdk/api"
 )
 
 func (s *scheduler) manageProjectEventLoops(ctx context.Context) {
@@ -16,7 +18,8 @@ func (s *scheduler) manageProjectEventLoops(ctx context.Context) {
 	defer ticker.Stop()
 
 	for {
-		projectList, err := s.apiClient.Projects().List(ctx)
+		projectList, err :=
+			s.apiClient.Projects().List(ctx, api.ProjectListOptions{})
 		if err != nil {
 			select {
 			case s.errCh <- err:

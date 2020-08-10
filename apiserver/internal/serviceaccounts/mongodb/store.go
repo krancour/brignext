@@ -89,6 +89,7 @@ func (s *store) Create(
 
 func (s *store) List(
 	ctx context.Context,
+	_ brignext.ServiceAccountListOptions,
 ) (brignext.ServiceAccountList, error) {
 	serviceAccounts := brignext.ServiceAccountList{}
 	findOptions := options.Find()

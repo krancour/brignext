@@ -7,6 +7,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
+	"github.com/krancour/brignext/v2/sdk/api"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -78,7 +79,7 @@ func userList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	userList, err := client.Users().List(c.Context)
+	userList, err := client.Users().List(c.Context, api.UserListOptions{})
 	if err != nil {
 		return err
 	}

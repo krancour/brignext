@@ -11,11 +11,16 @@ import (
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
 
+// ProjectListOptions represents useful filter criteria when selecting multiple
+// Projects for API group operations like list.
+type ProjectListOptions struct {
+}
+
 // ProjectList is an ordered and pageable list of ProjectS.
 type ProjectList struct {
+	// ListMeta contains list metadata.
+	meta.ListMeta `json:"metadata"`
 	// Items is a slice of Projects.
-	//
-	// TODO: When pagination is implemented, list metadata will need to be added
 	Items []sdk.Project `json:"items,omitempty"`
 }
 
@@ -73,12 +78,9 @@ type ProjectsClient interface {
 	// when unmarshaling the original data or when marshaling the outbound
 	// request).
 	CreateFromBytes(context.Context, []byte) (sdk.Project, error)
-	// List returns a ProjecteList, with its Items (Projects) ordered
+	// List returns a ProjectList, with its Items (Projects) ordered
 	// alphabetically by Project ID.
-	//
-	// TODO: This should take some list options because we may want them in the
-	// future and they would be hard to add later.
-	List(context.Context) (ProjectList, error)
+	List(context.Context, ProjectListOptions) (ProjectList, error)
 	// Get retrieves a single Project specified by its identifier.
 	Get(context.Context, string) (sdk.Project, error)
 	// Update updates an existing Project.
@@ -167,7 +169,10 @@ func (p *projectsClient) CreateFromBytes(
 	)
 }
 
-func (p *projectsClient) List(context.Context) (ProjectList, error) {
+func (p *projectsClient) List(
+	context.Context,
+	ProjectListOptions,
+) (ProjectList, error) {
 	projects := ProjectList{}
 	return projects, p.executeRequest(
 		outboundRequest{

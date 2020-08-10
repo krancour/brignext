@@ -8,7 +8,10 @@ import (
 
 type Store interface {
 	Create(context.Context, brignext.Project) error
-	List(context.Context) (brignext.ProjectList, error)
+	List(
+		context.Context,
+		brignext.ProjectListOptions,
+	) (brignext.ProjectList, error)
 	ListSubscribers(
 		ctx context.Context,
 		event brignext.Event,

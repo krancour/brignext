@@ -43,11 +43,16 @@ func (s ServiceAccount) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// ServiceAccountListOptions represents useful filter criteria when selecting
+// multiple ServiceAccounts for API group operations like list.
+type ServiceAccountListOptions struct {
+}
+
 // ServiceAccountList is an ordered and pageable list of ServiceAccounts.
 type ServiceAccountList struct {
+	// ListMeta contains list metadata.
+	meta.ListMeta `json:"metadata"`
 	// Items is a slice of ServiceAccounts.
-	//
-	// TODO: When pagination is implemented, list metadata will need to be added
 	Items []ServiceAccount `json:"items,omitempty"`
 }
 
@@ -75,10 +80,7 @@ type ServiceAccountsClient interface {
 	// Create creates a new ServiceAccount.
 	Create(context.Context, ServiceAccount) (Token, error)
 	// List returns a ServiceAccountList.
-	//
-	// TODO: This should take some list options because we may want them in the
-	// future and they would be hard to add later.
-	List(context.Context) (ServiceAccountList, error)
+	List(context.Context, ServiceAccountListOptions) (ServiceAccountList, error)
 	// Get retrieves a single ServiceAccount specified by its identifier.
 	Get(context.Context, string) (ServiceAccount, error)
 	// Lock removes access to the API for a single ServiceAccount specified by its
@@ -134,6 +136,7 @@ func (s *serviceAccountsClient) Create(
 
 func (s *serviceAccountsClient) List(
 	context.Context,
+	ServiceAccountListOptions,
 ) (ServiceAccountList, error) {
 	serviceAccounts := ServiceAccountList{}
 	return serviceAccounts, s.executeRequest(

@@ -5,6 +5,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 )
 
 type endpoints struct {
@@ -54,7 +55,7 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.List(r.Context())
+				return e.service.List(r.Context(), brignext.UserListOptions{})
 			},
 			SuccessCode: http.StatusOK,
 		},

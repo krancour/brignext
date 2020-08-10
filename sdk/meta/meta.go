@@ -48,3 +48,15 @@ type PrincipalReference struct {
 	// ServiceAccount references a ServiceAccount by its ID.
 	ServiceAccount string `json:"serviceAcount,omitempty"`
 }
+
+// ListMeta is metadata for ordered collections of resources.
+type ListMeta struct {
+	// Continue, when non-empty is an opaque value created by and understood by an
+	// API operation that returns partial (pageable) results. Submitting this
+	// value with subsequent requests to the same operation specifies to that
+	// operation which page to return next.
+	Continue string `json:"continue,omitempty"`
+	// RemainingItemCount, when non-nil indicates that an API operation returned
+	// partial (pageable) results and indicates how many results remain.
+	RemainingItemCount *int64 `json:"remainingItemCount,omitempty"`
+}

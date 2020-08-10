@@ -16,10 +16,7 @@ type Service interface {
 	// Create creates a new User.
 	Create(context.Context, brignext.User) error
 	// List returns a UserList.
-	//
-	// TODO: This should take some list options because we may want them in the
-	// future and they would be hard to add later.
-	List(context.Context) (brignext.UserList, error)
+	List(context.Context, brignext.UserListOptions) (brignext.UserList, error)
 	// Get retrieves a single User specified by their identifier.
 	Get(context.Context, string) (brignext.User, error)
 	// Lock removes access to the API for a single User specified by their
@@ -52,8 +49,9 @@ func (s *service) Create(ctx context.Context, user brignext.User) error {
 
 func (s *service) List(
 	ctx context.Context,
+	opts brignext.UserListOptions,
 ) (brignext.UserList, error) {
-	userList, err := s.store.List(ctx)
+	userList, err := s.store.List(ctx, opts)
 	if err != nil {
 		return userList, errors.Wrap(err, "error retrieving users from store")
 	}

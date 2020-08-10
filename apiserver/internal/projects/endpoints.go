@@ -101,7 +101,7 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.List(r.Context())
+				return e.service.List(r.Context(), brignext.ProjectListOptions{})
 			},
 			SuccessCode: http.StatusOK,
 		},

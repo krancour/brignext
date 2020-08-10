@@ -96,7 +96,10 @@ func (s *store) Create(
 	return nil
 }
 
-func (s *store) List(ctx context.Context) (brignext.ProjectList, error) {
+func (s *store) List(
+	ctx context.Context,
+	_ brignext.ProjectListOptions,
+) (brignext.ProjectList, error) {
 	projects := brignext.ProjectList{}
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})

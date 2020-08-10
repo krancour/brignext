@@ -98,11 +98,16 @@ type KubernetesConfig struct {
 	Namespace string `json:"namespace,omitempty" bson:"namespace,omitempty"`
 }
 
+// ProjectListOptions represents useful filter criteria when selecting multiple
+// Projects for API group operations like list.
+type ProjectListOptions struct {
+}
+
 // ProjectList is an ordered and pageable list of Projects.
 type ProjectList struct {
+	// ListMeta contains list metadata.
+	meta.ListMeta `json:"metadata"`
 	// Items is a slice of Projects.
-	//
-	// TODO: When pagination is implemented, list metadata will need to be added
 	Items []Project `json:"items"`
 }
 

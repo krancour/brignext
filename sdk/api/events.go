@@ -26,9 +26,9 @@ type EventListOptions struct {
 
 // EventList is an ordered and pageable list of Events.
 type EventList struct {
+	// ListMeta contains list metadata.
+	meta.ListMeta `json:"metadata"`
 	// Items is a slice of Events.
-	//
-	// TODO: When pagination is implemented, list metadata will need to be added
 	Items []sdk.Event `json:"items,omitempty"`
 }
 

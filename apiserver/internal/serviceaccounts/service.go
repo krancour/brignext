@@ -17,10 +17,10 @@ type Service interface {
 	// Create creates a new ServiceAccount.
 	Create(context.Context, brignext.ServiceAccount) (brignext.Token, error)
 	// List returns a ServiceAccountList.
-	//
-	// TODO: This should take some list options because we may want them in the
-	// future and they would be hard to add later.
-	List(context.Context) (brignext.ServiceAccountList, error)
+	List(
+		context.Context,
+		brignext.ServiceAccountListOptions,
+	) (brignext.ServiceAccountList, error)
 	// Get retrieves a single ServiceAccount specified by its identifier.
 	Get(context.Context, string) (brignext.ServiceAccount, error)
 	// GetByToken retrieves a single ServiceAccount specified by token.
@@ -66,8 +66,9 @@ func (s *service) Create(
 
 func (s *service) List(
 	ctx context.Context,
+	opts brignext.ServiceAccountListOptions,
 ) (brignext.ServiceAccountList, error) {
-	serviceAccountList, err := s.store.List(ctx)
+	serviceAccountList, err := s.store.List(ctx, opts)
 	if err != nil {
 		return serviceAccountList,
 			errors.Wrap(err, "error retrieving service accounts from store")
