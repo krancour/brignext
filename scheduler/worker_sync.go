@@ -19,7 +19,7 @@ var workerPodsSelector = labels.Set(
 ).AsSelector().String()
 
 func (s *scheduler) syncExistingWorkerPods(ctx context.Context) error {
-	workerPodList, err := s.podsClient.List(
+	workerPods, err := s.podsClient.List(
 		ctx,
 		metav1.ListOptions{
 			LabelSelector: workerPodsSelector,
@@ -28,7 +28,7 @@ func (s *scheduler) syncExistingWorkerPods(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrap(err, "error listing pods")
 	}
-	for _, workerPod := range workerPodList.Items {
+	for _, workerPod := range workerPods.Items {
 		s.syncWorkerPod(&workerPod)
 	}
 	return nil

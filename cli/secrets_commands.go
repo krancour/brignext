@@ -8,6 +8,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/api"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -85,39 +86,51 @@ func secretsList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	secretList, err := client.Projects().ListSecrets(c.Context, projectID)
-	if err != nil {
-		return err
-	}
+	opts := api.SecretListOptions{}
 
-	switch strings.ToLower(output) {
-	case "table":
-		table := uitable.New()
-		table.AddRow("KEY", "VALUE")
-		for _, secret := range secretList.Items {
-			table.AddRow(secret.Key, "*** REDACTED ***")
-		}
-		fmt.Println(table)
-
-	case "yaml":
-		yamlBytes, err := yaml.Marshal(secretList)
+	for {
+		secrets, err := client.Projects().ListSecrets(c.Context, projectID, opts)
 		if err != nil {
-			return errors.Wrap(
-				err,
-				"error formatting output from get secrets operation",
-			)
+			return err
 		}
-		fmt.Println(string(yamlBytes))
 
-	case "json":
-		prettyJSON, err := json.MarshalIndent(secretList, "", "  ")
-		if err != nil {
-			return errors.Wrap(
-				err,
-				"error formatting output from get secrets operation",
-			)
+		switch strings.ToLower(output) {
+		case "table":
+			table := uitable.New()
+			table.AddRow("KEY", "VALUE")
+			for _, secret := range secrets.Items {
+				table.AddRow(secret.Key, "*** REDACTED ***")
+			}
+			fmt.Println(table)
+
+		case "yaml":
+			yamlBytes, err := yaml.Marshal(secrets)
+			if err != nil {
+				return errors.Wrap(
+					err,
+					"error formatting output from get secrets operation",
+				)
+			}
+			fmt.Println(string(yamlBytes))
+
+		case "json":
+			prettyJSON, err := json.MarshalIndent(secrets, "", "  ")
+			if err != nil {
+				return errors.Wrap(
+					err,
+					"error formatting output from get secrets operation",
+				)
+			}
+			fmt.Println(string(prettyJSON))
 		}
-		fmt.Println(string(prettyJSON))
+
+		// TODO: Figure out how to skip this if there's no tty
+		if secrets.RemainingItemCount < 1 || secrets.Continue == "" {
+			break
+		}
+
+		opts.Continue = secrets.Continue
+
 	}
 
 	return nil

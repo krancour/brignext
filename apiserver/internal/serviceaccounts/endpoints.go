@@ -1,7 +1,9 @@
 package serviceaccounts
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
@@ -81,6 +83,23 @@ func (e *endpoints) create(
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 	opts := brignext.ServiceAccountListOptions{
 		Continue: r.URL.Query().Get("continue"),
+	}
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		var err error
+		if opts.Limit, err = strconv.ParseInt(limitStr, 10, 64); err != nil ||
+			opts.Limit < 1 || opts.Limit > 100 {
+			e.WriteAPIResponse(
+				w,
+				http.StatusBadRequest,
+				&brignext.ErrBadRequest{
+					Reason: fmt.Sprintf(
+						`Invalid value %q for "limit" query parameter`,
+						limitStr,
+					),
+				},
+			)
+			return
+		}
 	}
 	e.ServeRequest(
 		apimachinery.InboundRequest{

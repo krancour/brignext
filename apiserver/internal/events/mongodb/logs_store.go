@@ -30,20 +30,20 @@ func (l *logsStore) GetLogs(
 ) (brignext.LogEntryList, error) {
 	criteria := l.criteriaFromOptions(eventID, opts)
 
-	logEntryList := brignext.LogEntryList{}
+	logEntries := brignext.LogEntryList{}
 	cursor, err := l.logsCollection.Find(ctx, criteria)
 	if err != nil {
-		return logEntryList, errors.Wrap(err, "error retrieving log entries")
+		return logEntries, errors.Wrap(err, "error retrieving log entries")
 	}
 	for cursor.Next(ctx) {
 		logEntry := brignext.LogEntry{}
 		err := cursor.Decode(&logEntry)
 		if err != nil {
-			return logEntryList, errors.Wrap(err, "error decoding log entries")
+			return logEntries, errors.Wrap(err, "error decoding log entries")
 		}
-		logEntryList.Items = append(logEntryList.Items, logEntry)
+		logEntries.Items = append(logEntries.Items, logEntry)
 	}
-	return logEntryList, nil
+	return logEntries, nil
 }
 
 func (l *logsStore) StreamLogs(

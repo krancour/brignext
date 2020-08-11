@@ -51,11 +51,14 @@ func (s *service) List(
 	ctx context.Context,
 	opts brignext.UserListOptions,
 ) (brignext.UserList, error) {
-	userList, err := s.store.List(ctx, opts)
-	if err != nil {
-		return userList, errors.Wrap(err, "error retrieving users from store")
+	if opts.Limit == 0 {
+		opts.Limit = 20
 	}
-	return userList, nil
+	users, err := s.store.List(ctx, opts)
+	if err != nil {
+		return users, errors.Wrap(err, "error retrieving users from store")
+	}
+	return users, nil
 }
 
 func (s *service) Get(ctx context.Context, id string) (brignext.User, error) {

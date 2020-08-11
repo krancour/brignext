@@ -100,7 +100,6 @@ func (s *store) List(
 	ctx context.Context,
 	opts brignext.ProjectListOptions,
 ) (brignext.ProjectList, error) {
-	const limit = 2 // TODO: Don't hard code this
 	projects := brignext.ProjectList{}
 
 	criteria := bson.M{}
@@ -110,7 +109,7 @@ func (s *store) List(
 
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})
-	findOptions.SetLimit(limit)
+	findOptions.SetLimit(opts.Limit)
 	cur, err := s.collection.Find(ctx, criteria, findOptions)
 	if err != nil {
 		return projects, errors.Wrap(err, "error finding projects")
@@ -119,8 +118,8 @@ func (s *store) List(
 		return projects, errors.Wrap(err, "error decoding projects")
 	}
 
-	if len(projects.Items) == limit {
-		continueID := projects.Items[limit-1].ID
+	if int64(len(projects.Items)) == opts.Limit {
+		continueID := projects.Items[opts.Limit-1].ID
 		criteria["id"] = bson.M{"$gt": continueID}
 		remaining, err := s.collection.CountDocuments(ctx, criteria)
 		if err != nil {

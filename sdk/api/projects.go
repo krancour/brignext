@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/sdk/meta"
@@ -15,6 +16,7 @@ import (
 // Projects for API group operations like list.
 type ProjectListOptions struct {
 	Continue string // TODO: Clean this up
+	Limit    int64  // TODO: Clean this up
 }
 
 // ProjectList is an ordered and pageable list of ProjectS.
@@ -43,8 +45,18 @@ func (p ProjectList) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// SecretListOptions represents useful filter criteria when selecting multiple
+// Secrets for API group operations like list.
+type SecretListOptions struct {
+	Continue string // TODO: Clean this up
+	Limit    int64  // TODO: Clean this up
+}
+
 // SecretList is an ordered and pageable list of Secrets.
 type SecretList struct {
+	// ListMeta contains list metadata.
+	meta.ListMeta `json:"metadata"`
+	// Items is a slice of Secrets.
 	Items []sdk.Secret `json:"items,omitempty"`
 }
 
@@ -103,6 +115,7 @@ type ProjectsClient interface {
 	ListSecrets(
 		ctx context.Context,
 		projectID string,
+		opts SecretListOptions,
 	) (SecretList, error)
 	// SetSecret set the value of a new Secret or updates the value of an existing
 	// Secret.
@@ -178,6 +191,10 @@ func (p *projectsClient) List(
 	// TODO: Clean this up
 	if opts.Continue != "" {
 		queryParams["continue"] = opts.Continue
+	}
+	// TODO: Clean this up
+	if opts.Limit != 0 {
+		queryParams["limit"] = strconv.FormatInt(opts.Limit, 10)
 	}
 	projects := ProjectList{}
 	return projects, p.executeRequest(
@@ -257,13 +274,24 @@ func (p *projectsClient) Delete(_ context.Context, id string) error {
 func (p *projectsClient) ListSecrets(
 	ctx context.Context,
 	projectID string,
+	opts SecretListOptions,
 ) (SecretList, error) {
+	queryParams := map[string]string{}
+	// TODO: Clean this up
+	if opts.Continue != "" {
+		queryParams["continue"] = opts.Continue
+	}
+	// TODO: Clean this up
+	if opts.Limit != 0 {
+		queryParams["limit"] = strconv.FormatInt(opts.Limit, 10)
+	}
 	secrets := SecretList{}
 	return secrets, p.executeRequest(
 		outboundRequest{
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/projects/%s/secrets", projectID),
 			authHeaders: p.bearerTokenAuthHeaders(),
+			queryParams: queryParams,
 			successCode: http.StatusOK,
 			respObj:     &secrets,
 		},

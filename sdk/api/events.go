@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/krancour/brignext/v2/sdk"
@@ -23,6 +24,7 @@ type EventListOptions struct {
 	// indicated phases should be selected.
 	WorkerPhases []sdk.WorkerPhase
 	Continue     string // TODO: Clean this up
+	Limit        int64  // TODO: Clean this up
 }
 
 // EventList is an ordered and pageable list of Events.
@@ -78,12 +80,18 @@ type EventsClient interface {
 	Cancel(context.Context, string) error
 	// CancelMany cancels multiple Events specified by the EventListOptions
 	// parameter.
+	// TODO: We need to return something else here so that we can avoid OOM in the
+	// case of millions of events
 	CancelMany(context.Context, EventListOptions) (EventList, error)
 	// Delete deletes a single Event specified by its identifier.
 	Delete(context.Context, string) error
 	// DeleteMany deletes multiple Events specified by the EventListOptions
 	// parameter.
+	// TODO: We need to return something else here so that we can avoid OOM in the
+	// case of millions of events
 	DeleteMany(context.Context, EventListOptions) (EventList, error)
+
+	// TODO: We need an operation for creating a Worker
 
 	// UpdateWorkerStatus updates the status of an Event's Worker.
 	UpdateWorkerStatus(
@@ -91,6 +99,8 @@ type EventsClient interface {
 		eventID string,
 		status sdk.WorkerStatus,
 	) error
+
+	// TODO: We need an operation for creating a Job
 
 	// UpdateJobStatus, given an Event identifier and Job name, updates the status
 	// of that Job.
@@ -103,6 +113,8 @@ type EventsClient interface {
 
 	// GetLogs retrieves logs for an Event's Worker, or using the LogOptions
 	// parameter, a Job spawned by that Worker (or specific container thereof).
+	//
+	// TODO: This needs pagination!!!
 	GetLogs(
 		ctx context.Context,
 		eventID string,
@@ -171,6 +183,10 @@ func (e *eventsClient) List(
 	// TODO: Clean this up
 	if opts.Continue != "" {
 		queryParams["continue"] = opts.Continue
+	}
+	// TODO: Clean this up
+	if opts.Limit != 0 {
+		queryParams["limit"] = strconv.FormatInt(opts.Limit, 10)
 	}
 	if len(opts.WorkerPhases) > 0 {
 		workerPhaseStrs := make([]string, len(opts.WorkerPhases))
@@ -328,15 +344,15 @@ func (e *eventsClient) GetLogs(
 	eventID string,
 	opts LogOptions,
 ) (sdk.LogEntryList, error) {
-	logEntryList := sdk.LogEntryList{}
-	return logEntryList, e.executeRequest(
+	logEntries := sdk.LogEntryList{}
+	return logEntries, e.executeRequest(
 		outboundRequest{
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/events/%s/logs", eventID),
 			authHeaders: e.bearerTokenAuthHeaders(),
 			queryParams: e.queryParamsFromLogOptions(opts, false), // Don't stream
 			successCode: http.StatusOK,
-			respObj:     &logEntryList,
+			respObj:     &logEntries,
 		},
 	)
 }

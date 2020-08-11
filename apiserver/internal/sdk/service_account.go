@@ -34,6 +34,7 @@ func (s ServiceAccount) MarshalJSON() ([]byte, error) {
 // multiple ServiceAccounts for API group operations like list.
 type ServiceAccountListOptions struct {
 	Continue string // TODO: Clean this up
+	Limit    int64  // TODO: Clean this up
 }
 
 // ServiceAccountList is an ordered and pageable list of ServiceAccounts.

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
@@ -42,6 +43,7 @@ type Scheduler interface {
 	ListSecrets(
 		ctx context.Context,
 		project brignext.Project,
+		opts brignext.SecretListOptions,
 	) (brignext.SecretList, error)
 	SetSecret(
 		ctx context.Context,
@@ -298,6 +300,7 @@ func (s *scheduler) Delete(
 func (s *scheduler) ListSecrets(
 	ctx context.Context,
 	project brignext.Project,
+	opts brignext.SecretListOptions,
 ) (brignext.SecretList, error) {
 	secrets := brignext.SecretList{}
 
@@ -317,6 +320,31 @@ func (s *scheduler) ListSecrets(
 		secrets.Items[i] = brignext.Secret{Key: key}
 		i++
 	}
+
+	sort.Sort(secrets)
+
+	// Paginate...
+
+	// Technically, it's really kind of pointless to do this. The main reason we
+	// paginate any sort of response is to avoid causing OOMS by reading gigantic
+	// collections (like millions of Events) into memory, but here, all of these
+	// secrets are ALREADY in memory, so we're not ready avoiding any real problem
+	// here. But we're going to do it anyway just for the sake of making the
+	// ListSecrets operation behave consistently with all other list operations.
+	if opts.Continue != "" {
+		for i := 0; i < len(secrets.Items); i++ {
+			if secrets.Items[i].Key == opts.Continue {
+				secrets.Items = secrets.Items[i+1:]
+				break
+			}
+		}
+	}
+	if int64(len(secrets.Items)) > opts.Limit {
+		secrets.RemainingItemCount = int64(len(secrets.Items)) - opts.Limit
+		secrets.Items = secrets.Items[:opts.Limit]
+		secrets.Continue = secrets.Items[opts.Limit-1].Key
+	}
+
 	return secrets, nil
 }
 

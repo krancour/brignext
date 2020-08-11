@@ -33,6 +33,7 @@ func (u User) MarshalJSON() ([]byte, error) {
 // Users for API group operations like list.
 type UserListOptions struct {
 	Continue string // TODO: Clean this up
+	Limit    int64  // TODO: Clean this up
 }
 
 // UserList is an ordered and pageable list of Users.

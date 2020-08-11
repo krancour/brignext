@@ -91,7 +91,6 @@ func (s *store) List(
 	ctx context.Context,
 	opts brignext.ServiceAccountListOptions,
 ) (brignext.ServiceAccountList, error) {
-	const limit = 2 // TODO: Don't hard code this
 	serviceAccounts := brignext.ServiceAccountList{}
 
 	criteria := bson.M{}
@@ -101,7 +100,7 @@ func (s *store) List(
 
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"id": 1})
-	findOptions.SetLimit(limit)
+	findOptions.SetLimit(opts.Limit)
 	cur, err := s.collection.Find(ctx, criteria, findOptions)
 	if err != nil {
 		return serviceAccounts,
@@ -112,8 +111,8 @@ func (s *store) List(
 			errors.Wrap(err, "error decoding service accounts")
 	}
 
-	if len(serviceAccounts.Items) == limit {
-		continueID := serviceAccounts.Items[limit-1].ID
+	if int64(len(serviceAccounts.Items)) == opts.Limit {
+		continueID := serviceAccounts.Items[opts.Limit-1].ID
 		criteria["id"] = bson.M{"$gt": continueID}
 		remaining, err := s.collection.CountDocuments(ctx, criteria)
 		if err != nil {

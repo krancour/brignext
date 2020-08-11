@@ -68,7 +68,6 @@ func (s *store) List(
 	ctx context.Context,
 	opts brignext.EventListOptions,
 ) (brignext.EventList, error) {
-	const limit = 2 // TODO: Don't hard code this
 	events := brignext.EventList{}
 
 	criteria := bson.M{
@@ -92,7 +91,7 @@ func (s *store) List(
 
 	findOptions := options.Find()
 	findOptions.SetSort(bson.M{"created": -1})
-	findOptions.SetLimit(limit)
+	findOptions.SetLimit(opts.Limit)
 	cur, err := s.collection.Find(ctx, criteria, findOptions)
 	if err != nil {
 		return events, errors.Wrap(err, "error finding events")
@@ -101,8 +100,8 @@ func (s *store) List(
 		return events, errors.Wrap(err, "error decoding events")
 	}
 
-	if len(events.Items) == limit {
-		continueTime := events.Items[limit-1].Created
+	if int64(len(events.Items)) == opts.Limit {
+		continueTime := events.Items[opts.Limit-1].Created
 		criteria["created"] = bson.M{"$lt": continueTime}
 		remaining, err := s.collection.CountDocuments(ctx, criteria)
 		if err != nil {

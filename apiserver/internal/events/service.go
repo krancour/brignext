@@ -118,15 +118,15 @@ func (s *service) Create(
 	// an event for each of these by making a recursive call to this same
 	// function.
 	if event.ProjectID == "" {
-		projectList, err := s.projectsStore.ListSubscribers(ctx, event)
+		projects, err := s.projectsStore.ListSubscribers(ctx, event)
 		if err != nil {
 			return events, errors.Wrap(
 				err,
 				"error retrieving subscribed projects from store",
 			)
 		}
-		events.Items = make([]brignext.Event, len(projectList.Items))
-		for i, project := range projectList.Items {
+		events.Items = make([]brignext.Event, len(projects.Items))
+		for i, project := range projects.Items {
 			event.ProjectID = project.ID
 			projectEvents, err := s.Create(ctx, event)
 			if err != nil {
@@ -231,18 +231,21 @@ func (s *service) List(
 	ctx context.Context,
 	opts brignext.EventListOptions,
 ) (brignext.EventList, error) {
-	eventList := brignext.EventList{}
+	events := brignext.EventList{}
 
 	// If no worker phase filters were applied, retrieve all phases
 	if len(opts.WorkerPhases) == 0 {
 		opts.WorkerPhases = brignext.WorkerPhasesAll()
 	}
-
-	eventList, err := s.store.List(ctx, opts)
-	if err != nil {
-		return eventList, errors.Wrap(err, "error retrieving events from store")
+	if opts.Limit == 0 {
+		opts.Limit = 20
 	}
-	return eventList, nil
+
+	events, err := s.store.List(ctx, opts)
+	if err != nil {
+		return events, errors.Wrap(err, "error retrieving events from store")
+	}
+	return events, nil
 }
 
 func (s *service) Get(
@@ -478,10 +481,10 @@ func (s *service) GetLogs(
 	eventID string,
 	opts brignext.LogOptions,
 ) (brignext.LogEntryList, error) {
-	logEntryList := brignext.LogEntryList{}
+	logEntries := brignext.LogEntryList{}
 	_, err := s.store.Get(ctx, eventID)
 	if err != nil {
-		return logEntryList, errors.Wrapf(
+		return logEntries, errors.Wrapf(
 			err,
 			"error retrieving event %q from store",
 			eventID,

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/krancour/brignext/v2/sdk/meta"
@@ -47,6 +48,7 @@ func (s ServiceAccount) MarshalJSON() ([]byte, error) {
 // multiple ServiceAccounts for API group operations like list.
 type ServiceAccountListOptions struct {
 	Continue string // TODO: Clean this up
+	Limit    int64  // TODO: Clean this up
 }
 
 // ServiceAccountList is an ordered and pageable list of ServiceAccounts.
@@ -143,6 +145,10 @@ func (s *serviceAccountsClient) List(
 	// TODO: Clean this up
 	if opts.Continue != "" {
 		queryParams["continue"] = opts.Continue
+	}
+	// TODO: Clean this up
+	if opts.Limit != 0 {
+		queryParams["limit"] = strconv.FormatInt(opts.Limit, 10)
 	}
 	serviceAccounts := ServiceAccountList{}
 	return serviceAccounts, s.executeRequest(

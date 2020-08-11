@@ -1,7 +1,9 @@
 package projects
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
@@ -99,6 +101,23 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 	opts := brignext.ProjectListOptions{
 		Continue: r.URL.Query().Get("continue"),
 	}
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		var err error
+		if opts.Limit, err = strconv.ParseInt(limitStr, 10, 64); err != nil ||
+			opts.Limit < 1 || opts.Limit > 100 {
+			e.WriteAPIResponse(
+				w,
+				http.StatusBadRequest,
+				&brignext.ErrBadRequest{
+					Reason: fmt.Sprintf(
+						`Invalid value %q for "limit" query parameter`,
+						limitStr,
+					),
+				},
+			)
+			return
+		}
+	}
 	e.ServeRequest(
 		apimachinery.InboundRequest{
 			W: w,
@@ -160,12 +179,32 @@ func (e *endpoints) delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *endpoints) listSecrets(w http.ResponseWriter, r *http.Request) {
+	opts := brignext.SecretListOptions{
+		Continue: r.URL.Query().Get("continue"),
+	}
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		var err error
+		if opts.Limit, err = strconv.ParseInt(limitStr, 10, 64); err != nil ||
+			opts.Limit < 1 || opts.Limit > 100 {
+			e.WriteAPIResponse(
+				w,
+				http.StatusBadRequest,
+				&brignext.ErrBadRequest{
+					Reason: fmt.Sprintf(
+						`Invalid value %q for "limit" query parameter`,
+						limitStr,
+					),
+				},
+			)
+			return
+		}
+	}
 	e.ServeRequest(
 		apimachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.ListSecrets(r.Context(), mux.Vars(r)["id"])
+				return e.service.ListSecrets(r.Context(), mux.Vars(r)["id"], opts)
 			},
 			SuccessCode: http.StatusOK,
 		},

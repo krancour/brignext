@@ -102,6 +102,7 @@ type KubernetesConfig struct {
 // Projects for API group operations like list.
 type ProjectListOptions struct {
 	Continue string // TODO: Clean this up
+	Limit    int64  // TODO: Clean this up
 }
 
 // ProjectList is an ordered and pageable list of Projects.

@@ -68,12 +68,15 @@ func (s *service) List(
 	ctx context.Context,
 	opts brignext.ServiceAccountListOptions,
 ) (brignext.ServiceAccountList, error) {
-	serviceAccountList, err := s.store.List(ctx, opts)
+	if opts.Limit == 0 {
+		opts.Limit = 20
+	}
+	serviceAccounts, err := s.store.List(ctx, opts)
 	if err != nil {
-		return serviceAccountList,
+		return serviceAccounts,
 			errors.Wrap(err, "error retrieving service accounts from store")
 	}
-	return serviceAccountList, nil
+	return serviceAccounts, nil
 }
 
 func (s *service) Get(

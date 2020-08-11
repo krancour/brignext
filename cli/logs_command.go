@@ -55,12 +55,12 @@ func logs(c *cli.Context) error {
 	}
 
 	if !follow {
-		var logEntryList sdk.LogEntryList
-		if logEntryList, err =
+		var logEntries sdk.LogEntryList
+		if logEntries, err =
 			client.Events().GetLogs(c.Context, eventID, opts); err != nil {
 			return err
 		}
-		for _, logEntry := range logEntryList.Items {
+		for _, logEntry := range logEntries.Items {
 			fmt.Println(logEntry.Message)
 		}
 		return nil

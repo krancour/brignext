@@ -18,7 +18,7 @@ func (s *scheduler) manageProjectEventLoops(ctx context.Context) {
 	defer ticker.Stop()
 
 	for {
-		projectList, err :=
+		projects, err :=
 			s.apiClient.Projects().List(ctx, api.ProjectListOptions{})
 		if err != nil {
 			select {
@@ -31,7 +31,7 @@ func (s *scheduler) manageProjectEventLoops(ctx context.Context) {
 		// Build a set of current projects. This makes it a little faster and easier
 		// to search for projects later in this algorithm.
 		currentProjects := map[string]struct{}{}
-		for _, project := range projectList.Items {
+		for _, project := range projects.Items {
 			currentProjects[project.ID] = struct{}{}
 		}
 

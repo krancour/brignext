@@ -34,6 +34,7 @@ type Service interface {
 	ListSecrets(
 		ctx context.Context,
 		projectID string,
+		opts brignext.SecretListOptions,
 	) (brignext.SecretList, error)
 	// SetSecret set the value of a new Secret or updates the value of an existing
 	// Secret.
@@ -99,11 +100,14 @@ func (s *service) List(
 	ctx context.Context,
 	opts brignext.ProjectListOptions,
 ) (brignext.ProjectList, error) {
-	projectList, err := s.store.List(ctx, opts)
-	if err != nil {
-		return projectList, errors.Wrap(err, "error retrieving projects from store")
+	if opts.Limit == 0 {
+		opts.Limit = 20
 	}
-	return projectList, nil
+	projects, err := s.store.List(ctx, opts)
+	if err != nil {
+		return projects, errors.Wrap(err, "error retrieving projects from store")
+	}
+	return projects, nil
 }
 
 func (s *service) Get(
@@ -184,25 +188,29 @@ func (s *service) Delete(ctx context.Context, id string) error {
 func (s *service) ListSecrets(
 	ctx context.Context,
 	projectID string,
+	opts brignext.SecretListOptions,
 ) (brignext.SecretList, error) {
-	secretList := brignext.SecretList{}
+	secrets := brignext.SecretList{}
 	project, err := s.store.Get(ctx, projectID)
 	if err != nil {
-		return secretList, errors.Wrapf(
+		return secrets, errors.Wrapf(
 			err,
 			"error retrieving project %q from store",
 			projectID,
 		)
 	}
-	if secretList, err =
-		s.scheduler.ListSecrets(ctx, project); err != nil {
-		return secretList, errors.Wrapf(
+	if opts.Limit == 0 {
+		opts.Limit = 20
+	}
+	if secrets, err =
+		s.scheduler.ListSecrets(ctx, project, opts); err != nil {
+		return secrets, errors.Wrapf(
 			err,
 			"error getting worker secrets for project %q from scheduler",
 			projectID,
 		)
 	}
-	return secretList, nil
+	return secrets, nil
 }
 
 func (s *service) SetSecret(
