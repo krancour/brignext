@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/krancour/brignext/v2/sdk"
@@ -194,13 +195,29 @@ func projectList(c *cli.Context) error {
 			fmt.Println(string(prettyJSON))
 		}
 
-		// TODO: Figure out how to skip this if there's no tty
-		if projects.RemainingItemCount < 1 || projects.Continue == "" {
+		// TODO: DRY this up
+		var shouldContinue bool
+		fmt.Println()
+		if err := survey.AskOne(
+			&survey.Confirm{
+				Message: fmt.Sprintf(
+					"%d results remain. Fetch more?",
+					projects.RemainingItemCount,
+				),
+			},
+			&shouldContinue,
+		); err != nil {
+			return errors.Wrap(
+				err,
+				"error confirming if user wishes to continue",
+			)
+		}
+		fmt.Println()
+		if !shouldContinue {
 			break
 		}
 
 		opts.Continue = projects.Continue
-
 	}
 
 	return nil

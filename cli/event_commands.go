@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/krancour/brignext/v2/internal/file"
@@ -14,6 +16,7 @@ import (
 	"github.com/krancour/brignext/v2/sdk/api"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/crypto/ssh/terminal"
 	"k8s.io/apimachinery/pkg/util/duration"
 )
 
@@ -447,13 +450,38 @@ func eventList(c *cli.Context) error {
 			fmt.Println(string(prettyJSON))
 		}
 
-		// TODO: Figure out how to skip this if there's no tty
 		if events.RemainingItemCount < 1 || events.Continue == "" {
 			break
 		}
 
-		opts.Continue = events.Continue
+		// Exit after one page of output if this isn't a terminal
+		if !terminal.IsTerminal(int(os.Stdout.Fd())) {
+			break
+		}
 
+		// TODO: DRY this up
+		var shouldContinue bool
+		fmt.Println()
+		if err := survey.AskOne(
+			&survey.Confirm{
+				Message: fmt.Sprintf(
+					"%d results remain. Fetch more?",
+					events.RemainingItemCount,
+				),
+			},
+			&shouldContinue,
+		); err != nil {
+			return errors.Wrap(
+				err,
+				"error confirming if user wishes to continue",
+			)
+		}
+		fmt.Println()
+		if !shouldContinue {
+			break
+		}
+
+		opts.Continue = events.Continue
 	}
 
 	return nil

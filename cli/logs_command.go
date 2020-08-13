@@ -2,11 +2,14 @@ package main
 
 import (
 	"fmt"
+	"os"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/sdk/api"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var logsCommand = &cli.Command{
@@ -65,12 +68,36 @@ func logs(c *cli.Context) error {
 				fmt.Println(logEntry.Message)
 			}
 
-			// TODO: Figure out how to skip this if there's no tty
-			if logEntries.RemainingItemCount < 1 || logEntries.Continue == "" {
+			// Exit after one page of output if this isn't a terminal
+			if !terminal.IsTerminal(int(os.Stdout.Fd())) {
 				break
 			}
+
+			// TODO: DRY this up
+			var shouldContinue bool
+			fmt.Println()
+			if err := survey.AskOne(
+				&survey.Confirm{
+					Message: fmt.Sprintf(
+						"%d results remain. Fetch more?",
+						logEntries.RemainingItemCount,
+					),
+				},
+				&shouldContinue,
+			); err != nil {
+				return errors.Wrap(
+					err,
+					"error confirming if user wishes to continue",
+				)
+			}
+			fmt.Println()
+			if !shouldContinue {
+				break
+			}
+
 			opts.Continue = logEntries.Continue
 		}
+
 		return nil
 	}
 
