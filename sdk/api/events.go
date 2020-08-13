@@ -127,9 +127,9 @@ type EventsClient interface {
 		status sdk.WorkerStatus,
 	) error
 
-	// CreatesJob, given an Event identifier and JobSpec, creates a new Job and
+	// CreateJob, given an Event identifier and JobSpec, creates a new Job and
 	// starts it on BrigNext's worlkoad execution substrate.
-	CreatesJob(
+	CreateJob(
 		ctx context.Context,
 		eventID string,
 		jobName string,
@@ -410,7 +410,7 @@ func (e *eventsClient) UpdateWorkerStatus(
 	)
 }
 
-func (e *eventsClient) CreatesJob(
+func (e *eventsClient) CreateJob(
 	ctx context.Context,
 	eventID string,
 	jobName string,

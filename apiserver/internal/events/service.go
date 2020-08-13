@@ -47,6 +47,18 @@ type Service interface {
 		brignext.EventListOptions,
 	) (brignext.EventList, error)
 
+	// StartWorker starts the indicated Event's Worker on BrigNext's worlkoad
+	// execution substrate.
+	StartWorker(ctx context.Context, eventID string) error
+	// GetWorkerStatus returns an Event's Worker's status.
+	GetWorkerStatus(ctx context.Context, eventID string) (brignext.WorkerStatus, error)
+	// WatchWorkerStatus returns a channel over which an Event's Worker's status
+	// is streamed. The channel receives a new WorkerStatus every time there is
+	// any change in that status.
+	WatchWorkerStatus(
+		ctx context.Context,
+		eventID string,
+	) (<-chan brignext.WorkerStatus, error)
 	// UpdateWorkerStatus updates the status of an Event's Worker.
 	UpdateWorkerStatus(
 		ctx context.Context,
@@ -54,6 +66,29 @@ type Service interface {
 		status brignext.WorkerStatus,
 	) error
 
+	// CreateJob, given an Event identifier and JobSpec, creates a new Job and
+	// starts it on BrigNext's worlkoad execution substrate.
+	CreateJob(
+		ctx context.Context,
+		eventID string,
+		jobName string,
+		jobSpec brignext.JobSpec,
+	) error
+	// GetJobStatus, given an Event identifier and Job name, returns the Job's
+	// status.
+	GetJobStatus(
+		ctx context.Context,
+		eventID string,
+		jobName string,
+	) (brignext.JobStatus, error)
+	// WatchJobStatus, given an Event identifier and Job name, returns a channel
+	// over which the Job's status is streamed. The channel receives a new
+	// JobStatus every time there is any change in that status.
+	WatchJobStatus(
+		ctx context.Context,
+		eventID string,
+		jobName string,
+	) (<-chan brignext.JobStatus, error)
 	// UpdateJobStatus, given an Event identifier and Job name, updates the status
 	// of that Job.
 	UpdateJobStatus(
@@ -435,6 +470,27 @@ func (s *service) DeleteMany(
 	return events, nil
 }
 
+func (s *service) StartWorker(ctx context.Context, eventID string) error {
+	// TODO: Delegate this to the scheduler
+	return nil
+}
+
+func (s *service) GetWorkerStatus(
+	ctx context.Context,
+	eventID string,
+) (brignext.WorkerStatus, error) {
+	// TODO: Get this from the data store
+	return brignext.WorkerStatus{}, nil
+}
+
+func (s *service) WatchWorkerStatus(
+	ctx context.Context,
+	eventID string,
+) (<-chan brignext.WorkerStatus, error) {
+	// TODO: Start a ticker to get this from the data store
+	return nil, nil
+}
+
 func (s *service) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
@@ -452,6 +508,35 @@ func (s *service) UpdateWorkerStatus(
 		)
 	}
 	return nil
+}
+
+func (s *service) CreateJob(
+	ctx context.Context,
+	eventID string,
+	jobName string,
+	jobSpec brignext.JobSpec,
+) error {
+	// TODO: Coordinate between the data store and the scheduler
+	return nil
+}
+
+func (s *service) GetJobStatus(
+	ctx context.Context,
+	eventID string,
+	jobName string,
+) (brignext.JobStatus, error) {
+	// TODO: Get this from the data store
+	return brignext.JobStatus{}, nil
+}
+
+// TODO: Implement this
+func (s *service) WatchJobStatus(
+	ctx context.Context,
+	eventID string,
+	jobName string,
+) (<-chan brignext.JobStatus, error) {
+	// TODO: Start a ticker to get this from the data store
+	return nil, nil
 }
 
 func (s *service) UpdateJobStatus(
