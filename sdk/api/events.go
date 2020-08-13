@@ -108,8 +108,18 @@ type EventsClient interface {
 	// case of millions of events
 	DeleteMany(context.Context, EventListOptions) (EventList, error)
 
-	// TODO: We need an operation for creating a Worker
-
+	// StartWorker starts the indicated Event's Worker on BrigNext's worlkoad
+	// execution substrate.
+	StartWorker(ctx context.Context, eventID string) error
+	// GetWorkerStatus returns an Event's Worker's status.
+	GetWorkerStatus(ctx context.Context, eventID string) (sdk.WorkerStatus, error)
+	// WatchWorkerStatus returns a channel over which an Event's Worker's status
+	// is streamed. The channel receives a new WorkerStatus every time there is
+	// any change in that status.
+	WatchWorkerStatus(
+		ctx context.Context,
+		eventID string,
+	) (<-chan sdk.WorkerStatus, <-chan error, error)
 	// UpdateWorkerStatus updates the status of an Event's Worker.
 	UpdateWorkerStatus(
 		ctx context.Context,
@@ -117,8 +127,29 @@ type EventsClient interface {
 		status sdk.WorkerStatus,
 	) error
 
-	// TODO: We need an operation for creating a Job
-
+	// CreatesJob, given an Event identifier and JobSpec, creates a new Job and
+	// starts it on BrigNext's worlkoad execution substrate.
+	CreatesJob(
+		ctx context.Context,
+		eventID string,
+		jobName string,
+		jobSpec sdk.JobSpec,
+	) error
+	// GetJobStatus, given an Event identifier and Job name, returns the Job's
+	// status.
+	GetJobStatus(
+		ctx context.Context,
+		eventID string,
+		jobName string,
+	) (sdk.JobStatus, error)
+	// WatchJobStatus, given an Event identifier and Job name, returns a channel
+	// over which the Job's status is streamed. The channel receives a new
+	// JobStatus every time there is any change in that status.
+	WatchJobStatus(
+		ctx context.Context,
+		eventID string,
+		jobName string,
+	) (<-chan sdk.JobStatus, <-chan error, error)
 	// UpdateJobStatus, given an Event identifier and Job name, updates the status
 	// of that Job.
 	UpdateJobStatus(
@@ -309,6 +340,60 @@ func (e *eventsClient) DeleteMany(
 	)
 }
 
+func (e *eventsClient) StartWorker(ctx context.Context, eventID string) error {
+	return e.executeRequest(
+		outboundRequest{
+			method:      http.MethodPut,
+			path:        fmt.Sprintf("v2/events/%s/worker/start", eventID),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			successCode: http.StatusOK,
+		},
+	)
+}
+
+func (e *eventsClient) GetWorkerStatus(
+	ctx context.Context,
+	eventID string,
+) (sdk.WorkerStatus, error) {
+	status := sdk.WorkerStatus{}
+	return status, e.executeRequest(
+		outboundRequest{
+			method:      http.MethodGet,
+			path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			successCode: http.StatusOK,
+			respObj:     &status,
+		},
+	)
+}
+
+func (e *eventsClient) WatchWorkerStatus(
+	ctx context.Context,
+	eventID string,
+) (<-chan sdk.WorkerStatus, <-chan error, error) {
+	resp, err := e.submitRequest(
+		outboundRequest{
+			method:      http.MethodGet,
+			path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			queryParams: map[string]string{
+				"watch": "true",
+			},
+			successCode: http.StatusOK,
+		},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	statusCh := make(chan sdk.WorkerStatus)
+	errCh := make(chan error)
+
+	go e.receiveWorkerStatusStream(ctx, resp.Body, statusCh, errCh)
+
+	return statusCh, errCh, nil
+}
+
 func (e *eventsClient) UpdateWorkerStatus(
 	_ context.Context,
 	eventID string,
@@ -323,6 +408,80 @@ func (e *eventsClient) UpdateWorkerStatus(
 			successCode: http.StatusOK,
 		},
 	)
+}
+
+func (e *eventsClient) CreatesJob(
+	ctx context.Context,
+	eventID string,
+	jobName string,
+	jobSpec sdk.JobSpec,
+) error {
+	return e.executeRequest(
+		outboundRequest{
+			method: http.MethodPut,
+			path: fmt.Sprintf(
+				"v2/events/%s/worker/jobs/%s/spec",
+				eventID,
+				jobName,
+			),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			reqBodyObj:  jobSpec,
+			successCode: http.StatusCreated,
+		},
+	)
+}
+
+func (e *eventsClient) GetJobStatus(
+	ctx context.Context,
+	eventID string,
+	jobName string,
+) (sdk.JobStatus, error) {
+	status := sdk.JobStatus{}
+	return status, e.executeRequest(
+		outboundRequest{
+			method: http.MethodGet,
+			path: fmt.Sprintf(
+				"v2/events/%s/worker/jobs/%s/status",
+				eventID,
+				jobName,
+			),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			successCode: http.StatusOK,
+			respObj:     &status,
+		},
+	)
+}
+
+func (e *eventsClient) WatchJobStatus(
+	ctx context.Context,
+	eventID string,
+	jobName string,
+) (<-chan sdk.JobStatus, <-chan error, error) {
+	resp, err := e.submitRequest(
+		outboundRequest{
+			method: http.MethodGet,
+			path: fmt.Sprintf(
+				"v2/events/%s/worker/jobs/%s/status",
+				eventID,
+				jobName,
+			),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			queryParams: map[string]string{
+				"watch": "true",
+			},
+			successCode: http.StatusOK,
+		},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	statusCh := make(chan sdk.JobStatus)
+	errCh := make(chan error)
+
+	go e.receiveJobStatusStream(ctx, resp.Body, statusCh, errCh)
+
+	return statusCh, errCh, nil
 }
 
 func (e *eventsClient) UpdateJobStatus(
@@ -409,6 +568,56 @@ func (e *eventsClient) queryParamsFromLogOptions(
 		queryParams["stream"] = "true"
 	}
 	return e.appendListQueryParams(queryParams, opts.Continue, opts.Limit)
+}
+
+func (e *eventsClient) receiveWorkerStatusStream(
+	ctx context.Context,
+	reader io.ReadCloser,
+	statusCh chan<- sdk.WorkerStatus,
+	errCh chan<- error,
+) {
+	defer reader.Close()
+	decoder := json.NewDecoder(reader)
+	for {
+		status := sdk.WorkerStatus{}
+		if err := decoder.Decode(&status); err != nil {
+			select {
+			case errCh <- err:
+			case <-ctx.Done():
+			}
+			return
+		}
+		select {
+		case statusCh <- status:
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+func (e *eventsClient) receiveJobStatusStream(
+	ctx context.Context,
+	reader io.ReadCloser,
+	statusCh chan<- sdk.JobStatus,
+	errCh chan<- error,
+) {
+	defer reader.Close()
+	decoder := json.NewDecoder(reader)
+	for {
+		status := sdk.JobStatus{}
+		if err := decoder.Decode(&status); err != nil {
+			select {
+			case errCh <- err:
+			case <-ctx.Done():
+			}
+			return
+		}
+		select {
+		case statusCh <- status:
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 // receiveLogStream is used to receive log messages as SSEs (server sent
