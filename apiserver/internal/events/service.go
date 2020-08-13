@@ -482,6 +482,9 @@ func (s *service) GetLogs(
 	opts brignext.LogOptions,
 ) (brignext.LogEntryList, error) {
 	logEntries := brignext.LogEntryList{}
+	if opts.Limit == 0 {
+		opts.Limit = 20
+	}
 	_, err := s.store.Get(ctx, eventID)
 	if err != nil {
 		return logEntries, errors.Wrapf(

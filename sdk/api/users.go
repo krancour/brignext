@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/krancour/brignext/v2/sdk/meta"
@@ -45,8 +44,16 @@ func (u User) MarshalJSON() ([]byte, error) {
 // UserListOptions represents useful filter criteria when selecting multiple
 // Users for API group operations like list.
 type UserListOptions struct {
-	Continue string // TODO: Clean this up
-	Limit    int64  // TODO: Clean this up
+	// Continue aids in pagination of long lists. It permits clients to echo an
+	// opaque value obtained from a previous API call back to the API in a
+	// subsequent call in order to indicate what resource was the last on the
+	// previous page.
+	Continue string
+	// Limit aids in pagination of long lists. It permits clients to specify page
+	// size when making API calls. The API server provides a default when a value
+	// is not specified and may reject or override invalid values (non-positive)
+	// numbers or very large page sizes.
+	Limit int64
 }
 
 // UserList is an ordered and pageable list of Users.
@@ -119,22 +126,13 @@ func (u *usersClient) List(
 	_ context.Context,
 	opts UserListOptions,
 ) (UserList, error) {
-	queryParams := map[string]string{}
-	// TODO: Clean this up
-	if opts.Continue != "" {
-		queryParams["continue"] = opts.Continue
-	}
-	// TODO: Clean this up
-	if opts.Limit != 0 {
-		queryParams["limit"] = strconv.FormatInt(opts.Limit, 10)
-	}
 	users := UserList{}
 	return users, u.executeRequest(
 		outboundRequest{
 			method:      http.MethodGet,
 			path:        "v2/users",
 			authHeaders: u.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
+			queryParams: u.appendListQueryParams(nil, opts.Continue, opts.Limit),
 			successCode: http.StatusOK,
 			respObj:     &users,
 		},

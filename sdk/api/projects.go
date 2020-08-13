@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/sdk/meta"
@@ -15,8 +14,16 @@ import (
 // ProjectListOptions represents useful filter criteria when selecting multiple
 // Projects for API group operations like list.
 type ProjectListOptions struct {
-	Continue string // TODO: Clean this up
-	Limit    int64  // TODO: Clean this up
+	// Continue aids in pagination of long lists. It permits clients to echo an
+	// opaque value obtained from a previous API call back to the API in a
+	// subsequent call in order to indicate what resource was the last on the
+	// previous page.
+	Continue string
+	// Limit aids in pagination of long lists. It permits clients to specify page
+	// size when making API calls. The API server provides a default when a value
+	// is not specified and may reject or override invalid values (non-positive)
+	// numbers or very large page sizes.
+	Limit int64
 }
 
 // ProjectList is an ordered and pageable list of ProjectS.
@@ -48,8 +55,16 @@ func (p ProjectList) MarshalJSON() ([]byte, error) {
 // SecretListOptions represents useful filter criteria when selecting multiple
 // Secrets for API group operations like list.
 type SecretListOptions struct {
-	Continue string // TODO: Clean this up
-	Limit    int64  // TODO: Clean this up
+	// Continue aids in pagination of long lists. It permits clients to echo an
+	// opaque value obtained from a previous API call back to the API in a
+	// subsequent call in order to indicate what resource was the last on the
+	// previous page.
+	Continue string
+	// Limit aids in pagination of long lists. It permits clients to specify page
+	// size when making API calls. The API server provides a default when a value
+	// is not specified and may reject or override invalid values (non-positive)
+	// numbers or very large page sizes.
+	Limit int64
 }
 
 // SecretList is an ordered and pageable list of Secrets.
@@ -187,22 +202,13 @@ func (p *projectsClient) List(
 	_ context.Context,
 	opts ProjectListOptions,
 ) (ProjectList, error) {
-	queryParams := map[string]string{}
-	// TODO: Clean this up
-	if opts.Continue != "" {
-		queryParams["continue"] = opts.Continue
-	}
-	// TODO: Clean this up
-	if opts.Limit != 0 {
-		queryParams["limit"] = strconv.FormatInt(opts.Limit, 10)
-	}
 	projects := ProjectList{}
 	return projects, p.executeRequest(
 		outboundRequest{
 			method:      http.MethodGet,
 			path:        "v2/projects",
 			authHeaders: p.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
+			queryParams: p.appendListQueryParams(nil, opts.Continue, opts.Limit),
 			successCode: http.StatusOK,
 			respObj:     &projects,
 		},
@@ -276,22 +282,13 @@ func (p *projectsClient) ListSecrets(
 	projectID string,
 	opts SecretListOptions,
 ) (SecretList, error) {
-	queryParams := map[string]string{}
-	// TODO: Clean this up
-	if opts.Continue != "" {
-		queryParams["continue"] = opts.Continue
-	}
-	// TODO: Clean this up
-	if opts.Limit != 0 {
-		queryParams["limit"] = strconv.FormatInt(opts.Limit, 10)
-	}
 	secrets := SecretList{}
 	return secrets, p.executeRequest(
 		outboundRequest{
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/projects/%s/secrets", projectID),
 			authHeaders: p.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
+			queryParams: p.appendListQueryParams(nil, opts.Continue, opts.Limit),
 			successCode: http.StatusOK,
 			respObj:     &secrets,
 		},

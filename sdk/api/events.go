@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/krancour/brignext/v2/sdk"
@@ -23,8 +22,16 @@ type EventListOptions struct {
 	// WorkerPhases specifies that Events with their Worker's in any of the
 	// indicated phases should be selected.
 	WorkerPhases []sdk.WorkerPhase
-	Continue     string // TODO: Clean this up
-	Limit        int64  // TODO: Clean this up
+	// Continue aids in pagination of long lists. It permits clients to echo an
+	// opaque value obtained from a previous API call back to the API in a
+	// subsequent call in order to indicate what resource was the last on the
+	// previous page.
+	Continue string
+	// Limit aids in pagination of long lists. It permits clients to specify page
+	// size when making API calls. The API server provides a default when a value
+	// is not specified and may reject or override invalid values (non-positive)
+	// numbers or very large page sizes.
+	Limit int64
 }
 
 // EventList is an ordered and pageable list of Events.
@@ -63,6 +70,16 @@ type LogOptions struct {
 	// whose logs are being retrieved. If left blank, a container with the same
 	// name as the Worker or Job is assumed.
 	Container string `json:"container,omitempty"`
+	// Continue aids in pagination of long lists. It permits clients to echo an
+	// opaque value obtained from a previous API call back to the API in a
+	// subsequent call in order to indicate what resource was the last on the
+	// previous page.
+	Continue string
+	// Limit aids in pagination of long lists. It permits clients to specify page
+	// size when making API calls. The API server provides a default when a value
+	// is not specified and may reject or override invalid values (non-positive)
+	// numbers or very large page sizes.
+	Limit int64
 }
 
 // EventsClient is the specialized client for managing Events with the BrigNext
@@ -113,8 +130,6 @@ type EventsClient interface {
 
 	// GetLogs retrieves logs for an Event's Worker, or using the LogOptions
 	// parameter, a Job spawned by that Worker (or specific container thereof).
-	//
-	// TODO: This needs pagination!!!
 	GetLogs(
 		ctx context.Context,
 		eventID string,
@@ -180,14 +195,6 @@ func (e *eventsClient) List(
 	if opts.ProjectID != "" {
 		queryParams["projectID"] = opts.ProjectID
 	}
-	// TODO: Clean this up
-	if opts.Continue != "" {
-		queryParams["continue"] = opts.Continue
-	}
-	// TODO: Clean this up
-	if opts.Limit != 0 {
-		queryParams["limit"] = strconv.FormatInt(opts.Limit, 10)
-	}
 	if len(opts.WorkerPhases) > 0 {
 		workerPhaseStrs := make([]string, len(opts.WorkerPhases))
 		for i, workerPhase := range opts.WorkerPhases {
@@ -201,7 +208,7 @@ func (e *eventsClient) List(
 			method:      http.MethodGet,
 			path:        "v2/events",
 			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
+			queryParams: e.appendListQueryParams(queryParams, opts.Continue, opts.Limit),
 			successCode: http.StatusOK,
 			respObj:     &events,
 		},
@@ -401,7 +408,7 @@ func (e *eventsClient) queryParamsFromLogOptions(
 	if stream {
 		queryParams["stream"] = "true"
 	}
-	return queryParams
+	return e.appendListQueryParams(queryParams, opts.Continue, opts.Limit)
 }
 
 // receiveLogStream is used to receive log messages as SSEs (server sent

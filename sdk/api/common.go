@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/pkg/errors"
 )
@@ -73,6 +74,26 @@ func (b *baseClient) bearerTokenAuthHeaders() map[string]string {
 	return map[string]string{
 		"Authorization": fmt.Sprintf("Bearer %s", b.apiToken),
 	}
+}
+
+// appendListQueryParams returns the provided map[string]string with key/value
+// pairs related to pagination of large lists appended. If a nil map is
+// provided, a new one is instantiated.
+func (b *baseClient) appendListQueryParams(
+	queryParams map[string]string,
+	cntinue string,
+	limit int64,
+) map[string]string {
+	if queryParams == nil {
+		queryParams = map[string]string{}
+	}
+	if cntinue != "" {
+		queryParams["continue"] = cntinue
+	}
+	if limit != 0 {
+		queryParams["limit"] = strconv.FormatInt(limit, 10)
+	}
+	return queryParams
 }
 
 // executeRequest accepts one argument-- an outboundRequest-- that models all

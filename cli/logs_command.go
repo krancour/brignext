@@ -55,13 +55,21 @@ func logs(c *cli.Context) error {
 	}
 
 	if !follow {
-		var logEntries sdk.LogEntryList
-		if logEntries, err =
-			client.Events().GetLogs(c.Context, eventID, opts); err != nil {
-			return err
-		}
-		for _, logEntry := range logEntries.Items {
-			fmt.Println(logEntry.Message)
+		for {
+			var logEntries sdk.LogEntryList
+			if logEntries, err =
+				client.Events().GetLogs(c.Context, eventID, opts); err != nil {
+				return err
+			}
+			for _, logEntry := range logEntries.Items {
+				fmt.Println(logEntry.Message)
+			}
+
+			// TODO: Figure out how to skip this if there's no tty
+			if logEntries.RemainingItemCount < 1 || logEntries.Continue == "" {
+				break
+			}
+			opts.Continue = logEntries.Continue
 		}
 		return nil
 	}

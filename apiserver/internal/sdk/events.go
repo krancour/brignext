@@ -109,8 +109,16 @@ type EventListOptions struct {
 	// WorkerPhases specifies that Events with their Worker's in any of the
 	// indicated phases should be selected.
 	WorkerPhases []WorkerPhase
-	Continue     string // TODO: Clean this up
-	Limit        int64  // TODO: Clean this up
+	// Continue aids in pagination of long lists. It permits clients to echo an
+	// opaque value obtained from a previous API call back to the API in a
+	// subsequent call in order to indicate what resource was the last on the
+	// previous page.
+	Continue string
+	// Limit aids in pagination of long lists. It permits clients to specify page
+	// size when making API calls. The API server provides a default when a value
+	// is not specified and may reject or override invalid values (non-positive)
+	// numbers or very large page sizes.
+	Limit int64
 }
 
 // EventList is an ordered and pageable list of Events.
@@ -148,6 +156,16 @@ type LogOptions struct {
 	// whose logs are being retrieved. If left blank, a container with the same
 	// name as the Worker or Job is assumed.
 	Container string `json:"container,omitempty"`
+	// Continue aids in pagination of long lists. It permits clients to echo an
+	// opaque value obtained from a previous API call back to the API in a
+	// subsequent call in order to indicate what resource was the last on the
+	// previous page.
+	Continue string
+	// Limit aids in pagination of long lists. It permits clients to specify page
+	// size when making API calls. The API server provides a default when a value
+	// is not specified and may reject or override invalid values (non-positive)
+	// numbers or very large page sizes.
+	Limit int64
 }
 
 // LogEntry represents one line of output from an OCI container.
@@ -155,7 +173,7 @@ type LogEntry struct {
 	// Time is the time the line was written.
 	Time *time.Time `json:"time,omitempty" bson:"time,omitempty"`
 	// Message is a single line of log output from an OCI container.
-	Message string `json:"message,omitempty" bson:"message,omitempty"`
+	Message string `json:"message,omitempty" bson:"log,omitempty"`
 }
 
 // MarshalJSON amends LogEntry instances with type metadata so that clients do

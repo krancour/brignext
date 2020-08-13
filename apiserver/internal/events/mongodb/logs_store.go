@@ -2,6 +2,7 @@ package mongodb
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -14,12 +15,12 @@ import (
 )
 
 type logsStore struct {
-	logsCollection *mongo.Collection
+	collection *mongo.Collection
 }
 
 func NewLogsStore(database *mongo.Database) events.LogsStore {
 	return &logsStore{
-		logsCollection: database.Collection("logs"),
+		collection: database.Collection("logs"),
 	}
 }
 
@@ -28,21 +29,51 @@ func (l *logsStore) GetLogs(
 	eventID string,
 	opts brignext.LogOptions,
 ) (brignext.LogEntryList, error) {
-	criteria := l.criteriaFromOptions(eventID, opts)
+	logEntries := brignext.LogEntryList{
+		Items: []brignext.LogEntry{},
+	}
 
-	logEntries := brignext.LogEntryList{}
-	cursor, err := l.logsCollection.Find(ctx, criteria)
+	criteria := l.criteriaFromOptions(eventID, opts)
+	if opts.Continue != "" {
+		continueTime, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", opts.Continue)
+		if err != nil {
+			return logEntries, errors.Wrap(err, "error parsing continue time")
+		}
+		criteria["time"] = bson.M{"$gt": continueTime}
+	}
+
+	findOptions := options.Find()
+	// TODO: We might need this if we can't use capped collections in some environments
+	// findOptions.SetSort(bson.M{"created": -1})
+	findOptions.SetLimit(opts.Limit)
+	cur, err := l.collection.Find(ctx, criteria, findOptions)
 	if err != nil {
 		return logEntries, errors.Wrap(err, "error retrieving log entries")
 	}
-	for cursor.Next(ctx) {
+	// TODO: Why aren't we using cur.All() here?
+	for cur.Next(ctx) {
+		fmt.Println(".")
 		logEntry := brignext.LogEntry{}
-		err := cursor.Decode(&logEntry)
+		err := cur.Decode(&logEntry)
 		if err != nil {
 			return logEntries, errors.Wrap(err, "error decoding log entries")
 		}
 		logEntries.Items = append(logEntries.Items, logEntry)
 	}
+
+	if int64(len(logEntries.Items)) == opts.Limit {
+		continueTime := logEntries.Items[opts.Limit-1].Time
+		criteria["time"] = bson.M{"$gt": continueTime}
+		remaining, err := l.collection.CountDocuments(ctx, criteria)
+		if err != nil {
+			return logEntries, errors.Wrap(err, "error counting remaining log entries")
+		}
+		if remaining > 0 {
+			logEntries.Continue = continueTime.String()
+			logEntries.RemainingItemCount = remaining
+		}
+	}
+
 	return logEntries, nil
 }
 
@@ -58,14 +89,14 @@ func (l *logsStore) StreamLogs(
 		defer close(logEntryCh)
 
 		cursorType := options.Tailable
-		var cursor *mongo.Cursor
+		var cur *mongo.Cursor
 		var err error
 		// Any attempt to open a cursor that initially retrieves nothing will yield
 		// a "dead" cursor which is no good for tailing the capped collection. We
 		// need to retry this until we get a "live" cursor or the context is
 		// canceled.
 		for {
-			cursor, err = l.logsCollection.Find(
+			cur, err = l.collection.Find(
 				ctx,
 				criteria,
 				&options.FindOptions{CursorType: &cursorType},
@@ -76,7 +107,7 @@ func (l *logsStore) StreamLogs(
 				)
 				return
 			}
-			if cursor.ID() != 0 {
+			if cur.ID() != 0 {
 				// We got a live cursor.
 				break
 			}
@@ -89,7 +120,7 @@ func (l *logsStore) StreamLogs(
 
 		var available bool
 		for {
-			available = cursor.TryNext(ctx)
+			available = cur.TryNext(ctx)
 			if !available {
 				select {
 				case <-time.After(time.Second): // Wait before retry
@@ -99,7 +130,7 @@ func (l *logsStore) StreamLogs(
 				}
 			}
 			logEntry := brignext.LogEntry{}
-			err = cursor.Decode(&logEntry)
+			err = cur.Decode(&logEntry)
 			if err != nil {
 				log.Println(
 					errors.Wrapf(err, "error decoding log entry from collection"),

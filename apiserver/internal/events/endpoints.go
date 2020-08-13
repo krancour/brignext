@@ -279,6 +279,24 @@ func (e *endpoints) getOrStreamLogs(
 	opts := brignext.LogOptions{
 		Job:       r.URL.Query().Get("job"),
 		Container: r.URL.Query().Get("container"),
+		Continue:  r.URL.Query().Get("continue"),
+	}
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		var err error
+		if opts.Limit, err = strconv.ParseInt(limitStr, 10, 64); err != nil ||
+			opts.Limit < 1 || opts.Limit > 100 {
+			e.WriteAPIResponse(
+				w,
+				http.StatusBadRequest,
+				&brignext.ErrBadRequest{
+					Reason: fmt.Sprintf(
+						`Invalid value %q for "limit" query parameter`,
+						limitStr,
+					),
+				},
+			)
+			return
+		}
 	}
 
 	if !stream {
