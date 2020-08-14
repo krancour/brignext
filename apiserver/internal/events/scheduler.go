@@ -294,17 +294,6 @@ func (s *scheduler) StartJob(
 	return nil
 }
 
-// TODO: Move this functionality into a health check service
-// func (s *scheduler) CheckHealth(context.Context) error {
-// 	// We'll just ask the apiserver for version info since that's probably the
-// 	// simplest way to test that it is responding.
-// 	if _, err := s.kubeClient.Discovery().ServerVersion(); err != nil {
-// 		return errors.Wrap(err, "error pinging kubernetes apiserver")
-// 	}
-// 	// TODO: Test database and message bus connections
-// 	return nil
-// }
-
 func (s *scheduler) deletePodsByLabelSelector(
 	ctx context.Context,
 	namespace string,

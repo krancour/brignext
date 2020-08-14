@@ -51,7 +51,10 @@ type Service interface {
 	// execution substrate.
 	StartWorker(ctx context.Context, eventID string) error
 	// GetWorkerStatus returns an Event's Worker's status.
-	GetWorkerStatus(ctx context.Context, eventID string) (brignext.WorkerStatus, error)
+	GetWorkerStatus(
+		ctx context.Context,
+		eventID string,
+	) (brignext.WorkerStatus, error)
 	// WatchWorkerStatus returns a channel over which an Event's Worker's status
 	// is streamed. The channel receives a new WorkerStatus every time there is
 	// any change in that status.
@@ -484,16 +487,48 @@ func (s *service) GetWorkerStatus(
 	ctx context.Context,
 	eventID string,
 ) (brignext.WorkerStatus, error) {
-	// TODO: Get this from the data store
-	return brignext.WorkerStatus{}, nil
+	event, err := s.store.Get(ctx, eventID)
+	if err != nil {
+		return brignext.WorkerStatus{},
+			errors.Wrapf(err, "error retrieving event %q from store", eventID)
+	}
+	return event.Worker.Status, nil
 }
 
+// TODO: Should we put some kind of timeout on this function?
 func (s *service) WatchWorkerStatus(
 	ctx context.Context,
 	eventID string,
 ) (<-chan brignext.WorkerStatus, error) {
-	// TODO: Start a ticker to get this from the data store
-	return nil, nil
+	// Read the event up front to confirm it exists.
+	if _, err := s.store.Get(ctx, eventID); err != nil {
+		return nil,
+			errors.Wrapf(err, "error retrieving event %q from store", eventID)
+	}
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+	statusCh := make(chan brignext.WorkerStatus)
+	go func() {
+		defer close(statusCh)
+		for {
+			select {
+			case <-ticker.C:
+			case <-ctx.Done():
+				return
+			}
+			event, err := s.store.Get(ctx, eventID)
+			if err != nil {
+				log.Printf("error retrieving event %q from store: %s", eventID, err)
+				return
+			}
+			select {
+			case statusCh <- event.Worker.Status:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	return statusCh, nil
 }
 
 func (s *service) UpdateWorkerStatus(
@@ -530,18 +565,63 @@ func (s *service) GetJobStatus(
 	eventID string,
 	jobName string,
 ) (brignext.JobStatus, error) {
-	// TODO: Get this from the data store
-	return brignext.JobStatus{}, nil
+	event, err := s.store.Get(ctx, eventID)
+	if err != nil {
+		return brignext.JobStatus{},
+			errors.Wrapf(err, "error retrieving event %q from store", eventID)
+	}
+	job, ok := event.Worker.Jobs[jobName]
+	if !ok {
+		return brignext.JobStatus{}, &brignext.ErrNotFound{
+			Type: "Job",
+			ID:   jobName,
+		}
+	}
+	return job.Status, nil
 }
 
-// TODO: Implement this
+// TODO: Should we put some kind of timeout on this function?
 func (s *service) WatchJobStatus(
 	ctx context.Context,
 	eventID string,
 	jobName string,
 ) (<-chan brignext.JobStatus, error) {
-	// TODO: Start a ticker to get this from the data store
-	return nil, nil
+	// Read the event and job up front to confirm they both exists.
+	event, err := s.store.Get(ctx, eventID)
+	if err != nil {
+		return nil,
+			errors.Wrapf(err, "error retrieving event %q from store", eventID)
+	}
+	if _, ok := event.Worker.Jobs[jobName]; !ok {
+		return nil, &brignext.ErrNotFound{
+			Type: "Job",
+			ID:   jobName,
+		}
+	}
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+	statusCh := make(chan brignext.JobStatus)
+	go func() {
+		defer close(statusCh)
+		for {
+			select {
+			case <-ticker.C:
+			case <-ctx.Done():
+				return
+			}
+			event, err := s.store.Get(ctx, eventID)
+			if err != nil {
+				log.Printf("error retrieving event %q from store: %s", eventID, err)
+				return
+			}
+			select {
+			case statusCh <- event.Worker.Jobs[jobName].Status:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	return statusCh, nil
 }
 
 func (s *service) UpdateJobStatus(

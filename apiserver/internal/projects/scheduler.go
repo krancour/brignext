@@ -448,16 +448,6 @@ func (s *scheduler) UnsetSecret(
 	return nil
 }
 
-// TODO: Move this functionality into a health check service
-// func (s *scheduler) CheckHealth(context.Context) error {
-// 	// We'll just ask the apiserver for version info since this like it's
-// 	// probably the simplest way to test that it is responding.
-// 	if _, err := s.kubeClient.Discovery().ServerVersion(); err != nil {
-// 		return errors.Wrap(err, "error pinging kubernetes apiserver")
-// 	}
-// 	return nil
-// }
-
 // TODO: We might not want to set this stuff now, but rather defer it to later.
 // nolint: lll
 func (s *scheduler) projectWithDefaults(
