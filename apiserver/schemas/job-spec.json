@@ -129,7 +129,7 @@
 				"$ref": "#/definitions/containerSpec"
 			}
 		},
-		"timeout": {
+		"timeoutSeconds": {
 			"type": "integer",
 			"description": "Job timeout in seconds"
 		},

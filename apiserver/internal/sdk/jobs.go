@@ -56,7 +56,7 @@ type JobSpec struct {
 	// these constraints.
 	SidecarContainers map[string]JobContainerSpec `json:"sidecarContainers,omitempty" bson:"sidecarContainers,omitempty"`
 	// TODO: Document this
-	Timeout *time.Duration `json:"timeout,omitempty" bson:"timeout,omitempty"`
+	TimeoutSeconds int64 `json:"timeoutSeconds,omitempty" bson:"timeoutSeconds,omitempty"`
 	// TODO: Document this
 	Host *JobHost `json:"host,omitempty" bson:"host,omitempty"`
 }
