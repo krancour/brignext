@@ -34,3 +34,11 @@ type ContainerSpec struct {
 	// to be set within the OCI container.
 	Environment map[string]string `json:"environment,omitempty"`
 }
+
+type JobContainerSpec struct {
+	ContainerSpec     `json:",inline"`
+	UseSource         bool   `json:"useSource"`
+	SourceMountPath   string `json:"sourceMountPath,omitempty"`
+	Privileged        bool   `json:"privileged"`
+	DockerSocketMount bool   `json:"dockerSocketMount"`
+}
