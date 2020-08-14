@@ -129,6 +129,7 @@
 		"containerSpec": {
 			"type": "object",
 			"description": "Configuration for an OCI container",
+			"additionalProperties": false,
 			"properties": {
 				"image": {
 					"type": "string",
@@ -173,6 +174,7 @@
 		"jobPolicies": {
 			"type": "object",
 			"description": "Policies for any job containers the worker container might fan out to",
+			"additionalProperties": false,
 			"properties": {
 				"allowPrivileged": {
 					"type": "boolean",
@@ -191,6 +193,7 @@
 		"kubernetesJobPolicies": {
 			"type": "object",
 			"description": "Jobs configuration pertaining specifically to Kubernetes",
+			"additionalProperties": false,
 			"properties": {
 				"imagePullSecrets": {
 					"type": [
@@ -208,6 +211,7 @@
 		"gitConfig": {
 			"type": "object",
 			"description": "Worker configuration pertaining specifically to git",
+			"additionalProperties": false,
 			"properties": {
 				"cloneURL": {
 					"oneOf": [
@@ -230,6 +234,7 @@
 		"kubernetesConfig": {
 			"type": "object",
 			"description": "Worker configuration pertaining specifically to Kubernetes",
+			"additionalProperties": false,
 			"properties": {
 				"imagePullSecrets": {
 					"type": [
@@ -255,7 +260,7 @@
 							"$ref": "#/definitions/containerSpec"
 						}
 					],
-					"description": "Configuration for the worker's main container"
+					"description": "Specification for the worker's container"
 				},
 				"workspaceSize": {
 					"type": "string",

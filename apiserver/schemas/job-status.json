@@ -20,7 +20,7 @@
 
 	"title": "JobStatus",
 	"type": "object",
-	"required": ["phase"],
+	"required": ["apiVersion", "kind", "phase"],
 	"additionalProperties": false,
 	"properties": {
 		"apiVersion": {
