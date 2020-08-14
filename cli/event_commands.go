@@ -625,7 +625,7 @@ func eventCancelMany(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Canceled %d events.\n", len(events.Items))
+	fmt.Printf("Canceled %d events.\n", events.Count)
 
 	return nil
 }
@@ -723,7 +723,7 @@ func eventDeleteMany(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Deleted %d events.\n", len(events.Items))
+	fmt.Printf("Deleted %d events.\n", events.Count)
 
 	return nil
 }

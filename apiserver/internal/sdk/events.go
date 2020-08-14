@@ -146,6 +146,46 @@ func (e EventList) MarshalJSON() ([]byte, error) {
 	)
 }
 
+type CancelManyEventsResult struct {
+	Count int64 `json:count`
+}
+
+func (c CancelManyEventsResult) MarshalJSON() ([]byte, error) {
+	type Alias CancelManyEventsResult
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "CancelManyEventsResult",
+			},
+			Alias: (Alias)(c),
+		},
+	)
+}
+
+type DeleteManyEventsResult struct {
+	Count int64 `json:count`
+}
+
+func (d DeleteManyEventsResult) MarshalJSON() ([]byte, error) {
+	type Alias DeleteManyEventsResult
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "DeleteManyEventsResult",
+			},
+			Alias: (Alias)(d),
+		},
+	)
+}
+
 // LogOptions represents useful criteria for identifying a specific container
 // of a specific Job when requesting Event logs.
 type LogOptions struct {

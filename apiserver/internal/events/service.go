@@ -37,7 +37,7 @@ type Service interface {
 	CancelMany(
 		context.Context,
 		brignext.EventListOptions,
-	) (brignext.EventList, error)
+	) (brignext.CancelManyEventsResult, error)
 	// Delete deletes a single Event specified by its identifier.
 	Delete(context.Context, string) error
 	// DeleteMany deletes multiple Events specified by the EventListOptions
@@ -45,7 +45,7 @@ type Service interface {
 	DeleteMany(
 		context.Context,
 		brignext.EventListOptions,
-	) (brignext.EventList, error)
+	) (brignext.DeleteManyEventsResult, error)
 
 	// StartWorker starts the indicated Event's Worker on BrigNext's workload
 	// execution substrate.
@@ -328,19 +328,19 @@ func (s *service) Cancel(ctx context.Context, id string) error {
 func (s *service) CancelMany(
 	ctx context.Context,
 	opts brignext.EventListOptions,
-) (brignext.EventList, error) {
-	events := brignext.EventList{}
+) (brignext.CancelManyEventsResult, error) {
+	result := brignext.CancelManyEventsResult{}
 
 	// Refuse requests not qualified by project
 	if opts.ProjectID == "" {
-		return events, &brignext.ErrBadRequest{
+		return result, &brignext.ErrBadRequest{
 			Reason: "Requests to cancel multiple events must be qualified by " +
 				"project.",
 		}
 	}
 	// Refuse requests not qualified by worker phases
 	if len(opts.WorkerPhases) == 0 {
-		return events, &brignext.ErrBadRequest{
+		return result, &brignext.ErrBadRequest{
 			Reason: "Requests to cancel multiple events must be qualified by " +
 				"worker phase(s).",
 		}
@@ -350,7 +350,7 @@ func (s *service) CancelMany(
 		// Make sure the project exists
 		_, err := s.projectsStore.Get(ctx, opts.ProjectID)
 		if err != nil {
-			return events, errors.Wrapf(
+			return result, errors.Wrapf(
 				err,
 				"error retrieving project %q from store",
 				opts.ProjectID,
@@ -360,9 +360,12 @@ func (s *service) CancelMany(
 
 	events, err := s.store.CancelMany(ctx, opts)
 	if err != nil {
-		return events, errors.Wrap(err, "error canceling events in store")
+		return result, errors.Wrap(err, "error canceling events in store")
 	}
 
+	result.Count = int64(len(events.Items))
+
+	// TODO: Can we find a quicker, more efficient way to do this?
 	go func() {
 		for _, event := range events.Items {
 			if err := s.scheduler.Delete(
@@ -380,7 +383,7 @@ func (s *service) CancelMany(
 		}
 	}()
 
-	return events, nil
+	return result, nil
 }
 
 func (s *service) Delete(ctx context.Context, id string) error {
@@ -414,19 +417,19 @@ func (s *service) Delete(ctx context.Context, id string) error {
 func (s *service) DeleteMany(
 	ctx context.Context,
 	opts brignext.EventListOptions,
-) (brignext.EventList, error) {
-	events := brignext.EventList{}
+) (brignext.DeleteManyEventsResult, error) {
+	result := brignext.DeleteManyEventsResult{}
 
 	// Refuse requests not qualified by project
 	if opts.ProjectID == "" {
-		return events, &brignext.ErrBadRequest{
+		return result, &brignext.ErrBadRequest{
 			Reason: "Requests to delete multiple events must be qualified by " +
 				"project.",
 		}
 	}
 	// Refuse requests not qualified by worker phases
 	if len(opts.WorkerPhases) == 0 {
-		return events, &brignext.ErrBadRequest{
+		return result, &brignext.ErrBadRequest{
 			Reason: "Requests to delete multiple events must be qualified by " +
 				"worker phase(s).",
 		}
@@ -436,7 +439,7 @@ func (s *service) DeleteMany(
 		// Make sure the project exists
 		_, err := s.projectsStore.Get(ctx, opts.ProjectID)
 		if err != nil {
-			return events, errors.Wrapf(
+			return result, errors.Wrapf(
 				err,
 				"error retrieving project %q from store",
 				opts.ProjectID,
@@ -446,9 +449,12 @@ func (s *service) DeleteMany(
 
 	events, err := s.store.DeleteMany(ctx, opts)
 	if err != nil {
-		return events, errors.Wrap(err, "error deleting events from store")
+		return result, errors.Wrap(err, "error deleting events from store")
 	}
 
+	result.Count = int64(len(events.Items))
+
+	// TODO: Can we find a quicker, more efficient way to do this?
 	go func() {
 		for _, event := range events.Items {
 			if err := s.scheduler.Delete(
@@ -466,7 +472,7 @@ func (s *service) DeleteMany(
 		}
 	}()
 
-	return events, nil
+	return result, nil
 }
 
 func (s *service) StartWorker(ctx context.Context, eventID string) error {

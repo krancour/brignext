@@ -60,6 +60,14 @@ func (e EventList) MarshalJSON() ([]byte, error) {
 	)
 }
 
+type CancelManyEventsResult struct {
+	Count int64 `json:count`
+}
+
+type DeleteManyEventsResult struct {
+	Count int64 `json:count`
+}
+
 // LogOptions represents useful criteria for identifying a specific container
 // of a specific Job when requesting Event logs.
 type LogOptions struct {
@@ -97,16 +105,12 @@ type EventsClient interface {
 	Cancel(context.Context, string) error
 	// CancelMany cancels multiple Events specified by the EventListOptions
 	// parameter.
-	// TODO: We need to return something else here so that we can avoid OOM in the
-	// case of millions of events
-	CancelMany(context.Context, EventListOptions) (EventList, error)
+	CancelMany(context.Context, EventListOptions) (CancelManyEventsResult, error)
 	// Delete deletes a single Event specified by its identifier.
 	Delete(context.Context, string) error
 	// DeleteMany deletes multiple Events specified by the EventListOptions
 	// parameter.
-	// TODO: We need to return something else here so that we can avoid OOM in the
-	// case of millions of events
-	DeleteMany(context.Context, EventListOptions) (EventList, error)
+	DeleteMany(context.Context, EventListOptions) (DeleteManyEventsResult, error)
 
 	// StartWorker starts the indicated Event's Worker on BrigNext's worlkoad
 	// execution substrate.
@@ -276,7 +280,7 @@ func (e *eventsClient) Cancel(_ context.Context, id string) error {
 func (e *eventsClient) CancelMany(
 	_ context.Context,
 	opts EventListOptions,
-) (EventList, error) {
+) (CancelManyEventsResult, error) {
 	queryParams := map[string]string{}
 	if opts.ProjectID != "" {
 		queryParams["projectID"] = opts.ProjectID
@@ -288,15 +292,15 @@ func (e *eventsClient) CancelMany(
 		}
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
-	events := EventList{}
-	return events, e.executeRequest(
+	result := CancelManyEventsResult{}
+	return result, e.executeRequest(
 		outboundRequest{
 			method:      http.MethodPost,
 			path:        "v2/events/cancellations",
 			authHeaders: e.bearerTokenAuthHeaders(),
 			queryParams: queryParams,
 			successCode: http.StatusOK,
-			respObj:     &events,
+			respObj:     &result,
 		},
 	)
 }
@@ -315,7 +319,7 @@ func (e *eventsClient) Delete(_ context.Context, id string) error {
 func (e *eventsClient) DeleteMany(
 	_ context.Context,
 	opts EventListOptions,
-) (EventList, error) {
+) (DeleteManyEventsResult, error) {
 	queryParams := map[string]string{}
 	if opts.ProjectID != "" {
 		queryParams["projectID"] = opts.ProjectID
@@ -327,15 +331,15 @@ func (e *eventsClient) DeleteMany(
 		}
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
-	events := EventList{}
-	return events, e.executeRequest(
+	result := DeleteManyEventsResult{}
+	return result, e.executeRequest(
 		outboundRequest{
 			method:      http.MethodDelete,
 			path:        "v2/events",
 			authHeaders: e.bearerTokenAuthHeaders(),
 			queryParams: queryParams,
 			successCode: http.StatusOK,
-			respObj:     &events,
+			respObj:     &result,
 		},
 	)
 }
