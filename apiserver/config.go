@@ -57,14 +57,20 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	schedulerConfig, err := events.GetConfigFromEnvironment()
 	if err != nil {
 		return nil, err
 	}
+	scheduler := events.NewScheduler(
+		schedulerConfig,
+		eventsSenderFactory,
+		kubeClient,
+	)
 	eventsService := events.NewService(
 		projectsStore,
 		eventsStore,
 		eventsMongodb.NewLogsStore(database),
-		events.NewScheduler(eventsSenderFactory, kubeClient),
+		scheduler,
 	)
 
 	// Service Accounts

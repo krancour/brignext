@@ -47,7 +47,7 @@ type Service interface {
 		brignext.EventListOptions,
 	) (brignext.EventList, error)
 
-	// StartWorker starts the indicated Event's Worker on BrigNext's worlkoad
+	// StartWorker starts the indicated Event's Worker on BrigNext's workload
 	// execution substrate.
 	StartWorker(ctx context.Context, eventID string) error
 	// GetWorkerStatus returns an Event's Worker's status.
@@ -289,11 +289,7 @@ func (s *service) Get(
 ) (brignext.Event, error) {
 	event, err := s.store.Get(ctx, id)
 	if err != nil {
-		return event, errors.Wrapf(
-			err,
-			"error retrieving event %q from store",
-			id,
-		)
+		return event, errors.Wrapf(err, "error retrieving event %q from store", id)
 	}
 	return event, nil
 }
@@ -471,7 +467,16 @@ func (s *service) DeleteMany(
 }
 
 func (s *service) StartWorker(ctx context.Context, eventID string) error {
-	// TODO: Delegate this to the scheduler
+	event, err := s.store.Get(ctx, eventID)
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
+	}
+	// TODO: This is probably a better place to apply worker default just before
+	// it is started INSTEAD OF setting defaults at event creation time or waiting
+	// all the way up until pod creation time.
+	if err = s.scheduler.StartWorker(ctx, event); err != nil {
+		return errors.Wrapf(err, "error starting worker for event %q", event.ID)
+	}
 	return nil
 }
 

@@ -27,18 +27,29 @@ type Scheduler interface {
 		event brignext.Event,
 	) error
 	Delete(context.Context, brignext.Event) error
+
+	StartWorker(ctx context.Context, event brignext.Event) error
+
+	StartJob(
+		ctx context.Context,
+		event brignext.Event,
+		jobName string,
+	) error
 }
 
 type scheduler struct {
+	config              Config
 	eventsSenderFactory SenderFactory
 	kubeClient          *kubernetes.Clientset
 }
 
 func NewScheduler(
+	config Config,
 	eventsSenderFactory SenderFactory,
 	kubeClient *kubernetes.Clientset,
 ) Scheduler {
 	return &scheduler{
+		config:              config,
 		eventsSenderFactory: eventsSenderFactory,
 		kubeClient:          kubeClient,
 	}
@@ -250,6 +261,36 @@ func (s *scheduler) Delete(
 		)
 	}
 
+	return nil
+}
+
+func (s *scheduler) StartWorker(
+	ctx context.Context,
+	event brignext.Event,
+) error {
+	if err := s.createWorkspacePVC(ctx, event); err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating workspace for event %q worker",
+			event.ID,
+		)
+	}
+	if err := s.createWorkerPod(ctx, event); err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating pod for event %q worker",
+			event.ID,
+		)
+	}
+	return nil
+}
+
+// TODO: Implement this
+func (s *scheduler) StartJob(
+	ctx context.Context,
+	event brignext.Event,
+	jobName string,
+) error {
 	return nil
 }
 

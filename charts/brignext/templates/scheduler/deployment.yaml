@@ -40,12 +40,6 @@ spec:
               key: api-token
         - name: IGNORE_API_CERT_WARNINGS
           value: {{ quote (and .Values.apiserver.tls.enabled .Values.scheduler.tls.ignoreCertWarnings) }}
-        - name: DEFAULT_WORKER_IMAGE
-          value: {{ .Values.worker.image.repository }}:{{ default .Chart.AppVersion .Values.worker.image.tag }}
-        - name: DEFAULT_WORKER_IMAGE_PULL_POLICY
-          value: {{ .Values.worker.image.pullPolicy }}
-        - name: WORKSPACE_STORAGE_CLASS
-          value: {{ .Values.scheduler.workspaceStorageClass }}
         {{- if eq .Values.messageBus "IncludedArtemis" }}
         - name: AMQP_ADDRESS
           value: amqp://{{ include "brignext.artemis.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:5672

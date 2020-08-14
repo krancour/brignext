@@ -1,11 +1,11 @@
-package main
+package events
 
 import (
 	"context"
 	"fmt"
 	"strconv"
 
-	"github.com/krancour/brignext/v2/sdk"
+	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -16,7 +16,7 @@ import (
 
 func (s *scheduler) createWorkspacePVC(
 	ctx context.Context,
-	event sdk.Event,
+	event brignext.Event,
 ) error {
 	storageQuantityStr := event.Worker.Spec.WorkspaceSize
 	if storageQuantityStr == "" {
@@ -43,7 +43,7 @@ func (s *scheduler) createWorkspacePVC(
 			},
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			StorageClassName: &s.schedulerConfig.WorkspaceStorageClass,
+			StorageClassName: &s.config.WorkspaceStorageClass,
 			AccessModes: []corev1.PersistentVolumeAccessMode{
 				corev1.ReadWriteMany,
 			},
@@ -74,7 +74,7 @@ func (s *scheduler) createWorkspacePVC(
 
 func (s *scheduler) createWorkerPod(
 	ctx context.Context,
-	event sdk.Event,
+	event brignext.Event,
 ) error {
 	imagePullSecrets := []corev1.LocalObjectReference{}
 	if event.Worker.Spec.Kubernetes != nil {
@@ -91,15 +91,15 @@ func (s *scheduler) createWorkerPod(
 	// TODO: Decide on the right place to do this stuff. Probably it should be
 	// when (near future state), this scheduler uses the API to start the worker.
 	if event.Worker.Spec.Container == nil {
-		event.Worker.Spec.Container = &sdk.ContainerSpec{}
+		event.Worker.Spec.Container = &brignext.ContainerSpec{}
 	}
 	image := event.Worker.Spec.Container.Image
 	if image == "" {
-		image = s.schedulerConfig.DefaultWorkerImage
+		image = s.config.DefaultWorkerImage
 	}
 	imagePullPolicy := event.Worker.Spec.Container.ImagePullPolicy
 	if imagePullPolicy == "" {
-		imagePullPolicy = s.schedulerConfig.DefaultWorkerImagePullPolicy
+		imagePullPolicy = s.config.DefaultWorkerImagePullPolicy
 	}
 
 	volumes := []corev1.Volume{

@@ -137,8 +137,6 @@ scheduler:
   tls:
     ignoreCertWarnings: true
 
-  workspaceStorageClass: nfs
-
   resources: {}
     # We usually recommend not to specify default resources and to leave this as
     # a conscious choice for the user. This also increases chances charts run on
@@ -193,6 +191,8 @@ worker:
     ## The default tag is the value of .Chart.AppVersion
     # tag:
     pullPolicy: IfNotPresent
+  
+  workspaceStorageClass: nfs
 
 logger:
 

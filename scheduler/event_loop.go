@@ -77,26 +77,12 @@ outerLoop:
 
 			// Now start the worker...
 
-			if err := s.createWorkspacePVC(ctx, event); err != nil {
-				// TODO: Update the event in the database to reflect the error
+			if err := s.apiClient.Events().StartWorker(ctx, event.ID); err != nil {
 				log.Printf(
-					"error creating workspace for event %q worker: %s",
+					"error starting worker for event %q: %s",
 					asyncEvent.EventID,
 					err,
 				)
-				asyncEvent.Ack() // nolint: errcheck
-				continue         // Next event
-			}
-
-			if err := s.createWorkerPod(ctx, event); err != nil {
-				// TODO: Update the event in the database to reflect the error
-				log.Printf(
-					"error creating pod for event %q worker: %s",
-					asyncEvent.EventID,
-					err,
-				)
-				asyncEvent.Ack() // nolint: errcheck
-				continue         // Next event
 			}
 
 			asyncEvent.Ack() // nolint: errcheck
