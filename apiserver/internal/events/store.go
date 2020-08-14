@@ -24,12 +24,28 @@ type Store interface {
 		brignext.EventListOptions,
 	) (brignext.EventList, error)
 
+	UpdateWorkerSpec(
+		ctx context.Context,
+		eventID string,
+		spec brignext.WorkerSpec,
+	) error
+	UpdateWorkerHashedToken(
+		ctx context.Context,
+		eventID string,
+		hashedToken string,
+	) error
 	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
 		status brignext.WorkerStatus,
 	) error
 
+	CreateJob(
+		ctx context.Context,
+		eventID string,
+		jobName string,
+		jobSpec brignext.JobSpec,
+	) error
 	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,

@@ -94,11 +94,10 @@ func (s *scheduler) Create(
 	}
 
 	type worker struct {
-		Git                  *brignext.WorkerGitConfig `json:"git"`
-		JobPolicies          *brignext.JobPolicies     `json:"jobPolicies"`
-		LogLevel             brignext.LogLevel         `json:"logLevel"`
-		ConfigFilesDirectory string                    `json:"configFilesDirectory"`
-		DefaultConfigFiles   map[string]string         `json:"defaultConfigFiles" bson:"defaultConfigFiles"` // nolint: lll
+		APIToken             string            `json:"apiToken"`
+		LogLevel             brignext.LogLevel `json:"logLevel"`
+		ConfigFilesDirectory string            `json:"configFilesDirectory"`
+		DefaultConfigFiles   map[string]string `json:"defaultConfigFiles" bson:"defaultConfigFiles"` // nolint: lll
 	}
 
 	// Create a secret with event details
@@ -125,8 +124,7 @@ func (s *scheduler) Create(
 			LongTitle:  event.LongTitle,
 			Payload:    event.Payload,
 			Worker: worker{
-				Git:                  event.Worker.Spec.Git,
-				JobPolicies:          event.Worker.Spec.JobPolicies,
+				APIToken:             event.Worker.Token,
 				LogLevel:             event.Worker.Spec.LogLevel,
 				ConfigFilesDirectory: event.Worker.Spec.ConfigFilesDirectory,
 				DefaultConfigFiles:   event.Worker.Spec.DefaultConfigFiles,

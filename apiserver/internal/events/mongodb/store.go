@@ -356,6 +356,66 @@ func (s *store) DeleteMany(
 	return events, nil
 }
 
+func (s *store) UpdateWorkerSpec(
+	ctx context.Context,
+	eventID string,
+	spec brignext.WorkerSpec,
+) error {
+	res, err := s.collection.UpdateOne(
+		ctx,
+		bson.M{"id": eventID},
+		bson.M{
+			"$set": bson.M{
+				"worker.spec": spec,
+			},
+		},
+	)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating spec of event %q worker",
+			eventID,
+		)
+	}
+	if res.MatchedCount == 0 {
+		return &brignext.ErrNotFound{
+			Type: "Event",
+			ID:   eventID,
+		}
+	}
+	return nil
+}
+
+func (s *store) UpdateWorkerHashedToken(
+	ctx context.Context,
+	eventID string,
+	hashedToken string,
+) error {
+	res, err := s.collection.UpdateOne(
+		ctx,
+		bson.M{"id": eventID},
+		bson.M{
+			"$set": bson.M{
+				"worker.hashedToken": hashedToken,
+			},
+		},
+	)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating hashed token of event %q worker",
+			eventID,
+		)
+	}
+	if res.MatchedCount == 0 {
+		return &brignext.ErrNotFound{
+			Type: "Event",
+			ID:   eventID,
+		}
+	}
+	return nil
+}
+
 func (s *store) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
@@ -375,6 +435,39 @@ func (s *store) UpdateWorkerStatus(
 			err,
 			"error updating status of event %q worker",
 			eventID,
+		)
+	}
+	if res.MatchedCount == 0 {
+		return &brignext.ErrNotFound{
+			Type: "Event",
+			ID:   eventID,
+		}
+	}
+	return nil
+}
+
+// TODO: Implement this
+func (s *store) CreateJob(
+	ctx context.Context,
+	eventID string,
+	jobName string,
+	jobSpec brignext.JobSpec,
+) error {
+	res, err := s.collection.UpdateOne(
+		ctx,
+		bson.M{"id": eventID},
+		bson.M{
+			"$set": bson.M{
+				fmt.Sprintf("worker.jobs.%s.spec", jobName): jobSpec,
+			},
+		},
+	)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating spec of event %q job %q",
+			eventID,
+			jobName,
 		)
 	}
 	if res.MatchedCount == 0 {

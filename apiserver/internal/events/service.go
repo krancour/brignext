@@ -2,9 +2,11 @@ package events
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
+	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	"github.com/krancour/brignext/v2/apiserver/internal/projects"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
@@ -480,9 +482,32 @@ func (s *service) StartWorker(ctx context.Context, eventID string) error {
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
+
+	spec := event.Worker.Spec
 	// TODO: This is probably a better place to apply worker default just before
 	// it is started INSTEAD OF setting defaults at event creation time or waiting
 	// all the way up until pod creation time.
+	if err = s.store.UpdateWorkerSpec(ctx, eventID, spec); err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating worker's spec for event %q",
+			event.ID,
+		)
+	}
+
+	event.Worker.Token = crypto.NewToken(256)
+	if err = s.store.UpdateWorkerHashedToken(
+		ctx,
+		eventID,
+		crypto.ShortSHA("", event.Worker.Token),
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error updating worker's token for event %q",
+			event.ID,
+		)
+	}
+
 	if err = s.scheduler.StartWorker(ctx, event); err != nil {
 		return errors.Wrapf(err, "error starting worker for event %q", event.ID)
 	}
@@ -562,7 +587,43 @@ func (s *service) CreateJob(
 	jobName string,
 	jobSpec brignext.JobSpec,
 ) error {
-	// TODO: Coordinate between the data store and the scheduler
+	event, err := s.store.Get(ctx, eventID)
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
+	}
+	if _, ok := event.Worker.Jobs[jobName]; ok {
+		return &brignext.ErrConflict{
+			Type: "Job",
+			ID:   jobName,
+			Reason: fmt.Sprintf(
+				"Event %q already has a job named %q.",
+				eventID,
+				jobName,
+			),
+		}
+	}
+
+	event.Worker.Jobs[jobName] = brignext.Job{
+		Spec: jobSpec,
+	}
+
+	if err = s.store.CreateJob(ctx, eventID, jobName, jobSpec); err != nil {
+		return errors.Wrapf(
+			err, "error saving event %q job %q int store",
+			eventID,
+			eventID,
+		)
+	}
+
+	if err = s.scheduler.StartJob(ctx, event, jobName); err != nil {
+		return errors.Wrapf(
+			err,
+			"error starting event %q job %q",
+			event.ID,
+			jobName,
+		)
+	}
+
 	return nil
 }
 

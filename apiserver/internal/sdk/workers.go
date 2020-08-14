@@ -65,6 +65,8 @@ type Worker struct {
 	Spec WorkerSpec `json:"spec" bson:"spec"`
 	// Status contains details of the Worker's current state.
 	Status WorkerStatus `json:"status" bson:"status"`
+	// TODO: Document this
+	Token string `json:"-" bson:"-"`
 	// Jobs contains details of all Jobs spawned by the Worker during handling of
 	// the Event.
 	// TODO: This should NEVER be nil in the database or it will make job starts
