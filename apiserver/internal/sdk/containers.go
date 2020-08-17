@@ -35,10 +35,13 @@ type ContainerSpec struct {
 	Environment map[string]string `json:"environment,omitempty" bson:"environment,omitempty"` // nolint: lll
 }
 
+// nolint: lll
 type JobContainerSpec struct {
-	ContainerSpec     `json:",inline" bson:",inline"`
-	UseSource         bool   `json:"useSource" bson:"useSource"`
-	SourceMountPath   string `json:"sourceMountPath,omitempty" bson:"sourceMountPath,omitempty"` // nolint: lll
-	Privileged        bool   `json:"privileged" bson:"privileged"`
-	DockerSocketMount bool   `json:"dockerSocketMount" bson:"dockerSocketMount"`
+	ContainerSpec      `json:",inline" bson:",inline"`
+	UseWorkspace       bool   `json:"useWorkspace" bson:"useWorkspace"`
+	WorkspaceMountPath string `json:"workspaceMountPath,omitempty" bson:"workspaceMountPath,omitempty"`
+	UseSource          bool   `json:"useSource" bson:"useSource"`
+	SourceMountPath    string `json:"sourceMountPath,omitempty" bson:"sourceMountPath,omitempty"`
+	Privileged         bool   `json:"privileged" bson:"privileged"`
+	DockerSocketMount  bool   `json:"dockerSocketMount" bson:"dockerSocketMount"`
 }

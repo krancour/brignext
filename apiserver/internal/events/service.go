@@ -603,8 +603,44 @@ func (s *service) CreateJob(
 		}
 	}
 
-	event.Worker.Jobs[jobName] = brignext.Job{
-		Spec: jobSpec,
+	// Perform some validations...
+
+	// Determine if ANY of the job's containers:
+	//   1. Use shared workspace
+	//   2. Run in privileged mode
+	//   3. Mount the host's Docker socket
+	var useWorkspace = jobSpec.PrimaryContainer.UseWorkspace
+	var usePrivileged = jobSpec.PrimaryContainer.Privileged
+	var useDockerSocket = jobSpec.PrimaryContainer.DockerSocketMount
+	for _, sidecarContainer := range jobSpec.SidecarContainers {
+		if sidecarContainer.UseWorkspace {
+			useWorkspace = true
+		}
+		if sidecarContainer.Privileged {
+			usePrivileged = true
+		}
+		if sidecarContainer.DockerSocketMount {
+			useDockerSocket = true
+		}
+	}
+
+	// Fail quickly if any job is trying to run privileged or use the host's
+	// Docker socket, but isn't allowed to per worker configuration.
+	if usePrivileged &&
+		(event.Worker.Spec.JobPolicies == nil ||
+			!event.Worker.Spec.JobPolicies.AllowPrivileged) {
+		return &brignext.ErrAuthorization{} // TODO: Add more detail to this error
+	}
+	if useDockerSocket &&
+		(event.Worker.Spec.JobPolicies == nil ||
+			!event.Worker.Spec.JobPolicies.AllowDockerSocketMount) {
+		return &brignext.ErrAuthorization{} // TODO: Add more detail to this error
+	}
+
+	// Fail quickly if the job needs to use shared workspace, but the worker
+	// doesn't have any shared workspace.
+	if useWorkspace && !event.Worker.Spec.UseWorkspace {
+		return &brignext.ErrConflict{} // TODO: Add more detail to this error
 	}
 
 	if err = s.store.CreateJob(ctx, eventID, jobName, jobSpec); err != nil {
@@ -613,6 +649,10 @@ func (s *service) CreateJob(
 			eventID,
 			eventID,
 		)
+	}
+
+	event.Worker.Jobs[jobName] = brignext.Job{
+		Spec: jobSpec,
 	}
 
 	if err = s.scheduler.StartJob(ctx, event, jobName); err != nil {

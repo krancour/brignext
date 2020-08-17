@@ -127,11 +127,16 @@ func (s *scheduler) createWorkerPod(
 			MountPath: "/var/event",
 			ReadOnly:  true,
 		},
-		{
-			Name:      "workspace",
-			MountPath: "/var/workspace",
-			ReadOnly:  true,
-		},
+	}
+	if event.Worker.Spec.UseWorkspace {
+		volumeMounts = append(
+			volumeMounts,
+			corev1.VolumeMount{
+				Name:      "workspace",
+				MountPath: "/var/workspace",
+				ReadOnly:  true,
+			},
+		)
 	}
 
 	initContainers := []corev1.Container{}

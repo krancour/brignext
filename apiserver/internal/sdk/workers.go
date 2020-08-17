@@ -81,6 +81,8 @@ type WorkerSpec struct {
 	// Container specifies the details of an OCI container that forms the
 	// cornerstone of the Worker.
 	Container *ContainerSpec `json:"container,omitempty" bson:"container,omitempty"`
+	// TODO: Document this
+	UseWorkspace bool `json:"useWorkspace" bson:"useWorkspace"`
 	// WorkspaceSize specifies the size of a volume that will be provisioned as
 	// a shared workspace for the Worker and any Jobs it spawns.
 	// The value can be expressed in bytes (as a plain integer) or as a

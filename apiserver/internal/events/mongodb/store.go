@@ -446,7 +446,6 @@ func (s *store) UpdateWorkerStatus(
 	return nil
 }
 
-// TODO: Implement this
 func (s *store) CreateJob(
 	ctx context.Context,
 	eventID string,

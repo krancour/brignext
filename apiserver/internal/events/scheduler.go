@@ -266,12 +266,14 @@ func (s *scheduler) StartWorker(
 	ctx context.Context,
 	event brignext.Event,
 ) error {
-	if err := s.createWorkspacePVC(ctx, event); err != nil {
-		return errors.Wrapf(
-			err,
-			"error creating workspace for event %q worker",
-			event.ID,
-		)
+	if event.Worker.Spec.UseWorkspace {
+		if err := s.createWorkspacePVC(ctx, event); err != nil {
+			return errors.Wrapf(
+				err,
+				"error creating workspace for event %q worker",
+				event.ID,
+			)
+		}
 	}
 	if err := s.createWorkerPod(ctx, event); err != nil {
 		return errors.Wrapf(
@@ -283,12 +285,28 @@ func (s *scheduler) StartWorker(
 	return nil
 }
 
-// TODO: Implement this
 func (s *scheduler) StartJob(
 	ctx context.Context,
 	event brignext.Event,
 	jobName string,
 ) error {
+	jobSpec := event.Worker.Jobs[jobName].Spec
+	if err := s.createJobSecret(ctx, event, jobName, jobSpec); err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating secret for event %q job %q",
+			event.ID,
+			jobName,
+		)
+	}
+	if err := s.createJobPod(ctx, event, jobName, jobSpec); err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating pod for event %q job %q",
+			event.ID,
+			jobName,
+		)
+	}
 	return nil
 }
 
