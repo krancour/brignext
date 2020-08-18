@@ -10,7 +10,10 @@ spec:
         const { events, Job } = require("brigadier");
 
         events.on("github.com/krancour/brignext/cli:exec", (e) => {
-          new Job("foo", "debian:latest", ["echo foo"]).run()
+          let job = new Job("foo", "debian:latest");
+          job.primaryContainer.command = ["echo"];
+          job.primaryContainer.arguments = ["foo"];
+          job.run()
           .then(result => {
             console.log(result.toString());
             console.log("done");

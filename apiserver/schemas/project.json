@@ -262,6 +262,10 @@
 					],
 					"description": "Specification for the worker's container"
 				},
+				"useWorkspace": {
+					"type": "boolean",
+					"description": "Whether the worker will require a shared workspace for itself and any jobs it spawns"	
+				},
 				"workspaceSize": {
 					"type": "string",
 					"description": "The amount of storage to be provisioned for a worker"

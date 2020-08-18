@@ -74,7 +74,7 @@ func (s *scheduler) createJobPod(
 	//   3. Mount the host's Docker socket
 	var useWorkspace = jobSpec.PrimaryContainer.UseWorkspace
 	var useSource = jobSpec.PrimaryContainer.UseSource
-	var useDockerSocket = jobSpec.PrimaryContainer.DockerSocketMount
+	var useDockerSocket = jobSpec.PrimaryContainer.UseHostDockerSocket
 	for _, sidecarContainer := range jobSpec.SidecarContainers {
 		if sidecarContainer.UseWorkspace {
 			useWorkspace = true
@@ -82,7 +82,7 @@ func (s *scheduler) createJobPod(
 		if sidecarContainer.UseSource {
 			useSource = true
 		}
-		if sidecarContainer.DockerSocketMount {
+		if sidecarContainer.UseHostDockerSocket {
 			useDockerSocket = true
 		}
 	}
@@ -252,7 +252,7 @@ func (s *scheduler) createJobPod(
 				},
 			)
 		}
-		if jobSpec.PrimaryContainer.DockerSocketMount {
+		if jobSpec.PrimaryContainer.UseHostDockerSocket {
 			containers[0].VolumeMounts = append(
 				containers[0].VolumeMounts,
 				corev1.VolumeMount{
@@ -314,7 +314,7 @@ func (s *scheduler) createJobPod(
 					},
 				)
 			}
-			if sidecarSpec.DockerSocketMount {
+			if sidecarSpec.UseHostDockerSocket {
 				containers[i].VolumeMounts = append(
 					containers[i].VolumeMounts,
 					corev1.VolumeMount{

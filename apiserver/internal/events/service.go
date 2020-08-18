@@ -618,7 +618,7 @@ func (s *service) CreateJob(
 	//   3. Mount the host's Docker socket
 	var useWorkspace = jobSpec.PrimaryContainer.UseWorkspace
 	var usePrivileged = jobSpec.PrimaryContainer.Privileged
-	var useDockerSocket = jobSpec.PrimaryContainer.DockerSocketMount
+	var useDockerSocket = jobSpec.PrimaryContainer.UseHostDockerSocket
 	for _, sidecarContainer := range jobSpec.SidecarContainers {
 		if sidecarContainer.UseWorkspace {
 			useWorkspace = true
@@ -626,7 +626,7 @@ func (s *service) CreateJob(
 		if sidecarContainer.Privileged {
 			usePrivileged = true
 		}
-		if sidecarContainer.DockerSocketMount {
+		if sidecarContainer.UseHostDockerSocket {
 			useDockerSocket = true
 		}
 	}
@@ -652,12 +652,15 @@ func (s *service) CreateJob(
 
 	if err = s.store.CreateJob(ctx, eventID, jobName, jobSpec); err != nil {
 		return errors.Wrapf(
-			err, "error saving event %q job %q int store",
+			err, "error saving event %q job %q in store",
 			eventID,
 			eventID,
 		)
 	}
 
+	if event.Worker.Jobs == nil {
+		event.Worker.Jobs = map[string]brignext.Job{}
+	}
 	event.Worker.Jobs[jobName] = brignext.Job{
 		Spec: jobSpec,
 	}

@@ -36,11 +36,11 @@ type ContainerSpec struct {
 }
 
 type JobContainerSpec struct {
-	ContainerSpec      `json:",inline"`
-	UseWorkspace       bool   `json:"useWorkspace"`
-	WorkspaceMountPath string `json:"workspaceMountPath,omitempty"`
-	UseSource          bool   `json:"useSource"`
-	SourceMountPath    string `json:"sourceMountPath,omitempty"`
-	Privileged         bool   `json:"privileged"`
-	DockerSocketMount  bool   `json:"dockerSocketMount"`
+	ContainerSpec       `json:",inline"`
+	UseWorkspace        bool   `json:"useWorkspace"`
+	WorkspaceMountPath  string `json:"workspaceMountPath,omitempty"`
+	UseSource           bool   `json:"useSource"`
+	SourceMountPath     string `json:"sourceMountPath,omitempty"`
+	Privileged          bool   `json:"privileged"`
+	UseHostDockerSocket bool   `json:"useHostDockerSocket"`
 }

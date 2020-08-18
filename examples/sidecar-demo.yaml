@@ -10,12 +10,15 @@ spec:
         const { events, Job, Group, Container} = require("brigadier");
 
         events.on("github.com/krancour/brignext/cli:exec", (e) => {
-          let fooJob = new Job("foo", "debian:latest", ["echo foo"]);
-          fooJob.sidecarContainers = [
-            new Container("sidecar", "debian:latest", ["sleep 10000"])
-          ];
+          let job = new Job("foo", "debian:latest");
+          job.primaryContainer.command = ["echo"];
+          job.primaryContainer.arguments = ["foo"];
 
-          fooJob.run()
+          job.sidecarContainers.sleeper = new Container("debian:latest");
+          job.sidecarContainers.sleeper.command = ["sleep"];
+          job.sidecarContainers.sleeper.arguments = ["1000"];
+
+          job.run()
           .then(() => {
             console.log("done");
           }).catch(e => {
