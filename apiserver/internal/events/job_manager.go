@@ -201,24 +201,88 @@ func (s *scheduler) createJobPod(
 				},
 			},
 		}
+	}
 
-		// This slice is big enough to hold the primary container AND all (if any)
-		// sidecar containers.
-		containers := make([]corev1.Container, len(jobSpec.SidecarContainers)+1)
+	// This slice is big enough to hold the primary container AND all (if any)
+	// sidecar containers.
+	containers := make([]corev1.Container, len(jobSpec.SidecarContainers)+1)
 
-		// The primary container will be the 0 container in this list.
-		// nolint: lll
-		containers[0] = corev1.Container{
-			Name:            jobName, // Primary container takes the job's name
-			ImagePullPolicy: corev1.PullPolicy(jobSpec.PrimaryContainer.ImagePullPolicy),
-			Command:         jobSpec.PrimaryContainer.Command,
-			Args:            jobSpec.PrimaryContainer.Arguments,
-			Env:             make([]corev1.EnvVar, len(jobSpec.PrimaryContainer.Environment)),
-			VolumeMounts:    []corev1.VolumeMount{},
+	// The primary container will be the 0 container in this list.
+	// nolint: lll
+	containers[0] = corev1.Container{
+		Name:            jobName, // Primary container takes the job's name
+		Image:           jobSpec.PrimaryContainer.Image,
+		ImagePullPolicy: corev1.PullPolicy(jobSpec.PrimaryContainer.ImagePullPolicy),
+		Command:         jobSpec.PrimaryContainer.Command,
+		Args:            jobSpec.PrimaryContainer.Arguments,
+		Env:             make([]corev1.EnvVar, len(jobSpec.PrimaryContainer.Environment)),
+		VolumeMounts:    []corev1.VolumeMount{},
+	}
+	i := 0
+	for key := range jobSpec.PrimaryContainer.Environment {
+		containers[0].Env[i] = corev1.EnvVar{
+			Name: key,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: fmt.Sprintf(
+							"job-%s-%s",
+							event.ID,
+							strings.ToLower(jobName),
+						),
+					},
+					Key: fmt.Sprintf("%s.%s", jobName, key),
+				},
+			},
 		}
-		i := 0
-		for key := range jobSpec.PrimaryContainer.Environment {
-			containers[0].Env[i] = corev1.EnvVar{
+		i++
+	}
+	if jobSpec.PrimaryContainer.UseWorkspace {
+		containers[0].VolumeMounts = []corev1.VolumeMount{
+			{
+				Name:      "workspace",
+				MountPath: jobSpec.PrimaryContainer.WorkspaceMountPath,
+			},
+		}
+	}
+	if jobSpec.PrimaryContainer.UseSource {
+		containers[0].VolumeMounts = append(
+			containers[0].VolumeMounts,
+			corev1.VolumeMount{
+				Name:      "vcs",
+				MountPath: jobSpec.PrimaryContainer.SourceMountPath,
+			},
+		)
+	}
+	if jobSpec.PrimaryContainer.UseHostDockerSocket {
+		containers[0].VolumeMounts = append(
+			containers[0].VolumeMounts,
+			corev1.VolumeMount{
+				Name:      "docker-socket",
+				MountPath: "/var/run/docker.sock",
+			},
+		)
+	}
+	if jobSpec.PrimaryContainer.Privileged {
+		tru := true
+		containers[0].SecurityContext = &corev1.SecurityContext{
+			Privileged: &tru,
+		}
+	}
+
+	// Now add all the sidecars...
+	i = 1
+	for sidecarName, sidecarSpec := range jobSpec.SidecarContainers {
+		containers[i] = corev1.Container{
+			Name:            sidecarName,
+			ImagePullPolicy: corev1.PullPolicy(sidecarSpec.ImagePullPolicy),
+			Command:         sidecarSpec.Command,
+			Args:            sidecarSpec.Arguments,
+			Env:             make([]corev1.EnvVar, len(sidecarSpec.Environment)),
+		}
+		j := 0
+		for key := range sidecarSpec.Environment {
+			containers[i].Env[j] = corev1.EnvVar{
 				Name: key,
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
@@ -229,144 +293,80 @@ func (s *scheduler) createJobPod(
 								strings.ToLower(jobName),
 							),
 						},
-						Key: fmt.Sprintf("%s.%s", jobName, key),
+						Key: fmt.Sprintf("%s.%s", sidecarName, key),
 					},
 				},
 			}
-			i++
+			j++
 		}
-		if jobSpec.PrimaryContainer.UseWorkspace {
-			containers[0].VolumeMounts = []corev1.VolumeMount{
+		if sidecarSpec.UseWorkspace {
+			containers[i].VolumeMounts = []corev1.VolumeMount{
 				{
 					Name:      "workspace",
-					MountPath: jobSpec.PrimaryContainer.WorkspaceMountPath,
+					MountPath: sidecarSpec.WorkspaceMountPath,
 				},
 			}
 		}
-		if jobSpec.PrimaryContainer.UseSource {
-			containers[0].VolumeMounts = append(
-				containers[0].VolumeMounts,
+		if sidecarSpec.UseSource {
+			containers[i].VolumeMounts = append(
+				containers[i].VolumeMounts,
 				corev1.VolumeMount{
 					Name:      "vcs",
-					MountPath: jobSpec.PrimaryContainer.SourceMountPath,
+					MountPath: sidecarSpec.SourceMountPath,
 				},
 			)
 		}
-		if jobSpec.PrimaryContainer.UseHostDockerSocket {
-			containers[0].VolumeMounts = append(
-				containers[0].VolumeMounts,
+		if sidecarSpec.UseHostDockerSocket {
+			containers[i].VolumeMounts = append(
+				containers[i].VolumeMounts,
 				corev1.VolumeMount{
 					Name:      "docker-socket",
 					MountPath: "/var/run/docker.sock",
 				},
 			)
 		}
-		if jobSpec.PrimaryContainer.Privileged {
+		if sidecarSpec.Privileged {
 			tru := true
-			containers[0].SecurityContext = &corev1.SecurityContext{
+			containers[i].SecurityContext = &corev1.SecurityContext{
 				Privileged: &tru,
 			}
 		}
+		i++
+	}
 
-		// Now add all the sidecars...
-		i = 1
-		for sidecarName, sidecarSpec := range jobSpec.SidecarContainers {
-			containers[i] = corev1.Container{
-				Name:            sidecarName,
-				ImagePullPolicy: corev1.PullPolicy(sidecarSpec.ImagePullPolicy),
-				Command:         sidecarSpec.Command,
-				Args:            sidecarSpec.Arguments,
-				Env:             make([]corev1.EnvVar, len(sidecarSpec.Environment)),
-			}
-			j := 0
-			for key := range sidecarSpec.Environment {
-				containers[i].Env[j] = corev1.EnvVar{
-					Name: key,
-					ValueFrom: &corev1.EnvVarSource{
-						SecretKeyRef: &corev1.SecretKeySelector{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: fmt.Sprintf(
-									"job-%s-%s",
-									event.ID,
-									strings.ToLower(jobName),
-								),
-							},
-							Key: fmt.Sprintf("%s.%s", sidecarName, key),
-						},
-					},
-				}
-				j++
-			}
-			if sidecarSpec.UseWorkspace {
-				containers[i].VolumeMounts = []corev1.VolumeMount{
-					{
-						Name:      "workspace",
-						MountPath: sidecarSpec.WorkspaceMountPath,
-					},
-				}
-			}
-			if sidecarSpec.UseSource {
-				containers[i].VolumeMounts = append(
-					containers[i].VolumeMounts,
-					corev1.VolumeMount{
-						Name:      "vcs",
-						MountPath: sidecarSpec.SourceMountPath,
-					},
-				)
-			}
-			if sidecarSpec.UseHostDockerSocket {
-				containers[i].VolumeMounts = append(
-					containers[i].VolumeMounts,
-					corev1.VolumeMount{
-						Name:      "docker-socket",
-						MountPath: "/var/run/docker.sock",
-					},
-				)
-			}
-			if sidecarSpec.Privileged {
-				tru := true
-				containers[i].SecurityContext = &corev1.SecurityContext{
-					Privileged: &tru,
-				}
-			}
-			i++
-		}
-
-		jobPod := corev1.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("job-%s-%s", event.ID, strings.ToLower(jobName)),
-				Namespace: event.Kubernetes.Namespace,
-				Labels: map[string]string{
-					"brignext.io/component": "job",
-					"brignext.io/project":   event.ProjectID,
-					"brignext.io/event":     event.ID,
-					"brignext.io/job":       jobName,
-				},
+	jobPod := corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("job-%s-%s", event.ID, strings.ToLower(jobName)),
+			Namespace: event.Kubernetes.Namespace,
+			Labels: map[string]string{
+				"brignext.io/component": "job",
+				"brignext.io/project":   event.ProjectID,
+				"brignext.io/event":     event.ID,
+				"brignext.io/job":       jobName,
 			},
-			Spec: corev1.PodSpec{
-				ServiceAccountName: "jobs",
-				ImagePullSecrets:   imagePullSecrets,
-				RestartPolicy:      corev1.RestartPolicyNever,
-				InitContainers:     initContainers,
-				Containers:         containers,
-				Volumes:            volumes,
-			},
-		}
+		},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: "jobs",
+			ImagePullSecrets:   imagePullSecrets,
+			RestartPolicy:      corev1.RestartPolicyNever,
+			InitContainers:     initContainers,
+			Containers:         containers,
+			Volumes:            volumes,
+		},
+	}
 
-		podClient := s.kubeClient.CoreV1().Pods(event.Kubernetes.Namespace)
-		if _, err := podClient.Create(
-			ctx,
-			&jobPod,
-			metav1.CreateOptions{},
-		); err != nil {
-			return errors.Wrapf(
-				err,
-				"error creating pod for event %q job %q",
-				event.ID,
-				jobName,
-			)
-		}
-
+	podClient := s.kubeClient.CoreV1().Pods(event.Kubernetes.Namespace)
+	if _, err := podClient.Create(
+		ctx,
+		&jobPod,
+		metav1.CreateOptions{},
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating pod for event %q job %q",
+			event.ID,
+			jobName,
+		)
 	}
 
 	return nil

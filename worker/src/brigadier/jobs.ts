@@ -1,8 +1,47 @@
-const defaultShell: string = "/bin/sh"
-
 const defaultTimeout: number = 1000 * 60 * 15
 
-const defaultJobImage: string = "debian:jessie-slim"
+export abstract class Job {
+  public name: string
+  public primaryContainer: Container
+  public sidecarContainers: Map<string, Container>
+  public timeout: number = defaultTimeout
+  public host: JobHost = new JobHost()
+
+  constructor(
+    name: string,
+    image: string,
+  ) {
+    this.name = name
+    this.primaryContainer = new Container(image)
+  }
+
+  public abstract run(): Promise<Result>
+
+  public abstract logs(): Promise<string>
+}
+
+export class Container {
+  public image: string
+  public imagePullPolicy: string = "IfNotPresent"
+  public command: string[] = []
+  public arguments: string[] = []
+  public environment: Map<string, string> = new Map<string, string>()
+  public useWorkspace: boolean = false
+  public workspaceMountPath: string = "/var/workspace"
+  public useSource: boolean = false
+  public sourceMountPath: string = "/var/vcs"
+  public privileged: boolean = false
+  public useHostDockerSocket: boolean = false
+
+  constructor(image: string) {
+    this.image = image
+  }
+}
+
+export class JobHost {
+  public os?: string
+  public nodeSelector: Map<string, string> = new Map<string, string>()
+}
 
 export class Result {
   data: string
@@ -12,82 +51,4 @@ export class Result {
   toString(): string {
     return this.data
   }
-}
-
-export class JobHost {
-  public os?: string
-  public nodeSelector: Map<string, string> = new Map<string, string>()
-}
-
-export class JobDockerMount {
-  public enabled: boolean = false
-}
-
-export class Container {
-  public name: string
-  public shell: string = defaultShell
-  public tasks: string[]
-  public args: string[] = []
-  public env: { [key: string]: string } = {}
-  public image: string = defaultJobImage
-  public imageForcePull: boolean = false
-  public mountPath: string = "/src"
-  public timeout: number = defaultTimeout
-  public useSource: boolean = true
-  public privileged: boolean = false
-  public docker: JobDockerMount = new JobDockerMount()
-
-  constructor(
-    name: string,
-    image?: string,
-    tasks?: string[],
-    imageForcePull: boolean = false
-  ) {
-    if (!jobNameIsValid(name)) {
-      throw new Error(
-        "container name must be lowercase letters, numbers, and '-', and must not start or end with '-', having max length " +
-        Job.MAX_JOB_NAME_LENGTH
-      )
-    }
-    this.name = name.toLocaleLowerCase()
-    this.image = image || ""
-    this.tasks = tasks || []
-    this.imageForcePull = imageForcePull
-  }
-}
-
-export abstract class Job {
-  public static readonly MAX_JOB_NAME_LENGTH = 36
-  public name: string
-  public primaryContainer: Container
-  public sidecarContainers: Container[] = []
-  public timeout: number = defaultTimeout
-  public host: JobHost = new JobHost()
-
-  constructor(
-    name: string,
-    image?: string,
-    tasks?: string[],
-    imageForcePull: boolean = false
-  ) {
-    if (!jobNameIsValid(name)) {
-      throw new Error(
-        "job name must be lowercase letters, numbers, and '-', and must not start or end with '-', having max length " +
-        Job.MAX_JOB_NAME_LENGTH
-      )
-    }
-    this.name = name.toLocaleLowerCase()
-    this.primaryContainer = new Container(name, image, tasks, imageForcePull)
-  }
-
-  public abstract run(): Promise<Result>
-
-  public abstract logs(): Promise<string>
-}
-
-function jobNameIsValid(name: string): boolean {
-  return (
-    name.length <= Job.MAX_JOB_NAME_LENGTH &&
-    /^(([a-z0-9][-a-z0-9.]*)?[a-z0-9])+$/.test(name)
-  )
 }

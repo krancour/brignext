@@ -16,8 +16,8 @@ spec:
           fooJob.run()
           .then(() => {
             let barJob = new Job("bar", "debian:latest");
-            bar.primaryContainerJob.command = ["echo"];
-            bar.primaryContainerJob.arguments = ["bar"];
+            barJob.primaryContainer.command = ["echo"];
+            barJob.primaryContainer.arguments = ["bar"];
             return barJob.run();
           })
           .then(() => {
