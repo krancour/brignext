@@ -109,6 +109,7 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 	baseEndpoints := &apimachinery.BaseEndpoints{
 		TokenAuthFilter: auth.NewTokenAuthFilter(
 			sessionsService.GetByToken,
+			eventsService.GetByWorkerToken,
 			usersService.Get,
 			apiConfig.RootUserEnabled(),
 			apiConfig.HashedSchedulerToken(),

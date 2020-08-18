@@ -20,6 +20,7 @@ func TestTokenAuthFilterWithHeaderMissing(t *testing.T) {
 	a := NewTokenAuthFilter(
 		nil,
 		nil,
+		nil,
 		false,
 		testSchedulerToken,
 		testObserverToken,
@@ -37,6 +38,7 @@ func TestTokenAuthFilterWithHeaderMissing(t *testing.T) {
 
 func TestTokenAuthFilterWithHeaderNotBearer(t *testing.T) {
 	a := NewTokenAuthFilter(
+		nil,
 		nil,
 		nil,
 		false,
@@ -60,6 +62,7 @@ func TestTokenAuthFilterWithTokenInvalid(t *testing.T) {
 		func(context.Context, string) (Session, error) {
 			return Session{}, &brignext.ErrNotFound{}
 		},
+		nil,
 		nil,
 		false,
 		testSchedulerToken,
@@ -85,6 +88,7 @@ func TestTokenAuthFilterWithUnauthenticatedSession(t *testing.T) {
 		func(context.Context, string) (Session, error) {
 			return Session{}, nil
 		},
+		nil,
 		func(context.Context, string) (brignext.User, error) {
 			return brignext.User{}, nil
 		},
@@ -120,6 +124,7 @@ func TestTokenAuthFilterWithAuthenticatedSession(t *testing.T) {
 				Expires:       &expiry,
 			}, nil
 		},
+		nil,
 		func(context.Context, string) (brignext.User, error) {
 			return brignext.User{}, nil
 		},

@@ -67,6 +67,8 @@ type Worker struct {
 	Status WorkerStatus `json:"status" bson:"status"`
 	// TODO: Document this
 	Token string `json:"-" bson:"-"`
+	// TODO: Document this
+	HashedToken string `json:"-" bson:"hashedToken"`
 	// Jobs contains details of all Jobs spawned by the Worker during handling of
 	// the Event.
 	// TODO: This should NEVER be nil in the database or it will make job starts

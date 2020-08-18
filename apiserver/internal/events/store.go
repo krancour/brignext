@@ -13,6 +13,7 @@ type Store interface {
 		brignext.EventListOptions,
 	) (brignext.EventList, error)
 	Get(context.Context, string) (brignext.Event, error)
+	GetByHashedWorkerToken(context.Context, string) (brignext.Event, error)
 	Cancel(context.Context, string) error
 	CancelMany(
 		context.Context,
@@ -28,11 +29,6 @@ type Store interface {
 		ctx context.Context,
 		eventID string,
 		spec brignext.WorkerSpec,
-	) error
-	UpdateWorkerHashedToken(
-		ctx context.Context,
-		eventID string,
-		hashedToken string,
 	) error
 	UpdateWorkerStatus(
 		ctx context.Context,

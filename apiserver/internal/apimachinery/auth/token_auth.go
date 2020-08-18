@@ -16,6 +16,8 @@ import (
 
 type FindSessionFn func(ctx context.Context, token string) (Session, error)
 
+type FindEventFn func(ctx context.Context, token string) (sdk.Event, error)
+
 type FindUserFn func(
 	ctx context.Context,
 	id string,
@@ -23,6 +25,7 @@ type FindUserFn func(
 
 type tokenAuthFilter struct {
 	findSession          FindSessionFn
+	findEvent            FindEventFn
 	findUser             FindUserFn
 	rootUserEnabled      bool
 	hashedSchedulerToken string
@@ -31,6 +34,7 @@ type tokenAuthFilter struct {
 
 func NewTokenAuthFilter(
 	findSession FindSessionFn,
+	findEvent FindEventFn,
 	findUser FindUserFn,
 	rootUserEnabled bool,
 	hashedSchedulerToken string,
@@ -38,6 +42,7 @@ func NewTokenAuthFilter(
 ) Filter {
 	return &tokenAuthFilter{
 		findSession:          findSession,
+		findEvent:            findEvent,
 		findUser:             findUser,
 		rootUserEnabled:      rootUserEnabled,
 		hashedSchedulerToken: hashedSchedulerToken,
@@ -93,6 +98,29 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 				r.Context(),
 				principalContextKey{},
 				observerPrincipal,
+			)
+			handle(w, r.WithContext(ctx))
+			return
+		}
+
+		// Is it a worker's token?
+		if _, err := t.findEvent(r.Context(), token); err != nil {
+			if _, ok := errors.Cause(err).(*brignext.ErrNotFound); !ok {
+				log.Println(err)
+				t.writeResponse(
+					w,
+					http.StatusInternalServerError,
+					&brignext.ErrInternalServer{},
+				)
+				return
+			}
+		} else {
+			ctx := context.WithValue(
+				r.Context(),
+				principalContextKey{},
+				// TODO: This principal should probably contain the event ID or
+				// something
+				workerPrincipal,
 			)
 			handle(w, r.WithContext(ctx))
 			return

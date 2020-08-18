@@ -32,6 +32,8 @@ type Service interface {
 	) (brignext.EventList, error)
 	// Get retrieves a single Event specified by its identifier.
 	Get(context.Context, string) (brignext.Event, error)
+	// GetByWorkerToken retrieves a single Event specified by its Worker's token.
+	GetByWorkerToken(context.Context, string) (brignext.Event, error)
 	// Cancel cancels a single Event specified by its identifier.
 	Cancel(context.Context, string) error
 	// CancelMany cancels multiple Events specified by the EventListOptions
@@ -228,11 +230,15 @@ func (s *service) Create(
 		workerSpec.ConfigFilesDirectory = "."
 	}
 
+	token := crypto.NewToken(256)
+
 	event.Worker = brignext.Worker{
 		Spec: workerSpec,
 		Status: brignext.WorkerStatus{
 			Phase: brignext.WorkerPhasePending,
 		},
+		Token:       token,
+		HashedToken: crypto.ShortSHA("", token),
 	}
 
 	// Let the scheduler add scheduler-specific details before we persist.
@@ -295,6 +301,20 @@ func (s *service) Get(
 	event, err := s.store.Get(ctx, id)
 	if err != nil {
 		return event, errors.Wrapf(err, "error retrieving event %q from store", id)
+	}
+	return event, nil
+}
+
+func (s *service) GetByWorkerToken(
+	ctx context.Context,
+	workerToken string,
+) (brignext.Event, error) {
+	event, err := s.store.GetByHashedWorkerToken(
+		ctx,
+		crypto.ShortSHA("", workerToken),
+	)
+	if err != nil {
+		return event, errors.Wrap(err, "error retrieving event from store")
 	}
 	return event, nil
 }
@@ -483,30 +503,17 @@ func (s *service) StartWorker(ctx context.Context, eventID string) error {
 		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
 
-	spec := event.Worker.Spec
-	// TODO: This is probably a better place to apply worker default just before
-	// it is started INSTEAD OF setting defaults at event creation time or waiting
-	// all the way up until pod creation time.
-	if err = s.store.UpdateWorkerSpec(ctx, eventID, spec); err != nil {
-		return errors.Wrapf(
-			err,
-			"error updating worker's spec for event %q",
-			event.ID,
-		)
-	}
-
-	event.Worker.Token = crypto.NewToken(256)
-	if err = s.store.UpdateWorkerHashedToken(
-		ctx,
-		eventID,
-		crypto.ShortSHA("", event.Worker.Token),
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error updating worker's token for event %q",
-			event.ID,
-		)
-	}
+	// spec := event.Worker.Spec
+	// // TODO: This is probably a better place to apply worker default just before
+	// // it is started INSTEAD OF setting defaults at event creation time or waiting
+	// // all the way up until pod creation time.
+	// if err = s.store.UpdateWorkerSpec(ctx, eventID, spec); err != nil {
+	// 	return errors.Wrapf(
+	// 		err,
+	// 		"error updating worker's spec for event %q",
+	// 		event.ID,
+	// 	)
+	// }
 
 	if err = s.scheduler.StartWorker(ctx, event); err != nil {
 		return errors.Wrapf(err, "error starting worker for event %q", event.ID)

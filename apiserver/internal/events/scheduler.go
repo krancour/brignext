@@ -94,6 +94,7 @@ func (s *scheduler) Create(
 	}
 
 	type worker struct {
+		APIAddress           string            `json:"apiAddress"`
 		APIToken             string            `json:"apiToken"`
 		LogLevel             brignext.LogLevel `json:"logLevel"`
 		ConfigFilesDirectory string            `json:"configFilesDirectory"`
@@ -124,6 +125,7 @@ func (s *scheduler) Create(
 			LongTitle:  event.LongTitle,
 			Payload:    event.Payload,
 			Worker: worker{
+				APIAddress:           s.config.APIAddress,
 				APIToken:             event.Worker.Token,
 				LogLevel:             event.Worker.Spec.LogLevel,
 				ConfigFilesDirectory: event.Worker.Spec.ConfigFilesDirectory,

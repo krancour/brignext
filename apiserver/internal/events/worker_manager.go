@@ -111,14 +111,19 @@ func (s *scheduler) createWorkerPod(
 				},
 			},
 		},
-		{
-			Name: "workspace",
-			VolumeSource: corev1.VolumeSource{
-				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: fmt.Sprintf("workspace-%s", event.ID),
+	}
+	if event.Worker.Spec.UseWorkspace {
+		volumes = append(
+			volumes,
+			corev1.Volume{
+				Name: "workspace",
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+						ClaimName: fmt.Sprintf("workspace-%s", event.ID),
+					},
 				},
 			},
-		},
+		)
 	}
 
 	volumeMounts := []corev1.VolumeMount{

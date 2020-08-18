@@ -137,6 +137,31 @@ func (s *store) Get(
 	return event, nil
 }
 
+func (s *store) GetByHashedWorkerToken(
+	ctx context.Context,
+	hashedWorkerToken string,
+) (brignext.Event, error) {
+	event := brignext.Event{}
+	res := s.collection.FindOne(
+		ctx,
+		bson.M{
+			"worker.hashedToken": hashedWorkerToken,
+		},
+	)
+	if res.Err() == mongo.ErrNoDocuments {
+		return event, &brignext.ErrNotFound{
+			Type: "Event",
+		}
+	}
+	if res.Err() != nil {
+		return event, errors.Wrap(res.Err(), "error finding event")
+	}
+	if err := res.Decode(&event); err != nil {
+		return event, errors.Wrap(err, "error decoding event")
+	}
+	return event, nil
+}
+
 func (s *store) Cancel(ctx context.Context, id string) error {
 	if _, err := s.Get(ctx, id); err != nil {
 		return err
@@ -374,36 +399,6 @@ func (s *store) UpdateWorkerSpec(
 		return errors.Wrapf(
 			err,
 			"error updating spec of event %q worker",
-			eventID,
-		)
-	}
-	if res.MatchedCount == 0 {
-		return &brignext.ErrNotFound{
-			Type: "Event",
-			ID:   eventID,
-		}
-	}
-	return nil
-}
-
-func (s *store) UpdateWorkerHashedToken(
-	ctx context.Context,
-	eventID string,
-	hashedToken string,
-) error {
-	res, err := s.collection.UpdateOne(
-		ctx,
-		bson.M{"id": eventID},
-		bson.M{
-			"$set": bson.M{
-				"worker.hashedToken": hashedToken,
-			},
-		},
-	)
-	if err != nil {
-		return errors.Wrapf(
-			err,
-			"error updating hashed token of event %q worker",
 			eventID,
 		)
 	}
