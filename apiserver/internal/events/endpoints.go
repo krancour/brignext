@@ -327,6 +327,7 @@ func (e *endpoints) getOrStreamWorkerStatus(
 	}
 
 	w.Header().Set("Content-Type", "text/event-stream")
+	w.(http.Flusher).Flush()
 	for status := range statusCh {
 		statusBytes, err := json.Marshal(status)
 		if err != nil {
@@ -417,6 +418,7 @@ func (e *endpoints) getOrStreamJobStatus(
 	}
 
 	w.Header().Set("Content-Type", "text/event-stream")
+	w.(http.Flusher).Flush()
 	for status := range statusCh {
 		statusBytes, err := json.Marshal(status)
 		if err != nil {
@@ -515,6 +517,7 @@ func (e *endpoints) getOrStreamLogs(
 	}
 
 	w.Header().Set("Content-Type", "text/event-stream")
+	w.(http.Flusher).Flush()
 	for logEntry := range logEntryCh {
 		logEntryBytes, err := json.Marshal(logEntry)
 		if err != nil {
