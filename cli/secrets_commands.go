@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -12,6 +13,7 @@ import (
 	"github.com/krancour/brignext/v2/sdk/api"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var secretsCommand = &cli.Command{
@@ -123,6 +125,15 @@ func secretsList(c *cli.Context) error {
 				)
 			}
 			fmt.Println(string(prettyJSON))
+		}
+
+		if secrets.RemainingItemCount < 1 || secrets.Continue == "" {
+			break
+		}
+
+		// Exit after one page of output if this isn't a terminal
+		if !terminal.IsTerminal(int(os.Stdout.Fd())) {
+			break
 		}
 
 		// TODO: DRY this up

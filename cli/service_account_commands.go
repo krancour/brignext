@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/gosuri/uitable"
 	"github.com/krancour/brignext/v2/sdk/api"
 	"github.com/krancour/brignext/v2/sdk/meta"
+	"golang.org/x/crypto/ssh/terminal"
 	"k8s.io/apimachinery/pkg/util/duration"
 
 	"github.com/pkg/errors"
@@ -184,6 +186,16 @@ func serviceAccountList(c *cli.Context) error {
 				)
 			}
 			fmt.Println(string(prettyJSON))
+		}
+
+		if serviceAccounts.RemainingItemCount < 1 ||
+			serviceAccounts.Continue == "" {
+			break
+		}
+
+		// Exit after one page of output if this isn't a terminal
+		if !terminal.IsTerminal(int(os.Stdout.Fd())) {
+			break
 		}
 
 		// TODO: DRY this up

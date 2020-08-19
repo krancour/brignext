@@ -68,6 +68,10 @@ func logs(c *cli.Context) error {
 				fmt.Println(logEntry.Message)
 			}
 
+			if logEntries.RemainingItemCount < 1 || logEntries.Continue == "" {
+				break
+			}
+
 			// Exit after one page of output if this isn't a terminal
 			if !terminal.IsTerminal(int(os.Stdout.Fd())) {
 				break
