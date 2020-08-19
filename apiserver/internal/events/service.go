@@ -543,11 +543,11 @@ func (s *service) WatchWorkerStatus(
 		return nil,
 			errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
 	statusCh := make(chan brignext.WorkerStatus)
 	go func() {
 		defer close(statusCh)
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
@@ -715,11 +715,11 @@ func (s *service) WatchJobStatus(
 			ID:   jobName,
 		}
 	}
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
 	statusCh := make(chan brignext.JobStatus)
 	go func() {
 		defer close(statusCh)
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
