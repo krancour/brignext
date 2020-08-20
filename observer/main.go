@@ -9,6 +9,7 @@ import (
 	"github.com/krancour/brignext/v2/sdk/api"
 )
 
+// TODO: Observer needs functionality for timing out workers and jobs
 func main() {
 	log.Printf(
 		"Starting BrigNext Observer -- version %s -- commit %s",
