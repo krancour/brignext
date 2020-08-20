@@ -5,6 +5,7 @@ import (
 	"time"
 
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/pkg/errors"
 )
 
@@ -16,7 +17,11 @@ type Service interface {
 	// Create creates a new User.
 	Create(context.Context, brignext.User) error
 	// List returns a UserList.
-	List(context.Context, brignext.UserListOptions) (brignext.UserList, error)
+	List(
+		context.Context,
+		brignext.UserSelector,
+		meta.ListOptions,
+	) (brignext.UserList, error)
 	// Get retrieves a single User specified by their identifier.
 	Get(context.Context, string) (brignext.User, error)
 	// Lock removes access to the API for a single User specified by their
@@ -49,12 +54,13 @@ func (s *service) Create(ctx context.Context, user brignext.User) error {
 
 func (s *service) List(
 	ctx context.Context,
-	opts brignext.UserListOptions,
+	selector brignext.UserSelector,
+	opts meta.ListOptions,
 ) (brignext.UserList, error) {
 	if opts.Limit == 0 {
 		opts.Limit = 20
 	}
-	users, err := s.store.List(ctx, opts)
+	users, err := s.store.List(ctx, selector, opts)
 	if err != nil {
 		return users, errors.Wrap(err, "error retrieving users from store")
 	}

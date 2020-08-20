@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -81,7 +82,7 @@ func (e *endpoints) create(
 }
 
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
-	opts := brignext.ServiceAccountListOptions{
+	opts := meta.ListOptions{
 		Continue: r.URL.Query().Get("continue"),
 	}
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
@@ -106,7 +107,7 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.List(r.Context(), opts)
+				return e.service.List(r.Context(), brignext.ServiceAccountSelector{}, opts)
 			},
 			SuccessCode: http.StatusOK,
 		},

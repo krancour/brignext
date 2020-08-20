@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -98,7 +99,7 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
-	opts := brignext.ProjectListOptions{
+	opts := meta.ListOptions{
 		Continue: r.URL.Query().Get("continue"),
 	}
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
@@ -123,7 +124,7 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.List(r.Context(), opts)
+				return e.service.List(r.Context(), brignext.ProjectSelector{}, opts)
 			},
 			SuccessCode: http.StatusOK,
 		},
@@ -179,7 +180,7 @@ func (e *endpoints) delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *endpoints) listSecrets(w http.ResponseWriter, r *http.Request) {
-	opts := brignext.SecretListOptions{
+	opts := meta.ListOptions{
 		Continue: r.URL.Query().Get("continue"),
 	}
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {

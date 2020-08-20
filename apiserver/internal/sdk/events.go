@@ -100,25 +100,15 @@ type EventGitConfig struct {
 	Ref      string `json:"ref,omitempty" bson:"ref,omitempty"`
 }
 
-// EventListOptions represents useful filter criteria when selecting multiple
+// EventSelector represents useful filter criteria when selecting multiple
 // Events for API group operations like list, cancel, or delete.
-type EventListOptions struct {
+type EventSelector struct {
 	// ProjectID specifies that Events belonging to the indicated Project should
 	// be selected.
 	ProjectID string
 	// WorkerPhases specifies that Events with their Worker's in any of the
 	// indicated phases should be selected.
 	WorkerPhases []WorkerPhase
-	// Continue aids in pagination of long lists. It permits clients to echo an
-	// opaque value obtained from a previous API call back to the API in a
-	// subsequent call in order to indicate what resource was the last on the
-	// previous page.
-	Continue string
-	// Limit aids in pagination of long lists. It permits clients to specify page
-	// size when making API calls. The API server provides a default when a value
-	// is not specified and may reject or override invalid values (non-positive)
-	// numbers or very large page sizes.
-	Limit int64
 }
 
 // EventList is an ordered and pageable list of Events.
@@ -147,7 +137,7 @@ func (e EventList) MarshalJSON() ([]byte, error) {
 }
 
 type CancelManyEventsResult struct {
-	Count int64 `json:count`
+	Count int64 `json:"count"`
 }
 
 func (c CancelManyEventsResult) MarshalJSON() ([]byte, error) {
@@ -167,7 +157,7 @@ func (c CancelManyEventsResult) MarshalJSON() ([]byte, error) {
 }
 
 type DeleteManyEventsResult struct {
-	Count int64 `json:count`
+	Count int64 `json:"count"`
 }
 
 func (d DeleteManyEventsResult) MarshalJSON() ([]byte, error) {

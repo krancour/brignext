@@ -139,11 +139,11 @@ func serviceAccountList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	opts := api.ServiceAccountListOptions{}
+	opts := meta.ListOptions{}
 
 	for {
 		serviceAccounts, err :=
-			client.ServiceAccounts().List(c.Context, opts)
+			client.ServiceAccounts().List(c.Context, api.ServiceAccountSelector{}, opts)
 		if err != nil {
 			return err
 		}

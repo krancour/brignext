@@ -14,6 +14,7 @@ import (
 	"github.com/krancour/brignext/v2/internal/file"
 	"github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/krancour/brignext/v2/sdk/meta"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh/terminal"
@@ -397,13 +398,14 @@ func eventList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	opts := api.EventListOptions{
+	selector := api.EventSelector{
 		ProjectID:    projectID,
 		WorkerPhases: workerPhases,
 	}
+	opts := meta.ListOptions{}
 
 	for {
-		events, err := client.Events().List(c.Context, opts)
+		events, err := client.Events().List(c.Context, selector, opts)
 		if err != nil {
 			return err
 		}
@@ -613,15 +615,15 @@ func eventCancelMany(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	opts := api.EventListOptions{
+	selector := api.EventSelector{
 		ProjectID:    projectID,
 		WorkerPhases: []sdk.WorkerPhase{sdk.WorkerPhasePending},
 	}
 	if cancelRunning {
-		opts.WorkerPhases = append(opts.WorkerPhases, sdk.WorkerPhaseRunning)
+		selector.WorkerPhases = append(selector.WorkerPhases, sdk.WorkerPhaseRunning)
 	}
 
-	events, err := client.Events().CancelMany(c.Context, opts)
+	events, err := client.Events().CancelMany(c.Context, selector)
 	if err != nil {
 		return err
 	}
@@ -714,12 +716,12 @@ func eventDeleteMany(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	opts := api.EventListOptions{
+	selector := api.EventSelector{
 		ProjectID:    projectID,
 		WorkerPhases: workerPhases,
 	}
 
-	events, err := client.Events().DeleteMany(c.Context, opts)
+	events, err := client.Events().DeleteMany(c.Context, selector)
 	if err != nil {
 		return err
 	}

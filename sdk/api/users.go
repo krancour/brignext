@@ -41,20 +41,10 @@ func (u User) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// UserListOptions represents useful filter criteria when selecting multiple
-// Users for API group operations like list.
-type UserListOptions struct {
-	// Continue aids in pagination of long lists. It permits clients to echo an
-	// opaque value obtained from a previous API call back to the API in a
-	// subsequent call in order to indicate what resource was the last on the
-	// previous page.
-	Continue string
-	// Limit aids in pagination of long lists. It permits clients to specify page
-	// size when making API calls. The API server provides a default when a value
-	// is not specified and may reject or override invalid values (non-positive)
-	// numbers or very large page sizes.
-	Limit int64
-}
+// UserSelector represents useful filter criteria when selecting multiple Users
+// for API group operations like list. It currently has no fields, but exists
+// for future expansion.
+type UserSelector struct{}
 
 // UserList is an ordered and pageable list of Users.
 type UserList struct {
@@ -86,7 +76,7 @@ func (u UserList) MarshalJSON() ([]byte, error) {
 // API.
 type UsersClient interface {
 	// List returns a UserList.
-	List(context.Context, UserListOptions) (UserList, error)
+	List(context.Context, UserSelector, meta.ListOptions) (UserList, error)
 	// Get retrieves a single User specified by their identifier.
 	Get(context.Context, string) (User, error)
 	// Lock removes access to the API for a single User specified by their
@@ -124,7 +114,8 @@ func NewUsersClient(
 
 func (u *usersClient) List(
 	_ context.Context,
-	opts UserListOptions,
+	_ UserSelector,
+	opts meta.ListOptions,
 ) (UserList, error) {
 	users := UserList{}
 	return users, u.executeRequest(

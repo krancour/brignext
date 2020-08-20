@@ -4,25 +4,27 @@ import (
 	"context"
 
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 )
 
 type Store interface {
 	Create(context.Context, brignext.Event) error
 	List(
 		context.Context,
-		brignext.EventListOptions,
+		brignext.EventSelector,
+		meta.ListOptions,
 	) (brignext.EventList, error)
 	Get(context.Context, string) (brignext.Event, error)
 	GetByHashedWorkerToken(context.Context, string) (brignext.Event, error)
 	Cancel(context.Context, string) error
 	CancelMany(
 		context.Context,
-		brignext.EventListOptions,
+		brignext.EventSelector,
 	) (brignext.EventList, error)
 	Delete(context.Context, string) error
 	DeleteMany(
 		context.Context,
-		brignext.EventListOptions,
+		brignext.EventSelector,
 	) (brignext.EventList, error)
 
 	UpdateWorkerSpec(

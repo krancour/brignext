@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -142,9 +143,11 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
-	opts := brignext.EventListOptions{
+	selector := brignext.EventSelector{
 		ProjectID: r.URL.Query().Get("projectID"),
-		Continue:  r.URL.Query().Get("continue"),
+	}
+	opts := meta.ListOptions{
+		Continue: r.URL.Query().Get("continue"),
 	}
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
 		var err error
@@ -167,9 +170,9 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 	workerPhasesStr := r.URL.Query().Get("workerPhases")
 	if workerPhasesStr != "" {
 		workerPhaseStrs := strings.Split(workerPhasesStr, ",")
-		opts.WorkerPhases = make([]brignext.WorkerPhase, len(workerPhaseStrs))
+		selector.WorkerPhases = make([]brignext.WorkerPhase, len(workerPhaseStrs))
 		for i, workerPhaseStr := range workerPhaseStrs {
-			opts.WorkerPhases[i] = brignext.WorkerPhase(workerPhaseStr)
+			selector.WorkerPhases[i] = brignext.WorkerPhase(workerPhaseStr)
 		}
 	}
 	e.ServeRequest(
@@ -177,7 +180,7 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.List(r.Context(), opts)
+				return e.service.List(r.Context(), selector, opts)
 			},
 			SuccessCode: http.StatusOK,
 		},
@@ -214,15 +217,15 @@ func (e *endpoints) cancelMany(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	opts := brignext.EventListOptions{
+	selector := brignext.EventSelector{
 		ProjectID: r.URL.Query().Get("projectID"),
 	}
 	workerPhasesStr := r.URL.Query().Get("workerPhases")
 	if workerPhasesStr != "" {
 		workerPhaseStrs := strings.Split(workerPhasesStr, ",")
-		opts.WorkerPhases = make([]brignext.WorkerPhase, len(workerPhaseStrs))
+		selector.WorkerPhases = make([]brignext.WorkerPhase, len(workerPhaseStrs))
 		for i, workerPhaseStr := range workerPhaseStrs {
-			opts.WorkerPhases[i] = brignext.WorkerPhase(workerPhaseStr)
+			selector.WorkerPhases[i] = brignext.WorkerPhase(workerPhaseStr)
 		}
 	}
 	e.ServeRequest(
@@ -230,7 +233,7 @@ func (e *endpoints) cancelMany(
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.CancelMany(r.Context(), opts)
+				return e.service.CancelMany(r.Context(), selector)
 			},
 			SuccessCode: http.StatusOK,
 		},
@@ -251,15 +254,15 @@ func (e *endpoints) delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *endpoints) deleteMany(w http.ResponseWriter, r *http.Request) {
-	opts := brignext.EventListOptions{
+	selector := brignext.EventSelector{
 		ProjectID: r.URL.Query().Get("projectID"),
 	}
 	workerPhasesStr := r.URL.Query().Get("workerPhases")
 	if workerPhasesStr != "" {
 		workerPhaseStrs := strings.Split(workerPhasesStr, ",")
-		opts.WorkerPhases = make([]brignext.WorkerPhase, len(workerPhaseStrs))
+		selector.WorkerPhases = make([]brignext.WorkerPhase, len(workerPhaseStrs))
 		for i, workerPhaseStr := range workerPhaseStrs {
-			opts.WorkerPhases[i] = brignext.WorkerPhase(workerPhaseStr)
+			selector.WorkerPhases[i] = brignext.WorkerPhase(workerPhaseStr)
 		}
 	}
 	e.ServeRequest(
@@ -267,7 +270,7 @@ func (e *endpoints) deleteMany(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.DeleteMany(r.Context(), opts)
+				return e.service.DeleteMany(r.Context(), selector)
 			},
 			SuccessCode: http.StatusOK,
 		},

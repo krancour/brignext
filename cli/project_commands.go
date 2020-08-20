@@ -13,6 +13,7 @@ import (
 	"github.com/gosuri/uitable"
 	"github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/krancour/brignext/v2/sdk/meta"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh/terminal"
@@ -149,11 +150,11 @@ func projectList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	opts := api.ProjectListOptions{}
+	opts := meta.ListOptions{}
 
 	for {
 		projects, err :=
-			client.Projects().List(c.Context, opts)
+			client.Projects().List(c.Context, api.ProjectSelector{}, opts)
 		if err != nil {
 			return err
 		}

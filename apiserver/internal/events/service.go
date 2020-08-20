@@ -9,6 +9,7 @@ import (
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	"github.com/krancour/brignext/v2/apiserver/internal/projects"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
@@ -28,7 +29,8 @@ type Service interface {
 	// specified using the EventListOptions parameter.
 	List(
 		context.Context,
-		brignext.EventListOptions,
+		brignext.EventSelector,
+		meta.ListOptions,
 	) (brignext.EventList, error)
 	// Get retrieves a single Event specified by its identifier.
 	Get(context.Context, string) (brignext.Event, error)
@@ -40,7 +42,7 @@ type Service interface {
 	// parameter.
 	CancelMany(
 		context.Context,
-		brignext.EventListOptions,
+		brignext.EventSelector,
 	) (brignext.CancelManyEventsResult, error)
 	// Delete deletes a single Event specified by its identifier.
 	Delete(context.Context, string) error
@@ -48,7 +50,7 @@ type Service interface {
 	// parameter.
 	DeleteMany(
 		context.Context,
-		brignext.EventListOptions,
+		brignext.EventSelector,
 	) (brignext.DeleteManyEventsResult, error)
 
 	// StartWorker starts the indicated Event's Worker on BrigNext's workload
@@ -278,19 +280,20 @@ func (s *service) Create(
 
 func (s *service) List(
 	ctx context.Context,
-	opts brignext.EventListOptions,
+	selector brignext.EventSelector,
+	opts meta.ListOptions,
 ) (brignext.EventList, error) {
 	events := brignext.EventList{}
 
 	// If no worker phase filters were applied, retrieve all phases
-	if len(opts.WorkerPhases) == 0 {
-		opts.WorkerPhases = brignext.WorkerPhasesAll()
+	if len(selector.WorkerPhases) == 0 {
+		selector.WorkerPhases = brignext.WorkerPhasesAll()
 	}
 	if opts.Limit == 0 {
 		opts.Limit = 20
 	}
 
-	events, err := s.store.List(ctx, opts)
+	events, err := s.store.List(ctx, selector, opts)
 	if err != nil {
 		return events, errors.Wrap(err, "error retrieving events from store")
 	}
@@ -352,38 +355,38 @@ func (s *service) Cancel(ctx context.Context, id string) error {
 
 func (s *service) CancelMany(
 	ctx context.Context,
-	opts brignext.EventListOptions,
+	selector brignext.EventSelector,
 ) (brignext.CancelManyEventsResult, error) {
 	result := brignext.CancelManyEventsResult{}
 
 	// Refuse requests not qualified by project
-	if opts.ProjectID == "" {
+	if selector.ProjectID == "" {
 		return result, &brignext.ErrBadRequest{
 			Reason: "Requests to cancel multiple events must be qualified by " +
 				"project.",
 		}
 	}
 	// Refuse requests not qualified by worker phases
-	if len(opts.WorkerPhases) == 0 {
+	if len(selector.WorkerPhases) == 0 {
 		return result, &brignext.ErrBadRequest{
 			Reason: "Requests to cancel multiple events must be qualified by " +
 				"worker phase(s).",
 		}
 	}
 
-	if opts.ProjectID != "" {
+	if selector.ProjectID != "" {
 		// Make sure the project exists
-		_, err := s.projectsStore.Get(ctx, opts.ProjectID)
+		_, err := s.projectsStore.Get(ctx, selector.ProjectID)
 		if err != nil {
 			return result, errors.Wrapf(
 				err,
 				"error retrieving project %q from store",
-				opts.ProjectID,
+				selector.ProjectID,
 			)
 		}
 	}
 
-	events, err := s.store.CancelMany(ctx, opts)
+	events, err := s.store.CancelMany(ctx, selector)
 	if err != nil {
 		return result, errors.Wrap(err, "error canceling events in store")
 	}
@@ -441,38 +444,38 @@ func (s *service) Delete(ctx context.Context, id string) error {
 
 func (s *service) DeleteMany(
 	ctx context.Context,
-	opts brignext.EventListOptions,
+	selector brignext.EventSelector,
 ) (brignext.DeleteManyEventsResult, error) {
 	result := brignext.DeleteManyEventsResult{}
 
 	// Refuse requests not qualified by project
-	if opts.ProjectID == "" {
+	if selector.ProjectID == "" {
 		return result, &brignext.ErrBadRequest{
 			Reason: "Requests to delete multiple events must be qualified by " +
 				"project.",
 		}
 	}
 	// Refuse requests not qualified by worker phases
-	if len(opts.WorkerPhases) == 0 {
+	if len(selector.WorkerPhases) == 0 {
 		return result, &brignext.ErrBadRequest{
 			Reason: "Requests to delete multiple events must be qualified by " +
 				"worker phase(s).",
 		}
 	}
 
-	if opts.ProjectID != "" {
+	if selector.ProjectID != "" {
 		// Make sure the project exists
-		_, err := s.projectsStore.Get(ctx, opts.ProjectID)
+		_, err := s.projectsStore.Get(ctx, selector.ProjectID)
 		if err != nil {
 			return result, errors.Wrapf(
 				err,
 				"error retrieving project %q from store",
-				opts.ProjectID,
+				selector.ProjectID,
 			)
 		}
 	}
 
-	events, err := s.store.DeleteMany(ctx, opts)
+	events, err := s.store.DeleteMany(ctx, selector)
 	if err != nil {
 		return result, errors.Wrap(err, "error deleting events from store")
 	}

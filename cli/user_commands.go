@@ -10,6 +10,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/krancour/brignext/v2/sdk/meta"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh/terminal"
@@ -82,10 +83,10 @@ func userList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	opts := api.UserListOptions{}
+	opts := meta.ListOptions{}
 
 	for {
-		users, err := client.Users().List(c.Context, opts)
+		users, err := client.Users().List(c.Context, api.UserSelector{}, opts)
 		if err != nil {
 			return err
 		}

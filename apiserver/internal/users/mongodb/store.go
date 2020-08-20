@@ -6,6 +6,7 @@ import (
 	"time"
 
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/krancour/brignext/v2/apiserver/internal/users"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -65,7 +66,8 @@ func (s *store) Create(ctx context.Context, user brignext.User) error {
 
 func (s *store) List(
 	ctx context.Context,
-	opts brignext.UserListOptions,
+	_ brignext.UserSelector,
+	opts meta.ListOptions,
 ) (brignext.UserList, error) {
 	users := brignext.UserList{}
 

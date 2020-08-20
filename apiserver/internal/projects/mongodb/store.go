@@ -7,6 +7,7 @@ import (
 
 	"github.com/krancour/brignext/v2/apiserver/internal/projects"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -98,7 +99,8 @@ func (s *store) Create(
 
 func (s *store) List(
 	ctx context.Context,
-	opts brignext.ProjectListOptions,
+	_ brignext.ProjectSelector,
+	opts meta.ListOptions,
 ) (brignext.ProjectList, error) {
 	projects := brignext.ProjectList{}
 

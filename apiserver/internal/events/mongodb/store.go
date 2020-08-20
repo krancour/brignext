@@ -7,6 +7,7 @@ import (
 
 	"github.com/krancour/brignext/v2/apiserver/internal/events"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -66,20 +67,21 @@ func (s *store) Create(ctx context.Context, event brignext.Event) error {
 
 func (s *store) List(
 	ctx context.Context,
-	opts brignext.EventListOptions,
+	selector brignext.EventSelector,
+	opts meta.ListOptions,
 ) (brignext.EventList, error) {
 	events := brignext.EventList{}
 
 	criteria := bson.M{
 		"worker.status.phase": bson.M{
-			"$in": opts.WorkerPhases,
+			"$in": selector.WorkerPhases,
 		},
 		"deleted": bson.M{
 			"$exists": false, // Don't grab logically deleted events
 		},
 	}
-	if opts.ProjectID != "" {
-		criteria["projectID"] = opts.ProjectID
+	if selector.ProjectID != "" {
+		criteria["projectID"] = selector.ProjectID
 	}
 	if opts.Continue != "" {
 		continueTime, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", opts.Continue)
@@ -219,14 +221,14 @@ func (s *store) Cancel(ctx context.Context, id string) error {
 
 func (s *store) CancelMany(
 	ctx context.Context,
-	opts brignext.EventListOptions,
+	selector brignext.EventSelector,
 ) (brignext.EventList, error) {
 	events := brignext.EventList{}
 	// It only makes sense to cancel events that are in a pending or running
 	// state. We can ignore anything else.
 	var cancelPending bool
 	var cancelRunning bool
-	for _, workerPhase := range opts.WorkerPhases {
+	for _, workerPhase := range selector.WorkerPhases {
 		if workerPhase == brignext.WorkerPhasePending {
 			cancelPending = true
 		}
@@ -247,7 +249,7 @@ func (s *store) CancelMany(
 	cancellationTime := time.Now()
 
 	criteria := bson.M{
-		"projectID": opts.ProjectID,
+		"projectID": selector.ProjectID,
 	}
 
 	if cancelPending {
@@ -318,7 +320,7 @@ func (s *store) Delete(ctx context.Context, id string) error {
 
 func (s *store) DeleteMany(
 	ctx context.Context,
-	opts brignext.EventListOptions,
+	selector brignext.EventSelector,
 ) (brignext.EventList, error) {
 	events := brignext.EventList{}
 
@@ -335,9 +337,9 @@ func (s *store) DeleteMany(
 
 	// Logical delete...
 	criteria := bson.M{
-		"projectID": opts.ProjectID,
+		"projectID": selector.ProjectID,
 		"worker.status.phase": bson.M{
-			"$in": opts.WorkerPhases,
+			"$in": selector.WorkerPhases,
 		},
 		"deleted": bson.M{
 			"$exists": false,

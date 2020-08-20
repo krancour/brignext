@@ -4,13 +4,15 @@ import (
 	"context"
 
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 )
 
 type Store interface {
 	Create(context.Context, brignext.Project) error
 	List(
 		context.Context,
-		brignext.ProjectListOptions,
+		brignext.ProjectSelector,
+		meta.ListOptions,
 	) (brignext.ProjectList, error)
 	ListSubscribers(
 		ctx context.Context,

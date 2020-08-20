@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/krancour/brignext/v2/sdk/meta"
 )
 
 func (s *scheduler) manageProjectEventLoops(ctx context.Context) {
@@ -19,7 +20,7 @@ func (s *scheduler) manageProjectEventLoops(ctx context.Context) {
 
 	for {
 		projects, err :=
-			s.apiClient.Projects().List(ctx, api.ProjectListOptions{})
+			s.apiClient.Projects().List(ctx, api.ProjectSelector{}, meta.ListOptions{})
 		if err != nil {
 			select {
 			case s.errCh <- err:

@@ -6,6 +6,7 @@ import (
 
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/pkg/errors"
 )
 
@@ -19,7 +20,8 @@ type Service interface {
 	// List returns a ServiceAccountList.
 	List(
 		context.Context,
-		brignext.ServiceAccountListOptions,
+		brignext.ServiceAccountSelector,
+		meta.ListOptions,
 	) (brignext.ServiceAccountList, error)
 	// Get retrieves a single ServiceAccount specified by its identifier.
 	Get(context.Context, string) (brignext.ServiceAccount, error)
@@ -66,12 +68,13 @@ func (s *service) Create(
 
 func (s *service) List(
 	ctx context.Context,
-	opts brignext.ServiceAccountListOptions,
+	selector brignext.ServiceAccountSelector,
+	opts meta.ListOptions,
 ) (brignext.ServiceAccountList, error) {
 	if opts.Limit == 0 {
 		opts.Limit = 20
 	}
-	serviceAccounts, err := s.store.List(ctx, opts)
+	serviceAccounts, err := s.store.List(ctx, selector, opts)
 	if err != nil {
 		return serviceAccounts,
 			errors.Wrap(err, "error retrieving service accounts from store")

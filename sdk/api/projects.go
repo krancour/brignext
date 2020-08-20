@@ -11,20 +11,10 @@ import (
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
 
-// ProjectListOptions represents useful filter criteria when selecting multiple
-// Projects for API group operations like list.
-type ProjectListOptions struct {
-	// Continue aids in pagination of long lists. It permits clients to echo an
-	// opaque value obtained from a previous API call back to the API in a
-	// subsequent call in order to indicate what resource was the last on the
-	// previous page.
-	Continue string
-	// Limit aids in pagination of long lists. It permits clients to specify page
-	// size when making API calls. The API server provides a default when a value
-	// is not specified and may reject or override invalid values (non-positive)
-	// numbers or very large page sizes.
-	Limit int64
-}
+// ProjectSelector represents useful filter criteria when selecting multiple
+// Projects for API group operations like list. It currently has no fields, but
+// exists for future expansion.
+type ProjectSelector struct{}
 
 // ProjectList is an ordered and pageable list of ProjectS.
 type ProjectList struct {
@@ -50,21 +40,6 @@ func (p ProjectList) MarshalJSON() ([]byte, error) {
 			Alias: (Alias)(p),
 		},
 	)
-}
-
-// SecretListOptions represents useful filter criteria when selecting multiple
-// Secrets for API group operations like list.
-type SecretListOptions struct {
-	// Continue aids in pagination of long lists. It permits clients to echo an
-	// opaque value obtained from a previous API call back to the API in a
-	// subsequent call in order to indicate what resource was the last on the
-	// previous page.
-	Continue string
-	// Limit aids in pagination of long lists. It permits clients to specify page
-	// size when making API calls. The API server provides a default when a value
-	// is not specified and may reject or override invalid values (non-positive)
-	// numbers or very large page sizes.
-	Limit int64
 }
 
 // SecretList is an ordered and pageable list of Secrets.
@@ -108,7 +83,7 @@ type ProjectsClient interface {
 	CreateFromBytes(context.Context, []byte) (sdk.Project, error)
 	// List returns a ProjectList, with its Items (Projects) ordered
 	// alphabetically by Project ID.
-	List(context.Context, ProjectListOptions) (ProjectList, error)
+	List(context.Context, ProjectSelector, meta.ListOptions) (ProjectList, error)
 	// Get retrieves a single Project specified by its identifier.
 	Get(context.Context, string) (sdk.Project, error)
 	// Update updates an existing Project.
@@ -130,7 +105,7 @@ type ProjectsClient interface {
 	ListSecrets(
 		ctx context.Context,
 		projectID string,
-		opts SecretListOptions,
+		opts meta.ListOptions,
 	) (SecretList, error)
 	// SetSecret set the value of a new Secret or updates the value of an existing
 	// Secret.
@@ -200,7 +175,8 @@ func (p *projectsClient) CreateFromBytes(
 
 func (p *projectsClient) List(
 	_ context.Context,
-	opts ProjectListOptions,
+	_ ProjectSelector,
+	opts meta.ListOptions,
 ) (ProjectList, error) {
 	projects := ProjectList{}
 	return projects, p.executeRequest(
@@ -280,7 +256,7 @@ func (p *projectsClient) Delete(_ context.Context, id string) error {
 func (p *projectsClient) ListSecrets(
 	ctx context.Context,
 	projectID string,
-	opts SecretListOptions,
+	opts meta.ListOptions,
 ) (SecretList, error) {
 	secrets := SecretList{}
 	return secrets, p.executeRequest(

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/krancour/brignext/v2/apiserver/internal/serviceaccounts"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
@@ -89,7 +90,8 @@ func (s *store) Create(
 
 func (s *store) List(
 	ctx context.Context,
-	opts brignext.ServiceAccountListOptions,
+	_ brignext.ServiceAccountSelector,
+	opts meta.ListOptions,
 ) (brignext.ServiceAccountList, error) {
 	serviceAccounts := brignext.ServiceAccountList{}
 

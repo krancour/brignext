@@ -98,20 +98,10 @@ type KubernetesConfig struct {
 	Namespace string `json:"namespace,omitempty" bson:"namespace,omitempty"`
 }
 
-// ProjectListOptions represents useful filter criteria when selecting multiple
-// Projects for API group operations like list.
-type ProjectListOptions struct {
-	// Continue aids in pagination of long lists. It permits clients to echo an
-	// opaque value obtained from a previous API call back to the API in a
-	// subsequent call in order to indicate what resource was the last on the
-	// previous page.
-	Continue string
-	// Limit aids in pagination of long lists. It permits clients to specify page
-	// size when making API calls. The API server provides a default when a value
-	// is not specified and may reject or override invalid values (non-positive)
-	// numbers or very large page sizes.
-	Limit int64
-}
+// ProjectSelector represents useful filter criteria when selecting multiple
+// Projects for API group operations like list. It currently has no fields, but
+// exists for future expansion.
+type ProjectSelector struct{}
 
 // ProjectList is an ordered and pageable list of Projects.
 type ProjectList struct {

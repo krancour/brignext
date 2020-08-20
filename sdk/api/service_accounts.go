@@ -43,20 +43,10 @@ func (s ServiceAccount) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// ServiceAccountListOptions represents useful filter criteria when selecting
-// multiple ServiceAccounts for API group operations like list.
-type ServiceAccountListOptions struct {
-	// Continue aids in pagination of long lists. It permits clients to echo an
-	// opaque value obtained from a previous API call back to the API in a
-	// subsequent call in order to indicate what resource was the last on the
-	// previous page.
-	Continue string
-	// Limit aids in pagination of long lists. It permits clients to specify page
-	// size when making API calls. The API server provides a default when a value
-	// is not specified and may reject or override invalid values (non-positive)
-	// numbers or very large page sizes.
-	Limit int64
-}
+// ServiceAccountSelector represents useful filter criteria when selecting
+// multiple ServiceAccounts for API group operations like list. It currently has
+// no fields, but exists for future expansion.
+type ServiceAccountSelector struct{}
 
 // ServiceAccountList is an ordered and pageable list of ServiceAccounts.
 type ServiceAccountList struct {
@@ -90,7 +80,7 @@ type ServiceAccountsClient interface {
 	// Create creates a new ServiceAccount.
 	Create(context.Context, ServiceAccount) (Token, error)
 	// List returns a ServiceAccountList.
-	List(context.Context, ServiceAccountListOptions) (ServiceAccountList, error)
+	List(context.Context, ServiceAccountSelector, meta.ListOptions) (ServiceAccountList, error)
 	// Get retrieves a single ServiceAccount specified by its identifier.
 	Get(context.Context, string) (ServiceAccount, error)
 	// Lock removes access to the API for a single ServiceAccount specified by its
@@ -146,7 +136,8 @@ func (s *serviceAccountsClient) Create(
 
 func (s *serviceAccountsClient) List(
 	_ context.Context,
-	opts ServiceAccountListOptions,
+	_ ServiceAccountSelector,
+	opts meta.ListOptions,
 ) (ServiceAccountList, error) {
 	serviceAccounts := ServiceAccountList{}
 	return serviceAccounts, s.executeRequest(

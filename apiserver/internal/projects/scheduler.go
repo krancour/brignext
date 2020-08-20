@@ -10,6 +10,7 @@ import (
 
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -43,7 +44,7 @@ type Scheduler interface {
 	ListSecrets(
 		ctx context.Context,
 		project brignext.Project,
-		opts brignext.SecretListOptions,
+		opts meta.ListOptions,
 	) (brignext.SecretList, error)
 	SetSecret(
 		ctx context.Context,
@@ -300,7 +301,7 @@ func (s *scheduler) Delete(
 func (s *scheduler) ListSecrets(
 	ctx context.Context,
 	project brignext.Project,
-	opts brignext.SecretListOptions,
+	opts meta.ListOptions,
 ) (brignext.SecretList, error) {
 	secrets := brignext.SecretList{}
 

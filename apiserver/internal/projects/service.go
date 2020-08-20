@@ -5,6 +5,7 @@ import (
 	"time"
 
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/pkg/errors"
 )
 
@@ -19,7 +20,8 @@ type Service interface {
 	// alphabetically by Project ID.
 	List(
 		context.Context,
-		brignext.ProjectListOptions,
+		brignext.ProjectSelector,
+		meta.ListOptions,
 	) (brignext.ProjectList, error)
 	// Get retrieves a single Project specified by its identifier.
 	Get(context.Context, string) (brignext.Project, error)
@@ -34,7 +36,7 @@ type Service interface {
 	ListSecrets(
 		ctx context.Context,
 		projectID string,
-		opts brignext.SecretListOptions,
+		opts meta.ListOptions,
 	) (brignext.SecretList, error)
 	// SetSecret set the value of a new Secret or updates the value of an existing
 	// Secret.
@@ -96,12 +98,13 @@ func (s *service) Create(
 
 func (s *service) List(
 	ctx context.Context,
-	opts brignext.ProjectListOptions,
+	selector brignext.ProjectSelector,
+	opts meta.ListOptions,
 ) (brignext.ProjectList, error) {
 	if opts.Limit == 0 {
 		opts.Limit = 20
 	}
-	projects, err := s.store.List(ctx, opts)
+	projects, err := s.store.List(ctx, selector, opts)
 	if err != nil {
 		return projects, errors.Wrap(err, "error retrieving projects from store")
 	}
@@ -184,7 +187,7 @@ func (s *service) Delete(ctx context.Context, id string) error {
 func (s *service) ListSecrets(
 	ctx context.Context,
 	projectID string,
-	opts brignext.SecretListOptions,
+	opts meta.ListOptions,
 ) (brignext.SecretList, error) {
 	secrets := brignext.SecretList{}
 	project, err := s.store.Get(ctx, projectID)

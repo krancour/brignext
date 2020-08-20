@@ -13,25 +13,15 @@ import (
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
 
-// EventListOptions represents useful filter criteria when selecting multiple
+// EventSelector represents useful filter criteria when selecting multiple
 // Events for API group operations like list, cancel, or delete.
-type EventListOptions struct {
+type EventSelector struct {
 	// ProjectID specifies that Events belonging to the indicated Project should
 	// be selected.
 	ProjectID string
 	// WorkerPhases specifies that Events with their Worker's in any of the
 	// indicated phases should be selected.
 	WorkerPhases []sdk.WorkerPhase
-	// Continue aids in pagination of long lists. It permits clients to echo an
-	// opaque value obtained from a previous API call back to the API in a
-	// subsequent call in order to indicate what resource was the last on the
-	// previous page.
-	Continue string
-	// Limit aids in pagination of long lists. It permits clients to specify page
-	// size when making API calls. The API server provides a default when a value
-	// is not specified and may reject or override invalid values (non-positive)
-	// numbers or very large page sizes.
-	Limit int64
 }
 
 // EventList is an ordered and pageable list of Events.
@@ -61,11 +51,11 @@ func (e EventList) MarshalJSON() ([]byte, error) {
 }
 
 type CancelManyEventsResult struct {
-	Count int64 `json:count`
+	Count int64 `json:"count"`
 }
 
 type DeleteManyEventsResult struct {
-	Count int64 `json:count`
+	Count int64 `json:"count"`
 }
 
 // LogOptions represents useful criteria for identifying a specific container
@@ -98,19 +88,19 @@ type EventsClient interface {
 	// List returns an EventList, with its Items (Events) ordered by age, newest
 	// first. Criteria for which Events should be retrieved can be specified using
 	// the EventListOptions parameter.
-	List(context.Context, EventListOptions) (EventList, error)
+	List(context.Context, EventSelector, meta.ListOptions) (EventList, error)
 	// Get retrieves a single Event specified by its identifier.
 	Get(context.Context, string) (sdk.Event, error)
 	// Cancel cancels a single Event specified by its identifier.
 	Cancel(context.Context, string) error
 	// CancelMany cancels multiple Events specified by the EventListOptions
 	// parameter.
-	CancelMany(context.Context, EventListOptions) (CancelManyEventsResult, error)
+	CancelMany(context.Context, EventSelector) (CancelManyEventsResult, error)
 	// Delete deletes a single Event specified by its identifier.
 	Delete(context.Context, string) error
 	// DeleteMany deletes multiple Events specified by the EventListOptions
 	// parameter.
-	DeleteMany(context.Context, EventListOptions) (DeleteManyEventsResult, error)
+	DeleteMany(context.Context, EventSelector) (DeleteManyEventsResult, error)
 
 	// StartWorker starts the indicated Event's Worker on BrigNext's worlkoad
 	// execution substrate.
@@ -224,15 +214,16 @@ func (e *eventsClient) Create(
 
 func (e *eventsClient) List(
 	_ context.Context,
-	opts EventListOptions,
+	selector EventSelector,
+	opts meta.ListOptions,
 ) (EventList, error) {
 	queryParams := map[string]string{}
-	if opts.ProjectID != "" {
-		queryParams["projectID"] = opts.ProjectID
+	if selector.ProjectID != "" {
+		queryParams["projectID"] = selector.ProjectID
 	}
-	if len(opts.WorkerPhases) > 0 {
-		workerPhaseStrs := make([]string, len(opts.WorkerPhases))
-		for i, workerPhase := range opts.WorkerPhases {
+	if len(selector.WorkerPhases) > 0 {
+		workerPhaseStrs := make([]string, len(selector.WorkerPhases))
+		for i, workerPhase := range selector.WorkerPhases {
 			workerPhaseStrs[i] = string(workerPhase)
 		}
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
@@ -279,7 +270,7 @@ func (e *eventsClient) Cancel(_ context.Context, id string) error {
 
 func (e *eventsClient) CancelMany(
 	_ context.Context,
-	opts EventListOptions,
+	opts EventSelector,
 ) (CancelManyEventsResult, error) {
 	queryParams := map[string]string{}
 	if opts.ProjectID != "" {
@@ -318,15 +309,15 @@ func (e *eventsClient) Delete(_ context.Context, id string) error {
 
 func (e *eventsClient) DeleteMany(
 	_ context.Context,
-	opts EventListOptions,
+	selector EventSelector,
 ) (DeleteManyEventsResult, error) {
 	queryParams := map[string]string{}
-	if opts.ProjectID != "" {
-		queryParams["projectID"] = opts.ProjectID
+	if selector.ProjectID != "" {
+		queryParams["projectID"] = selector.ProjectID
 	}
-	if len(opts.WorkerPhases) > 0 {
-		workerPhaseStrs := make([]string, len(opts.WorkerPhases))
-		for i, workerPhase := range opts.WorkerPhases {
+	if len(selector.WorkerPhases) > 0 {
+		workerPhaseStrs := make([]string, len(selector.WorkerPhases))
+		for i, workerPhase := range selector.WorkerPhases {
 			workerPhaseStrs[i] = string(workerPhase)
 		}
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
