@@ -9,12 +9,12 @@ import (
 type LogsStore interface {
 	GetLogs(
 		ctx context.Context,
-		eventID string,
+		event brignext.Event,
 		opts brignext.LogOptions,
 	) (brignext.LogEntryList, error)
 	StreamLogs(
 		ctx context.Context,
-		eventID string,
+		event brignext.Event,
 		opts brignext.LogOptions,
 	) (<-chan brignext.LogEntry, error)
 }

@@ -125,7 +125,8 @@ type Service interface {
 type service struct {
 	projectsStore projects.Store
 	store         Store
-	logsStore     LogsStore
+	warmLogsStore LogsStore
+	coolLogsStore LogsStore
 	scheduler     Scheduler
 }
 
@@ -133,14 +134,16 @@ type service struct {
 func NewService(
 	projectsStore projects.Store,
 	store Store,
-	logsStore LogsStore,
+	warmLogsStore LogsStore,
+	coolLogsStore LogsStore,
 	scheduler Scheduler,
 ) Service {
 	return &service{
 		projectsStore: projectsStore,
 		store:         store,
 		scheduler:     scheduler,
-		logsStore:     logsStore,
+		warmLogsStore: warmLogsStore,
+		coolLogsStore: coolLogsStore,
 	}
 }
 
@@ -772,15 +775,18 @@ func (s *service) GetLogs(
 	if opts.Limit == 0 {
 		opts.Limit = 1000
 	}
-	_, err := s.store.Get(ctx, eventID)
+	event, err := s.store.Get(ctx, eventID)
 	if err != nil {
-		return logEntries, errors.Wrapf(
-			err,
-			"error retrieving event %q from store",
-			eventID,
-		)
+		return logEntries,
+			errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
-	return s.logsStore.GetLogs(ctx, eventID, opts)
+	// Try warm logs first and fall back on cooler logs if necessary.
+	logEntries, err = s.warmLogsStore.GetLogs(ctx, event, opts)
+	if err != nil {
+		log.Println(err)
+		logEntries, err = s.coolLogsStore.GetLogs(ctx, event, opts)
+	}
+	return logEntries, err
 }
 
 func (s *service) StreamLogs(
@@ -788,13 +794,15 @@ func (s *service) StreamLogs(
 	eventID string,
 	opts brignext.LogOptions,
 ) (<-chan brignext.LogEntry, error) {
-	_, err := s.store.Get(ctx, eventID)
+	event, err := s.store.Get(ctx, eventID)
 	if err != nil {
-		return nil, errors.Wrapf(
-			err,
-			"error retrieving event %q from store",
-			eventID,
-		)
+		return nil,
+			errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
-	return s.logsStore.StreamLogs(ctx, eventID, opts)
+	// Try warm logs first and fall back on cooler logs if necessary
+	logCh, err := s.warmLogsStore.StreamLogs(ctx, event, opts)
+	if err != nil {
+		logCh, err = s.coolLogsStore.StreamLogs(ctx, event, opts)
+	}
+	return logCh, err
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
 	"github.com/krancour/brignext/v2/apiserver/internal/events"
 	"github.com/krancour/brignext/v2/apiserver/internal/events/amqp"
+	eventsKubernetes "github.com/krancour/brignext/v2/apiserver/internal/events/kubernetes"
 	eventsMongodb "github.com/krancour/brignext/v2/apiserver/internal/events/mongodb"
 	"github.com/krancour/brignext/v2/apiserver/internal/mongodb"
 	"github.com/krancour/brignext/v2/apiserver/internal/oidc"
@@ -69,6 +70,7 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 	eventsService := events.NewService(
 		projectsStore,
 		eventsStore,
+		eventsKubernetes.NewLogsStore(kubeClient),
 		eventsMongodb.NewLogsStore(database),
 		scheduler,
 	)

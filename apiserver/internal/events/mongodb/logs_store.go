@@ -2,7 +2,6 @@ package mongodb
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"time"
 
@@ -26,14 +25,14 @@ func NewLogsStore(database *mongo.Database) events.LogsStore {
 
 func (l *logsStore) GetLogs(
 	ctx context.Context,
-	eventID string,
+	event brignext.Event,
 	opts brignext.LogOptions,
 ) (brignext.LogEntryList, error) {
 	logEntries := brignext.LogEntryList{
 		Items: []brignext.LogEntry{},
 	}
 
-	criteria := l.criteriaFromOptions(eventID, opts)
+	criteria := l.criteriaFromOptions(event.ID, opts)
 	if opts.Continue != "" {
 		continueTime, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", opts.Continue)
 		if err != nil {
@@ -52,7 +51,6 @@ func (l *logsStore) GetLogs(
 	}
 	// TODO: Why aren't we using cur.All() here?
 	for cur.Next(ctx) {
-		fmt.Println(".")
 		logEntry := brignext.LogEntry{}
 		err := cur.Decode(&logEntry)
 		if err != nil {
@@ -79,10 +77,10 @@ func (l *logsStore) GetLogs(
 
 func (l *logsStore) StreamLogs(
 	ctx context.Context,
-	eventID string,
+	event brignext.Event,
 	opts brignext.LogOptions,
 ) (<-chan brignext.LogEntry, error) {
-	criteria := l.criteriaFromOptions(eventID, opts)
+	criteria := l.criteriaFromOptions(event.ID, opts)
 
 	logEntryCh := make(chan brignext.LogEntry)
 	go func() {
