@@ -1,12 +1,9 @@
-import * as kubernetes from "@kubernetes/client-node"
 import * as jobs from "./brigadier/jobs"
 import * as groups from "./brigadier/groups"
 import { Event, EventRegistry } from "./brigadier/events"
 import { Logger } from "./brigadier/logger"
-import * as request from "request"
-import * as byline from "byline"
-import * as k8s from "./k8s"
-import axios from 'axios';
+import axios from 'axios'
+import * as http2 from 'http2'
 
 let currentEvent: Event
 
@@ -23,23 +20,13 @@ export function fire(event: Event) {
 }
 
 export class Job extends jobs.Job {
-
-  podName: string
-  k8sClient: kubernetes.CoreV1Api
   logger: Logger
-
-  cancel: boolean = false
-  reconnect: boolean = false
-
-  pod: kubernetes.V1Pod
 
   constructor(
     name: string,
     image: string,
   ) {
     super(name, image)
-    this.podName = `job-${currentEvent.id}-${name}`
-    this.k8sClient = k8s.defaultClient
     this.logger = new Logger(`job ${name}`)
   }
 
@@ -75,165 +62,92 @@ export class Job extends jobs.Job {
     }
   }
 
+  // TODO: Let's clean this up a bit
   private async wait(): Promise<void> {
-    let timeout = this.timeout || 60000
-    let name = this.name
-    let podUpdater: request.Request = undefined
+    let abortMonitor = false
+    let req: http2.ClientHttp2Stream
+  
+    // This promise will be resolved when the job succeeds or rejected when the
+    // job fails.
+    return new Promise((resolve, reject) => {
+      let startMonitorReq = () => {
+        const client = http2.connect(currentEvent.worker.apiAddress)
+        client.on('error', (err: any) => console.error(err))
+        req = client.request({
+          ':path': `/v2/events/${currentEvent.id}/worker/jobs/${this.name}/status?watch=true`,
+          "Authorization": `Bearer ${currentEvent.worker.apiToken}`
+        })
+        req.setEncoding('utf8')
 
-    // This is a handle to clear the setTimeout when the promise is fulfilled.
-    let waiter
+        req.on('response', (response) => {
+          let status = response[":status"]
+          if (status != 200) {
+            reject(new Error(`Received ${status} when attempting to stream job status`))
+            abortMonitor = true
+            req.destroy()
+          }
+        })
 
-    this.logger.log(`Timeout set at ${timeout} milliseconds`)
-
-    // At intervals, poll the Kubernetes server and get the pod phase. If the
-    // phase is Succeeded or Failed, bail out. Otherwise, keep polling.
-    //
-    // The timeout sets an upper limit, and if that limit is reached, the
-    // polling will be stopped.
-    //
-    // Essentially, we track two Timer objects: the setTimeout and the
-    // setInterval. That means we have to kill both before exit, otherwise the
-    // node.js process will remain running until all timeouts have executed.
-
-    // Poll the server waiting for a Succeeded.
-    let poll : Promise<void> = new Promise((resolve, reject) => {
-      let pollOnce = (name, ns, i) => {
-        if (!podUpdater) {
-          podUpdater = this.startUpdatingPod()
-        } else if (!this.cancel && this.reconnect) {
-          //if not intentionally cancelled, reconnect
-          this.reconnect = false
+        req.on('data', (data: string) => {
           try {
-            podUpdater.abort()
-          } catch (e) {
-            this.logger.log(e)
-          }
-          podUpdater = this.startUpdatingPod()
-        }
-        if (!this.pod || this.pod.status == undefined) {
-          this.logger.log("Pod not yet scheduled")
-          return
-        }
-
-        for (let containerStatus of this.pod.status.containerStatuses) {
-          // Trap image pull errors for any container and count it as fatal
-          if (
-            containerStatus.state.waiting && 
-            containerStatus.state.waiting.reason == "ErrImagePull"
-           ) {
-            this.k8sClient.deleteNamespacedPod(
-              name,
-              ns
-            ).catch(e => this.logger.error(e.body.message))
-            clearTimers()
-            reject(new Error(containerStatus.state.waiting.message))
-          }
-          // If we're looking at the state of the primary container, try to
-          // determine if we're running, succeeded, or failed...
-          if (containerStatus.name == this.pod.spec.containers[0].name) {
-            if (containerStatus.state.terminated) {
-              if (containerStatus.state.terminated.reason == "Completed") {
-                clearTimers()
+            const status: JobStatus = JSON.parse(data)
+            this.logger.log(`Job phase is ${status.phase}`)
+            switch (status.phase) {
+              case "ABORTED":
+                reject(new Error(`Job was aborted`))
+                abortMonitor = true
+                req.destroy()
+              case "FAILED":
+                reject(new Error(`Job failed`))
+                abortMonitor = true
+                req.destroy()
+              case "SUCCEEDED":
                 resolve()
-              } else {
-                clearTimers()
-                reject(new Error(`Pod ${name} primary container failed to run to completion`))
-              }
+                abortMonitor = true
+                req.destroy()
+              case "TIMED_OUT":
+                reject(new Error(`Job timed out`))
+                abortMonitor = true
+                req.destroy()
             }
+          } catch (e) { } // Let it stay connected
+        })
+
+        req.on("end", () => {
+          client.destroy()
+          if (!abortMonitor) {
+            // We got disconnected, but apparently not deliberately, so try
+            // again.
+            this.logger.log(`Had to restart the job monitor`)
+            startMonitorReq()
           }
-        }
-        this.logger.log(
-          `${currentEvent.project.kubernetes.namespace}/${this.podName} phase ${this.pod.status.phase}`
-        )
-        // In all other cases we fall through and let the fn be run again.
+        })
       }
-      let interval = setInterval(() => {
-        if (this.cancel) {
-          podUpdater.abort()
-          clearInterval(interval)
-          clearTimeout(waiter)
-          return
-        }
-        pollOnce(name, currentEvent.project.kubernetes.namespace, interval)
-      }, 2000)
-      let clearTimers = () => {
-        podUpdater.abort()
-        clearInterval(interval)
-        clearTimeout(waiter)
-      }
-
+      startMonitorReq() // This starts the monitor for the first time.
     })
-
-    // This will fail if the time limit is reached.
-    let timer : Promise<void> = new Promise((resolve, reject) => {
-      waiter = setTimeout(() => {
-        this.cancel = true
-        reject(new Error("time limit (" + timeout + " ms) exceeded"))
-      }, timeout)
-    })
-
-    return Promise.race([poll, timer])
-  }
-
-  private startUpdatingPod(): request.Request {
-    const url = `${k8s.config.getCurrentCluster().server}/api/v1/namespaces/${currentEvent.project.kubernetes.namespace}/pods`
-    const requestOptions = {
-      qs: {
-        watch: true,
-        timeoutSeconds: 200,
-        fieldSelector: `metadata.name=${this.podName}`
-      },
-      method: "GET",
-      uri: url,
-      useQuerystring: true,
-      json: true
-    }
-    k8s.config.applyToRequest(requestOptions)
-    const stream = new byline.LineStream()
-    stream.on("data", data => {
-      let obj = null
-      try {
-        if (data instanceof Buffer) {
-          obj = JSON.parse(data.toString())
-        } else {
-          obj = JSON.parse(data)
-        }
-      } catch (e) { } //let it stay connected.
-      if (obj && obj.object) {
-        this.pod = obj.object as kubernetes.V1Pod
-      }
-    })
-    const req = request(requestOptions, (error, response, body) => {
-      if (error) {
-        this.logger.error(error.body.message)
-        this.reconnect = true //reconnect unless aborted
-      }
-    })
-    req.pipe(stream)
-    req.on("end", () => {
-      this.reconnect = true
-    }) //stay connected on transient faults
-    return req
   }
 
   async logs(): Promise<string> {
-    if (this.cancel && this.pod == undefined || this.pod.status.phase == "Pending") {
-      return "pod " + this.podName + " still unscheduled or pending when job was canceled; no logs to return."
-    }
-    try {
-      let result = await this.k8sClient.readNamespacedPodLog(
-        this.podName,
-        currentEvent.project.kubernetes.namespace,
-        this.name,
-      )
-      return result.body
-    }
-    catch(err) {
-      // This specifically handles errors from reading the pod logs, unpacks it,
-      // and rethrows.
-      throw new Error(err.response.body.message)
-    }
+    // // TODO: Fix this
+    // if (this.cancel && this.pod == undefined || this.pod.status.phase == "Pending") {
+    //   return `Job ${this.name} still unscheduled or pending when job was canceled; no logs to return.`
+    // }
+    // try {
+    //   let result = await kubernetes.Config.defaultClient().readNamespacedPodLog(
+    //     `job-${currentEvent.id}-${this.name}`,
+    //     currentEvent.project.kubernetes.namespace,
+    //     this.name,
+    //   )
+    //   return result.body
+    // }
+    // catch(err) {
+    //   // This specifically handles errors from reading the pod logs, unpacks it,
+    //   // and rethrows.
+    //   throw new Error(err.response.body.message)
+    // }
+    return ""
   }
+
 }
 
 export class Group extends groups.Group {
@@ -242,4 +156,8 @@ export class Group extends groups.Group {
 
 export class Container extends jobs.Container {
   // This seems to be how you expose an existing class as an export.
+}
+
+interface JobStatus {
+  phase: string
 }
