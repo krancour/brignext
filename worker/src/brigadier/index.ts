@@ -7,8 +7,8 @@ export let events = new EventRegistry()
 
 export class Job extends jobs.Job {
 
-  run(): Promise<jobs.Result> {
-    return Promise.resolve(new jobs.Result("skipped run"))
+  run(): Promise<void> {
+    return Promise.resolve()
   }
 
   logs(): Promise<string> {

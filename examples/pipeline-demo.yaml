@@ -13,14 +13,24 @@ spec:
           let fooJob = new Job("foo", "debian:latest");
           fooJob.primaryContainer.command = ["echo"];
           fooJob.primaryContainer.arguments = ["foo"];
-          fooJob.run()
-          .then(() => {
-            let barJob = new Job("bar", "debian:latest");
-            barJob.primaryContainer.command = ["echo"];
-            barJob.primaryContainer.arguments = ["bar"];
-            return barJob.run();
-          })
-          .then(() => {
+
+          let barJob = new Job("bar", "debian:latest");
+          barJob.primaryContainer.command = ["echo"];
+          barJob.primaryContainer.arguments = ["bar"];
+
+          fooJob.run().then(() => {
+            return fooJob.logs();
+          }).then((logs) => {
+            console.log("----> foo logs -------------------------------------");
+            console.log(logs);
+            console.log("----> end foo logs ---------------------------------");
+            barJob.run();
+          }).then(() => {
+            return barJob.logs();
+          }).then((logs) => {
+            console.log("----> bar logs -------------------------------------");
+            console.log(logs);
+            console.log("----> end bar logs ---------------------------------");
             console.log("done");
           }).catch(e => {
             console.error(e);

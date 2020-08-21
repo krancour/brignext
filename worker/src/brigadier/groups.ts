@@ -1,13 +1,13 @@
-import { Job, Result } from "./jobs"
+import { Job } from "./jobs"
 
 export class Group {
 
-  public static async runAll(jobs: Job[]): Promise<Result[]> {
+  public static async runAll(jobs: Job[]): Promise<void[]> {
     let g = new Group(jobs)
     return g.runAll()
   }
 
-  public static async runEach(jobs: Job[]): Promise<Result[]> {
+  public static async runEach(jobs: Job[]): Promise<void> {
     let g = new Group(jobs)
     return g.runEach()
   }
@@ -28,17 +28,14 @@ export class Group {
     return this.jobs.length
   }
 
-  public async runEach(): Promise<Result[]> {
-    let results: Result[] = []
+  public async runEach(): Promise<void> {
     for (let job of this.jobs) {
-      let result = await job.run()
-      results.push(result)
+      await job.run()
     }
-    return results
   }
 
-  public async runAll(): Promise<Result[]> {
-    let plist: Promise<Result>[] = []
+  public async runAll(): Promise<void[]> {
+    let plist: Promise<void>[] = []
     for (let j of this.jobs) {
       plist.push(j.run())
     }

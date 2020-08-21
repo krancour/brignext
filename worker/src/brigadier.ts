@@ -30,7 +30,7 @@ export class Job extends jobs.Job {
     this.logger = new Logger(`job ${name}`)
   }
 
-  async run(): Promise<jobs.Result> {
+  async run(): Promise<void> {
     this.logger.log(`Creating job ${this.name}`)
     try {
       let response = await axios({
@@ -51,25 +51,19 @@ export class Job extends jobs.Job {
       if (response.status != 201) {
         throw new Error(response.data)
       }
-      // TODO: This watches directly using k8s-- don't do this
-      await this.wait()
-      let logs = await this.logs()
-      return new jobs.Result(logs)
     }
     catch(err) {
       // Wrap the original error to give clear context.
       throw new Error(`job ${this.name}: ${err}`)
     }
+    return this.wait()
   }
 
-  // TODO: Let's clean this up a bit
   private async wait(): Promise<void> {
-    let abortMonitor = false
-    let req: http2.ClientHttp2Stream
-  
-    // This promise will be resolved when the job succeeds or rejected when the
-    // job fails.
     return new Promise((resolve, reject) => {
+      let abortMonitor = false
+      let req: http2.ClientHttp2Stream
+      
       let startMonitorReq = () => {
         const client = http2.connect(currentEvent.worker.apiAddress)
         client.on('error', (err: any) => console.error(err))
@@ -145,7 +139,7 @@ export class Job extends jobs.Job {
     //   // and rethrows.
     //   throw new Error(err.response.body.message)
     // }
-    return ""
+    return "example log"
   }
 
 }

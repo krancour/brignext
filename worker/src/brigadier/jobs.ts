@@ -15,7 +15,7 @@ export abstract class Job {
     this.primaryContainer = new Container(image)
   }
 
-  public abstract run(): Promise<Result>
+  public abstract run(): Promise<void>
 
   public abstract logs(): Promise<string>
 }
@@ -41,14 +41,4 @@ export class Container {
 export class JobHost {
   public os?: string
   public nodeSelector: Map<string, string> = new Map<string, string>()
-}
-
-export class Result {
-  data: string
-  constructor(msg: string) {
-    this.data = msg
-  }
-  toString(): string {
-    return this.data
-  }
 }
