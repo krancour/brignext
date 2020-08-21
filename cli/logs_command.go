@@ -2,15 +2,10 @@ package main
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/AlecAivazis/survey/v2"
-	"github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/sdk/api"
-	"github.com/krancour/brignext/v2/sdk/meta"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 var logsCommand = &cli.Command{
@@ -52,68 +47,17 @@ func logs(c *cli.Context) error {
 		Job:       c.String(flagJob),
 		Container: c.String(flagContainer),
 	}
-	opts := meta.ListOptions{}
+	opts := api.LogStreamOptions{
+		Follow: follow,
+	}
 
 	client, err := getClient(c)
 	if err != nil {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if !follow {
-		for {
-			var logEntries sdk.LogEntryList
-			if logEntries, err =
-				client.Events().GetLogs(
-					c.Context,
-					eventID,
-					selector,
-					opts,
-				); err != nil {
-				return err
-			}
-			for _, logEntry := range logEntries.Items {
-				fmt.Println(logEntry.Message)
-			}
-
-			if logEntries.RemainingItemCount < 1 || logEntries.Continue == "" {
-				break
-			}
-
-			// Exit after one page of output if this isn't a terminal
-			if !terminal.IsTerminal(int(os.Stdout.Fd())) {
-				break
-			}
-
-			// TODO: DRY this up
-			var shouldContinue bool
-			fmt.Println()
-			if err := survey.AskOne(
-				&survey.Confirm{
-					Message: fmt.Sprintf(
-						"%d results remain. Fetch more?",
-						logEntries.RemainingItemCount,
-					),
-				},
-				&shouldContinue,
-			); err != nil {
-				return errors.Wrap(
-					err,
-					"error confirming if user wishes to continue",
-				)
-			}
-			fmt.Println()
-			if !shouldContinue {
-				break
-			}
-
-			opts.Continue = logEntries.Continue
-		}
-
-		return nil
-	}
-
 	logEntryCh, errCh, err :=
-		client.Events().StreamLogs(c.Context, eventID, selector)
+		client.Events().StreamLogs(c.Context, eventID, selector, opts)
 	if err != nil {
 		return err
 	}

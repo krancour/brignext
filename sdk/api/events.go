@@ -62,11 +62,15 @@ type DeleteManyEventsResult struct {
 type LogsSelector struct {
 	// Job specifies, by name, a Job spawned by the Worker. If this field is
 	// left blank, it is presumed logs are desired for the Worker itself.
-	Job string `json:"job,omitempty"`
+	Job string
 	// Container specifies, by name, a container belonging to the Worker or Job
 	// whose logs are being retrieved. If left blank, a container with the same
 	// name as the Worker or Job is assumed.
-	Container string `json:"container,omitempty"`
+	Container string
+}
+
+type LogStreamOptions struct {
+	Follow bool `json:"follow"`
 }
 
 // EventsClient is the specialized client for managing Events with the BrigNext
@@ -142,21 +146,14 @@ type EventsClient interface {
 		status sdk.JobStatus,
 	) error
 
-	// GetLogs retrieves logs for an Event's Worker, or using the LogOptions
-	// parameter, a Job spawned by that Worker (or specific container thereof).
-	GetLogs(
-		ctx context.Context,
-		eventID string,
-		selector LogsSelector,
-		opts meta.ListOptions,
-	) (sdk.LogEntryList, error)
 	// StreamLogs returns a channel over which logs for an Event's Worker, or
-	// using the LogOptions parameter, a Job spawned by that Worker (or specific
+	// using the LogsSelector parameter, a Job spawned by that Worker (or specific
 	// container thereof), are streamed.
 	StreamLogs(
 		ctx context.Context,
 		eventID string,
 		selector LogsSelector,
+		opts LogStreamOptions,
 	) (<-chan sdk.LogEntry, <-chan error, error)
 }
 
@@ -490,39 +487,29 @@ func (e *eventsClient) UpdateJobStatus(
 	)
 }
 
-func (e *eventsClient) GetLogs(
-	ctx context.Context,
-	eventID string,
-	selector LogsSelector,
-	opts meta.ListOptions,
-) (sdk.LogEntryList, error) {
-	logEntries := sdk.LogEntryList{}
-	return logEntries, e.executeRequest(
-		outboundRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/events/%s/logs", eventID),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: e.appendListQueryParams(
-				e.queryParamsFromLogsSelector(selector, false), // Don't stream
-				opts,
-			),
-			successCode: http.StatusOK,
-			respObj:     &logEntries,
-		},
-	)
-}
-
 func (e *eventsClient) StreamLogs(
 	ctx context.Context,
 	eventID string,
 	selector LogsSelector,
+	opts LogStreamOptions,
 ) (<-chan sdk.LogEntry, <-chan error, error) {
+	queryParams := map[string]string{}
+	if selector.Job != "" {
+		queryParams["job"] = selector.Job
+	}
+	if selector.Container != "" {
+		queryParams["container"] = selector.Container
+	}
+	if opts.Follow {
+		queryParams["follow"] = "true"
+	}
+
 	resp, err := e.submitRequest(
 		outboundRequest{
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/events/%s/logs", eventID),
 			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: e.queryParamsFromLogsSelector(selector, true), // Stream
+			queryParams: queryParams,
 			successCode: http.StatusOK,
 		},
 	)
@@ -536,27 +523,6 @@ func (e *eventsClient) StreamLogs(
 	go e.receiveLogStream(ctx, resp.Body, logCh, errCh)
 
 	return logCh, errCh, nil
-}
-
-// queryParamsFromLogSelector creates a map[string]string of query parameters
-// based on the values of each field in the provided LogsSelector and a boolean
-// indicating whether the client is requesting a log stream (and not a static
-// list of log messages).
-func (e *eventsClient) queryParamsFromLogsSelector(
-	selector LogsSelector,
-	stream bool,
-) map[string]string {
-	queryParams := map[string]string{}
-	if selector.Job != "" {
-		queryParams["job"] = selector.Job
-	}
-	if selector.Container != "" {
-		queryParams["container"] = selector.Container
-	}
-	if stream {
-		queryParams["stream"] = "true"
-	}
-	return queryParams
 }
 
 func (e *eventsClient) receiveWorkerStatusStream(
@@ -617,11 +583,16 @@ func (e *eventsClient) receiveLogStream(
 	logEntryCh chan<- sdk.LogEntry,
 	errCh chan<- error,
 ) {
+	defer close(logEntryCh)
+	defer close(errCh)
 	defer reader.Close()
 	decoder := json.NewDecoder(reader)
 	for {
 		logEntry := sdk.LogEntry{}
 		if err := decoder.Decode(&logEntry); err != nil {
+			if err == io.EOF {
+				return
+			}
 			select {
 			case errCh <- err:
 			case <-ctx.Done():

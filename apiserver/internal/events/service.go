@@ -107,21 +107,14 @@ type Service interface {
 		status brignext.JobStatus,
 	) error
 
-	// GetLogs retrieves logs for an Event's Worker, or using the LogOptions
-	// parameter, a Job spawned by that Worker (or specific container thereof).
-	GetLogs(
-		ctx context.Context,
-		eventID string,
-		selector brignext.LogsSelector,
-		opts meta.ListOptions,
-	) (brignext.LogEntryList, error)
 	// StreamLogs returns a channel over which logs for an Event's Worker, or
-	// using the LogOptions parameter, a Job spawned by that Worker (or specific
+	// using the LogsSelector parameter, a Job spawned by that Worker (or specific
 	// container thereof), are streamed.
 	StreamLogs(
 		ctx context.Context,
 		eventID string,
 		selector brignext.LogsSelector,
+		opts brignext.LogStreamOptions,
 	) (<-chan brignext.LogEntry, error)
 }
 
@@ -770,34 +763,11 @@ func (s *service) UpdateJobStatus(
 	return nil
 }
 
-func (s *service) GetLogs(
-	ctx context.Context,
-	eventID string,
-	selector brignext.LogsSelector,
-	opts meta.ListOptions,
-) (brignext.LogEntryList, error) {
-	logEntries := brignext.LogEntryList{}
-	if opts.Limit == 0 {
-		opts.Limit = 1000
-	}
-	event, err := s.store.Get(ctx, eventID)
-	if err != nil {
-		return logEntries,
-			errors.Wrapf(err, "error retrieving event %q from store", eventID)
-	}
-	// Try warm logs first and fall back on cooler logs if necessary.
-	logEntries, err = s.warmLogsStore.GetLogs(ctx, event, selector, opts)
-	if err != nil {
-		log.Println(err)
-		logEntries, err = s.coolLogsStore.GetLogs(ctx, event, selector, opts)
-	}
-	return logEntries, err
-}
-
 func (s *service) StreamLogs(
 	ctx context.Context,
 	eventID string,
 	selector brignext.LogsSelector,
+	opts brignext.LogStreamOptions,
 ) (<-chan brignext.LogEntry, error) {
 	event, err := s.store.Get(ctx, eventID)
 	if err != nil {
@@ -805,9 +775,9 @@ func (s *service) StreamLogs(
 			errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
 	// Try warm logs first and fall back on cooler logs if necessary
-	logCh, err := s.warmLogsStore.StreamLogs(ctx, event, selector)
+	logCh, err := s.warmLogsStore.StreamLogs(ctx, event, selector, opts)
 	if err != nil {
-		logCh, err = s.coolLogsStore.StreamLogs(ctx, event, selector)
+		logCh, err = s.coolLogsStore.StreamLogs(ctx, event, selector, opts)
 	}
 	return logCh, err
 }

@@ -119,10 +119,10 @@ func (e *endpoints) Register(router *mux.Router) {
 		e.TokenAuthFilter.Decorate(e.updateJobStatus),
 	).Methods(http.MethodPut)
 
-	// Get/stream logs
+	// Stream logs
 	router.HandleFunc(
 		"/v2/events/{id}/logs",
-		e.TokenAuthFilter.Decorate(e.getOrStreamLogs),
+		e.TokenAuthFilter.Decorate(e.streamLogs),
 	).Methods(http.MethodGet)
 }
 
@@ -462,54 +462,23 @@ func (e *endpoints) updateJobStatus(
 	)
 }
 
-func (e *endpoints) getOrStreamLogs(
+func (e *endpoints) streamLogs(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
 	id := mux.Vars(r)["id"]
 	// nolint: errcheck
-	stream, _ := strconv.ParseBool(r.URL.Query().Get("stream"))
+	follow, _ := strconv.ParseBool(r.URL.Query().Get("follow"))
 
 	selector := brignext.LogsSelector{
 		Job:       r.URL.Query().Get("job"),
 		Container: r.URL.Query().Get("container"),
 	}
-	opts := meta.ListOptions{
-		Continue: r.URL.Query().Get("continue"),
-	}
-	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
-		var err error
-		if opts.Limit, err = strconv.ParseInt(limitStr, 10, 64); err != nil ||
-			opts.Limit < 1 || opts.Limit > 100 {
-			e.WriteAPIResponse(
-				w,
-				http.StatusBadRequest,
-				&brignext.ErrBadRequest{
-					Reason: fmt.Sprintf(
-						`Invalid value %q for "limit" query parameter`,
-						limitStr,
-					),
-				},
-			)
-			return
-		}
+	opts := brignext.LogStreamOptions{
+		Follow: follow,
 	}
 
-	if !stream {
-		e.ServeRequest(
-			apimachinery.InboundRequest{
-				W: w,
-				R: r,
-				EndpointLogic: func() (interface{}, error) {
-					return e.service.GetLogs(r.Context(), id, selector, opts)
-				},
-				SuccessCode: http.StatusOK,
-			},
-		)
-		return
-	}
-
-	logEntryCh, err := e.service.StreamLogs(r.Context(), id, selector)
+	logEntryCh, err := e.service.StreamLogs(r.Context(), id, selector, opts)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
 			e.WriteAPIResponse(w, http.StatusNotFound, errors.Cause(err))
