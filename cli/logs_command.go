@@ -63,11 +63,28 @@ func logs(c *cli.Context) error {
 	}
 	for {
 		select {
-		case logEntry := <-logEntryCh:
-			fmt.Println(logEntry.Message)
-		case err := <-errCh:
-			return err
+		case logEntry, ok := <-logEntryCh:
+			if ok {
+				fmt.Println(logEntry.Message)
+			} else {
+				// logEntryCh was closed, but want to keep looping through this select
+				// in case there are pending errors on the errCh still. nil channels are
+				// never readable, so we'll just nil out logEntryCh and move on.
+				logEntryCh = nil
+			}
+		case err, ok := <-errCh:
+			if ok {
+				return err
+			}
+			// errCh was closed, but want to keep looping through this select in case
+			// there are pending messages on the logEntryCh still. nil channels are
+			// never readable, so we'll just nil out errCh and move on.
+			errCh = nil
 		case <-c.Context.Done():
+			return nil
+		}
+		// If BOTH logEntryCh and errCh were closed, we're done.
+		if logEntryCh == nil && errCh == nil {
 			return nil
 		}
 	}
