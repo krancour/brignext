@@ -99,7 +99,7 @@ func (s *store) Create(
 
 func (s *store) List(
 	ctx context.Context,
-	_ brignext.ProjectSelector,
+	_ brignext.ProjectsSelector,
 	opts meta.ListOptions,
 ) (brignext.ProjectList, error) {
 	projects := brignext.ProjectList{}

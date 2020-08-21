@@ -13,9 +13,9 @@ import (
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
 
-// EventSelector represents useful filter criteria when selecting multiple
+// EventsSelector represents useful filter criteria when selecting multiple
 // Events for API group operations like list, cancel, or delete.
-type EventSelector struct {
+type EventsSelector struct {
 	// ProjectID specifies that Events belonging to the indicated Project should
 	// be selected.
 	ProjectID string
@@ -58,9 +58,8 @@ type DeleteManyEventsResult struct {
 	Count int64 `json:"count"`
 }
 
-// LogOptions represents useful criteria for identifying a specific container
-// of a specific Job when requesting Event logs.
-type LogOptions struct {
+// TODO: Document this
+type LogsSelector struct {
 	// Job specifies, by name, a Job spawned by the Worker. If this field is
 	// left blank, it is presumed logs are desired for the Worker itself.
 	Job string `json:"job,omitempty"`
@@ -68,16 +67,6 @@ type LogOptions struct {
 	// whose logs are being retrieved. If left blank, a container with the same
 	// name as the Worker or Job is assumed.
 	Container string `json:"container,omitempty"`
-	// Continue aids in pagination of long lists. It permits clients to echo an
-	// opaque value obtained from a previous API call back to the API in a
-	// subsequent call in order to indicate what resource was the last on the
-	// previous page.
-	Continue string
-	// Limit aids in pagination of long lists. It permits clients to specify page
-	// size when making API calls. The API server provides a default when a value
-	// is not specified and may reject or override invalid values (non-positive)
-	// numbers or very large page sizes.
-	Limit int64
 }
 
 // EventsClient is the specialized client for managing Events with the BrigNext
@@ -88,19 +77,19 @@ type EventsClient interface {
 	// List returns an EventList, with its Items (Events) ordered by age, newest
 	// first. Criteria for which Events should be retrieved can be specified using
 	// the EventListOptions parameter.
-	List(context.Context, EventSelector, meta.ListOptions) (EventList, error)
+	List(context.Context, EventsSelector, meta.ListOptions) (EventList, error)
 	// Get retrieves a single Event specified by its identifier.
 	Get(context.Context, string) (sdk.Event, error)
 	// Cancel cancels a single Event specified by its identifier.
 	Cancel(context.Context, string) error
 	// CancelMany cancels multiple Events specified by the EventListOptions
 	// parameter.
-	CancelMany(context.Context, EventSelector) (CancelManyEventsResult, error)
+	CancelMany(context.Context, EventsSelector) (CancelManyEventsResult, error)
 	// Delete deletes a single Event specified by its identifier.
 	Delete(context.Context, string) error
 	// DeleteMany deletes multiple Events specified by the EventListOptions
 	// parameter.
-	DeleteMany(context.Context, EventSelector) (DeleteManyEventsResult, error)
+	DeleteMany(context.Context, EventsSelector) (DeleteManyEventsResult, error)
 
 	// StartWorker starts the indicated Event's Worker on BrigNext's worlkoad
 	// execution substrate.
@@ -158,7 +147,8 @@ type EventsClient interface {
 	GetLogs(
 		ctx context.Context,
 		eventID string,
-		opts LogOptions,
+		selector LogsSelector,
+		opts meta.ListOptions,
 	) (sdk.LogEntryList, error)
 	// StreamLogs returns a channel over which logs for an Event's Worker, or
 	// using the LogOptions parameter, a Job spawned by that Worker (or specific
@@ -166,7 +156,7 @@ type EventsClient interface {
 	StreamLogs(
 		ctx context.Context,
 		eventID string,
-		opts LogOptions,
+		selector LogsSelector,
 	) (<-chan sdk.LogEntry, <-chan error, error)
 }
 
@@ -214,7 +204,7 @@ func (e *eventsClient) Create(
 
 func (e *eventsClient) List(
 	_ context.Context,
-	selector EventSelector,
+	selector EventsSelector,
 	opts meta.ListOptions,
 ) (EventList, error) {
 	queryParams := map[string]string{}
@@ -234,7 +224,7 @@ func (e *eventsClient) List(
 			method:      http.MethodGet,
 			path:        "v2/events",
 			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: e.appendListQueryParams(queryParams, opts.Continue, opts.Limit),
+			queryParams: e.appendListQueryParams(queryParams, opts),
 			successCode: http.StatusOK,
 			respObj:     &events,
 		},
@@ -270,7 +260,7 @@ func (e *eventsClient) Cancel(_ context.Context, id string) error {
 
 func (e *eventsClient) CancelMany(
 	_ context.Context,
-	opts EventSelector,
+	opts EventsSelector,
 ) (CancelManyEventsResult, error) {
 	queryParams := map[string]string{}
 	if opts.ProjectID != "" {
@@ -309,7 +299,7 @@ func (e *eventsClient) Delete(_ context.Context, id string) error {
 
 func (e *eventsClient) DeleteMany(
 	_ context.Context,
-	selector EventSelector,
+	selector EventsSelector,
 ) (DeleteManyEventsResult, error) {
 	queryParams := map[string]string{}
 	if selector.ProjectID != "" {
@@ -503,7 +493,8 @@ func (e *eventsClient) UpdateJobStatus(
 func (e *eventsClient) GetLogs(
 	ctx context.Context,
 	eventID string,
-	opts LogOptions,
+	selector LogsSelector,
+	opts meta.ListOptions,
 ) (sdk.LogEntryList, error) {
 	logEntries := sdk.LogEntryList{}
 	return logEntries, e.executeRequest(
@@ -511,7 +502,10 @@ func (e *eventsClient) GetLogs(
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/events/%s/logs", eventID),
 			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: e.queryParamsFromLogOptions(opts, false), // Don't stream
+			queryParams: e.appendListQueryParams(
+				e.queryParamsFromLogsSelector(selector, false), // Don't stream
+				opts,
+			),
 			successCode: http.StatusOK,
 			respObj:     &logEntries,
 		},
@@ -521,14 +515,14 @@ func (e *eventsClient) GetLogs(
 func (e *eventsClient) StreamLogs(
 	ctx context.Context,
 	eventID string,
-	opts LogOptions,
+	selector LogsSelector,
 ) (<-chan sdk.LogEntry, <-chan error, error) {
 	resp, err := e.submitRequest(
 		outboundRequest{
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/events/%s/logs", eventID),
 			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: e.queryParamsFromLogOptions(opts, true), // Stream
+			queryParams: e.queryParamsFromLogsSelector(selector, true), // Stream
 			successCode: http.StatusOK,
 		},
 	)
@@ -544,25 +538,25 @@ func (e *eventsClient) StreamLogs(
 	return logCh, errCh, nil
 }
 
-// queryParamsFromLogOptions creates a map[string]string of query parameters
-// based on the values of each field in the provided LogOptions and a boolean
+// queryParamsFromLogSelector creates a map[string]string of query parameters
+// based on the values of each field in the provided LogsSelector and a boolean
 // indicating whether the client is requesting a log stream (and not a static
 // list of log messages).
-func (e *eventsClient) queryParamsFromLogOptions(
-	opts LogOptions,
+func (e *eventsClient) queryParamsFromLogsSelector(
+	selector LogsSelector,
 	stream bool,
 ) map[string]string {
 	queryParams := map[string]string{}
-	if opts.Job != "" {
-		queryParams["job"] = opts.Job
+	if selector.Job != "" {
+		queryParams["job"] = selector.Job
 	}
-	if opts.Container != "" {
-		queryParams["container"] = opts.Container
+	if selector.Container != "" {
+		queryParams["container"] = selector.Container
 	}
 	if stream {
 		queryParams["stream"] = "true"
 	}
-	return e.appendListQueryParams(queryParams, opts.Continue, opts.Limit)
+	return queryParams
 }
 
 func (e *eventsClient) receiveWorkerStatusStream(

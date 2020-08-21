@@ -143,7 +143,7 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
-	selector := brignext.EventSelector{
+	selector := brignext.EventsSelector{
 		ProjectID: r.URL.Query().Get("projectID"),
 	}
 	opts := meta.ListOptions{
@@ -217,7 +217,7 @@ func (e *endpoints) cancelMany(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	selector := brignext.EventSelector{
+	selector := brignext.EventsSelector{
 		ProjectID: r.URL.Query().Get("projectID"),
 	}
 	workerPhasesStr := r.URL.Query().Get("workerPhases")
@@ -254,7 +254,7 @@ func (e *endpoints) delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *endpoints) deleteMany(w http.ResponseWriter, r *http.Request) {
-	selector := brignext.EventSelector{
+	selector := brignext.EventsSelector{
 		ProjectID: r.URL.Query().Get("projectID"),
 	}
 	workerPhasesStr := r.URL.Query().Get("workerPhases")
@@ -465,10 +465,12 @@ func (e *endpoints) getOrStreamLogs(
 	// nolint: errcheck
 	stream, _ := strconv.ParseBool(r.URL.Query().Get("stream"))
 
-	opts := brignext.LogOptions{
+	selector := brignext.LogsSelector{
 		Job:       r.URL.Query().Get("job"),
 		Container: r.URL.Query().Get("container"),
-		Continue:  r.URL.Query().Get("continue"),
+	}
+	opts := meta.ListOptions{
+		Continue: r.URL.Query().Get("continue"),
 	}
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
 		var err error
@@ -494,7 +496,7 @@ func (e *endpoints) getOrStreamLogs(
 				W: w,
 				R: r,
 				EndpointLogic: func() (interface{}, error) {
-					return e.service.GetLogs(r.Context(), id, opts)
+					return e.service.GetLogs(r.Context(), id, selector, opts)
 				},
 				SuccessCode: http.StatusOK,
 			},
@@ -502,7 +504,7 @@ func (e *endpoints) getOrStreamLogs(
 		return
 	}
 
-	logEntryCh, err := e.service.StreamLogs(r.Context(), id, opts)
+	logEntryCh, err := e.service.StreamLogs(r.Context(), id, selector)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
 			e.WriteAPIResponse(w, http.StatusNotFound, errors.Cause(err))

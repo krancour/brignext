@@ -11,7 +11,7 @@ type Store interface {
 	Create(context.Context, brignext.Project) error
 	List(
 		context.Context,
-		brignext.ProjectSelector,
+		brignext.ProjectsSelector,
 		meta.ListOptions,
 	) (brignext.ProjectList, error)
 	ListSubscribers(

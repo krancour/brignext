@@ -43,10 +43,10 @@ func (s ServiceAccount) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// ServiceAccountSelector represents useful filter criteria when selecting
+// ServiceAccountsSelector represents useful filter criteria when selecting
 // multiple ServiceAccounts for API group operations like list. It currently has
 // no fields, but exists for future expansion.
-type ServiceAccountSelector struct{}
+type ServiceAccountsSelector struct{}
 
 // ServiceAccountList is an ordered and pageable list of ServiceAccounts.
 type ServiceAccountList struct {
@@ -80,7 +80,7 @@ type ServiceAccountsClient interface {
 	// Create creates a new ServiceAccount.
 	Create(context.Context, ServiceAccount) (Token, error)
 	// List returns a ServiceAccountList.
-	List(context.Context, ServiceAccountSelector, meta.ListOptions) (ServiceAccountList, error)
+	List(context.Context, ServiceAccountsSelector, meta.ListOptions) (ServiceAccountList, error)
 	// Get retrieves a single ServiceAccount specified by its identifier.
 	Get(context.Context, string) (ServiceAccount, error)
 	// Lock removes access to the API for a single ServiceAccount specified by its
@@ -136,7 +136,7 @@ func (s *serviceAccountsClient) Create(
 
 func (s *serviceAccountsClient) List(
 	_ context.Context,
-	_ ServiceAccountSelector,
+	_ ServiceAccountsSelector,
 	opts meta.ListOptions,
 ) (ServiceAccountList, error) {
 	serviceAccounts := ServiceAccountList{}
@@ -145,7 +145,7 @@ func (s *serviceAccountsClient) List(
 			method:      http.MethodGet,
 			path:        "v2/service-accounts",
 			authHeaders: s.bearerTokenAuthHeaders(),
-			queryParams: s.appendListQueryParams(nil, opts.Continue, opts.Limit),
+			queryParams: s.appendListQueryParams(nil, opts),
 			successCode: http.StatusOK,
 			respObj:     &serviceAccounts,
 		},

@@ -20,7 +20,7 @@ type Service interface {
 	// alphabetically by Project ID.
 	List(
 		context.Context,
-		brignext.ProjectSelector,
+		brignext.ProjectsSelector,
 		meta.ListOptions,
 	) (brignext.ProjectList, error)
 	// Get retrieves a single Project specified by its identifier.
@@ -98,7 +98,7 @@ func (s *service) Create(
 
 func (s *service) List(
 	ctx context.Context,
-	selector brignext.ProjectSelector,
+	selector brignext.ProjectsSelector,
 	opts meta.ListOptions,
 ) (brignext.ProjectList, error) {
 	if opts.Limit == 0 {

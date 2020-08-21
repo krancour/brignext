@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/krancour/brignext/v2/sdk/meta"
 	"github.com/pkg/errors"
 )
 
@@ -81,17 +82,16 @@ func (b *baseClient) bearerTokenAuthHeaders() map[string]string {
 // provided, a new one is instantiated.
 func (b *baseClient) appendListQueryParams(
 	queryParams map[string]string,
-	cntinue string,
-	limit int64,
+	opts meta.ListOptions,
 ) map[string]string {
 	if queryParams == nil {
 		queryParams = map[string]string{}
 	}
-	if cntinue != "" {
-		queryParams["continue"] = cntinue
+	if opts.Continue != "" {
+		queryParams["continue"] = opts.Continue
 	}
-	if limit != 0 {
-		queryParams["limit"] = strconv.FormatInt(limit, 10)
+	if opts.Limit != 0 {
+		queryParams["limit"] = strconv.FormatInt(opts.Limit, 10)
 	}
 	return queryParams
 }

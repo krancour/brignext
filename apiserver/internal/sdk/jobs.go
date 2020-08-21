@@ -66,7 +66,7 @@ type JobHost struct {
 	// TODO: Document this
 	OS string `json:"os,omitempty" bson:"os,omitempty"`
 	// TODO: Document this
-	NodeSelector map[string]string `json:"nodeSelector,omitempty" bson:"nodeSelector,omitempty"`
+	NodeSelector map[string]string `json:"nodeSelector,omitempty" bson:"nodeSelector,omitempty"` // nolint: lll
 }
 
 // JobStatus represents the status of a Job.

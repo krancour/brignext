@@ -19,7 +19,7 @@ type Service interface {
 	// List returns a UserList.
 	List(
 		context.Context,
-		brignext.UserSelector,
+		brignext.UsersSelector,
 		meta.ListOptions,
 	) (brignext.UserList, error)
 	// Get retrieves a single User specified by their identifier.
@@ -54,7 +54,7 @@ func (s *service) Create(ctx context.Context, user brignext.User) error {
 
 func (s *service) List(
 	ctx context.Context,
-	selector brignext.UserSelector,
+	selector brignext.UsersSelector,
 	opts meta.ListOptions,
 ) (brignext.UserList, error) {
 	if opts.Limit == 0 {

@@ -11,7 +11,7 @@ type Store interface {
 	Create(context.Context, brignext.ServiceAccount) error
 	List(
 		context.Context,
-		brignext.ServiceAccountSelector,
+		brignext.ServiceAccountsSelector,
 		meta.ListOptions,
 	) (brignext.ServiceAccountList, error)
 	Get(context.Context, string) (brignext.ServiceAccount, error)

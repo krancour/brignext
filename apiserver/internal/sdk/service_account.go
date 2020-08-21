@@ -30,10 +30,10 @@ func (s ServiceAccount) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// ServiceAccountSelector represents useful filter criteria when selecting
+// ServiceAccountsSelector represents useful filter criteria when selecting
 // multiple ServiceAccounts for API group operations like list. It currently has
 // no fields, but exists for future expansion.
-type ServiceAccountSelector struct{}
+type ServiceAccountsSelector struct{}
 
 // ServiceAccountList is an ordered and pageable list of ServiceAccounts.
 type ServiceAccountList struct {

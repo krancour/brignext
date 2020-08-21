@@ -98,10 +98,10 @@ type KubernetesConfig struct {
 	Namespace string `json:"namespace,omitempty" bson:"namespace,omitempty"`
 }
 
-// ProjectSelector represents useful filter criteria when selecting multiple
+// ProjectsSelector represents useful filter criteria when selecting multiple
 // Projects for API group operations like list. It currently has no fields, but
 // exists for future expansion.
-type ProjectSelector struct{}
+type ProjectsSelector struct{}
 
 // ProjectList is an ordered and pageable list of Projects.
 type ProjectList struct {

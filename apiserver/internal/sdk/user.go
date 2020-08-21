@@ -29,10 +29,10 @@ func (u User) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// UserSelector represents useful filter criteria when selecting multiple Users
+// UsersSelector represents useful filter criteria when selecting multiple Users
 // for API group operations like list. It currently has no fields, but exists
 // for future expansion.
-type UserSelector struct{}
+type UsersSelector struct{}
 
 // UserList is an ordered and pageable list of Users.
 type UserList struct {

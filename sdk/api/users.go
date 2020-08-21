@@ -41,10 +41,10 @@ func (u User) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// UserSelector represents useful filter criteria when selecting multiple Users
+// UsersSelector represents useful filter criteria when selecting multiple Users
 // for API group operations like list. It currently has no fields, but exists
 // for future expansion.
-type UserSelector struct{}
+type UsersSelector struct{}
 
 // UserList is an ordered and pageable list of Users.
 type UserList struct {
@@ -76,7 +76,7 @@ func (u UserList) MarshalJSON() ([]byte, error) {
 // API.
 type UsersClient interface {
 	// List returns a UserList.
-	List(context.Context, UserSelector, meta.ListOptions) (UserList, error)
+	List(context.Context, UsersSelector, meta.ListOptions) (UserList, error)
 	// Get retrieves a single User specified by their identifier.
 	Get(context.Context, string) (User, error)
 	// Lock removes access to the API for a single User specified by their
@@ -114,7 +114,7 @@ func NewUsersClient(
 
 func (u *usersClient) List(
 	_ context.Context,
-	_ UserSelector,
+	_ UsersSelector,
 	opts meta.ListOptions,
 ) (UserList, error) {
 	users := UserList{}
@@ -123,7 +123,7 @@ func (u *usersClient) List(
 			method:      http.MethodGet,
 			path:        "v2/users",
 			authHeaders: u.bearerTokenAuthHeaders(),
-			queryParams: u.appendListQueryParams(nil, opts.Continue, opts.Limit),
+			queryParams: u.appendListQueryParams(nil, opts),
 			successCode: http.StatusOK,
 			respObj:     &users,
 		},

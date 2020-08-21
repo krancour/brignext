@@ -66,7 +66,7 @@ func (s *store) Create(ctx context.Context, user brignext.User) error {
 
 func (s *store) List(
 	ctx context.Context,
-	_ brignext.UserSelector,
+	_ brignext.UsersSelector,
 	opts meta.ListOptions,
 ) (brignext.UserList, error) {
 	users := brignext.UserList{}

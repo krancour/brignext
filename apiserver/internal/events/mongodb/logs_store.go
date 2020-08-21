@@ -7,6 +7,7 @@ import (
 
 	"github.com/krancour/brignext/v2/apiserver/internal/events"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -26,13 +27,14 @@ func NewLogsStore(database *mongo.Database) events.LogsStore {
 func (l *logsStore) GetLogs(
 	ctx context.Context,
 	event brignext.Event,
-	opts brignext.LogOptions,
+	selector brignext.LogsSelector,
+	opts meta.ListOptions,
 ) (brignext.LogEntryList, error) {
 	logEntries := brignext.LogEntryList{
 		Items: []brignext.LogEntry{},
 	}
 
-	criteria := l.criteriaFromOptions(event.ID, opts)
+	criteria := l.criteriaFromSelector(event.ID, selector)
 	if opts.Continue != "" {
 		continueTime, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", opts.Continue)
 		if err != nil {
@@ -78,9 +80,9 @@ func (l *logsStore) GetLogs(
 func (l *logsStore) StreamLogs(
 	ctx context.Context,
 	event brignext.Event,
-	opts brignext.LogOptions,
+	selector brignext.LogsSelector,
 ) (<-chan brignext.LogEntry, error) {
-	criteria := l.criteriaFromOptions(event.ID, opts)
+	criteria := l.criteriaFromSelector(event.ID, selector)
 
 	logEntryCh := make(chan brignext.LogEntry)
 	go func() {
@@ -147,22 +149,22 @@ func (l *logsStore) StreamLogs(
 	return logEntryCh, nil
 }
 
-func (l *logsStore) criteriaFromOptions(
+func (l *logsStore) criteriaFromSelector(
 	eventID string,
-	opts brignext.LogOptions,
+	selector brignext.LogsSelector,
 ) bson.M {
 	criteria := bson.M{
 		"event": eventID,
 	}
 
 	// If no job was specified, we want worker logs
-	if opts.Job == "" {
+	if selector.Job == "" {
 		criteria["component"] = "worker"
 		// If no container was specified, we want the "worker" container
-		if opts.Container == "" {
+		if selector.Container == "" {
 			criteria["container"] = "worker"
 		} else { // We want the one specified
-			criteria["container"] = opts.Container
+			criteria["container"] = selector.Container
 		}
 	} else { // We want job logs
 		criteria["component"] = "job"
@@ -171,10 +173,10 @@ func (l *logsStore) criteriaFromOptions(
 		//
 		// If no container was specified, we want the one with the same name as the
 		// job
-		if opts.Container == "" {
-			criteria["container"] = opts.Job
+		if selector.Container == "" {
+			criteria["container"] = selector.Job
 		} else { // We want the one specified
-			criteria["container"] = opts.Container
+			criteria["container"] = selector.Container
 		}
 	}
 

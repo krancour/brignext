@@ -29,7 +29,7 @@ type Service interface {
 	// specified using the EventListOptions parameter.
 	List(
 		context.Context,
-		brignext.EventSelector,
+		brignext.EventsSelector,
 		meta.ListOptions,
 	) (brignext.EventList, error)
 	// Get retrieves a single Event specified by its identifier.
@@ -42,7 +42,7 @@ type Service interface {
 	// parameter.
 	CancelMany(
 		context.Context,
-		brignext.EventSelector,
+		brignext.EventsSelector,
 	) (brignext.CancelManyEventsResult, error)
 	// Delete deletes a single Event specified by its identifier.
 	Delete(context.Context, string) error
@@ -50,7 +50,7 @@ type Service interface {
 	// parameter.
 	DeleteMany(
 		context.Context,
-		brignext.EventSelector,
+		brignext.EventsSelector,
 	) (brignext.DeleteManyEventsResult, error)
 
 	// StartWorker starts the indicated Event's Worker on BrigNext's workload
@@ -112,7 +112,8 @@ type Service interface {
 	GetLogs(
 		ctx context.Context,
 		eventID string,
-		opts brignext.LogOptions,
+		selector brignext.LogsSelector,
+		opts meta.ListOptions,
 	) (brignext.LogEntryList, error)
 	// StreamLogs returns a channel over which logs for an Event's Worker, or
 	// using the LogOptions parameter, a Job spawned by that Worker (or specific
@@ -120,7 +121,7 @@ type Service interface {
 	StreamLogs(
 		ctx context.Context,
 		eventID string,
-		opts brignext.LogOptions,
+		selector brignext.LogsSelector,
 	) (<-chan brignext.LogEntry, error)
 }
 
@@ -280,7 +281,7 @@ func (s *service) Create(
 
 func (s *service) List(
 	ctx context.Context,
-	selector brignext.EventSelector,
+	selector brignext.EventsSelector,
 	opts meta.ListOptions,
 ) (brignext.EventList, error) {
 	events := brignext.EventList{}
@@ -355,7 +356,7 @@ func (s *service) Cancel(ctx context.Context, id string) error {
 
 func (s *service) CancelMany(
 	ctx context.Context,
-	selector brignext.EventSelector,
+	selector brignext.EventsSelector,
 ) (brignext.CancelManyEventsResult, error) {
 	result := brignext.CancelManyEventsResult{}
 
@@ -444,7 +445,7 @@ func (s *service) Delete(ctx context.Context, id string) error {
 
 func (s *service) DeleteMany(
 	ctx context.Context,
-	selector brignext.EventSelector,
+	selector brignext.EventsSelector,
 ) (brignext.DeleteManyEventsResult, error) {
 	result := brignext.DeleteManyEventsResult{}
 
@@ -772,7 +773,8 @@ func (s *service) UpdateJobStatus(
 func (s *service) GetLogs(
 	ctx context.Context,
 	eventID string,
-	opts brignext.LogOptions,
+	selector brignext.LogsSelector,
+	opts meta.ListOptions,
 ) (brignext.LogEntryList, error) {
 	logEntries := brignext.LogEntryList{}
 	if opts.Limit == 0 {
@@ -784,10 +786,10 @@ func (s *service) GetLogs(
 			errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
 	// Try warm logs first and fall back on cooler logs if necessary.
-	logEntries, err = s.warmLogsStore.GetLogs(ctx, event, opts)
+	logEntries, err = s.warmLogsStore.GetLogs(ctx, event, selector, opts)
 	if err != nil {
 		log.Println(err)
-		logEntries, err = s.coolLogsStore.GetLogs(ctx, event, opts)
+		logEntries, err = s.coolLogsStore.GetLogs(ctx, event, selector, opts)
 	}
 	return logEntries, err
 }
@@ -795,7 +797,7 @@ func (s *service) GetLogs(
 func (s *service) StreamLogs(
 	ctx context.Context,
 	eventID string,
-	opts brignext.LogOptions,
+	selector brignext.LogsSelector,
 ) (<-chan brignext.LogEntry, error) {
 	event, err := s.store.Get(ctx, eventID)
 	if err != nil {
@@ -803,9 +805,9 @@ func (s *service) StreamLogs(
 			errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
 	// Try warm logs first and fall back on cooler logs if necessary
-	logCh, err := s.warmLogsStore.StreamLogs(ctx, event, opts)
+	logCh, err := s.warmLogsStore.StreamLogs(ctx, event, selector)
 	if err != nil {
-		logCh, err = s.coolLogsStore.StreamLogs(ctx, event, opts)
+		logCh, err = s.coolLogsStore.StreamLogs(ctx, event, selector)
 	}
 	return logCh, err
 }

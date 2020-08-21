@@ -11,10 +11,10 @@ import (
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
 
-// ProjectSelector represents useful filter criteria when selecting multiple
+// ProjectsSelector represents useful filter criteria when selecting multiple
 // Projects for API group operations like list. It currently has no fields, but
 // exists for future expansion.
-type ProjectSelector struct{}
+type ProjectsSelector struct{}
 
 // ProjectList is an ordered and pageable list of ProjectS.
 type ProjectList struct {
@@ -83,7 +83,7 @@ type ProjectsClient interface {
 	CreateFromBytes(context.Context, []byte) (sdk.Project, error)
 	// List returns a ProjectList, with its Items (Projects) ordered
 	// alphabetically by Project ID.
-	List(context.Context, ProjectSelector, meta.ListOptions) (ProjectList, error)
+	List(context.Context, ProjectsSelector, meta.ListOptions) (ProjectList, error)
 	// Get retrieves a single Project specified by its identifier.
 	Get(context.Context, string) (sdk.Project, error)
 	// Update updates an existing Project.
@@ -175,7 +175,7 @@ func (p *projectsClient) CreateFromBytes(
 
 func (p *projectsClient) List(
 	_ context.Context,
-	_ ProjectSelector,
+	_ ProjectsSelector,
 	opts meta.ListOptions,
 ) (ProjectList, error) {
 	projects := ProjectList{}
@@ -184,7 +184,7 @@ func (p *projectsClient) List(
 			method:      http.MethodGet,
 			path:        "v2/projects",
 			authHeaders: p.bearerTokenAuthHeaders(),
-			queryParams: p.appendListQueryParams(nil, opts.Continue, opts.Limit),
+			queryParams: p.appendListQueryParams(nil, opts),
 			successCode: http.StatusOK,
 			respObj:     &projects,
 		},
@@ -264,7 +264,7 @@ func (p *projectsClient) ListSecrets(
 			method:      http.MethodGet,
 			path:        fmt.Sprintf("v2/projects/%s/secrets", projectID),
 			authHeaders: p.bearerTokenAuthHeaders(),
-			queryParams: p.appendListQueryParams(nil, opts.Continue, opts.Limit),
+			queryParams: p.appendListQueryParams(nil, opts),
 			successCode: http.StatusOK,
 			respObj:     &secrets,
 		},

@@ -11,7 +11,7 @@ type Store interface {
 	Create(context.Context, brignext.Event) error
 	List(
 		context.Context,
-		brignext.EventSelector,
+		brignext.EventsSelector,
 		meta.ListOptions,
 	) (brignext.EventList, error)
 	Get(context.Context, string) (brignext.Event, error)
@@ -19,12 +19,12 @@ type Store interface {
 	Cancel(context.Context, string) error
 	CancelMany(
 		context.Context,
-		brignext.EventSelector,
+		brignext.EventsSelector,
 	) (brignext.EventList, error)
 	Delete(context.Context, string) error
 	DeleteMany(
 		context.Context,
-		brignext.EventSelector,
+		brignext.EventsSelector,
 	) (brignext.EventList, error)
 
 	UpdateWorkerSpec(

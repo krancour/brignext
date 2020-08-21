@@ -90,7 +90,7 @@ func (s *store) Create(
 
 func (s *store) List(
 	ctx context.Context,
-	_ brignext.ServiceAccountSelector,
+	_ brignext.ServiceAccountsSelector,
 	opts meta.ListOptions,
 ) (brignext.ServiceAccountList, error) {
 	serviceAccounts := brignext.ServiceAccountList{}

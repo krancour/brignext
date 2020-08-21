@@ -67,7 +67,7 @@ func (s *store) Create(ctx context.Context, event brignext.Event) error {
 
 func (s *store) List(
 	ctx context.Context,
-	selector brignext.EventSelector,
+	selector brignext.EventsSelector,
 	opts meta.ListOptions,
 ) (brignext.EventList, error) {
 	events := brignext.EventList{}
@@ -221,7 +221,7 @@ func (s *store) Cancel(ctx context.Context, id string) error {
 
 func (s *store) CancelMany(
 	ctx context.Context,
-	selector brignext.EventSelector,
+	selector brignext.EventsSelector,
 ) (brignext.EventList, error) {
 	events := brignext.EventList{}
 	// It only makes sense to cancel events that are in a pending or running
@@ -320,7 +320,7 @@ func (s *store) Delete(ctx context.Context, id string) error {
 
 func (s *store) DeleteMany(
 	ctx context.Context,
-	selector brignext.EventSelector,
+	selector brignext.EventsSelector,
 ) (brignext.EventList, error) {
 	events := brignext.EventList{}
 

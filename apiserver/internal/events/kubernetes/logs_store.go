@@ -10,6 +10,7 @@ import (
 
 	"github.com/krancour/brignext/v2/apiserver/internal/events"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -29,21 +30,22 @@ func NewLogsStore(kubeClient *kubernetes.Clientset) events.LogsStore {
 func (l *logsStore) GetLogs(
 	ctx context.Context,
 	event brignext.Event,
-	opts brignext.LogOptions,
+	selector brignext.LogsSelector,
+	opts meta.ListOptions,
 ) (brignext.LogEntryList, error) {
 	logEntries := brignext.LogEntryList{}
 
 	var podName string
-	if opts.Job == "" {
+	if selector.Job == "" {
 		podName = fmt.Sprintf("worker-%s", event.ID)
 	} else {
-		podName = fmt.Sprintf("job-%s-%s", event.ID, strings.ToLower(opts.Job))
+		podName = fmt.Sprintf("job-%s-%s", event.ID, strings.ToLower(selector.Job))
 	}
 
 	req := l.kubeClient.CoreV1().Pods(event.Kubernetes.Namespace).GetLogs(
 		podName,
 		&v1.PodLogOptions{
-			Container:  opts.Container,
+			Container:  selector.Container,
 			Timestamps: true,
 		},
 	)
@@ -91,19 +93,19 @@ func (l *logsStore) GetLogs(
 func (l *logsStore) StreamLogs(
 	ctx context.Context,
 	event brignext.Event,
-	opts brignext.LogOptions,
+	selector brignext.LogsSelector,
 ) (<-chan brignext.LogEntry, error) {
 	var podName string
-	if opts.Job == "" {
+	if selector.Job == "" {
 		podName = fmt.Sprintf("worker-%s", event.ID)
 	} else {
-		podName = fmt.Sprintf("job-%s-%s", event.ID, strings.ToLower(opts.Job))
+		podName = fmt.Sprintf("job-%s-%s", event.ID, strings.ToLower(selector.Job))
 	}
 
 	req := l.kubeClient.CoreV1().Pods(event.Kubernetes.Namespace).GetLogs(
 		podName,
 		&v1.PodLogOptions{
-			Container:  opts.Container,
+			Container:  selector.Container,
 			Timestamps: true,
 		},
 	)

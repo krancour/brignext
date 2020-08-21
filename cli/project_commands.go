@@ -154,7 +154,7 @@ func projectList(c *cli.Context) error {
 
 	for {
 		projects, err :=
-			client.Projects().List(c.Context, api.ProjectSelector{}, opts)
+			client.Projects().List(c.Context, api.ProjectsSelector{}, opts)
 		if err != nil {
 			return err
 		}

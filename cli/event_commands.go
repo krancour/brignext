@@ -398,7 +398,7 @@ func eventList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	selector := api.EventSelector{
+	selector := api.EventsSelector{
 		ProjectID:    projectID,
 		WorkerPhases: workerPhases,
 	}
@@ -615,7 +615,7 @@ func eventCancelMany(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	selector := api.EventSelector{
+	selector := api.EventsSelector{
 		ProjectID:    projectID,
 		WorkerPhases: []sdk.WorkerPhase{sdk.WorkerPhasePending},
 	}
@@ -716,7 +716,7 @@ func eventDeleteMany(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	selector := api.EventSelector{
+	selector := api.EventsSelector{
 		ProjectID:    projectID,
 		WorkerPhases: workerPhases,
 	}

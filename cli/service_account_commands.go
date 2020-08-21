@@ -143,7 +143,7 @@ func serviceAccountList(c *cli.Context) error {
 
 	for {
 		serviceAccounts, err :=
-			client.ServiceAccounts().List(c.Context, api.ServiceAccountSelector{}, opts)
+			client.ServiceAccounts().List(c.Context, api.ServiceAccountsSelector{}, opts)
 		if err != nil {
 			return err
 		}

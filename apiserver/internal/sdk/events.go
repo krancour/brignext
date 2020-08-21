@@ -100,9 +100,9 @@ type EventGitConfig struct {
 	Ref      string `json:"ref,omitempty" bson:"ref,omitempty"`
 }
 
-// EventSelector represents useful filter criteria when selecting multiple
+// EventsSelector represents useful filter criteria when selecting multiple
 // Events for API group operations like list, cancel, or delete.
-type EventSelector struct {
+type EventsSelector struct {
 	// ProjectID specifies that Events belonging to the indicated Project should
 	// be selected.
 	ProjectID string
@@ -176,9 +176,8 @@ func (d DeleteManyEventsResult) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// LogOptions represents useful criteria for identifying a specific container
-// of a specific Job when requesting Event logs.
-type LogOptions struct {
+// TODO: Document this
+type LogsSelector struct {
 	// Job specifies, by name, a Job spawned by the Worker. If this field is
 	// left blank, it is presumed logs are desired for the Worker itself.
 	Job string `json:"job,omitempty"`
@@ -186,16 +185,6 @@ type LogOptions struct {
 	// whose logs are being retrieved. If left blank, a container with the same
 	// name as the Worker or Job is assumed.
 	Container string `json:"container,omitempty"`
-	// Continue aids in pagination of long lists. It permits clients to echo an
-	// opaque value obtained from a previous API call back to the API in a
-	// subsequent call in order to indicate what resource was the last on the
-	// previous page.
-	Continue string
-	// Limit aids in pagination of long lists. It permits clients to specify page
-	// size when making API calls. The API server provides a default when a value
-	// is not specified and may reject or override invalid values (non-positive)
-	// numbers or very large page sizes.
-	Limit int64
 }
 
 // LogEntry represents one line of output from an OCI container.

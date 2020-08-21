@@ -7,6 +7,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/krancour/brignext/v2/sdk"
 	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/krancour/brignext/v2/sdk/meta"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh/terminal"
@@ -47,10 +48,11 @@ func logs(c *cli.Context) error {
 	eventID := c.String(flagEvent)
 	follow := c.Bool(flagFollow)
 
-	opts := api.LogOptions{
+	selector := api.LogsSelector{
 		Job:       c.String(flagJob),
 		Container: c.String(flagContainer),
 	}
+	opts := meta.ListOptions{}
 
 	client, err := getClient(c)
 	if err != nil {
@@ -61,7 +63,12 @@ func logs(c *cli.Context) error {
 		for {
 			var logEntries sdk.LogEntryList
 			if logEntries, err =
-				client.Events().GetLogs(c.Context, eventID, opts); err != nil {
+				client.Events().GetLogs(
+					c.Context,
+					eventID,
+					selector,
+					opts,
+				); err != nil {
 				return err
 			}
 			for _, logEntry := range logEntries.Items {
@@ -105,7 +112,8 @@ func logs(c *cli.Context) error {
 		return nil
 	}
 
-	logEntryCh, errCh, err := client.Events().StreamLogs(c.Context, eventID, opts)
+	logEntryCh, errCh, err :=
+		client.Events().StreamLogs(c.Context, eventID, selector)
 	if err != nil {
 		return err
 	}

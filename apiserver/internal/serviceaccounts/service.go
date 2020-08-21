@@ -20,7 +20,7 @@ type Service interface {
 	// List returns a ServiceAccountList.
 	List(
 		context.Context,
-		brignext.ServiceAccountSelector,
+		brignext.ServiceAccountsSelector,
 		meta.ListOptions,
 	) (brignext.ServiceAccountList, error)
 	// Get retrieves a single ServiceAccount specified by its identifier.
@@ -68,7 +68,7 @@ func (s *service) Create(
 
 func (s *service) List(
 	ctx context.Context,
-	selector brignext.ServiceAccountSelector,
+	selector brignext.ServiceAccountsSelector,
 	opts meta.ListOptions,
 ) (brignext.ServiceAccountList, error) {
 	if opts.Limit == 0 {
