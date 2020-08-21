@@ -122,24 +122,41 @@ export class Job extends jobs.Job {
   }
 
   async logs(): Promise<string> {
-    // // TODO: Fix this
-    // if (this.cancel && this.pod == undefined || this.pod.status.phase == "Pending") {
-    //   return `Job ${this.name} still unscheduled or pending when job was canceled; no logs to return.`
-    // }
-    // try {
-    //   let result = await kubernetes.Config.defaultClient().readNamespacedPodLog(
-    //     `job-${currentEvent.id}-${this.name}`,
-    //     currentEvent.project.kubernetes.namespace,
-    //     this.name,
-    //   )
-    //   return result.body
-    // }
-    // catch(err) {
-    //   // This specifically handles errors from reading the pod logs, unpacks it,
-    //   // and rethrows.
-    //   throw new Error(err.response.body.message)
-    // }
-    return "example log"
+    return new Promise((resolve, reject) => {
+      let logs = ""
+
+      const client = http2.connect(currentEvent.worker.apiAddress)
+      client.on('error', (err: any) => console.error(err))
+      
+      let req = client.request({
+        ':path': `/v2/events/${currentEvent.id}/logs?job=${this.name}`,
+        "Authorization": `Bearer ${currentEvent.worker.apiToken}`
+      })
+      req.setEncoding('utf8')
+
+      req.on('response', (response) => {
+        let status = response[":status"]
+        if (status != 200) {
+          reject(new Error(`Received ${status} when attempting to stream job logs`))
+          req.destroy()
+        }
+      })
+
+      req.on('data', (data: string) => {
+        try {
+          const logEntry = JSON.parse(data)
+          logs += `${logEntry.message}\n`
+        } catch (e) {
+          reject(e)
+          req.destroy()
+        }
+      })
+
+      req.on("end", () => {
+        resolve(logs)
+        client.destroy()
+      })
+    })
   }
 
 }

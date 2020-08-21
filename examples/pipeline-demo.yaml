@@ -24,7 +24,7 @@ spec:
             console.log("----> foo logs -------------------------------------");
             console.log(logs);
             console.log("----> end foo logs ---------------------------------");
-            barJob.run();
+            return barJob.run();
           }).then(() => {
             return barJob.logs();
           }).then((logs) => {
