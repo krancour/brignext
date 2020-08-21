@@ -80,7 +80,11 @@ type ServiceAccountsClient interface {
 	// Create creates a new ServiceAccount.
 	Create(context.Context, ServiceAccount) (Token, error)
 	// List returns a ServiceAccountList.
-	List(context.Context, ServiceAccountsSelector, meta.ListOptions) (ServiceAccountList, error)
+	List(
+		context.Context,
+		ServiceAccountsSelector,
+		meta.ListOptions,
+	) (ServiceAccountList, error)
 	// Get retrieves a single ServiceAccount specified by its identifier.
 	Get(context.Context, string) (ServiceAccount, error)
 	// Lock removes access to the API for a single ServiceAccount specified by its

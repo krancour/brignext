@@ -19,8 +19,11 @@ func (s *scheduler) manageProjectEventLoops(ctx context.Context) {
 	defer ticker.Stop()
 
 	for {
-		projects, err :=
-			s.apiClient.Projects().List(ctx, api.ProjectsSelector{}, meta.ListOptions{})
+		projects, err := s.apiClient.Projects().List(
+			ctx,
+			api.ProjectsSelector{},
+			meta.ListOptions{},
+		)
 		if err != nil {
 			select {
 			case s.errCh <- err:

@@ -36,7 +36,8 @@ func (l *logsStore) GetLogs(
 
 	criteria := l.criteriaFromSelector(event.ID, selector)
 	if opts.Continue != "" {
-		continueTime, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", opts.Continue)
+		continueTime, err :=
+			time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", opts.Continue)
 		if err != nil {
 			return logEntries, errors.Wrap(err, "error parsing continue time")
 		}
@@ -44,7 +45,8 @@ func (l *logsStore) GetLogs(
 	}
 
 	findOptions := options.Find()
-	// TODO: We might need this if we can't use capped collections in some environments
+	// TODO: We might need this if we can't use capped collections in some
+	// environments
 	// findOptions.SetSort(bson.M{"created": -1})
 	findOptions.SetLimit(opts.Limit)
 	cur, err := l.collection.Find(ctx, criteria, findOptions)
@@ -66,7 +68,8 @@ func (l *logsStore) GetLogs(
 		criteria["time"] = bson.M{"$gt": continueTime}
 		remaining, err := l.collection.CountDocuments(ctx, criteria)
 		if err != nil {
-			return logEntries, errors.Wrap(err, "error counting remaining log entries")
+			return logEntries,
+				errors.Wrap(err, "error counting remaining log entries")
 		}
 		if remaining > 0 {
 			logEntries.Continue = continueTime.String()

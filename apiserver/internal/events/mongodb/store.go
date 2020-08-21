@@ -84,7 +84,8 @@ func (s *store) List(
 		criteria["projectID"] = selector.ProjectID
 	}
 	if opts.Continue != "" {
-		continueTime, err := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", opts.Continue)
+		continueTime, err :=
+			time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", opts.Continue)
 		if err != nil {
 			return events, errors.Wrap(err, "error parsing continue time")
 		}

@@ -84,7 +84,8 @@ func (s *service) Create(
 	// partially completed create leaves us, overall, in a tolerable state.
 
 	if err = s.store.Create(ctx, project); err != nil {
-		return project, errors.Wrapf(err, "error storing new project %q", project.ID)
+		return project,
+			errors.Wrapf(err, "error storing new project %q", project.ID)
 	}
 	if err = s.scheduler.Create(ctx, project); err != nil {
 		return project, errors.Wrapf(

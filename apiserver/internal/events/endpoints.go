@@ -318,8 +318,10 @@ func (e *endpoints) getOrStreamWorkerStatus(
 			e.WriteAPIResponse(w, http.StatusNotFound, errors.Cause(err))
 			return
 		}
-		log.Println(
-			errors.Wrapf(err, "error retrieving worker status stream for event %q", id),
+		log.Printf(
+			"error retrieving worker status stream for event %q: %s",
+			id,
+			err,
 		)
 		e.WriteAPIResponse(
 			w,
@@ -409,8 +411,11 @@ func (e *endpoints) getOrStreamJobStatus(
 			e.WriteAPIResponse(w, http.StatusNotFound, errors.Cause(err))
 			return
 		}
-		log.Println(
-			errors.Wrapf(err, "error retrieving job status stream for event %q job %q", id, jobName),
+		log.Printf(
+			"error retrieving job status stream for event %q job %q: %s",
+			id,
+			jobName,
+			err,
 		)
 		e.WriteAPIResponse(
 			w,

@@ -511,9 +511,9 @@ func (s *service) StartWorker(ctx context.Context, eventID string) error {
 	}
 
 	// spec := event.Worker.Spec
-	// // TODO: This is probably a better place to apply worker default just before
-	// // it is started INSTEAD OF setting defaults at event creation time or waiting
-	// // all the way up until pod creation time.
+	// TODO: This is probably a better place to apply worker default just before
+	// it is started INSTEAD OF setting defaults at event creation time or waiting
+	// all the way up until pod creation time.
 	// if err = s.store.UpdateWorkerSpec(ctx, eventID, spec); err != nil {
 	// 	return errors.Wrapf(
 	// 		err,
