@@ -145,7 +145,10 @@ export class Job extends jobs.Job {
       req.on('data', (data: string) => {
         try {
           const logEntry = JSON.parse(data)
-          logs += `${logEntry.message}\n`
+          if (logs != "") {
+            logs += "\n"
+          }
+          logs += logEntry.message
         } catch (e) {
           reject(e)
           req.destroy()
