@@ -76,12 +76,19 @@ type Service interface {
 	) error
 
 	// CreateJob, given an Event identifier and JobSpec, creates a new Job and
-	// starts it on BrigNext's worlkoad execution substrate.
+	// starts it on BrigNext's workload execution substrate.
 	CreateJob(
 		ctx context.Context,
 		eventID string,
 		jobName string,
 		jobSpec brignext.JobSpec,
+	) error
+	// StartJob, given an Event identifier and Job name, starts that Job on
+	// BrigNext's workload execution substrate.
+	StartJob(
+		ctx context.Context,
+		eventID string,
+		jobName string,
 	) error
 	// GetJobStatus, given an Event identifier and Job name, returns the Job's
 	// status.
@@ -515,6 +522,17 @@ func (s *service) StartWorker(ctx context.Context, eventID string) error {
 	// 	)
 	// }
 
+	if event.Worker.Status.Phase != brignext.WorkerPhasePending {
+		return &brignext.ErrConflict{
+			Type: "Event",
+			ID:   event.ID,
+			Reason: fmt.Sprintf(
+				"Event %q worker has already been started.",
+				event.ID,
+			),
+		}
+	}
+
 	if err = s.scheduler.StartWorker(ctx, event); err != nil {
 		return errors.Wrapf(err, "error starting worker for event %q", event.ID)
 	}
@@ -658,11 +676,45 @@ func (s *service) CreateJob(
 		)
 	}
 
-	if event.Worker.Jobs == nil {
-		event.Worker.Jobs = map[string]brignext.Job{}
+	if err = s.scheduler.CreateJob(ctx, event, jobName); err != nil {
+		return errors.Wrapf(
+			err,
+			"error scheduling event %q job %q",
+			event.ID,
+			jobName,
+		)
 	}
-	event.Worker.Jobs[jobName] = brignext.Job{
-		Spec: jobSpec,
+
+	return nil
+}
+
+func (s *service) StartJob(
+	ctx context.Context,
+	eventID string,
+	jobName string,
+) error {
+	event, err := s.store.Get(ctx, eventID)
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
+	}
+	job, ok := event.Worker.Jobs[jobName]
+	if !ok {
+		return &brignext.ErrNotFound{
+			Type: "Job",
+			ID:   jobName,
+		}
+	}
+
+	if job.Status.Phase != brignext.JobPhasePending {
+		return &brignext.ErrConflict{
+			Type: "Job",
+			ID:   jobName,
+			Reason: fmt.Sprintf(
+				"Event %q job %q has already been started.",
+				eventID,
+				jobName,
+			),
+		}
 	}
 
 	if err = s.scheduler.StartJob(ctx, event, jobName); err != nil {

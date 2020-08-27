@@ -9,10 +9,9 @@ import (
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
 
-func (s *scheduler) manageProjectEventLoops(ctx context.Context) {
-	// Maintain a map of functions for canceling the event loops for each known
-	// project
-	eventLoopCancelFns := map[string]func(){}
+func (s *scheduler) manageProjectLoops(ctx context.Context) {
+	// Maintain a map of functions for canceling the loops for each known Project
+	loopCancelFns := map[string]func(){}
 
 	// TODO: Is it ok that this is hardcoded?
 	ticker := time.NewTicker(30 * time.Second)
@@ -42,24 +41,24 @@ func (s *scheduler) manageProjectEventLoops(ctx context.Context) {
 		// Reconcile differences between projects we knew about already and the
 		// current set of projects...
 
-		// 1. Stop event loops for projects that have been deleted
-		for projectID, cancelFn := range eventLoopCancelFns {
+		// 1. Stop Worker loops for projects that have been deleted
+		for projectID, cancelFn := range loopCancelFns {
 			if _, stillExists := currentProjects[projectID]; !stillExists {
-				log.Printf("DEBUG: stopping event loop for project %q", projectID)
+				log.Printf("DEBUG: stopping worker loop for project %q", projectID)
 				cancelFn()
 				// Surprisingly, Go lets us delete from a map we are currently iterating
 				// over. How convenient.
-				delete(eventLoopCancelFns, projectID)
+				delete(loopCancelFns, projectID)
 			}
 		}
 
-		// 2. Start event loop for any projects that have been added
+		// 2. Start Worker loop for any projects that have been added
 		for projectID := range currentProjects {
-			if _, known := eventLoopCancelFns[projectID]; !known {
-				eventLoopCtx, eventLoopCtxCancelFn := context.WithCancel(ctx)
-				eventLoopCancelFns[projectID] = eventLoopCtxCancelFn
-				log.Printf("DEBUG: starting event loop for project %q", projectID)
-				go s.runEventLoop(eventLoopCtx, projectID)
+			if _, known := loopCancelFns[projectID]; !known {
+				loopCtx, loopCtxCancelFn := context.WithCancel(ctx)
+				loopCancelFns[projectID] = loopCtxCancelFn
+				log.Printf("DEBUG: starting worker loop for project %q", projectID)
+				go s.runWorkerLoop(loopCtx, projectID)
 			}
 		}
 

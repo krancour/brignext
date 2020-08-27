@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
+	"github.com/krancour/brignext/v2/apiserver/internal/queue"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/pkg/errors"
@@ -30,6 +32,11 @@ type Scheduler interface {
 
 	StartWorker(ctx context.Context, event brignext.Event) error
 
+	CreateJob(
+		ctx context.Context,
+		event brignext.Event,
+		jobName string,
+	) error
 	StartJob(
 		ctx context.Context,
 		event brignext.Event,
@@ -38,20 +45,20 @@ type Scheduler interface {
 }
 
 type scheduler struct {
-	config              Config
-	eventsSenderFactory SenderFactory
-	kubeClient          *kubernetes.Clientset
+	config             Config
+	queueWriterFactory queue.WriterFactory
+	kubeClient         *kubernetes.Clientset
 }
 
 func NewScheduler(
 	config Config,
-	eventsSenderFactory SenderFactory,
+	queueWriterFactory queue.WriterFactory,
 	kubeClient *kubernetes.Clientset,
 ) Scheduler {
 	return &scheduler{
-		config:              config,
-		eventsSenderFactory: eventsSenderFactory,
-		kubeClient:          kubeClient,
+		config:             config,
+		queueWriterFactory: queueWriterFactory,
+		kubeClient:         kubeClient,
 	}
 }
 
@@ -170,16 +177,25 @@ func (s *scheduler) Create(
 		)
 	}
 
-	// Schedule event's worker for asynchronous execution
-	eventSender, err := s.eventsSenderFactory.NewSender(event.ProjectID)
+	// Schedule worker for asynchronous execution
+	queueWriter, err := s.queueWriterFactory.NewQueueWriter(
+		fmt.Sprintf("workers.%s", event.ProjectID),
+	)
 	if err != nil {
 		return errors.Wrapf(
 			err,
-			"error creating event sender for event %q",
-			event.ID,
+			"error creating queue writer for project %q workers",
+			event.ProjectID,
 		)
 	}
-	if err := eventSender.Send(ctx, event.ID); err != nil {
+	defer func() {
+		closeCtx, cancelCloseCtx :=
+			context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancelCloseCtx()
+		queueWriter.Close(closeCtx)
+	}()
+
+	if err := queueWriter.Write(ctx, event.ID); err != nil {
 		return errors.Wrapf(
 			err,
 			"error submitting execution task for event %q worker",
@@ -282,6 +298,43 @@ func (s *scheduler) StartWorker(
 			err,
 			"error creating pod for event %q worker",
 			event.ID,
+		)
+	}
+	return nil
+}
+
+func (s *scheduler) CreateJob(
+	ctx context.Context,
+	event brignext.Event,
+	jobName string,
+) error {
+	// Schedule job for asynchronous execution
+	queueWriter, err := s.queueWriterFactory.NewQueueWriter(
+		fmt.Sprintf("jobs.%s", event.ProjectID),
+	)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating queue writer for project %q jobs",
+			event.ProjectID,
+		)
+	}
+	defer func() {
+		closeCtx, cancelCloseCtx :=
+			context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancelCloseCtx()
+		queueWriter.Close(closeCtx)
+	}()
+
+	if err := queueWriter.Write(
+		ctx,
+		fmt.Sprintf("%s:%s", event.ID, jobName),
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error submitting execution task for event %q job %q",
+			event.ID,
+			jobName,
 		)
 	}
 	return nil

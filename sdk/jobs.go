@@ -11,22 +11,25 @@ import (
 type JobPhase string
 
 const (
-	// JobPhaseAborted represents the state wherein a job was forcefully
+	// JobPhaseAborted represents the state wherein a Job was forcefully
 	// stopped during execution.
 	JobPhaseAborted JobPhase = "ABORTED"
-	// JobPhaseFailed represents the state wherein a job has run to
+	// JobPhaseFailed represents the state wherein a Job has run to
 	// completion but experienced errors.
 	JobPhaseFailed JobPhase = "FAILED"
-	// JobPhaseRunning represents the state wherein a job is currently
+	// JobPhasePending represents the state wherein a Job is awaiting
+	// execution.
+	JobPhasePending JobPhase = "PENDING"
+	// JobPhaseRunning represents the state wherein a Job is currently
 	// being executed.
 	JobPhaseRunning JobPhase = "RUNNING"
-	// JobPhaseSucceeded represents the state where a job has run to
+	// JobPhaseSucceeded represents the state where a Job has run to
 	// completion without error.
 	JobPhaseSucceeded JobPhase = "SUCCEEDED"
-	// JobPhaseTimedOut represents the state wherein a job has has not completed
+	// JobPhaseTimedOut represents the state wherein a Job has has not completed
 	// within a designated timeframe.
 	JobPhaseTimedOut JobPhase = "TIMED_OUT"
-	// JobPhaseUnknown represents the state wherein a job's state is unknown. Note
+	// JobPhaseUnknown represents the state wherein a Job's state is unknown. Note
 	// that this is possible if and only if the underlying Job execution substrate
 	// (Kubernetes), for some unanticipated, reason does not know the Job's
 	// (Pod's) state.

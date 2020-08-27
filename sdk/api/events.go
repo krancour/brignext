@@ -95,7 +95,7 @@ type EventsClient interface {
 	// parameter.
 	DeleteMany(context.Context, EventsSelector) (DeleteManyEventsResult, error)
 
-	// StartWorker starts the indicated Event's Worker on BrigNext's worlkoad
+	// StartWorker starts the indicated Event's Worker on BrigNext's workload
 	// execution substrate.
 	StartWorker(ctx context.Context, eventID string) error
 	// GetWorkerStatus returns an Event's Worker's status.
@@ -114,13 +114,19 @@ type EventsClient interface {
 		status sdk.WorkerStatus,
 	) error
 
-	// CreateJob, given an Event identifier and JobSpec, creates a new Job and
-	// starts it on BrigNext's worlkoad execution substrate.
+	// CreateJob, given an Event identifier and JobSpec, creates a new pending Job
+	// and schedules it for execution.
 	CreateJob(
 		ctx context.Context,
 		eventID string,
 		jobName string,
 		jobSpec sdk.JobSpec,
+	) error
+	// StartJob initiates execution of a pending Job.
+	StartJob(
+		ctx context.Context,
+		eventID string,
+		jobName string,
 	) error
 	// GetJobStatus, given an Event identifier and Job name, returns the Job's
 	// status.
@@ -409,6 +415,25 @@ func (e *eventsClient) CreateJob(
 			authHeaders: e.bearerTokenAuthHeaders(),
 			reqBodyObj:  jobSpec,
 			successCode: http.StatusCreated,
+		},
+	)
+}
+
+func (e *eventsClient) StartJob(
+	ctx context.Context,
+	eventID string,
+	jobName string,
+) error {
+	return e.executeRequest(
+		outboundRequest{
+			method: http.MethodPut,
+			path: fmt.Sprintf(
+				"v2/events/%s/worker/jobs/%s/start",
+				eventID,
+				jobName,
+			),
+			authHeaders: e.bearerTokenAuthHeaders(),
+			successCode: http.StatusOK,
 		},
 	)
 }

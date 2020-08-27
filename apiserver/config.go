@@ -5,13 +5,13 @@ import (
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
 	"github.com/krancour/brignext/v2/apiserver/internal/events"
-	"github.com/krancour/brignext/v2/apiserver/internal/events/amqp"
 	eventsKubernetes "github.com/krancour/brignext/v2/apiserver/internal/events/kubernetes"
 	eventsMongodb "github.com/krancour/brignext/v2/apiserver/internal/events/mongodb"
 	"github.com/krancour/brignext/v2/apiserver/internal/mongodb"
 	"github.com/krancour/brignext/v2/apiserver/internal/oidc"
 	"github.com/krancour/brignext/v2/apiserver/internal/projects"
 	projectsMongodb "github.com/krancour/brignext/v2/apiserver/internal/projects/mongodb"
+	"github.com/krancour/brignext/v2/apiserver/internal/queue/amqp"
 	"github.com/krancour/brignext/v2/apiserver/internal/serviceaccounts"
 	serviceaccountsMongodb "github.com/krancour/brignext/v2/apiserver/internal/serviceaccounts/mongodb"
 	"github.com/krancour/brignext/v2/apiserver/internal/sessions"
@@ -50,7 +50,7 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 	)
 
 	// Events-- depends on projects
-	eventsSenderFactory, err := amqp.GetEventsSenderFactoryFromEnvironment()
+	queueWriterFactory, err := amqp.GetQueueWriterFactoryFromEnvironment()
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 	}
 	scheduler := events.NewScheduler(
 		schedulerConfig,
-		eventsSenderFactory,
+		queueWriterFactory,
 		kubeClient,
 	)
 	eventsService := events.NewService(

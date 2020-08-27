@@ -2,7 +2,7 @@ package amqp
 
 import (
 	"github.com/kelseyhightower/envconfig"
-	"github.com/krancour/brignext/v2/scheduler/internal/events"
+	"github.com/krancour/brignext/v2/scheduler/internal/queue"
 	"github.com/pkg/errors"
 )
 
@@ -16,12 +16,12 @@ type config struct {
 	IsAzureServiceBus bool   `envconfig:"IS_AZURE_SERVICE_BUS" default:"false"`
 }
 
-func GetEventsReceiverFactoryFromEnvironment() (events.ReceiverFactory, error) {
+func GetQueueReaderFactoryFromEnvironment() (queue.ReaderFactory, error) {
 	c, err := getConfig()
 	if err != nil {
 		return nil, err
 	}
-	return NewEventsReceiverFactory(
+	return NewQueueReaderFactory(
 		c.Address,
 		c.Username,
 		c.Password,

@@ -101,10 +101,16 @@ func (e *endpoints) Register(router *mux.Router) {
 		e.TokenAuthFilter.Decorate(e.updateWorkerStatus),
 	).Methods(http.MethodPut)
 
-	// Create and start job
+	// Create job
 	router.HandleFunc(
 		"/v2/events/{id}/worker/jobs/{jobName}/spec",
 		e.TokenAuthFilter.Decorate(e.createJob),
+	).Methods(http.MethodPut)
+
+	// Start job
+	router.HandleFunc(
+		"/v2/events/{id}/worker/jobs/{jobName}/start",
+		e.TokenAuthFilter.Decorate(e.startJob),
 	).Methods(http.MethodPut)
 
 	// Get/stream job status
@@ -378,6 +384,24 @@ func (e *endpoints) createJob(w http.ResponseWriter, r *http.Request) {
 				)
 			},
 			SuccessCode: http.StatusCreated,
+		},
+	)
+}
+
+func (e *endpoints) startJob(w http.ResponseWriter, r *http.Request) {
+	e.ServeRequest(
+		apimachinery.InboundRequest{
+			W:                   w,
+			R:                   r,
+			ReqBodySchemaLoader: e.jobSpecSchemaLoader,
+			EndpointLogic: func() (interface{}, error) {
+				return nil, e.service.StartJob(
+					r.Context(),
+					mux.Vars(r)["id"],
+					mux.Vars(r)["jobName"],
+				)
+			},
+			SuccessCode: http.StatusOK,
 		},
 	)
 }

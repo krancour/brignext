@@ -456,6 +456,9 @@ func (s *store) CreateJob(
 		bson.M{
 			"$set": bson.M{
 				fmt.Sprintf("worker.jobs.%s.spec", jobName): jobSpec,
+				fmt.Sprintf("worker.jobs.%s.status", jobName): brignext.JobStatus{
+					Phase: brignext.JobPhasePending,
+				},
 			},
 		},
 	)

@@ -6,7 +6,7 @@ import (
 	"github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/krancour/brignext/v2/internal/signals"
 	"github.com/krancour/brignext/v2/internal/version"
-	"github.com/krancour/brignext/v2/scheduler/internal/events/amqp"
+	"github.com/krancour/brignext/v2/scheduler/internal/queue/amqp"
 	"github.com/krancour/brignext/v2/sdk/api"
 )
 
@@ -27,7 +27,7 @@ func main() {
 		config.IgnoreAPICertWarnings,
 	)
 
-	eventsReceiverFactory, err := amqp.GetEventsReceiverFactoryFromEnvironment()
+	queueReaderFactory, err := amqp.GetQueueReaderFactoryFromEnvironment()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func main() {
 	scheduler := NewScheduler(
 		config,
 		apiClient,
-		eventsReceiverFactory,
+		queueReaderFactory,
 		kubeClient,
 	)
 

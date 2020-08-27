@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/krancour/brignext/v2/scheduler/internal/events"
+	"github.com/krancour/brignext/v2/scheduler/internal/queue"
 	"github.com/krancour/brignext/v2/sdk/api"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
@@ -16,37 +16,36 @@ type Scheduler interface {
 	Run(context.Context) error
 }
 
-// TODO: Bust this up into two separate components-- scheduler and observer
 type scheduler struct {
 	schedulerConfig Config
 	apiClient       api.Client
 	// TODO: This should be closed somewhere
-	eventsReceiverFactory events.ReceiverFactory
-	kubeClient            *kubernetes.Clientset
-	podsClient            corev1.PodInterface
-	workerPodsSet         map[string]struct{}
-	syncMu                *sync.Mutex
-	availabilityCh        chan struct{}
-	errCh                 chan error // All goroutines will send fatal errors here
+	queueReaderFactory queue.ReaderFactory
+	kubeClient         *kubernetes.Clientset
+	podsClient         corev1.PodInterface
+	workerPodsSet      map[string]struct{}
+	syncMu             *sync.Mutex
+	availabilityCh     chan struct{}
+	errCh              chan error // All goroutines will send fatal errors here
 }
 
 func NewScheduler(
 	schedulerConfig Config,
 	apiClient api.Client,
-	eventsReceiverFactory events.ReceiverFactory,
+	queueReaderFactory queue.ReaderFactory,
 	kubeClient *kubernetes.Clientset,
 ) Scheduler {
 	podsClient := kubeClient.CoreV1().Pods("")
 	return &scheduler{
-		schedulerConfig:       schedulerConfig,
-		apiClient:             apiClient,
-		eventsReceiverFactory: eventsReceiverFactory,
-		kubeClient:            kubeClient,
-		podsClient:            podsClient,
-		workerPodsSet:         map[string]struct{}{},
-		syncMu:                &sync.Mutex{},
-		availabilityCh:        make(chan struct{}),
-		errCh:                 make(chan error),
+		schedulerConfig:    schedulerConfig,
+		apiClient:          apiClient,
+		queueReaderFactory: queueReaderFactory,
+		kubeClient:         kubeClient,
+		podsClient:         podsClient,
+		workerPodsSet:      map[string]struct{}{},
+		syncMu:             &sync.Mutex{},
+		availabilityCh:     make(chan struct{}),
+		errCh:              make(chan error),
 	}
 }
 
@@ -78,11 +77,11 @@ func (s *scheduler) Run(ctx context.Context) error {
 	}()
 
 	// Monitor for new/deleted projects at a regular interval. Launch or stop
-	// new project-specific event loops as needed.
+	// new project-specific Worker and Job loops as needed.
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		s.manageProjectEventLoops(ctx)
+		s.manageProjectLoops(ctx)
 	}()
 
 	// Wait for an error or a completed context
