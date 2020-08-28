@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/authn"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
@@ -39,7 +40,7 @@ func NewTokenAuthFilter(
 	rootUserEnabled bool,
 	hashedSchedulerToken string,
 	hashedObserverToken string,
-) Filter {
+) apimachinery.Filter {
 	return &tokenAuthFilter{
 		findSession:          findSession,
 		findEvent:            findEvent,

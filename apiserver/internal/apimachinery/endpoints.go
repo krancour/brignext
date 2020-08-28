@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/authn"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
@@ -19,7 +18,7 @@ type Endpoints interface {
 }
 
 type BaseEndpoints struct {
-	TokenAuthFilter authn.Filter
+	TokenAuthFilter Filter
 }
 
 func (b *BaseEndpoints) readAndValidateRequestBody(
