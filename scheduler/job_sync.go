@@ -12,37 +12,37 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-var workerPodsSelector = labels.Set(
+var jobPodsSelector = labels.Set(
 	map[string]string{
-		"brignext.io/component": "worker",
+		"brignext.io/component": "job",
 	},
 ).AsSelector().String()
 
-func (s *scheduler) syncExistingWorkerPods(ctx context.Context) error {
-	workerPods, err := s.podsClient.List(
+func (s *scheduler) syncExistingJobPods(ctx context.Context) error {
+	jobPods, err := s.podsClient.List(
 		ctx,
 		metav1.ListOptions{
-			LabelSelector: workerPodsSelector,
+			LabelSelector: jobPodsSelector,
 		},
 	)
 	if err != nil {
-		return errors.Wrap(err, "error listing worker pods")
+		return errors.Wrap(err, "error listing job pods")
 	}
-	for _, workerPod := range workerPods.Items {
-		s.syncWorkerPod(&workerPod)
+	for _, jobPod := range jobPods.Items {
+		s.syncJobPod(&jobPod)
 	}
 	return nil
 }
 
-func (s *scheduler) continuouslySyncWorkerPods(ctx context.Context) {
-	workerPodsInformer := cache.NewSharedIndexInformer(
+func (s *scheduler) continuouslySyncJobPods(ctx context.Context) {
+	jobPodsInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				options.LabelSelector = workerPodsSelector
+				options.LabelSelector = jobPodsSelector
 				return s.podsClient.List(ctx, options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				options.LabelSelector = workerPodsSelector
+				options.LabelSelector = jobPodsSelector
 				return s.podsClient.Watch(ctx, options)
 			},
 		},
@@ -50,50 +50,50 @@ func (s *scheduler) continuouslySyncWorkerPods(ctx context.Context) {
 		0,
 		cache.Indexers{},
 	)
-	workerPodsInformer.AddEventHandler(
+	jobPodsInformer.AddEventHandler(
 		cache.ResourceEventHandlerFuncs{
-			AddFunc: s.syncWorkerPod,
+			AddFunc: s.syncJobPod,
 			UpdateFunc: func(_, newObj interface{}) {
-				s.syncWorkerPod(newObj)
+				s.syncJobPod(newObj)
 			},
 		},
 	)
-	workerPodsInformer.Run(ctx.Done())
+	jobPodsInformer.Run(ctx.Done())
 }
 
-func (s *scheduler) syncWorkerPod(obj interface{}) {
+func (s *scheduler) syncJobPod(obj interface{}) {
 	s.syncMu.Lock()
 	defer s.syncMu.Unlock()
-	workerPod := obj.(*corev1.Pod)
+	jobPod := obj.(*corev1.Pod)
 
-	namespacedWorkerPodName :=
-		namespacedPodName(workerPod.Namespace, workerPod.Name)
+	namespacedJobPodName :=
+		namespacedPodName(jobPod.Namespace, jobPod.Name)
 
-	if workerPod.DeletionTimestamp != nil {
+	if jobPod.DeletionTimestamp != nil {
 		// Make sure this pod isn't counted as consuming capacity
-		delete(s.workerPodsSet, namespacedWorkerPodName)
+		delete(s.jobPodsSet, namespacedJobPodName)
 		return
 	}
 
-	switch workerPod.Status.Phase {
+	switch jobPod.Status.Phase {
 	case corev1.PodPending:
 		// A pending pod is on its way up. We need to count this as consuming
 		// capacity
-		s.workerPodsSet[namespacedWorkerPodName] = struct{}{}
+		s.jobPodsSet[namespacedJobPodName] = struct{}{}
 	case corev1.PodRunning:
 		// Make sure this pod IS counted as consuming capacity
-		s.workerPodsSet[namespacedWorkerPodName] = struct{}{}
+		s.jobPodsSet[namespacedJobPodName] = struct{}{}
 	case corev1.PodSucceeded:
 		// Make sure this pod IS NOT counted as consuming capacity
-		delete(s.workerPodsSet, namespacedWorkerPodName)
+		delete(s.jobPodsSet, namespacedJobPodName)
 	case corev1.PodFailed:
 		// Make sure this pod IS NOT counted as consuming capacity
-		delete(s.workerPodsSet, namespacedWorkerPodName)
+		delete(s.jobPodsSet, namespacedJobPodName)
 	case corev1.PodUnknown:
 		// Make sure this pod IS counted as consuming capacity... because we just
 		// don't know. (If someone or something deletes it, it will all work itself
 		// out.)
-		s.workerPodsSet[namespacedWorkerPodName] = struct{}{}
+		s.jobPodsSet[namespacedJobPodName] = struct{}{}
 	}
 
 }

@@ -41,7 +41,7 @@ func (s *scheduler) manageProjectLoops(ctx context.Context) {
 		// Reconcile differences between projects we knew about already and the
 		// current set of projects...
 
-		// 1. Stop Worker loops for projects that have been deleted
+		// 1. Stop Worker and Job loops for projects that have been deleted
 		for projectID, cancelFn := range loopCancelFns {
 			if _, stillExists := currentProjects[projectID]; !stillExists {
 				log.Printf("DEBUG: stopping worker loop for project %q", projectID)
@@ -52,13 +52,15 @@ func (s *scheduler) manageProjectLoops(ctx context.Context) {
 			}
 		}
 
-		// 2. Start Worker loop for any projects that have been added
+		// 2. Start Worker and Job loops for any projects that have been added
 		for projectID := range currentProjects {
 			if _, known := loopCancelFns[projectID]; !known {
 				loopCtx, loopCtxCancelFn := context.WithCancel(ctx)
 				loopCancelFns[projectID] = loopCtxCancelFn
 				log.Printf("DEBUG: starting worker loop for project %q", projectID)
 				go s.runWorkerLoop(loopCtx, projectID)
+				log.Printf("DEBUG: starting job loop for project %q", projectID)
+				go s.runJobLoop(loopCtx, projectID)
 			}
 		}
 

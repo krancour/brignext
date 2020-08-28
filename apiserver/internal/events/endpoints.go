@@ -391,9 +391,8 @@ func (e *endpoints) createJob(w http.ResponseWriter, r *http.Request) {
 func (e *endpoints) startJob(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
 		apimachinery.InboundRequest{
-			W:                   w,
-			R:                   r,
-			ReqBodySchemaLoader: e.jobSpecSchemaLoader,
+			W: w,
+			R: r,
 			EndpointLogic: func() (interface{}, error) {
 				return nil, e.service.StartJob(
 					r.Context(),

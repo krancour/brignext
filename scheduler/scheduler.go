@@ -20,13 +20,15 @@ type scheduler struct {
 	schedulerConfig Config
 	apiClient       api.Client
 	// TODO: This should be closed somewhere
-	queueReaderFactory queue.ReaderFactory
-	kubeClient         *kubernetes.Clientset
-	podsClient         corev1.PodInterface
-	workerPodsSet      map[string]struct{}
-	syncMu             *sync.Mutex
-	availabilityCh     chan struct{}
-	errCh              chan error // All goroutines will send fatal errors here
+	queueReaderFactory   queue.ReaderFactory
+	kubeClient           *kubernetes.Clientset
+	podsClient           corev1.PodInterface
+	workerPodsSet        map[string]struct{}
+	jobPodsSet           map[string]struct{}
+	syncMu               *sync.Mutex
+	workerAvailabilityCh chan struct{}
+	jobAvailabilityCh    chan struct{}
+	errCh                chan error // All goroutines will send fatal errors here
 }
 
 func NewScheduler(
@@ -37,15 +39,17 @@ func NewScheduler(
 ) Scheduler {
 	podsClient := kubeClient.CoreV1().Pods("")
 	return &scheduler{
-		schedulerConfig:    schedulerConfig,
-		apiClient:          apiClient,
-		queueReaderFactory: queueReaderFactory,
-		kubeClient:         kubeClient,
-		podsClient:         podsClient,
-		workerPodsSet:      map[string]struct{}{},
-		syncMu:             &sync.Mutex{},
-		availabilityCh:     make(chan struct{}),
-		errCh:              make(chan error),
+		schedulerConfig:      schedulerConfig,
+		apiClient:            apiClient,
+		queueReaderFactory:   queueReaderFactory,
+		kubeClient:           kubeClient,
+		podsClient:           podsClient,
+		workerPodsSet:        map[string]struct{}{},
+		jobPodsSet:           map[string]struct{}{},
+		syncMu:               &sync.Mutex{},
+		workerAvailabilityCh: make(chan struct{}),
+		jobAvailabilityCh:    make(chan struct{}),
+		errCh:                make(chan error),
 	}
 }
 
@@ -69,11 +73,18 @@ func (s *scheduler) Run(ctx context.Context) error {
 		s.continuouslySyncWorkerPods(ctx)
 	}()
 
-	// Manage available capacity
+	// Manage available Worker capacity
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		s.manageCapacity(ctx)
+		s.manageWorkerCapacity(ctx)
+	}()
+
+	// Manage available Job capacity
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		s.manageJobCapacity(ctx)
 	}()
 
 	// Monitor for new/deleted projects at a regular interval. Launch or stop

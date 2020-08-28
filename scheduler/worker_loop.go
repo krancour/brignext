@@ -57,26 +57,26 @@ outerLoop:
 				// TODO: We should check what went wrong
 				log.Println(err)
 				msg.Ack() // nolint: errcheck
-				continue  // Next event
+				continue  // Next Worker
 			}
 
-			// If the worker's phase isn't PENDING, then there's nothing to do
+			// If the Worker's phase isn't PENDING, then there's nothing to do
 			if event.Worker.Status.Phase != sdk.WorkerPhasePending {
 				msg.Ack() // nolint: errcheck
-				continue  // Next event
+				continue  // Next Worker
 			}
 
 			// TODO: We should still check k8s for the existence of the pod before
 			// proceeding, because with at least once event delivery semantics, there
 			// is always the possibility that we already scheduled this pod, but the
-			// worker's status remains PENDING only because the observer is down...
+			// Worker's status remains PENDING only because the observer is down...
 			// But the API should do that.
 
 			// TODO: Wait for Project capacity
 
 			// Wait for system capacity
 			select {
-			case <-s.availabilityCh:
+			case <-s.workerAvailabilityCh:
 			case <-ctx.Done():
 				// We don't ack the event here because it hasn't been scheduled yet
 				continue outerLoop // This will do cleanup before returning
