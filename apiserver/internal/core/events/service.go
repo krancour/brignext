@@ -6,10 +6,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
+	"github.com/krancour/brignext/v2/apiserver/internal/core/projects"
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
-	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
-	"github.com/krancour/brignext/v2/apiserver/internal/sdk/projects"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
@@ -20,8 +20,8 @@ import (
 // remains free to change.
 type Service interface {
 	// Create creates a new Event.
-	Create(context.Context, brignext.Event) (
-		brignext.EventList,
+	Create(context.Context, core.Event) (
+		core.EventList,
 		error,
 	)
 	// List returns an EventList, with its Items (Events) ordered by
@@ -29,29 +29,29 @@ type Service interface {
 	// specified using the EventListOptions parameter.
 	List(
 		context.Context,
-		brignext.EventsSelector,
+		core.EventsSelector,
 		meta.ListOptions,
-	) (brignext.EventList, error)
+	) (core.EventList, error)
 	// Get retrieves a single Event specified by its identifier.
-	Get(context.Context, string) (brignext.Event, error)
+	Get(context.Context, string) (core.Event, error)
 	// GetByWorkerToken retrieves a single Event specified by its Worker's token.
-	GetByWorkerToken(context.Context, string) (brignext.Event, error)
+	GetByWorkerToken(context.Context, string) (core.Event, error)
 	// Cancel cancels a single Event specified by its identifier.
 	Cancel(context.Context, string) error
 	// CancelMany cancels multiple Events specified by the EventListOptions
 	// parameter.
 	CancelMany(
 		context.Context,
-		brignext.EventsSelector,
-	) (brignext.CancelManyEventsResult, error)
+		core.EventsSelector,
+	) (core.CancelManyEventsResult, error)
 	// Delete deletes a single Event specified by its identifier.
 	Delete(context.Context, string) error
 	// DeleteMany deletes multiple Events specified by the EventListOptions
 	// parameter.
 	DeleteMany(
 		context.Context,
-		brignext.EventsSelector,
-	) (brignext.DeleteManyEventsResult, error)
+		core.EventsSelector,
+	) (core.DeleteManyEventsResult, error)
 
 	// StartWorker starts the indicated Event's Worker on BrigNext's workload
 	// execution substrate.
@@ -60,19 +60,19 @@ type Service interface {
 	GetWorkerStatus(
 		ctx context.Context,
 		eventID string,
-	) (brignext.WorkerStatus, error)
+	) (core.WorkerStatus, error)
 	// WatchWorkerStatus returns a channel over which an Event's Worker's status
 	// is streamed. The channel receives a new WorkerStatus every time there is
 	// any change in that status.
 	WatchWorkerStatus(
 		ctx context.Context,
 		eventID string,
-	) (<-chan brignext.WorkerStatus, error)
+	) (<-chan core.WorkerStatus, error)
 	// UpdateWorkerStatus updates the status of an Event's Worker.
 	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
-		status brignext.WorkerStatus,
+		status core.WorkerStatus,
 	) error
 
 	// CreateJob, given an Event identifier and JobSpec, creates a new Job and
@@ -81,7 +81,7 @@ type Service interface {
 		ctx context.Context,
 		eventID string,
 		jobName string,
-		jobSpec brignext.JobSpec,
+		jobSpec core.JobSpec,
 	) error
 	// StartJob, given an Event identifier and Job name, starts that Job on
 	// BrigNext's workload execution substrate.
@@ -96,7 +96,7 @@ type Service interface {
 		ctx context.Context,
 		eventID string,
 		jobName string,
-	) (brignext.JobStatus, error)
+	) (core.JobStatus, error)
 	// WatchJobStatus, given an Event identifier and Job name, returns a channel
 	// over which the Job's status is streamed. The channel receives a new
 	// JobStatus every time there is any change in that status.
@@ -104,14 +104,14 @@ type Service interface {
 		ctx context.Context,
 		eventID string,
 		jobName string,
-	) (<-chan brignext.JobStatus, error)
+	) (<-chan core.JobStatus, error)
 	// UpdateJobStatus, given an Event identifier and Job name, updates the status
 	// of that Job.
 	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
 		jobName string,
-		status brignext.JobStatus,
+		status core.JobStatus,
 	) error
 
 	// StreamLogs returns a channel over which logs for an Event's Worker, or
@@ -120,9 +120,9 @@ type Service interface {
 	StreamLogs(
 		ctx context.Context,
 		eventID string,
-		selector brignext.LogsSelector,
-		opts brignext.LogStreamOptions,
-	) (<-chan brignext.LogEntry, error)
+		selector core.LogsSelector,
+		opts core.LogStreamOptions,
+	) (<-chan core.LogEntry, error)
 }
 
 type service struct {
@@ -154,9 +154,9 @@ func NewService(
 // should defer until later-- like when the worker pod actually gets created.
 func (s *service) Create(
 	ctx context.Context,
-	event brignext.Event,
-) (brignext.EventList, error) {
-	events := brignext.EventList{}
+	event core.Event,
+) (core.EventList, error) {
+	events := core.EventList{}
 
 	now := time.Now()
 	event.Created = &now
@@ -173,7 +173,7 @@ func (s *service) Create(
 				"error retrieving subscribed projects from store",
 			)
 		}
-		events.Items = make([]brignext.Event, len(projects.Items))
+		events.Items = make([]core.Event, len(projects.Items))
 		for i, project := range projects.Items {
 			event.ProjectID = project.ID
 			projectEvents, err := s.Create(ctx, event)
@@ -206,7 +206,7 @@ func (s *service) Create(
 
 	if event.Git != nil {
 		if workerSpec.Git == nil {
-			workerSpec.Git = &brignext.WorkerGitConfig{}
+			workerSpec.Git = &core.WorkerGitConfig{}
 		}
 		// VCS details from the event override project-level details
 		// TODO: Might need some nil checks below
@@ -229,7 +229,7 @@ func (s *service) Create(
 	}
 
 	if workerSpec.LogLevel == "" {
-		workerSpec.LogLevel = brignext.LogLevelInfo
+		workerSpec.LogLevel = core.LogLevelInfo
 	}
 
 	if workerSpec.ConfigFilesDirectory == "" {
@@ -238,10 +238,10 @@ func (s *service) Create(
 
 	token := crypto.NewToken(256)
 
-	event.Worker = brignext.Worker{
+	event.Worker = core.Worker{
 		Spec: workerSpec,
-		Status: brignext.WorkerStatus{
-			Phase: brignext.WorkerPhasePending,
+		Status: core.WorkerStatus{
+			Phase: core.WorkerPhasePending,
 		},
 		Token:       token,
 		HashedToken: crypto.ShortSHA("", token),
@@ -275,20 +275,20 @@ func (s *service) Create(
 		)
 	}
 
-	events.Items = []brignext.Event{event}
+	events.Items = []core.Event{event}
 	return events, nil
 }
 
 func (s *service) List(
 	ctx context.Context,
-	selector brignext.EventsSelector,
+	selector core.EventsSelector,
 	opts meta.ListOptions,
-) (brignext.EventList, error) {
-	events := brignext.EventList{}
+) (core.EventList, error) {
+	events := core.EventList{}
 
 	// If no worker phase filters were applied, retrieve all phases
 	if len(selector.WorkerPhases) == 0 {
-		selector.WorkerPhases = brignext.WorkerPhasesAll()
+		selector.WorkerPhases = core.WorkerPhasesAll()
 	}
 	if opts.Limit == 0 {
 		opts.Limit = 20
@@ -304,7 +304,7 @@ func (s *service) List(
 func (s *service) Get(
 	ctx context.Context,
 	id string,
-) (brignext.Event, error) {
+) (core.Event, error) {
 	event, err := s.store.Get(ctx, id)
 	if err != nil {
 		return event, errors.Wrapf(err, "error retrieving event %q from store", id)
@@ -315,7 +315,7 @@ func (s *service) Get(
 func (s *service) GetByWorkerToken(
 	ctx context.Context,
 	workerToken string,
-) (brignext.Event, error) {
+) (core.Event, error) {
 	event, err := s.store.GetByHashedWorkerToken(
 		ctx,
 		crypto.ShortSHA("", workerToken),
@@ -356,20 +356,20 @@ func (s *service) Cancel(ctx context.Context, id string) error {
 
 func (s *service) CancelMany(
 	ctx context.Context,
-	selector brignext.EventsSelector,
-) (brignext.CancelManyEventsResult, error) {
-	result := brignext.CancelManyEventsResult{}
+	selector core.EventsSelector,
+) (core.CancelManyEventsResult, error) {
+	result := core.CancelManyEventsResult{}
 
 	// Refuse requests not qualified by project
 	if selector.ProjectID == "" {
-		return result, &brignext.ErrBadRequest{
+		return result, &core.ErrBadRequest{
 			Reason: "Requests to cancel multiple events must be qualified by " +
 				"project.",
 		}
 	}
 	// Refuse requests not qualified by worker phases
 	if len(selector.WorkerPhases) == 0 {
-		return result, &brignext.ErrBadRequest{
+		return result, &core.ErrBadRequest{
 			Reason: "Requests to cancel multiple events must be qualified by " +
 				"worker phase(s).",
 		}
@@ -445,20 +445,20 @@ func (s *service) Delete(ctx context.Context, id string) error {
 
 func (s *service) DeleteMany(
 	ctx context.Context,
-	selector brignext.EventsSelector,
-) (brignext.DeleteManyEventsResult, error) {
-	result := brignext.DeleteManyEventsResult{}
+	selector core.EventsSelector,
+) (core.DeleteManyEventsResult, error) {
+	result := core.DeleteManyEventsResult{}
 
 	// Refuse requests not qualified by project
 	if selector.ProjectID == "" {
-		return result, &brignext.ErrBadRequest{
+		return result, &core.ErrBadRequest{
 			Reason: "Requests to delete multiple events must be qualified by " +
 				"project.",
 		}
 	}
 	// Refuse requests not qualified by worker phases
 	if len(selector.WorkerPhases) == 0 {
-		return result, &brignext.ErrBadRequest{
+		return result, &core.ErrBadRequest{
 			Reason: "Requests to delete multiple events must be qualified by " +
 				"worker phase(s).",
 		}
@@ -522,8 +522,8 @@ func (s *service) StartWorker(ctx context.Context, eventID string) error {
 	// 	)
 	// }
 
-	if event.Worker.Status.Phase != brignext.WorkerPhasePending {
-		return &brignext.ErrConflict{
+	if event.Worker.Status.Phase != core.WorkerPhasePending {
+		return &core.ErrConflict{
 			Type: "Event",
 			ID:   event.ID,
 			Reason: fmt.Sprintf(
@@ -542,10 +542,10 @@ func (s *service) StartWorker(ctx context.Context, eventID string) error {
 func (s *service) GetWorkerStatus(
 	ctx context.Context,
 	eventID string,
-) (brignext.WorkerStatus, error) {
+) (core.WorkerStatus, error) {
 	event, err := s.store.Get(ctx, eventID)
 	if err != nil {
-		return brignext.WorkerStatus{},
+		return core.WorkerStatus{},
 			errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
 	return event.Worker.Status, nil
@@ -555,13 +555,13 @@ func (s *service) GetWorkerStatus(
 func (s *service) WatchWorkerStatus(
 	ctx context.Context,
 	eventID string,
-) (<-chan brignext.WorkerStatus, error) {
+) (<-chan core.WorkerStatus, error) {
 	// Read the event up front to confirm it exists.
 	if _, err := s.store.Get(ctx, eventID); err != nil {
 		return nil,
 			errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
-	statusCh := make(chan brignext.WorkerStatus)
+	statusCh := make(chan core.WorkerStatus)
 	go func() {
 		defer close(statusCh)
 		ticker := time.NewTicker(2 * time.Second)
@@ -590,7 +590,7 @@ func (s *service) WatchWorkerStatus(
 func (s *service) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
-	status brignext.WorkerStatus,
+	status core.WorkerStatus,
 ) error {
 	if err := s.store.UpdateWorkerStatus(
 		ctx,
@@ -610,14 +610,14 @@ func (s *service) CreateJob(
 	ctx context.Context,
 	eventID string,
 	jobName string,
-	jobSpec brignext.JobSpec,
+	jobSpec core.JobSpec,
 ) error {
 	event, err := s.store.Get(ctx, eventID)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
 	if _, ok := event.Worker.Jobs[jobName]; ok {
-		return &brignext.ErrConflict{
+		return &core.ErrConflict{
 			Type: "Job",
 			ID:   jobName,
 			Reason: fmt.Sprintf(
@@ -654,18 +654,18 @@ func (s *service) CreateJob(
 	if usePrivileged &&
 		(event.Worker.Spec.JobPolicies == nil ||
 			!event.Worker.Spec.JobPolicies.AllowPrivileged) {
-		return &brignext.ErrAuthorization{} // TODO: Add more detail to this error
+		return &core.ErrAuthorization{} // TODO: Add more detail to this error
 	}
 	if useDockerSocket &&
 		(event.Worker.Spec.JobPolicies == nil ||
 			!event.Worker.Spec.JobPolicies.AllowDockerSocketMount) {
-		return &brignext.ErrAuthorization{} // TODO: Add more detail to this error
+		return &core.ErrAuthorization{} // TODO: Add more detail to this error
 	}
 
 	// Fail quickly if the job needs to use shared workspace, but the worker
 	// doesn't have any shared workspace.
 	if useWorkspace && !event.Worker.Spec.UseWorkspace {
-		return &brignext.ErrConflict{} // TODO: Add more detail to this error
+		return &core.ErrConflict{} // TODO: Add more detail to this error
 	}
 
 	if err = s.store.CreateJob(ctx, eventID, jobName, jobSpec); err != nil {
@@ -699,14 +699,14 @@ func (s *service) StartJob(
 	}
 	job, ok := event.Worker.Jobs[jobName]
 	if !ok {
-		return &brignext.ErrNotFound{
+		return &core.ErrNotFound{
 			Type: "Job",
 			ID:   jobName,
 		}
 	}
 
-	if job.Status.Phase != brignext.JobPhasePending {
-		return &brignext.ErrConflict{
+	if job.Status.Phase != core.JobPhasePending {
+		return &core.ErrConflict{
 			Type: "Job",
 			ID:   jobName,
 			Reason: fmt.Sprintf(
@@ -733,15 +733,15 @@ func (s *service) GetJobStatus(
 	ctx context.Context,
 	eventID string,
 	jobName string,
-) (brignext.JobStatus, error) {
+) (core.JobStatus, error) {
 	event, err := s.store.Get(ctx, eventID)
 	if err != nil {
-		return brignext.JobStatus{},
+		return core.JobStatus{},
 			errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
 	job, ok := event.Worker.Jobs[jobName]
 	if !ok {
-		return brignext.JobStatus{}, &brignext.ErrNotFound{
+		return core.JobStatus{}, &core.ErrNotFound{
 			Type: "Job",
 			ID:   jobName,
 		}
@@ -754,7 +754,7 @@ func (s *service) WatchJobStatus(
 	ctx context.Context,
 	eventID string,
 	jobName string,
-) (<-chan brignext.JobStatus, error) {
+) (<-chan core.JobStatus, error) {
 	// Read the event and job up front to confirm they both exists.
 	event, err := s.store.Get(ctx, eventID)
 	if err != nil {
@@ -762,12 +762,12 @@ func (s *service) WatchJobStatus(
 			errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
 	if _, ok := event.Worker.Jobs[jobName]; !ok {
-		return nil, &brignext.ErrNotFound{
+		return nil, &core.ErrNotFound{
 			Type: "Job",
 			ID:   jobName,
 		}
 	}
-	statusCh := make(chan brignext.JobStatus)
+	statusCh := make(chan core.JobStatus)
 	go func() {
 		defer close(statusCh)
 		ticker := time.NewTicker(2 * time.Second)
@@ -797,7 +797,7 @@ func (s *service) UpdateJobStatus(
 	ctx context.Context,
 	eventID string,
 	jobName string,
-	status brignext.JobStatus,
+	status core.JobStatus,
 ) error {
 	if err := s.store.UpdateJobStatus(
 		ctx,
@@ -818,9 +818,9 @@ func (s *service) UpdateJobStatus(
 func (s *service) StreamLogs(
 	ctx context.Context,
 	eventID string,
-	selector brignext.LogsSelector,
-	opts brignext.LogStreamOptions,
-) (<-chan brignext.LogEntry, error) {
+	selector core.LogsSelector,
+	opts core.LogStreamOptions,
+) (<-chan core.LogEntry, error) {
 	event, err := s.store.Get(ctx, eventID)
 	if err != nil {
 		return nil,

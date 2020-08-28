@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
+	"github.com/krancour/brignext/v2/apiserver/internal/core/projects"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
-	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
-	"github.com/krancour/brignext/v2/apiserver/internal/sdk/projects"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -76,13 +76,13 @@ func NewStore(database *mongo.Database) (projects.Store, error) {
 
 func (s *store) Create(
 	ctx context.Context,
-	project brignext.Project,
+	project core.Project,
 ) error {
 	if _, err := s.collection.InsertOne(ctx, project); err != nil {
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
-				return &brignext.ErrConflict{
+				return &core.ErrConflict{
 					Type: "Project",
 					ID:   project.ID,
 					Reason: fmt.Sprintf(
@@ -99,10 +99,10 @@ func (s *store) Create(
 
 func (s *store) List(
 	ctx context.Context,
-	_ brignext.ProjectsSelector,
+	_ core.ProjectsSelector,
 	opts meta.ListOptions,
-) (brignext.ProjectList, error) {
-	projects := brignext.ProjectList{}
+) (core.ProjectList, error) {
+	projects := core.ProjectList{}
 
 	criteria := bson.M{}
 	if opts.Continue != "" {
@@ -138,9 +138,9 @@ func (s *store) List(
 
 func (s *store) ListSubscribers(
 	ctx context.Context,
-	event brignext.Event,
-) (brignext.ProjectList, error) {
-	projects := brignext.ProjectList{}
+	event core.Event,
+) (core.ProjectList, error) {
+	projects := core.ProjectList{}
 	subscriptionMatchCriteria := bson.M{
 		"source": event.Source,
 		"types": bson.M{
@@ -186,11 +186,11 @@ func (s *store) ListSubscribers(
 func (s *store) Get(
 	ctx context.Context,
 	id string,
-) (brignext.Project, error) {
-	project := brignext.Project{}
+) (core.Project, error) {
+	project := core.Project{}
 	res := s.collection.FindOne(ctx, bson.M{"id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return project, &brignext.ErrNotFound{
+		return project, &core.ErrNotFound{
 			Type: "Project",
 			ID:   id,
 		}
@@ -205,7 +205,7 @@ func (s *store) Get(
 }
 
 func (s *store) Update(
-	ctx context.Context, project brignext.Project,
+	ctx context.Context, project core.Project,
 ) error {
 	res, err := s.collection.UpdateOne(
 		ctx,
@@ -223,7 +223,7 @@ func (s *store) Update(
 		return errors.Wrapf(err, "error replacing project %q", project.ID)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrNotFound{
+		return &core.ErrNotFound{
 			Type: "Project",
 			ID:   project.ID,
 		}
@@ -241,7 +241,7 @@ func (s *store) Delete(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error deleting project %q", id)
 	}
 	if res.DeletedCount == 0 {
-		return &brignext.ErrNotFound{
+		return &core.ErrNotFound{
 			Type: "Project",
 			ID:   id,
 		}

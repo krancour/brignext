@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
-	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -23,35 +23,35 @@ import (
 type Scheduler interface {
 	PreCreate(
 		ctx context.Context,
-		project brignext.Project,
-	) (brignext.Project, error)
+		project core.Project,
+	) (core.Project, error)
 	Create(
 		ctx context.Context,
-		project brignext.Project,
+		project core.Project,
 	) error
 	PreUpdate(
 		ctx context.Context,
-		project brignext.Project,
-	) (brignext.Project, error)
+		project core.Project,
+	) (core.Project, error)
 	Update(
 		ctx context.Context,
-		project brignext.Project,
+		project core.Project,
 	) error
 	Delete(
 		ctx context.Context,
-		project brignext.Project,
+		project core.Project,
 	) error
 	ListSecrets(
 		ctx context.Context,
-		project brignext.Project,
+		project core.Project,
 		opts meta.ListOptions,
-	) (brignext.SecretList, error)
+	) (core.SecretList, error)
 	SetSecret(
 		ctx context.Context,
-		project brignext.Project,
-		secret brignext.Secret,
+		project core.Project,
+		secret core.Secret,
 	) error
-	UnsetSecret(ctx context.Context, project brignext.Project, key string) error
+	UnsetSecret(ctx context.Context, project core.Project, key string) error
 }
 
 type scheduler struct {
@@ -66,10 +66,10 @@ func NewScheduler(kubeClient *kubernetes.Clientset) Scheduler {
 
 func (s *scheduler) PreCreate(
 	ctx context.Context,
-	project brignext.Project,
-) (brignext.Project, error) {
+	project core.Project,
+) (core.Project, error) {
 	// Create a unique namespace name for the project
-	project.Kubernetes = &brignext.KubernetesConfig{
+	project.Kubernetes = &core.KubernetesConfig{
 		Namespace: strings.ToLower(
 			fmt.Sprintf("brignext-%s-%s", project.ID, crypto.NewToken(10)),
 		),
@@ -80,7 +80,7 @@ func (s *scheduler) PreCreate(
 
 func (s *scheduler) Create(
 	ctx context.Context,
-	project brignext.Project,
+	project core.Project,
 ) error {
 	// Create the project's namespace
 	if _, err := s.kubeClient.CoreV1().Namespaces().Create(
@@ -271,18 +271,18 @@ func (s *scheduler) Create(
 
 func (s *scheduler) PreUpdate(
 	ctx context.Context,
-	project brignext.Project,
-) (brignext.Project, error) {
+	project core.Project,
+) (core.Project, error) {
 	return s.projectWithDefaults(project), nil
 }
 
-func (s *scheduler) Update(context.Context, brignext.Project) error {
+func (s *scheduler) Update(context.Context, core.Project) error {
 	return nil
 }
 
 func (s *scheduler) Delete(
 	ctx context.Context,
-	project brignext.Project,
+	project core.Project,
 ) error {
 	if err := s.kubeClient.CoreV1().Namespaces().Delete(
 		ctx,
@@ -300,10 +300,10 @@ func (s *scheduler) Delete(
 
 func (s *scheduler) ListSecrets(
 	ctx context.Context,
-	project brignext.Project,
+	project core.Project,
 	opts meta.ListOptions,
-) (brignext.SecretList, error) {
-	secrets := brignext.SecretList{}
+) (core.SecretList, error) {
+	secrets := core.SecretList{}
 
 	k8sSecret, err := s.kubeClient.CoreV1().Secrets(
 		project.Kubernetes.Namespace,
@@ -315,10 +315,10 @@ func (s *scheduler) ListSecrets(
 			project.Kubernetes.Namespace,
 		)
 	}
-	secrets.Items = make([]brignext.Secret, len(k8sSecret.Data))
+	secrets.Items = make([]core.Secret, len(k8sSecret.Data))
 	var i int
 	for key := range k8sSecret.Data {
-		secrets.Items[i] = brignext.Secret{Key: key}
+		secrets.Items[i] = core.Secret{Key: key}
 		i++
 	}
 
@@ -351,8 +351,8 @@ func (s *scheduler) ListSecrets(
 
 func (s *scheduler) SetSecret(
 	ctx context.Context,
-	project brignext.Project,
-	secret brignext.Secret,
+	project core.Project,
+	secret core.Secret,
 ) error {
 	patch := struct {
 		Data map[string]string `json:"data"`
@@ -391,7 +391,7 @@ func (s *scheduler) SetSecret(
 
 func (s *scheduler) UnsetSecret(
 	ctx context.Context,
-	project brignext.Project,
+	project core.Project,
 	key string,
 ) error {
 	// Note: If we blindly try to patch the k8s secret to remove the specified
@@ -452,15 +452,15 @@ func (s *scheduler) UnsetSecret(
 // TODO: We might not want to set this stuff now, but rather defer it to later.
 // nolint: lll
 func (s *scheduler) projectWithDefaults(
-	project brignext.Project,
-) brignext.Project {
+	project core.Project,
+) core.Project {
 
 	// if project.Spec.WorkerTemplate.JobPolicies == nil {
-	// 	project.Spec.WorkerTemplate.JobPolicies = &brignext.JobPolicies{}
+	// 	project.Spec.WorkerTemplate.JobPolicies = &core.JobPolicies{}
 	// }
 	// if project.Spec.WorkerTemplate.JobPolicies.Kubernetes == nil {
 	// 	project.Spec.WorkerTemplate.JobPolicies.Kubernetes =
-	// 		&brignext.KubernetesJobPolicies{}
+	// 		&core.KubernetesJobPolicies{}
 	// }
 	// if project.Spec.WorkerTemplate.JobPolicies.Kubernetes.ImagePullSecrets == nil {
 	// 	project.Spec.WorkerTemplate.JobPolicies.Kubernetes.ImagePullSecrets =

@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
-	"github.com/krancour/brignext/v2/apiserver/internal/sdk/events"
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
+	"github.com/krancour/brignext/v2/apiserver/internal/core/events"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -25,13 +25,13 @@ func NewLogsStore(database *mongo.Database) events.LogsStore {
 
 func (l *logsStore) StreamLogs(
 	ctx context.Context,
-	event brignext.Event,
-	selector brignext.LogsSelector,
-	opts brignext.LogStreamOptions,
-) (<-chan brignext.LogEntry, error) {
+	event core.Event,
+	selector core.LogsSelector,
+	opts core.LogStreamOptions,
+) (<-chan core.LogEntry, error) {
 	criteria := l.criteriaFromSelector(event.ID, selector)
 
-	logEntryCh := make(chan brignext.LogEntry)
+	logEntryCh := make(chan core.LogEntry)
 	go func() {
 		defer close(logEntryCh)
 
@@ -84,7 +84,7 @@ func (l *logsStore) StreamLogs(
 					return
 				}
 			}
-			logEntry := brignext.LogEntry{}
+			logEntry := core.LogEntry{}
 			err = cur.Decode(&logEntry)
 			if err != nil {
 				log.Println(
@@ -106,7 +106,7 @@ func (l *logsStore) StreamLogs(
 
 func (l *logsStore) criteriaFromSelector(
 	eventID string,
-	selector brignext.LogsSelector,
+	selector core.LogsSelector,
 ) bson.M {
 	criteria := bson.M{
 		"event": eventID,

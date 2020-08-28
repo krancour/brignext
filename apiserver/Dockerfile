@@ -4,7 +4,6 @@ ARG COMMIT
 ENV CGO_ENABLED=0
 WORKDIR /src
 COPY apiserver/ apiserver/
-COPY sdk/ sdk/
 COPY internal/ internal/
 COPY vendor/ vendor/
 COPY go.mod go.mod

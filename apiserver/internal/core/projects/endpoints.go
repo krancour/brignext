@@ -7,8 +7,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
-	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -83,7 +83,7 @@ func (e *endpoints) Register(router *mux.Router) {
 }
 
 func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
-	project := brignext.Project{}
+	project := core.Project{}
 	e.ServeRequest(
 		apimachinery.InboundRequest{
 			W:                   w,
@@ -109,7 +109,7 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 			e.WriteAPIResponse(
 				w,
 				http.StatusBadRequest,
-				&brignext.ErrBadRequest{
+				&core.ErrBadRequest{
 					Reason: fmt.Sprintf(
 						`Invalid value %q for "limit" query parameter`,
 						limitStr,
@@ -124,7 +124,7 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.List(r.Context(), brignext.ProjectsSelector{}, opts)
+				return e.service.List(r.Context(), core.ProjectsSelector{}, opts)
 			},
 			SuccessCode: http.StatusOK,
 		},
@@ -145,7 +145,7 @@ func (e *endpoints) get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *endpoints) update(w http.ResponseWriter, r *http.Request) {
-	project := brignext.Project{}
+	project := core.Project{}
 	e.ServeRequest(
 		apimachinery.InboundRequest{
 			W:                   w,
@@ -154,7 +154,7 @@ func (e *endpoints) update(w http.ResponseWriter, r *http.Request) {
 			ReqBodyObj:          &project,
 			EndpointLogic: func() (interface{}, error) {
 				if mux.Vars(r)["id"] != project.ID {
-					return nil, &brignext.ErrBadRequest{
+					return nil, &core.ErrBadRequest{
 						Reason: "The project IDs in the URL path and request body do " +
 							"not match.",
 					}
@@ -190,7 +190,7 @@ func (e *endpoints) listSecrets(w http.ResponseWriter, r *http.Request) {
 			e.WriteAPIResponse(
 				w,
 				http.StatusBadRequest,
-				&brignext.ErrBadRequest{
+				&core.ErrBadRequest{
 					Reason: fmt.Sprintf(
 						`Invalid value %q for "limit" query parameter`,
 						limitStr,
@@ -214,7 +214,7 @@ func (e *endpoints) listSecrets(w http.ResponseWriter, r *http.Request) {
 
 func (e *endpoints) setSecret(w http.ResponseWriter, r *http.Request) {
 	key := mux.Vars(r)["key"]
-	secret := brignext.Secret{}
+	secret := core.Secret{}
 	e.ServeRequest(
 		apimachinery.InboundRequest{
 			W:                   w,
@@ -223,7 +223,7 @@ func (e *endpoints) setSecret(w http.ResponseWriter, r *http.Request) {
 			ReqBodyObj:          &secret,
 			EndpointLogic: func() (interface{}, error) {
 				if key != secret.Key {
-					return nil, &brignext.ErrBadRequest{
+					return nil, &core.ErrBadRequest{
 						Reason: "The secret key in the URL path and request body do not " +
 							"match.",
 					}

@@ -3,51 +3,51 @@ package events
 import (
 	"context"
 
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
-	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 )
 
 type Store interface {
-	Create(context.Context, brignext.Event) error
+	Create(context.Context, core.Event) error
 	List(
 		context.Context,
-		brignext.EventsSelector,
+		core.EventsSelector,
 		meta.ListOptions,
-	) (brignext.EventList, error)
-	Get(context.Context, string) (brignext.Event, error)
-	GetByHashedWorkerToken(context.Context, string) (brignext.Event, error)
+	) (core.EventList, error)
+	Get(context.Context, string) (core.Event, error)
+	GetByHashedWorkerToken(context.Context, string) (core.Event, error)
 	Cancel(context.Context, string) error
 	CancelMany(
 		context.Context,
-		brignext.EventsSelector,
-	) (brignext.EventList, error)
+		core.EventsSelector,
+	) (core.EventList, error)
 	Delete(context.Context, string) error
 	DeleteMany(
 		context.Context,
-		brignext.EventsSelector,
-	) (brignext.EventList, error)
+		core.EventsSelector,
+	) (core.EventList, error)
 
 	UpdateWorkerSpec(
 		ctx context.Context,
 		eventID string,
-		spec brignext.WorkerSpec,
+		spec core.WorkerSpec,
 	) error
 	UpdateWorkerStatus(
 		ctx context.Context,
 		eventID string,
-		status brignext.WorkerStatus,
+		status core.WorkerStatus,
 	) error
 
 	CreateJob(
 		ctx context.Context,
 		eventID string,
 		jobName string,
-		jobSpec brignext.JobSpec,
+		jobSpec core.JobSpec,
 	) error
 	UpdateJobStatus(
 		ctx context.Context,
 		eventID string,
 		jobName string,
-		status brignext.JobStatus,
+		status core.JobStatus,
 	) error
 }

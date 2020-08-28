@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/authn"
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
-	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/stretchr/testify/require"
 )
 
@@ -61,7 +61,7 @@ func TestTokenAuthFilterWithHeaderNotBearer(t *testing.T) {
 func TestTokenAuthFilterWithTokenInvalid(t *testing.T) {
 	a := NewTokenAuthFilter(
 		func(context.Context, string) (authn.Session, error) {
-			return authn.Session{}, &brignext.ErrNotFound{}
+			return authn.Session{}, &core.ErrNotFound{}
 		},
 		nil,
 		nil,

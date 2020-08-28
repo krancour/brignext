@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -16,7 +16,7 @@ import (
 
 func (s *scheduler) createWorkspacePVC(
 	ctx context.Context,
-	event brignext.Event,
+	event core.Event,
 ) error {
 	storageQuantityStr := event.Worker.Spec.WorkspaceSize
 	if storageQuantityStr == "" {
@@ -74,7 +74,7 @@ func (s *scheduler) createWorkspacePVC(
 
 func (s *scheduler) createWorkerPod(
 	ctx context.Context,
-	event brignext.Event,
+	event core.Event,
 ) error {
 	imagePullSecrets := []corev1.LocalObjectReference{}
 	if event.Worker.Spec.Kubernetes != nil {
@@ -91,7 +91,7 @@ func (s *scheduler) createWorkerPod(
 	// TODO: Decide on the right place to do this stuff. Probably it should be
 	// when (near future state), this scheduler uses the API to start the worker.
 	if event.Worker.Spec.Container == nil {
-		event.Worker.Spec.Container = &brignext.ContainerSpec{}
+		event.Worker.Spec.Container = &core.ContainerSpec{}
 	}
 	image := event.Worker.Spec.Container.Image
 	if image == "" {

@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,9 +16,9 @@ import (
 
 func (s *scheduler) createJobSecret(
 	ctx context.Context,
-	event brignext.Event,
+	event core.Event,
 	jobName string,
-	jobSpec brignext.JobSpec,
+	jobSpec core.JobSpec,
 ) error {
 
 	jobSecret := corev1.Secret{
@@ -64,9 +64,9 @@ func (s *scheduler) createJobSecret(
 
 func (s *scheduler) createJobPod(
 	ctx context.Context,
-	event brignext.Event,
+	event core.Event,
 	jobName string,
-	jobSpec brignext.JobSpec,
+	jobSpec core.JobSpec,
 ) error {
 	// Determine if ANY of the job's containers:
 	//   1. Use shared workspace

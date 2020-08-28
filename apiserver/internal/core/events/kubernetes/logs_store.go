@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
-	"github.com/krancour/brignext/v2/apiserver/internal/sdk/events"
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
+	"github.com/krancour/brignext/v2/apiserver/internal/core/events"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -27,10 +27,10 @@ func NewLogsStore(kubeClient *kubernetes.Clientset) events.LogsStore {
 
 func (l *logsStore) StreamLogs(
 	ctx context.Context,
-	event brignext.Event,
-	selector brignext.LogsSelector,
-	opts brignext.LogStreamOptions,
-) (<-chan brignext.LogEntry, error) {
+	event core.Event,
+	selector core.LogsSelector,
+	opts core.LogStreamOptions,
+) (<-chan core.LogEntry, error) {
 	var podName string
 	if selector.Job == "" {
 		podName = fmt.Sprintf("worker-%s", event.ID)
@@ -55,14 +55,14 @@ func (l *logsStore) StreamLogs(
 		)
 	}
 
-	logEntryCh := make(chan brignext.LogEntry)
+	logEntryCh := make(chan core.LogEntry)
 
 	go func() {
 		defer podLogs.Close()
 		defer close(logEntryCh)
 		buffer := bufio.NewReader(podLogs)
 		for {
-			logEntry := brignext.LogEntry{}
+			logEntry := core.LogEntry{}
 			logLine, err := buffer.ReadString('\n')
 			if err == io.EOF {
 				break

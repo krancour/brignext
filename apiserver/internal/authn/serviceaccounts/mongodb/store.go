@@ -7,8 +7,8 @@ import (
 
 	"github.com/krancour/brignext/v2/apiserver/internal/authn"
 	"github.com/krancour/brignext/v2/apiserver/internal/authn/serviceaccounts"
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
-	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -70,7 +70,7 @@ func (s *store) Create(
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
-				return &brignext.ErrConflict{
+				return &core.ErrConflict{
 					Type: "ServiceAccount",
 					ID:   serviceAccount.ID,
 					Reason: fmt.Sprintf(
@@ -138,7 +138,7 @@ func (s *store) Get(
 	serviceAccount := authn.ServiceAccount{}
 	res := s.collection.FindOne(ctx, bson.M{"id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return serviceAccount, &brignext.ErrNotFound{
+		return serviceAccount, &core.ErrNotFound{
 			Type: "ServiceAccount",
 			ID:   id,
 		}
@@ -168,7 +168,7 @@ func (s *store) GetByHashedToken(
 	res :=
 		s.collection.FindOne(ctx, bson.M{"hashedToken": hashedToken})
 	if res.Err() == mongo.ErrNoDocuments {
-		return serviceAccount, &brignext.ErrNotFound{
+		return serviceAccount, &core.ErrNotFound{
 			Type: "ServiceAccount",
 		}
 	}
@@ -201,7 +201,7 @@ func (s *store) Lock(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error updating service account %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrNotFound{
+		return &core.ErrNotFound{
 			Type: "ServiceAccount",
 			ID:   id,
 		}
@@ -230,7 +230,7 @@ func (s *store) Unlock(
 		return errors.Wrapf(err, "error updating service account %q", id)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrNotFound{
+		return &core.ErrNotFound{
 			Type: "ServiceAccount",
 			ID:   id,
 		}

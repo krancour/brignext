@@ -10,8 +10,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
-	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -133,7 +133,7 @@ func (e *endpoints) Register(router *mux.Router) {
 }
 
 func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
-	event := brignext.Event{}
+	event := core.Event{}
 	e.ServeRequest(
 		apimachinery.InboundRequest{
 			W:                   w,
@@ -149,7 +149,7 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
-	selector := brignext.EventsSelector{
+	selector := core.EventsSelector{
 		ProjectID: r.URL.Query().Get("projectID"),
 	}
 	opts := meta.ListOptions{
@@ -162,7 +162,7 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 			e.WriteAPIResponse(
 				w,
 				http.StatusBadRequest,
-				&brignext.ErrBadRequest{
+				&core.ErrBadRequest{
 					Reason: fmt.Sprintf(
 						`Invalid value %q for "limit" query parameter`,
 						limitStr,
@@ -176,9 +176,9 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 	workerPhasesStr := r.URL.Query().Get("workerPhases")
 	if workerPhasesStr != "" {
 		workerPhaseStrs := strings.Split(workerPhasesStr, ",")
-		selector.WorkerPhases = make([]brignext.WorkerPhase, len(workerPhaseStrs))
+		selector.WorkerPhases = make([]core.WorkerPhase, len(workerPhaseStrs))
 		for i, workerPhaseStr := range workerPhaseStrs {
-			selector.WorkerPhases[i] = brignext.WorkerPhase(workerPhaseStr)
+			selector.WorkerPhases[i] = core.WorkerPhase(workerPhaseStr)
 		}
 	}
 	e.ServeRequest(
@@ -223,15 +223,15 @@ func (e *endpoints) cancelMany(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	selector := brignext.EventsSelector{
+	selector := core.EventsSelector{
 		ProjectID: r.URL.Query().Get("projectID"),
 	}
 	workerPhasesStr := r.URL.Query().Get("workerPhases")
 	if workerPhasesStr != "" {
 		workerPhaseStrs := strings.Split(workerPhasesStr, ",")
-		selector.WorkerPhases = make([]brignext.WorkerPhase, len(workerPhaseStrs))
+		selector.WorkerPhases = make([]core.WorkerPhase, len(workerPhaseStrs))
 		for i, workerPhaseStr := range workerPhaseStrs {
-			selector.WorkerPhases[i] = brignext.WorkerPhase(workerPhaseStr)
+			selector.WorkerPhases[i] = core.WorkerPhase(workerPhaseStr)
 		}
 	}
 	e.ServeRequest(
@@ -260,15 +260,15 @@ func (e *endpoints) delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *endpoints) deleteMany(w http.ResponseWriter, r *http.Request) {
-	selector := brignext.EventsSelector{
+	selector := core.EventsSelector{
 		ProjectID: r.URL.Query().Get("projectID"),
 	}
 	workerPhasesStr := r.URL.Query().Get("workerPhases")
 	if workerPhasesStr != "" {
 		workerPhaseStrs := strings.Split(workerPhasesStr, ",")
-		selector.WorkerPhases = make([]brignext.WorkerPhase, len(workerPhaseStrs))
+		selector.WorkerPhases = make([]core.WorkerPhase, len(workerPhaseStrs))
 		for i, workerPhaseStr := range workerPhaseStrs {
-			selector.WorkerPhases[i] = brignext.WorkerPhase(workerPhaseStr)
+			selector.WorkerPhases[i] = core.WorkerPhase(workerPhaseStr)
 		}
 	}
 	e.ServeRequest(
@@ -320,7 +320,7 @@ func (e *endpoints) getOrStreamWorkerStatus(
 
 	statusCh, err := e.service.WatchWorkerStatus(r.Context(), id)
 	if err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
+		if _, ok := errors.Cause(err).(*core.ErrNotFound); ok {
 			e.WriteAPIResponse(w, http.StatusNotFound, errors.Cause(err))
 			return
 		}
@@ -332,7 +332,7 @@ func (e *endpoints) getOrStreamWorkerStatus(
 		e.WriteAPIResponse(
 			w,
 			http.StatusInternalServerError,
-			&brignext.ErrInternalServer{},
+			&core.ErrInternalServer{},
 		)
 		return
 	}
@@ -351,7 +351,7 @@ func (e *endpoints) getOrStreamWorkerStatus(
 }
 
 func (e *endpoints) updateWorkerStatus(w http.ResponseWriter, r *http.Request) {
-	status := brignext.WorkerStatus{}
+	status := core.WorkerStatus{}
 	e.ServeRequest(
 		apimachinery.InboundRequest{
 			W:                   w,
@@ -368,7 +368,7 @@ func (e *endpoints) updateWorkerStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (e *endpoints) createJob(w http.ResponseWriter, r *http.Request) {
-	jobSpec := brignext.JobSpec{}
+	jobSpec := core.JobSpec{}
 	e.ServeRequest(
 		apimachinery.InboundRequest{
 			W:                   w,
@@ -430,7 +430,7 @@ func (e *endpoints) getOrStreamJobStatus(
 
 	statusCh, err := e.service.WatchJobStatus(r.Context(), id, jobName)
 	if err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
+		if _, ok := errors.Cause(err).(*core.ErrNotFound); ok {
 			e.WriteAPIResponse(w, http.StatusNotFound, errors.Cause(err))
 			return
 		}
@@ -443,7 +443,7 @@ func (e *endpoints) getOrStreamJobStatus(
 		e.WriteAPIResponse(
 			w,
 			http.StatusInternalServerError,
-			&brignext.ErrInternalServer{},
+			&core.ErrInternalServer{},
 		)
 		return
 	}
@@ -465,7 +465,7 @@ func (e *endpoints) updateJobStatus(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	status := brignext.JobStatus{}
+	status := core.JobStatus{}
 	e.ServeRequest(
 		apimachinery.InboundRequest{
 			W:                   w,
@@ -493,17 +493,17 @@ func (e *endpoints) streamLogs(
 	// nolint: errcheck
 	follow, _ := strconv.ParseBool(r.URL.Query().Get("follow"))
 
-	selector := brignext.LogsSelector{
+	selector := core.LogsSelector{
 		Job:       r.URL.Query().Get("job"),
 		Container: r.URL.Query().Get("container"),
 	}
-	opts := brignext.LogStreamOptions{
+	opts := core.LogStreamOptions{
 		Follow: follow,
 	}
 
 	logEntryCh, err := e.service.StreamLogs(r.Context(), id, selector, opts)
 	if err != nil {
-		if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
+		if _, ok := errors.Cause(err).(*core.ErrNotFound); ok {
 			e.WriteAPIResponse(w, http.StatusNotFound, errors.Cause(err))
 			return
 		}
@@ -513,7 +513,7 @@ func (e *endpoints) streamLogs(
 		e.WriteAPIResponse(
 			w,
 			http.StatusInternalServerError,
-			&brignext.ErrInternalServer{},
+			&core.ErrInternalServer{},
 		)
 		return
 	}

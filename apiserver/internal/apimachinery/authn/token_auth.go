@@ -9,15 +9,14 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/authn"
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
-	"github.com/krancour/brignext/v2/apiserver/internal/sdk"
-	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
 )
 
 type FindSessionFn func(ctx context.Context, token string) (authn.Session, error)
 
-type FindEventFn func(ctx context.Context, token string) (sdk.Event, error)
+type FindEventFn func(ctx context.Context, token string) (core.Event, error)
 
 type FindUserFn func(
 	ctx context.Context,
@@ -59,7 +58,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			t.writeResponse(
 				w,
 				http.StatusUnauthorized,
-				&brignext.ErrAuthentication{
+				&core.ErrAuthentication{
 					Reason: `Authorization" header is missing.`,
 				},
 			)
@@ -74,7 +73,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			t.writeResponse(
 				w,
 				http.StatusUnauthorized,
-				&brignext.ErrAuthentication{
+				&core.ErrAuthentication{
 					Reason: `Authorization" header is malformed.`,
 				},
 			)
@@ -98,12 +97,12 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 
 		// Is it a worker's token?
 		if _, err := t.findEvent(r.Context(), token); err != nil {
-			if _, ok := errors.Cause(err).(*brignext.ErrNotFound); !ok {
+			if _, ok := errors.Cause(err).(*core.ErrNotFound); !ok {
 				log.Println(err)
 				t.writeResponse(
 					w,
 					http.StatusInternalServerError,
-					&brignext.ErrInternalServer{},
+					&core.ErrInternalServer{},
 				)
 				return
 			}
@@ -117,11 +116,11 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 
 		session, err := t.findSession(r.Context(), token)
 		if err != nil {
-			if _, ok := errors.Cause(err).(*brignext.ErrNotFound); ok {
+			if _, ok := errors.Cause(err).(*core.ErrNotFound); ok {
 				t.writeResponse(
 					w,
 					http.StatusUnauthorized,
-					&brignext.ErrAuthentication{
+					&core.ErrAuthentication{
 						Reason: "Session not found. Please log in again.",
 					},
 				)
@@ -131,7 +130,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			t.writeResponse(
 				w,
 				http.StatusInternalServerError,
-				&brignext.ErrInternalServer{},
+				&core.ErrInternalServer{},
 			)
 			return
 		}
@@ -139,7 +138,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			t.writeResponse(
 				w,
 				http.StatusUnauthorized,
-				&brignext.ErrAuthentication{
+				&core.ErrAuthentication{
 					Reason: "Supplied token was for an established root session, but " +
 						"authentication using root credentials is no longer supported " +
 						"by this server.",
@@ -151,7 +150,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			t.writeResponse(
 				w,
 				http.StatusUnauthorized,
-				&brignext.ErrAuthentication{
+				&core.ErrAuthentication{
 					Reason: "Supplied token has not been authenticated. Please log " +
 						"in again.",
 				},
@@ -162,7 +161,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			t.writeResponse(
 				w,
 				http.StatusUnauthorized,
-				&brignext.ErrAuthentication{
+				&core.ErrAuthentication{
 					Reason: "Supplied token has expired. Please log in again.",
 				},
 			)
@@ -180,7 +179,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 				t.writeResponse(
 					w,
 					http.StatusInternalServerError,
-					&brignext.ErrInternalServer{},
+					&core.ErrInternalServer{},
 				)
 				return
 			}

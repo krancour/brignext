@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
-	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
 )
 
@@ -15,18 +15,18 @@ import (
 // remains free to change.
 type Service interface {
 	// Create creates a new Project.
-	Create(context.Context, brignext.Project) (brignext.Project, error)
+	Create(context.Context, core.Project) (core.Project, error)
 	// List returns a ProjectList, with its Items (Projects) ordered
 	// alphabetically by Project ID.
 	List(
 		context.Context,
-		brignext.ProjectsSelector,
+		core.ProjectsSelector,
 		meta.ListOptions,
-	) (brignext.ProjectList, error)
+	) (core.ProjectList, error)
 	// Get retrieves a single Project specified by its identifier.
-	Get(context.Context, string) (brignext.Project, error)
+	Get(context.Context, string) (core.Project, error)
 	// Update updates an existing Project.
-	Update(context.Context, brignext.Project) (brignext.Project, error)
+	Update(context.Context, core.Project) (core.Project, error)
 	// Delete deletes a single Project specified by its identifier.
 	Delete(context.Context, string) error
 
@@ -37,13 +37,13 @@ type Service interface {
 		ctx context.Context,
 		projectID string,
 		opts meta.ListOptions,
-	) (brignext.SecretList, error)
+	) (core.SecretList, error)
 	// SetSecret set the value of a new Secret or updates the value of an existing
 	// Secret.
 	SetSecret(
 		ctx context.Context,
 		projectID string,
-		secret brignext.Secret,
+		secret core.Secret,
 	) error
 	// UnsetSecret clears the value of an existing Secret.
 	UnsetSecret(ctx context.Context, projectID string, key string) error
@@ -64,8 +64,8 @@ func NewService(store Store, scheduler Scheduler) Service {
 
 func (s *service) Create(
 	ctx context.Context,
-	project brignext.Project,
-) (brignext.Project, error) {
+	project core.Project,
+) (core.Project, error) {
 	now := time.Now()
 	project.Created = &now
 
@@ -99,9 +99,9 @@ func (s *service) Create(
 
 func (s *service) List(
 	ctx context.Context,
-	selector brignext.ProjectsSelector,
+	selector core.ProjectsSelector,
 	opts meta.ListOptions,
-) (brignext.ProjectList, error) {
+) (core.ProjectList, error) {
 	if opts.Limit == 0 {
 		opts.Limit = 20
 	}
@@ -115,7 +115,7 @@ func (s *service) List(
 func (s *service) Get(
 	ctx context.Context,
 	id string,
-) (brignext.Project, error) {
+) (core.Project, error) {
 	project, err := s.store.Get(ctx, id)
 	if err != nil {
 		return project, errors.Wrapf(
@@ -129,8 +129,8 @@ func (s *service) Get(
 
 func (s *service) Update(
 	ctx context.Context,
-	project brignext.Project,
-) (brignext.Project, error) {
+	project core.Project,
+) (core.Project, error) {
 	// Let the scheduler update scheduler-specific details before we persist.
 	var err error
 	if project, err = s.scheduler.PreUpdate(ctx, project); err != nil {
@@ -189,8 +189,8 @@ func (s *service) ListSecrets(
 	ctx context.Context,
 	projectID string,
 	opts meta.ListOptions,
-) (brignext.SecretList, error) {
-	secrets := brignext.SecretList{}
+) (core.SecretList, error) {
+	secrets := core.SecretList{}
 	project, err := s.store.Get(ctx, projectID)
 	if err != nil {
 		return secrets, errors.Wrapf(
@@ -216,7 +216,7 @@ func (s *service) ListSecrets(
 func (s *service) SetSecret(
 	ctx context.Context,
 	projectID string,
-	secret brignext.Secret,
+	secret core.Secret,
 ) error {
 	project, err := s.store.Get(ctx, projectID)
 	if err != nil {

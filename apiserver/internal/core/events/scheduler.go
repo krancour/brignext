@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/queue"
-	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -20,26 +20,26 @@ import (
 type Scheduler interface {
 	PreCreate(
 		ctx context.Context,
-		project brignext.Project,
-		event brignext.Event,
-	) (brignext.Event, error)
+		project core.Project,
+		event core.Event,
+	) (core.Event, error)
 	Create(
 		ctx context.Context,
-		project brignext.Project,
-		event brignext.Event,
+		project core.Project,
+		event core.Event,
 	) error
-	Delete(context.Context, brignext.Event) error
+	Delete(context.Context, core.Event) error
 
-	StartWorker(ctx context.Context, event brignext.Event) error
+	StartWorker(ctx context.Context, event core.Event) error
 
 	CreateJob(
 		ctx context.Context,
-		event brignext.Event,
+		event core.Event,
 		jobName string,
 	) error
 	StartJob(
 		ctx context.Context,
-		event brignext.Event,
+		event core.Event,
 		jobName string,
 	) error
 }
@@ -64,9 +64,9 @@ func NewScheduler(
 
 func (s *scheduler) PreCreate(
 	ctx context.Context,
-	proj brignext.Project,
-	event brignext.Event,
-) (brignext.Event, error) {
+	proj core.Project,
+	event core.Event,
+) (core.Event, error) {
 	// Fill in scheduler-specific details
 	event.Kubernetes = proj.Kubernetes
 	event.Worker.Spec.Kubernetes = proj.Spec.WorkerTemplate.Kubernetes
@@ -75,8 +75,8 @@ func (s *scheduler) PreCreate(
 
 func (s *scheduler) Create(
 	ctx context.Context,
-	proj brignext.Project,
-	event brignext.Event,
+	proj core.Project,
+	event core.Event,
 ) error {
 	// Get the project's secrets
 	projectSecretsSecret, err := s.kubeClient.CoreV1().Secrets(
@@ -95,15 +95,15 @@ func (s *scheduler) Create(
 	}
 
 	type project struct {
-		ID         string                     `json:"id"`
-		Kubernetes *brignext.KubernetesConfig `json:"kubernetes"`
-		Secrets    map[string]string          `json:"secrets"`
+		ID         string                 `json:"id"`
+		Kubernetes *core.KubernetesConfig `json:"kubernetes"`
+		Secrets    map[string]string      `json:"secrets"`
 	}
 
 	type worker struct {
 		APIAddress           string            `json:"apiAddress"`
 		APIToken             string            `json:"apiToken"`
-		LogLevel             brignext.LogLevel `json:"logLevel"`
+		LogLevel             core.LogLevel     `json:"logLevel"`
 		ConfigFilesDirectory string            `json:"configFilesDirectory"`
 		DefaultConfigFiles   map[string]string `json:"defaultConfigFiles" bson:"defaultConfigFiles"` // nolint: lll
 	}
@@ -208,7 +208,7 @@ func (s *scheduler) Create(
 
 func (s *scheduler) Delete(
 	ctx context.Context,
-	event brignext.Event,
+	event core.Event,
 ) error {
 	matchesEvent, _ := labels.NewRequirement(
 		myk8s.EventLabel,
@@ -282,7 +282,7 @@ func (s *scheduler) Delete(
 
 func (s *scheduler) StartWorker(
 	ctx context.Context,
-	event brignext.Event,
+	event core.Event,
 ) error {
 	if event.Worker.Spec.UseWorkspace {
 		if err := s.createWorkspacePVC(ctx, event); err != nil {
@@ -305,7 +305,7 @@ func (s *scheduler) StartWorker(
 
 func (s *scheduler) CreateJob(
 	ctx context.Context,
-	event brignext.Event,
+	event core.Event,
 	jobName string,
 ) error {
 	// Schedule job for asynchronous execution
@@ -342,7 +342,7 @@ func (s *scheduler) CreateJob(
 
 func (s *scheduler) StartJob(
 	ctx context.Context,
-	event brignext.Event,
+	event core.Event,
 	jobName string,
 ) error {
 	jobSpec := event.Worker.Jobs[jobName].Spec

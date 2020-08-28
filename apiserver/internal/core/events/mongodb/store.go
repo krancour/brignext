@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
+	"github.com/krancour/brignext/v2/apiserver/internal/core/events"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
-	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
-	"github.com/krancour/brignext/v2/apiserver/internal/sdk/events"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -58,7 +58,7 @@ func NewStore(database *mongo.Database) (events.Store, error) {
 	}, nil
 }
 
-func (s *store) Create(ctx context.Context, event brignext.Event) error {
+func (s *store) Create(ctx context.Context, event core.Event) error {
 	if _, err := s.collection.InsertOne(ctx, event); err != nil {
 		return errors.Wrapf(err, "error inserting new event %q", event.ID)
 	}
@@ -67,10 +67,10 @@ func (s *store) Create(ctx context.Context, event brignext.Event) error {
 
 func (s *store) List(
 	ctx context.Context,
-	selector brignext.EventsSelector,
+	selector core.EventsSelector,
 	opts meta.ListOptions,
-) (brignext.EventList, error) {
-	events := brignext.EventList{}
+) (core.EventList, error) {
+	events := core.EventList{}
 
 	criteria := bson.M{
 		"worker.status.phase": bson.M{
@@ -122,11 +122,11 @@ func (s *store) List(
 func (s *store) Get(
 	ctx context.Context,
 	id string,
-) (brignext.Event, error) {
-	event := brignext.Event{}
+) (core.Event, error) {
+	event := core.Event{}
 	res := s.collection.FindOne(ctx, bson.M{"id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return event, &brignext.ErrNotFound{
+		return event, &core.ErrNotFound{
 			Type: "Event",
 			ID:   id,
 		}
@@ -143,8 +143,8 @@ func (s *store) Get(
 func (s *store) GetByHashedWorkerToken(
 	ctx context.Context,
 	hashedWorkerToken string,
-) (brignext.Event, error) {
-	event := brignext.Event{}
+) (core.Event, error) {
+	event := core.Event{}
 	res := s.collection.FindOne(
 		ctx,
 		bson.M{
@@ -152,7 +152,7 @@ func (s *store) GetByHashedWorkerToken(
 		},
 	)
 	if res.Err() == mongo.ErrNoDocuments {
-		return event, &brignext.ErrNotFound{
+		return event, &core.ErrNotFound{
 			Type: "Event",
 		}
 	}
@@ -173,12 +173,12 @@ func (s *store) Cancel(ctx context.Context, id string) error {
 		ctx,
 		bson.M{
 			"id":                  id,
-			"worker.status.phase": brignext.WorkerPhasePending,
+			"worker.status.phase": core.WorkerPhasePending,
 		},
 		bson.M{
 			"$set": bson.M{
 				"canceled":            time.Now(),
-				"worker.status.phase": brignext.WorkerPhaseCanceled,
+				"worker.status.phase": core.WorkerPhaseCanceled,
 			},
 		},
 	)
@@ -193,12 +193,12 @@ func (s *store) Cancel(ctx context.Context, id string) error {
 		ctx,
 		bson.M{
 			"id":                  id,
-			"worker.status.phase": brignext.WorkerPhaseRunning,
+			"worker.status.phase": core.WorkerPhaseRunning,
 		},
 		bson.M{
 			"$set": bson.M{
 				"canceled":            time.Now(),
-				"worker.status.phase": brignext.WorkerPhaseAborted,
+				"worker.status.phase": core.WorkerPhaseAborted,
 			},
 		},
 	)
@@ -207,7 +207,7 @@ func (s *store) Cancel(ctx context.Context, id string) error {
 	}
 
 	if res.MatchedCount == 0 {
-		return &brignext.ErrConflict{
+		return &core.ErrConflict{
 			Type: "Event",
 			ID:   id,
 			Reason: fmt.Sprintf(
@@ -222,18 +222,18 @@ func (s *store) Cancel(ctx context.Context, id string) error {
 
 func (s *store) CancelMany(
 	ctx context.Context,
-	selector brignext.EventsSelector,
-) (brignext.EventList, error) {
-	events := brignext.EventList{}
+	selector core.EventsSelector,
+) (core.EventList, error) {
+	events := core.EventList{}
 	// It only makes sense to cancel events that are in a pending or running
 	// state. We can ignore anything else.
 	var cancelPending bool
 	var cancelRunning bool
 	for _, workerPhase := range selector.WorkerPhases {
-		if workerPhase == brignext.WorkerPhasePending {
+		if workerPhase == core.WorkerPhasePending {
 			cancelPending = true
 		}
-		if workerPhase == brignext.WorkerPhaseRunning {
+		if workerPhase == core.WorkerPhaseRunning {
 			cancelRunning = true
 		}
 	}
@@ -254,14 +254,14 @@ func (s *store) CancelMany(
 	}
 
 	if cancelPending {
-		criteria["worker.status.phase"] = brignext.WorkerPhasePending
+		criteria["worker.status.phase"] = core.WorkerPhasePending
 		if _, err := s.collection.UpdateMany(
 			ctx,
 			criteria,
 			bson.M{
 				"$set": bson.M{
 					"canceled":            cancellationTime,
-					"worker.status.phase": brignext.WorkerPhaseCanceled,
+					"worker.status.phase": core.WorkerPhaseCanceled,
 				},
 			},
 		); err != nil {
@@ -270,14 +270,14 @@ func (s *store) CancelMany(
 	}
 
 	if cancelRunning {
-		criteria["worker.status.phase"] = brignext.WorkerPhaseRunning
+		criteria["worker.status.phase"] = core.WorkerPhaseRunning
 		if _, err := s.collection.UpdateMany(
 			ctx,
 			criteria,
 			bson.M{
 				"$set": bson.M{
 					"canceled":            cancellationTime,
-					"worker.status.phase": brignext.WorkerPhaseAborted,
+					"worker.status.phase": core.WorkerPhaseAborted,
 				},
 			},
 		); err != nil {
@@ -311,7 +311,7 @@ func (s *store) Delete(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error deleting event %q", id)
 	}
 	if res.DeletedCount != 1 {
-		return &brignext.ErrNotFound{
+		return &core.ErrNotFound{
 			Type: "Event",
 			ID:   id,
 		}
@@ -321,9 +321,9 @@ func (s *store) Delete(ctx context.Context, id string) error {
 
 func (s *store) DeleteMany(
 	ctx context.Context,
-	selector brignext.EventsSelector,
-) (brignext.EventList, error) {
-	events := brignext.EventList{}
+	selector core.EventsSelector,
+) (core.EventList, error) {
+	events := core.EventList{}
 
 	// The MongoDB driver for Go doesn't expose findAndModify(), which could be
 	// used to select events and delete them at the same time. As a workaround,
@@ -387,7 +387,7 @@ func (s *store) DeleteMany(
 func (s *store) UpdateWorkerSpec(
 	ctx context.Context,
 	eventID string,
-	spec brignext.WorkerSpec,
+	spec core.WorkerSpec,
 ) error {
 	res, err := s.collection.UpdateOne(
 		ctx,
@@ -406,7 +406,7 @@ func (s *store) UpdateWorkerSpec(
 		)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrNotFound{
+		return &core.ErrNotFound{
 			Type: "Event",
 			ID:   eventID,
 		}
@@ -417,7 +417,7 @@ func (s *store) UpdateWorkerSpec(
 func (s *store) UpdateWorkerStatus(
 	ctx context.Context,
 	eventID string,
-	status brignext.WorkerStatus,
+	status core.WorkerStatus,
 ) error {
 	res, err := s.collection.UpdateOne(
 		ctx,
@@ -436,7 +436,7 @@ func (s *store) UpdateWorkerStatus(
 		)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrNotFound{
+		return &core.ErrNotFound{
 			Type: "Event",
 			ID:   eventID,
 		}
@@ -448,7 +448,7 @@ func (s *store) CreateJob(
 	ctx context.Context,
 	eventID string,
 	jobName string,
-	jobSpec brignext.JobSpec,
+	jobSpec core.JobSpec,
 ) error {
 	res, err := s.collection.UpdateOne(
 		ctx,
@@ -456,8 +456,8 @@ func (s *store) CreateJob(
 		bson.M{
 			"$set": bson.M{
 				fmt.Sprintf("worker.jobs.%s.spec", jobName): jobSpec,
-				fmt.Sprintf("worker.jobs.%s.status", jobName): brignext.JobStatus{
-					Phase: brignext.JobPhasePending,
+				fmt.Sprintf("worker.jobs.%s.status", jobName): core.JobStatus{
+					Phase: core.JobPhasePending,
 				},
 			},
 		},
@@ -471,7 +471,7 @@ func (s *store) CreateJob(
 		)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrNotFound{
+		return &core.ErrNotFound{
 			Type: "Event",
 			ID:   eventID,
 		}
@@ -483,9 +483,9 @@ func (s *store) UpdateJobStatus(
 	ctx context.Context,
 	eventID string,
 	jobName string,
-	status brignext.JobStatus,
+	status core.JobStatus,
 ) error {
-	job := brignext.Job{
+	job := core.Job{
 		Status: status,
 	}
 	res, err := s.collection.UpdateOne(
@@ -508,7 +508,7 @@ func (s *store) UpdateJobStatus(
 		)
 	}
 	if res.MatchedCount == 0 {
-		return &brignext.ErrNotFound{
+		return &core.ErrNotFound{
 			Type: "Event",
 			ID:   eventID,
 		}
