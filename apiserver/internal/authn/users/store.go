@@ -1,0 +1,24 @@
+package users
+
+import (
+	"context"
+
+	"github.com/krancour/brignext/v2/apiserver/internal/authn"
+	"github.com/krancour/brignext/v2/apiserver/internal/meta"
+)
+
+type Store interface {
+	Create(context.Context, authn.User) error
+	List(
+		context.Context,
+		authn.UsersSelector,
+		meta.ListOptions,
+	) (authn.UserList, error)
+	Get(context.Context, string) (authn.User, error)
+
+	Lock(context.Context, string) error
+	Unlock(context.Context, string) error
+
+	GrantRole(context.Context, authn.Role) error
+	RevokeRole(context.Context, authn.Role) error
+}

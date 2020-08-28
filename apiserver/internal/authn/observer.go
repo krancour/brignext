@@ -1,10 +1,8 @@
 package authn
 
-import brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
-
 type observer struct{}
 
-func (o *observer) Roles() []brignext.Role {
+func (o *observer) Roles() []Role {
 	return nil
 }
 

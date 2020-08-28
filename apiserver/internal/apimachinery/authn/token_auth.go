@@ -22,7 +22,7 @@ type FindEventFn func(ctx context.Context, token string) (sdk.Event, error)
 type FindUserFn func(
 	ctx context.Context,
 	id string,
-) (sdk.User, error)
+) (authn.User, error)
 
 type tokenAuthFilter struct {
 	findSession          FindSessionFn
@@ -110,7 +110,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 		} else {
 			// TODO: This principal should probably contain the event ID or
 			// something
-			ctx := authn.ContextWithPrincipal(r.Context(), workerPrincipal)
+			ctx := authn.ContextWithPrincipal(r.Context(), authn.Worker)
 			handle(w, r.WithContext(ctx))
 			return
 		}

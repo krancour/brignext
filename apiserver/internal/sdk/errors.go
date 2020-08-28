@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
+	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 )
 
 // ErrAuthentication represents an error asserting an principal's identity.

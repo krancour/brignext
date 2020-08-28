@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/authn"
+	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
-	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/stretchr/testify/require"
 )
 
@@ -90,8 +90,8 @@ func TestTokenAuthFilterWithUnauthenticatedSession(t *testing.T) {
 			return authn.Session{}, nil
 		},
 		nil,
-		func(context.Context, string) (brignext.User, error) {
-			return brignext.User{}, nil
+		func(context.Context, string) (authn.User, error) {
+			return authn.User{}, nil
 		},
 		false,
 		testSchedulerToken,
@@ -126,8 +126,8 @@ func TestTokenAuthFilterWithAuthenticatedSession(t *testing.T) {
 			}, nil
 		},
 		nil,
-		func(context.Context, string) (brignext.User, error) {
-			return brignext.User{}, nil
+		func(context.Context, string) (authn.User, error) {
+			return authn.User{}, nil
 		},
 		false,
 		testSchedulerToken,

@@ -1,10 +1,8 @@
 package authn
 
-import brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
-
 type scheduler struct{}
 
-func (s *scheduler) Roles() []brignext.Role {
+func (s *scheduler) Roles() []Role {
 	return nil
 }
 

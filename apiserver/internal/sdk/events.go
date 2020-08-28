@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
+	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
