@@ -11,6 +11,11 @@ type User struct {
 	meta.ObjectMeta `json:"metadata" bson:",inline"`
 	Name            string     `json:"name" bson:"name"`
 	Locked          *time.Time `json:"locked" bson:"locked"`
+	UserRoles       []Role     `json:"roles,omitempty" bson:"roles,omitempty"`
+}
+
+func (u *User) Roles() []Role {
+	return u.UserRoles
 }
 
 func (u User) MarshalJSON() ([]byte, error) {

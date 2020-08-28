@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc"
-	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
+	"github.com/krancour/brignext/v2/apiserver/internal/authn"
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
@@ -26,7 +26,7 @@ type Service interface {
 		oauth2State string,
 		oidcCode string,
 	) error
-	GetByToken(context.Context, string) (auth.Session, error)
+	GetByToken(context.Context, string) (authn.Session, error)
 	Delete(context.Context, string) error
 }
 
@@ -77,7 +77,7 @@ func (s *service) CreateRootSession(
 			Reason: "Could not authenticate request using the supplied credentials.",
 		}
 	}
-	session := auth.NewRootSession(token.Value)
+	session := authn.NewRootSession(token.Value)
 	now := time.Now()
 	session.Created = &now
 	if err := s.store.Create(ctx, session); err != nil {
@@ -97,7 +97,7 @@ func (s *service) CreateUserSession(
 		OAuth2State: crypto.NewToken(30),
 		Token:       crypto.NewToken(256),
 	}
-	session := auth.NewUserSession(
+	session := authn.NewUserSession(
 		userSessionAuthDetails.OAuth2State,
 		userSessionAuthDetails.Token,
 	)
@@ -200,7 +200,7 @@ func (s *service) Authenticate(
 func (s *service) GetByOAuth2State(
 	ctx context.Context,
 	oauth2State string,
-) (auth.Session, error) {
+) (authn.Session, error) {
 	session, err := s.store.GetByHashedOAuth2State(
 		ctx,
 		crypto.ShortSHA("", oauth2State),
@@ -217,7 +217,7 @@ func (s *service) GetByOAuth2State(
 func (s *service) GetByToken(
 	ctx context.Context,
 	token string,
-) (auth.Session, error) {
+) (authn.Session, error) {
 	session, err := s.store.GetByHashedToken(
 		ctx,
 		crypto.ShortSHA("", token),

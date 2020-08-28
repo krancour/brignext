@@ -6,7 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
-	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
+	"github.com/krancour/brignext/v2/apiserver/internal/authn"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
 )
@@ -89,7 +89,7 @@ func (e *endpoints) delete(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				sessionID := auth.SessionIDFromContext(r.Context())
+				sessionID := authn.SessionIDFromContext(r.Context())
 				if sessionID == "" {
 					return nil, errors.New(
 						"error: delete session request authenticated, but no session ID " +

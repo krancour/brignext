@@ -3,7 +3,7 @@ package main
 // nolint: lll
 import (
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
-	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/auth"
+	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/authn"
 	"github.com/krancour/brignext/v2/apiserver/internal/events"
 	eventsKubernetes "github.com/krancour/brignext/v2/apiserver/internal/events/kubernetes"
 	eventsMongodb "github.com/krancour/brignext/v2/apiserver/internal/events/mongodb"
@@ -109,7 +109,7 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 	)
 
 	baseEndpoints := &apimachinery.BaseEndpoints{
-		TokenAuthFilter: auth.NewTokenAuthFilter(
+		TokenAuthFilter: authn.NewTokenAuthFilter(
 			sessionsService.GetByToken,
 			eventsService.GetByWorkerToken,
 			usersService.Get,

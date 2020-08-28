@@ -8,10 +8,15 @@ import (
 )
 
 type ServiceAccount struct {
-	meta.ObjectMeta `json:"metadata" bson:",inline"`
-	Description     string     `json:"description" bson:"description"`
-	HashedToken     string     `json:"-" bson:"hashedToken"`
-	Locked          *time.Time `json:"locked,omitempty" bson:"locked"`
+	meta.ObjectMeta     `json:"metadata" bson:",inline"`
+	Description         string     `json:"description" bson:"description"`
+	HashedToken         string     `json:"-" bson:"hashedToken"`
+	Locked              *time.Time `json:"locked,omitempty" bson:"locked"`
+	ServiceAccountRoles []Role     `json:"roles,omitempty" bson:"roles,omitempty"`
+}
+
+func (s *ServiceAccount) Roles() []Role {
+	return s.ServiceAccountRoles
 }
 
 func (s ServiceAccount) MarshalJSON() ([]byte, error) {

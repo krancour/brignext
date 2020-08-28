@@ -1,4 +1,4 @@
-package auth
+package authn
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/krancour/brignext/v2/apiserver/internal/authn"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/krancour/brignext/v2/apiserver/internal/sdk/meta"
 	"github.com/stretchr/testify/require"
@@ -59,8 +60,8 @@ func TestTokenAuthFilterWithHeaderNotBearer(t *testing.T) {
 
 func TestTokenAuthFilterWithTokenInvalid(t *testing.T) {
 	a := NewTokenAuthFilter(
-		func(context.Context, string) (Session, error) {
-			return Session{}, &brignext.ErrNotFound{}
+		func(context.Context, string) (authn.Session, error) {
+			return authn.Session{}, &brignext.ErrNotFound{}
 		},
 		nil,
 		nil,
@@ -85,8 +86,8 @@ func TestTokenAuthFilterWithTokenInvalid(t *testing.T) {
 
 func TestTokenAuthFilterWithUnauthenticatedSession(t *testing.T) {
 	a := NewTokenAuthFilter(
-		func(context.Context, string) (Session, error) {
-			return Session{}, nil
+		func(context.Context, string) (authn.Session, error) {
+			return authn.Session{}, nil
 		},
 		nil,
 		func(context.Context, string) (brignext.User, error) {
@@ -103,8 +104,8 @@ func TestTokenAuthFilterWithUnauthenticatedSession(t *testing.T) {
 	var handlerCalled bool
 	a.Decorate(func(_ http.ResponseWriter, r *http.Request) {
 		handlerCalled = true
-		require.Nil(t, PincipalFromContext(r.Context()))
-		require.Empty(t, SessionIDFromContext(r.Context()))
+		require.Nil(t, authn.PincipalFromContext(r.Context()))
+		require.Empty(t, authn.SessionIDFromContext(r.Context()))
 	})(rr, req)
 	require.Equal(t, http.StatusUnauthorized, rr.Code)
 	require.False(t, handlerCalled)
@@ -113,10 +114,10 @@ func TestTokenAuthFilterWithUnauthenticatedSession(t *testing.T) {
 func TestTokenAuthFilterWithAuthenticatedSession(t *testing.T) {
 	const sessionID = "foobar"
 	a := NewTokenAuthFilter(
-		func(context.Context, string) (Session, error) {
+		func(context.Context, string) (authn.Session, error) {
 			now := time.Now()
 			expiry := now.Add(time.Minute)
-			return Session{
+			return authn.Session{
 				ObjectMeta: meta.ObjectMeta{
 					ID: sessionID,
 				},
@@ -139,8 +140,8 @@ func TestTokenAuthFilterWithAuthenticatedSession(t *testing.T) {
 	var handlerCalled bool
 	a.Decorate(func(_ http.ResponseWriter, r *http.Request) {
 		handlerCalled = true
-		require.NotNil(t, PincipalFromContext(r.Context()))
-		require.Equal(t, sessionID, SessionIDFromContext(r.Context()))
+		require.NotNil(t, authn.PincipalFromContext(r.Context()))
+		require.Equal(t, sessionID, authn.SessionIDFromContext(r.Context()))
 	})(rr, req)
 	require.Equal(t, http.StatusOK, rr.Code)
 	require.True(t, handlerCalled)

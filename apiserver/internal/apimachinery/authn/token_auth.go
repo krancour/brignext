@@ -1,4 +1,4 @@
-package auth
+package authn
 
 import (
 	"context"
@@ -8,13 +8,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/krancour/brignext/v2/apiserver/internal/authn"
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	"github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	brignext "github.com/krancour/brignext/v2/apiserver/internal/sdk"
 	"github.com/pkg/errors"
 )
 
-type FindSessionFn func(ctx context.Context, token string) (Session, error)
+type FindSessionFn func(ctx context.Context, token string) (authn.Session, error)
 
 type FindEventFn func(ctx context.Context, token string) (sdk.Event, error)
 
@@ -83,22 +84,14 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 
 		// Is it the scheduler's token?
 		if crypto.ShortSHA("", token) == t.hashedSchedulerToken {
-			ctx := context.WithValue(
-				r.Context(),
-				principalContextKey{},
-				schedulerPrincipal,
-			)
+			ctx := authn.ContextWithPrincipal(r.Context(), authn.Scheduler)
 			handle(w, r.WithContext(ctx))
 			return
 		}
 
 		// Is it the observer's token?
 		if crypto.ShortSHA("", token) == t.hashedObserverToken {
-			ctx := context.WithValue(
-				r.Context(),
-				principalContextKey{},
-				observerPrincipal,
-			)
+			ctx := authn.ContextWithPrincipal(r.Context(), authn.Observer)
 			handle(w, r.WithContext(ctx))
 			return
 		}
@@ -115,13 +108,9 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 		} else {
-			ctx := context.WithValue(
-				r.Context(),
-				principalContextKey{},
-				// TODO: This principal should probably contain the event ID or
-				// something
-				workerPrincipal,
-			)
+			// TODO: This principal should probably contain the event ID or
+			// something
+			ctx := authn.ContextWithPrincipal(r.Context(), workerPrincipal)
 			handle(w, r.WithContext(ctx))
 			return
 		}
@@ -179,9 +168,9 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			)
 			return
 		}
-		var principal Principal
+		var principal authn.Principal
 		if session.Root {
-			principal = rootPrincipal
+			principal = authn.Root
 		} else {
 			user, err := t.findUser(r.Context(), session.UserID)
 			if err != nil {
@@ -199,12 +188,12 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 				http.Error(w, "{}", http.StatusForbidden)
 				return
 			}
-			principal = user
+			principal = &user
 		}
 
 		// Success! Add the user and the session ID to the context.
-		ctx := context.WithValue(r.Context(), principalContextKey{}, principal)
-		ctx = context.WithValue(ctx, sessionIDContextKey{}, session.ID)
+		ctx := authn.ContextWithPrincipal(r.Context(), principal)
+		ctx = authn.ContextWithSessionID(ctx, session.ID)
 		handle(w, r.WithContext(ctx))
 	}
 }
