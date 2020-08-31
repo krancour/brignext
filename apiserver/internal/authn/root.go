@@ -4,14 +4,13 @@ type root struct{}
 
 func (r *root) Roles() []Role {
 	return []Role{
+		RoleAdmin(),
 		RoleEventCreator(RoleScopeGlobal),
 		RoleProjectAdmin(RoleScopeGlobal),
 		RoleProjectCreator(),
 		RoleProjectDeveloper(RoleScopeGlobal),
-		RoleProjectReader(RoleScopeGlobal),
 		RoleProjectUser(RoleScopeGlobal),
-		RoleServiceAccountManager(),
-		RoleUserManager(),
+		RoleReader(),
 	}
 }
 

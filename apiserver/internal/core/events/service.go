@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/krancour/brignext/v2/apiserver/internal/authn"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/core/projects"
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
@@ -126,6 +127,7 @@ type Service interface {
 }
 
 type service struct {
+	authorize     authn.AuthorizeFn
 	projectsStore projects.Store
 	store         Store
 	warmLogsStore LogsStore
@@ -142,6 +144,7 @@ func NewService(
 	scheduler Scheduler,
 ) Service {
 	return &service{
+		authorize:     authn.Authorize,
 		projectsStore: projectsStore,
 		store:         store,
 		scheduler:     scheduler,
@@ -157,6 +160,23 @@ func (s *service) Create(
 	event core.Event,
 ) (core.EventList, error) {
 	events := core.EventList{}
+
+	if event.ProjectID == "" {
+		if err := s.authorize(
+			ctx,
+			authn.RoleEventCreator(event.Source),
+		); err != nil {
+			return events, err
+		}
+	} else {
+		if err := s.authorize(
+			ctx,
+			authn.RoleProjectUser(event.ProjectID),
+			authn.RoleEventCreator(event.Source),
+		); err != nil {
+			return events, err
+		}
+	}
 
 	now := time.Now()
 	event.Created = &now
@@ -284,7 +304,9 @@ func (s *service) List(
 	selector core.EventsSelector,
 	opts meta.ListOptions,
 ) (core.EventList, error) {
-	events := core.EventList{}
+	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+		return core.EventList{}, err
+	}
 
 	// If no worker phase filters were applied, retrieve all phases
 	if len(selector.WorkerPhases) == 0 {
@@ -305,6 +327,10 @@ func (s *service) Get(
 	ctx context.Context,
 	id string,
 ) (core.Event, error) {
+	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+		return core.Event{}, err
+	}
+
 	event, err := s.store.Get(ctx, id)
 	if err != nil {
 		return event, errors.Wrapf(err, "error retrieving event %q from store", id)
@@ -316,6 +342,9 @@ func (s *service) GetByWorkerToken(
 	ctx context.Context,
 	workerToken string,
 ) (core.Event, error) {
+
+	// TODO: What's the right way to do authz for this?
+
 	event, err := s.store.GetByHashedWorkerToken(
 		ctx,
 		crypto.ShortSHA("", workerToken),
@@ -330,6 +359,13 @@ func (s *service) Cancel(ctx context.Context, id string) error {
 	event, err := s.store.Get(ctx, id)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving event %q from store", id)
+	}
+
+	if err := s.authorize(
+		ctx,
+		authn.RoleProjectUser(event.ProjectID),
+	); err != nil {
+		return err
 	}
 
 	if err = s.store.Cancel(ctx, id); err != nil {
@@ -367,6 +403,14 @@ func (s *service) CancelMany(
 				"project.",
 		}
 	}
+
+	if err := s.authorize(
+		ctx,
+		authn.RoleProjectUser(selector.ProjectID),
+	); err != nil {
+		return core.CancelManyEventsResult{}, err
+	}
+
 	// Refuse requests not qualified by worker phases
 	if len(selector.WorkerPhases) == 0 {
 		return result, &core.ErrBadRequest{
@@ -421,6 +465,13 @@ func (s *service) Delete(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error retrieving event %q from store", id)
 	}
 
+	if err := s.authorize(
+		ctx,
+		authn.RoleProjectUser(event.ProjectID),
+	); err != nil {
+		return err
+	}
+
 	if err = s.store.Delete(ctx, id); err != nil {
 		return errors.Wrapf(err, "error deleting event %q from store", id)
 	}
@@ -456,6 +507,14 @@ func (s *service) DeleteMany(
 				"project.",
 		}
 	}
+
+	if err := s.authorize(
+		ctx,
+		authn.RoleProjectUser(selector.ProjectID),
+	); err != nil {
+		return core.DeleteManyEventsResult{}, err
+	}
+
 	// Refuse requests not qualified by worker phases
 	if len(selector.WorkerPhases) == 0 {
 		return result, &core.ErrBadRequest{
@@ -505,6 +564,10 @@ func (s *service) DeleteMany(
 }
 
 func (s *service) StartWorker(ctx context.Context, eventID string) error {
+	if err := s.authorize(ctx, authn.RoleScheduler()); err != nil {
+		return err
+	}
+
 	event, err := s.store.Get(ctx, eventID)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
@@ -543,6 +606,10 @@ func (s *service) GetWorkerStatus(
 	ctx context.Context,
 	eventID string,
 ) (core.WorkerStatus, error) {
+	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+		return core.WorkerStatus{}, err
+	}
+
 	event, err := s.store.Get(ctx, eventID)
 	if err != nil {
 		return core.WorkerStatus{},
@@ -556,6 +623,10 @@ func (s *service) WatchWorkerStatus(
 	ctx context.Context,
 	eventID string,
 ) (<-chan core.WorkerStatus, error) {
+	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+		return nil, err
+	}
+
 	// Read the event up front to confirm it exists.
 	if _, err := s.store.Get(ctx, eventID); err != nil {
 		return nil,
@@ -592,6 +663,10 @@ func (s *service) UpdateWorkerStatus(
 	eventID string,
 	status core.WorkerStatus,
 ) error {
+	if err := s.authorize(ctx, authn.RoleObserver()); err != nil {
+		return err
+	}
+
 	if err := s.store.UpdateWorkerStatus(
 		ctx,
 		eventID,
@@ -612,6 +687,10 @@ func (s *service) CreateJob(
 	jobName string,
 	jobSpec core.JobSpec,
 ) error {
+	if err := s.authorize(ctx, authn.RoleWorker(eventID)); err != nil {
+		return err
+	}
+
 	event, err := s.store.Get(ctx, eventID)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
@@ -693,6 +772,10 @@ func (s *service) StartJob(
 	eventID string,
 	jobName string,
 ) error {
+	if err := s.authorize(ctx, authn.RoleScheduler()); err != nil {
+		return err
+	}
+
 	event, err := s.store.Get(ctx, eventID)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
@@ -734,6 +817,10 @@ func (s *service) GetJobStatus(
 	eventID string,
 	jobName string,
 ) (core.JobStatus, error) {
+	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+		return core.JobStatus{}, err
+	}
+
 	event, err := s.store.Get(ctx, eventID)
 	if err != nil {
 		return core.JobStatus{},
@@ -755,6 +842,10 @@ func (s *service) WatchJobStatus(
 	eventID string,
 	jobName string,
 ) (<-chan core.JobStatus, error) {
+	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+		return nil, err
+	}
+
 	// Read the event and job up front to confirm they both exists.
 	event, err := s.store.Get(ctx, eventID)
 	if err != nil {
@@ -799,6 +890,10 @@ func (s *service) UpdateJobStatus(
 	jobName string,
 	status core.JobStatus,
 ) error {
+	if err := s.authorize(ctx, authn.RoleObserver()); err != nil {
+		return err
+	}
+
 	if err := s.store.UpdateJobStatus(
 		ctx,
 		eventID,
@@ -821,6 +916,10 @@ func (s *service) StreamLogs(
 	selector core.LogsSelector,
 	opts core.LogStreamOptions,
 ) (<-chan core.LogEntry, error) {
+	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+		return nil, err
+	}
+
 	event, err := s.store.Get(ctx, eventID)
 	if err != nil {
 		return nil,

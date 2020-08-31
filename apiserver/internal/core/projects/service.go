@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/krancour/brignext/v2/apiserver/internal/authn"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/pkg/errors"
@@ -50,6 +51,7 @@ type Service interface {
 }
 
 type service struct {
+	authorize authn.AuthorizeFn
 	store     Store
 	scheduler Scheduler
 }
@@ -57,6 +59,7 @@ type service struct {
 // NewService returns a specialized interface for managing Projects.
 func NewService(store Store, scheduler Scheduler) Service {
 	return &service{
+		authorize: authn.Authorize,
 		store:     store,
 		scheduler: scheduler,
 	}
@@ -66,6 +69,10 @@ func (s *service) Create(
 	ctx context.Context,
 	project core.Project,
 ) (core.Project, error) {
+	if err := s.authorize(ctx, authn.RoleProjectCreator()); err != nil {
+		return project, err
+	}
+
 	now := time.Now()
 	project.Created = &now
 
@@ -102,6 +109,10 @@ func (s *service) List(
 	selector core.ProjectsSelector,
 	opts meta.ListOptions,
 ) (core.ProjectList, error) {
+	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+		return core.ProjectList{}, err
+	}
+
 	if opts.Limit == 0 {
 		opts.Limit = 20
 	}
@@ -116,6 +127,10 @@ func (s *service) Get(
 	ctx context.Context,
 	id string,
 ) (core.Project, error) {
+	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+		return core.Project{}, err
+	}
+
 	project, err := s.store.Get(ctx, id)
 	if err != nil {
 		return project, errors.Wrapf(
@@ -131,6 +146,13 @@ func (s *service) Update(
 	ctx context.Context,
 	project core.Project,
 ) (core.Project, error) {
+	if err := s.authorize(
+		ctx,
+		authn.RoleProjectDeveloper(project.ID),
+	); err != nil {
+		return core.Project{}, err
+	}
+
 	// Let the scheduler update scheduler-specific details before we persist.
 	var err error
 	if project, err = s.scheduler.PreUpdate(ctx, project); err != nil {
@@ -163,6 +185,10 @@ func (s *service) Update(
 }
 
 func (s *service) Delete(ctx context.Context, id string) error {
+	if err := s.authorize(ctx, authn.RoleProjectAdmin(id)); err != nil {
+		return err
+	}
+
 	project, err := s.store.Get(ctx, id)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving project %q from store", id)
@@ -190,6 +216,10 @@ func (s *service) ListSecrets(
 	projectID string,
 	opts meta.ListOptions,
 ) (core.SecretList, error) {
+	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+		return core.SecretList{}, err
+	}
+
 	secrets := core.SecretList{}
 	project, err := s.store.Get(ctx, projectID)
 	if err != nil {
@@ -218,6 +248,10 @@ func (s *service) SetSecret(
 	projectID string,
 	secret core.Secret,
 ) error {
+	if err := s.authorize(ctx, authn.RoleProjectAdmin(projectID)); err != nil {
+		return err
+	}
+
 	project, err := s.store.Get(ctx, projectID)
 	if err != nil {
 		return errors.Wrapf(
@@ -242,6 +276,10 @@ func (s *service) UnsetSecret(
 	projectID string,
 	key string,
 ) error {
+	if err := s.authorize(ctx, authn.RoleProjectAdmin(projectID)); err != nil {
+		return err
+	}
+
 	project, err := s.store.Get(ctx, projectID)
 	if err != nil {
 		return errors.Wrapf(

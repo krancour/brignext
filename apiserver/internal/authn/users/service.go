@@ -37,17 +37,23 @@ type Service interface {
 }
 
 type service struct {
-	store Store
+	authorize authn.AuthorizeFn
+	store     Store
 }
 
 // NewService returns a specialized interface for managing Users.
 func NewService(store Store) Service {
 	return &service{
-		store: store,
+		authorize: authn.Authorize,
+		store:     store,
 	}
 }
 
 func (s *service) Create(ctx context.Context, user authn.User) error {
+
+	// No authz requirements here because this is is never invoked at the explicit
+	// request of an end user; rather it is invoked only by the system itself.
+
 	now := time.Now()
 	user.Created = &now
 	if err := s.store.Create(ctx, user); err != nil {
@@ -61,6 +67,10 @@ func (s *service) List(
 	selector authn.UsersSelector,
 	opts meta.ListOptions,
 ) (authn.UserList, error) {
+	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+		return authn.UserList{}, err
+	}
+
 	if opts.Limit == 0 {
 		opts.Limit = 20
 	}
@@ -72,6 +82,10 @@ func (s *service) List(
 }
 
 func (s *service) Get(ctx context.Context, id string) (authn.User, error) {
+	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+		return authn.User{}, err
+	}
+
 	user, err := s.store.Get(ctx, id)
 	if err != nil {
 		return user, errors.Wrapf(
@@ -84,6 +98,10 @@ func (s *service) Get(ctx context.Context, id string) (authn.User, error) {
 }
 
 func (s *service) Lock(ctx context.Context, id string) error {
+	if err := s.authorize(ctx, authn.RoleAdmin()); err != nil {
+		return err
+	}
+
 	if err := s.store.Lock(ctx, id); err != nil {
 		return errors.Wrapf(err, "error locking user %q in store", id)
 	}
@@ -91,18 +109,26 @@ func (s *service) Lock(ctx context.Context, id string) error {
 }
 
 func (s *service) Unlock(ctx context.Context, id string) error {
+	if err := s.authorize(ctx, authn.RoleAdmin()); err != nil {
+		return err
+	}
+
 	if err := s.store.Unlock(ctx, id); err != nil {
 		return errors.Wrapf(err, "error unlocking user %q in store", id)
 	}
 	return nil
 }
 
-// TODO: Implement this
-func (s *service) GrantRole(context.Context, authn.Role) error {
+// TODO: Finish implementing this
+func (s *service) GrantRole(ctx context.Context, role authn.Role) error {
+	// TODO: Need to look closely at what is being granted to decide if the
+	// principal is authorized to grant that.
 	return nil
 }
 
-// TODO: Implement this
-func (s *service) RevokeRole(context.Context, authn.Role) error {
+// TODO: Finish implementing this
+func (s *service) RevokeRole(ctx context.Context, role authn.Role) error {
+	// TODO: Need to look closely at what is being revoked to decide if the
+	// principal is authorized to revoke that.
 	return nil
 }

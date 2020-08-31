@@ -31,6 +31,7 @@ type Service interface {
 }
 
 type service struct {
+	authorize              authn.AuthorizeFn
 	store                  Store
 	usersStore             users.Store
 	rootUserEnabled        bool
@@ -48,6 +49,7 @@ func NewService(
 	oidcTokenVerifier *oidc.IDTokenVerifier,
 ) Service {
 	return &service{
+		authorize:              authn.Authorize,
 		store:                  store,
 		usersStore:             usersStore,
 		rootUserEnabled:        rootUserEnabled,

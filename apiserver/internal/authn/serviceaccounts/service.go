@@ -41,13 +41,15 @@ type Service interface {
 }
 
 type service struct {
-	store Store
+	authorize authn.AuthorizeFn
+	store     Store
 }
 
 // NewService returns a specialized interface for managing ServiceAccounts.
 func NewService(store Store) Service {
 	return &service{
-		store: store,
+		authorize: authn.Authorize,
+		store:     store,
 	}
 }
 
@@ -55,11 +57,15 @@ func (s *service) Create(
 	ctx context.Context,
 	serviceAccount authn.ServiceAccount,
 ) (authn.Token, error) {
-	now := time.Now()
-	serviceAccount.Created = &now
+	if err := s.authorize(ctx, authn.RoleAdmin()); err != nil {
+		return authn.Token{}, err
+	}
+
 	token := authn.Token{
 		Value: crypto.NewToken(256),
 	}
+	now := time.Now()
+	serviceAccount.Created = &now
 	serviceAccount.HashedToken = crypto.ShortSHA("", token.Value)
 	if err := s.store.Create(ctx, serviceAccount); err != nil {
 		return token, errors.Wrapf(
@@ -76,6 +82,10 @@ func (s *service) List(
 	selector authn.ServiceAccountsSelector,
 	opts meta.ListOptions,
 ) (authn.ServiceAccountList, error) {
+	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+		return authn.ServiceAccountList{}, err
+	}
+
 	if opts.Limit == 0 {
 		opts.Limit = 20
 	}
@@ -91,6 +101,10 @@ func (s *service) Get(
 	ctx context.Context,
 	id string,
 ) (authn.ServiceAccount, error) {
+	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+		return authn.ServiceAccount{}, err
+	}
+
 	serviceAccount, err := s.store.Get(ctx, id)
 	if err != nil {
 		return serviceAccount, errors.Wrapf(
@@ -106,6 +120,10 @@ func (s *service) GetByToken(
 	ctx context.Context,
 	token string,
 ) (authn.ServiceAccount, error) {
+
+	// No authz requirements here because this is is never invoked at the explicit
+	// request of an end user; rather it is invoked only by the system itself.
+
 	serviceAccount, err := s.store.GetByHashedToken(
 		ctx,
 		crypto.ShortSHA("", token),
@@ -120,6 +138,10 @@ func (s *service) GetByToken(
 }
 
 func (s *service) Lock(ctx context.Context, id string) error {
+	if err := s.authorize(ctx, authn.RoleAdmin()); err != nil {
+		return err
+	}
+
 	if err := s.store.Lock(ctx, id); err != nil {
 		return errors.Wrapf(
 			err,
@@ -134,6 +156,10 @@ func (s *service) Unlock(
 	ctx context.Context,
 	id string,
 ) (authn.Token, error) {
+	if err := s.authorize(ctx, authn.RoleAdmin()); err != nil {
+		return authn.Token{}, err
+	}
+
 	newToken := authn.Token{
 		Value: crypto.NewToken(256),
 	}
@@ -151,12 +177,16 @@ func (s *service) Unlock(
 	return newToken, nil
 }
 
-// TODO: Implement this
-func (s *service) GrantRole(context.Context, authn.Role) error {
+// TODO: Finish implementing this
+func (s *service) GrantRole(ctx context.Context, role authn.Role) error {
+	// TODO: Need to look closely at what is being granted to decide if the
+	// principal is authorized to grant that.
 	return nil
 }
 
-// TODO: Implement this
-func (s *service) RevokeRole(context.Context, authn.Role) error {
+// TODO: Finish implementing this
+func (s *service) RevokeRole(ctx context.Context, role authn.Role) error {
+	// TODO: Need to look closely at what is being revoked to decide if the
+	// principal is authorized to revoke that.
 	return nil
 }
