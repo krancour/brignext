@@ -2,9 +2,12 @@ package serviceaccounts
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/authn"
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
+	"github.com/krancour/brignext/v2/apiserver/internal/core/projects"
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/pkg/errors"
@@ -36,20 +39,26 @@ type Service interface {
 	// its identifier. It returns a new Token.
 	Unlock(context.Context, string) (authn.Token, error)
 
-	GrantRole(context.Context, authn.Role) error
-	RevokeRole(context.Context, authn.Role) error
+	GrantRole(ctx context.Context, serviceAccountID string, role authn.Role) error
+	RevokeRole(
+		ctx context.Context,
+		serviceAccountID string,
+		role authn.Role,
+	) error
 }
 
 type service struct {
-	authorize authn.AuthorizeFn
-	store     Store
+	authorize    authn.AuthorizeFn
+	store        Store
+	projectStore projects.Store
 }
 
 // NewService returns a specialized interface for managing ServiceAccounts.
-func NewService(store Store) Service {
+func NewService(store Store, projectsStore projects.Store) Service {
 	return &service{
-		authorize: authn.Authorize,
-		store:     store,
+		authorize:    authn.Authorize,
+		store:        store,
+		projectStore: projectsStore,
 	}
 }
 
@@ -177,16 +186,209 @@ func (s *service) Unlock(
 	return newToken, nil
 }
 
-// TODO: Finish implementing this
-func (s *service) GrantRole(ctx context.Context, role authn.Role) error {
-	// TODO: Need to look closely at what is being granted to decide if the
-	// principal is authorized to grant that.
+// TODO: There's a lot that could be DRYed up here
+func (s *service) GrantRole(
+	ctx context.Context,
+	serviceAccountID string,
+	role authn.Role,
+) error {
+	// There's really no such thing as a role with no scope, so if a scope isn't
+	// specified, we'll assume global. Later, we'll check if global scope is even
+	// allowed for the given role, but for now, this saves us from the other
+	// problems created when no scope is specified.
+	if role.Scope == "" {
+		role.Scope = authn.RoleScopeGlobal
+	}
+
+	// The Role the current principal requires in order to grant a Role to another
+	// principal depends on what role they're trying to grant, and possibly the
+	// scope as well.
+
+	switch role.Name {
+
+	// Need to be an Admin to grant any of the following
+	case authn.RoleNameAdmin:
+		fallthrough
+	case authn.RoleNameEventCreator:
+		fallthrough
+	case authn.RoleNameProjectCreator:
+		fallthrough
+	case authn.RoleNameReader:
+		if err := s.authorize(ctx, authn.RoleAdmin()); err != nil {
+			return err
+		}
+		// If scope for any of these isn't global, then this is a bad request
+		if role.Scope != authn.RoleScopeGlobal {
+			return &core.ErrBadRequest{
+				Reason: fmt.Sprintf(
+					"Role %q must only be granted with a global scope.",
+					role.Name,
+				),
+			}
+		}
+
+	// Need to be a ProjectAdmin to grant any of the following
+	case authn.RoleNameProjectAdmin:
+		fallthrough
+	case authn.RoleNameProjectDeveloper:
+		fallthrough
+	case authn.RoleNameProjectUser:
+		// If there is no scope specified or if scope is global, this is a bad
+		// request
+		if role.Scope == "" {
+			return &core.ErrBadRequest{
+				Reason: fmt.Sprintf(
+					"Scope must be specified when granting role %q.",
+					role.Name,
+				),
+			}
+		}
+		if role.Scope == authn.RoleScopeGlobal {
+			return &core.ErrBadRequest{
+				Reason: fmt.Sprintf(
+					"Role %q may not be granted with a global scope.",
+					role.Name,
+				),
+			}
+		}
+
+		if err := s.authorize(ctx, authn.RoleProjectAdmin(role.Scope)); err != nil {
+			return err
+		}
+
+		// Make sure the project exists
+		if _, err := s.projectStore.Get(ctx, role.Scope); err != nil {
+			return errors.Wrapf(
+				err,
+				"error retrieving project %q from store",
+				role.Scope,
+			)
+		}
+	}
+
+	// Make sure the ServiceAccount exists
+	_, err := s.store.Get(ctx, serviceAccountID)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving service account %q from store",
+			serviceAccountID,
+		)
+	}
+
+	if err := s.store.GrantRole(ctx, serviceAccountID, role); err != nil {
+		return errors.Wrapf(
+			err,
+			"error granting role %q with scope %q to service account %q in the store",
+			role.Name,
+			role.Scope,
+			serviceAccountID,
+		)
+	}
+
 	return nil
 }
 
-// TODO: Finish implementing this
-func (s *service) RevokeRole(ctx context.Context, role authn.Role) error {
-	// TODO: Need to look closely at what is being revoked to decide if the
-	// principal is authorized to revoke that.
+// TODO: There's a lot that could be DRYed up here
+func (s *service) RevokeRole(
+	ctx context.Context,
+	serviceAccountID string,
+	role authn.Role,
+) error {
+	// There's really no such thing as a role with no scope, so if a scope isn't
+	// specified, we'll assume global. Later, we'll check if global scope is even
+	// allowed for the given role, but for now, this saves us from the other
+	// problems created when no scope is specified.
+	if role.Scope == "" {
+		role.Scope = authn.RoleScopeGlobal
+	}
+
+	// The Role the current principal requires in order to revoke a Role belonging
+	// to another principal depends on what role they're trying to revoke, and
+	// possibly the scope as well.
+
+	switch role.Name {
+
+	// Need to be an Admin to revoke any of the following
+	case authn.RoleNameAdmin:
+		fallthrough
+	case authn.RoleNameEventCreator:
+		fallthrough
+	case authn.RoleNameProjectCreator:
+		fallthrough
+	case authn.RoleNameReader:
+		if err := s.authorize(ctx, authn.RoleAdmin()); err != nil {
+			return err
+		}
+		// If scope for any of these isn't global, then this is a bad request
+		if role.Scope != authn.RoleScopeGlobal {
+			return &core.ErrBadRequest{
+				Reason: fmt.Sprintf(
+					"Role %q must only be revoked with a global scope.",
+					role.Name,
+				),
+			}
+		}
+
+	// Need to be a ProjectAdmin to revoke any of the following
+	case authn.RoleNameProjectAdmin:
+		fallthrough
+	case authn.RoleNameProjectDeveloper:
+		fallthrough
+	case authn.RoleNameProjectUser:
+		// If there is no scope specified or if scope is global, this is a bad
+		// request
+		if role.Scope == "" {
+			return &core.ErrBadRequest{
+				Reason: fmt.Sprintf(
+					"Scope must be specified when revoking role %q.",
+					role.Name,
+				),
+			}
+		}
+		if role.Scope == authn.RoleScopeGlobal {
+			return &core.ErrBadRequest{
+				Reason: fmt.Sprintf(
+					"Role %q may not be revoked with a global scope.",
+					role.Name,
+				),
+			}
+		}
+
+		if err := s.authorize(ctx, authn.RoleProjectAdmin(role.Scope)); err != nil {
+			return err
+		}
+
+		// Make sure the project exists
+		if _, err := s.projectStore.Get(ctx, role.Scope); err != nil {
+			return errors.Wrapf(
+				err,
+				"error retrieving project %q from store",
+				role.Scope,
+			)
+		}
+	}
+
+	// Make sure the ServiceAccount exists
+	_, err := s.store.Get(ctx, serviceAccountID)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving service account %q from store",
+			serviceAccountID,
+		)
+	}
+
+	if err := s.store.RevokeRole(ctx, serviceAccountID, role); err != nil {
+		return errors.Wrapf(
+			err,
+			"error revoking role %q with scope %q from service account %q in the "+
+				"store",
+			role.Name,
+			role.Scope,
+			serviceAccountID,
+		)
+	}
+
 	return nil
 }

@@ -3,7 +3,9 @@ package authn
 type scheduler struct{}
 
 func (s *scheduler) Roles() []Role {
-	return nil
+	return []Role{
+		RoleScheduler(),
+	}
 }
 
 var Scheduler = &scheduler{}

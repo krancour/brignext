@@ -361,7 +361,7 @@ func (s *service) Cancel(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error retrieving event %q from store", id)
 	}
 
-	if err := s.authorize(
+	if err = s.authorize(
 		ctx,
 		authn.RoleProjectUser(event.ProjectID),
 	); err != nil {
@@ -465,7 +465,7 @@ func (s *service) Delete(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error retrieving event %q from store", id)
 	}
 
-	if err := s.authorize(
+	if err = s.authorize(
 		ctx,
 		authn.RoleProjectUser(event.ProjectID),
 	); err != nil {

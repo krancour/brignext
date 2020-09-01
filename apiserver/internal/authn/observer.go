@@ -3,7 +3,9 @@ package authn
 type observer struct{}
 
 func (o *observer) Roles() []Role {
-	return nil
+	return []Role{
+		RoleObserver(),
+	}
 }
 
 var Observer = &observer{}

@@ -108,7 +108,8 @@ outerLoop:
 
 			// Now use the API to start the Job...
 
-			if err := s.apiClient.Events().StartJob(ctx, event.ID, jobName); err != nil {
+			if err :=
+				s.apiClient.Events().StartJob(ctx, event.ID, jobName); err != nil {
 				log.Printf(
 					"error starting event %q job %q: %s",
 					event.ID,

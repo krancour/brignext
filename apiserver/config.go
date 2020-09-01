@@ -80,14 +80,17 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	serviceAccountsService := serviceaccounts.NewService(serviceAccountsStore)
+	serviceAccountsService := serviceaccounts.NewService(
+		serviceAccountsStore,
+		projectsStore,
+	)
 
 	// Users
 	usersStore, err := usersMongodb.NewStore(database)
 	if err != nil {
 		return nil, err
 	}
-	usersService := users.NewService(usersStore)
+	usersService := users.NewService(usersStore, projectsStore)
 
 	// Sessions-- depends on users
 	oauth2Config, oidcIdentityVerifier, err :=

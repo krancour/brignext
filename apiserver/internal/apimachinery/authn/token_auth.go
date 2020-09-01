@@ -15,7 +15,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-type FindSessionFn func(ctx context.Context, token string) (authn.Session, error)
+type FindSessionFn func(
+	ctx context.Context,
+	token string,
+) (authn.Session, error)
 
 type FindEventFn func(ctx context.Context, token string) (core.Event, error)
 
@@ -97,7 +100,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 		}
 
 		// Is it a worker's token?
-		if _, err := t.findEvent(r.Context(), token); err != nil {
+		if event, err := t.findEvent(r.Context(), token); err != nil {
 			if _, ok := errors.Cause(err).(*core.ErrNotFound); !ok {
 				log.Println(err)
 				t.writeResponse(
@@ -108,9 +111,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 		} else {
-			// TODO: This principal should probably contain the event ID or
-			// something
-			ctx := authn.ContextWithPrincipal(r.Context(), authn.Worker)
+			ctx := authn.ContextWithPrincipal(r.Context(), authn.Worker(event.ID))
 			handle(w, r.WithContext(ctx))
 			return
 		}

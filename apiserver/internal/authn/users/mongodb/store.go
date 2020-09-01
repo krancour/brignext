@@ -183,12 +183,57 @@ func (s *store) Unlock(ctx context.Context, id string) error {
 	return nil
 }
 
-// TODO: Implement this
-func (s *store) GrantRole(context.Context, authn.Role) error {
+func (s *store) GrantRole(
+	ctx context.Context,
+	userID string,
+	role authn.Role,
+) error {
+	_, err := s.collection.UpdateOne(
+		ctx,
+		bson.M{
+			"id": userID,
+			"roles": bson.M{
+				"$nin": []authn.Role{role},
+			},
+		},
+		bson.M{
+			"$push": bson.M{
+				"roles": bson.M{
+					"$each": []authn.Role{role},
+					"$sort": bson.M{
+						"name":  1,
+						"scope": 1,
+					},
+				},
+			},
+		},
+	)
+	if err != nil {
+		return errors.Wrapf(err, "error updating user %q", userID)
+	}
 	return nil
 }
 
-// TODO: Implement this
-func (s *store) RevokeRole(context.Context, authn.Role) error {
+func (s *store) RevokeRole(
+	ctx context.Context,
+	userID string,
+	role authn.Role,
+) error {
+	_, err := s.collection.UpdateOne(
+		ctx,
+		bson.M{
+			"id": userID,
+		},
+		bson.M{
+			"$pull": bson.M{
+				"roles": bson.M{
+					"$in": []authn.Role{role},
+				},
+			},
+		},
+	)
+	if err != nil {
+		return errors.Wrapf(err, "error updating user %q", userID)
+	}
 	return nil
 }

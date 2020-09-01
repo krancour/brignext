@@ -21,6 +21,10 @@ type Store interface {
 	Lock(context.Context, string) error
 	Unlock(ctx context.Context, id string, newHashedToken string) error
 
-	GrantRole(context.Context, authn.Role) error
-	RevokeRole(context.Context, authn.Role) error
+	GrantRole(ctx context.Context, serviceAccountID string, role authn.Role) error
+	RevokeRole(
+		ctx context.Context,
+		serviceAccountID string,
+		role authn.Role,
+	) error
 }

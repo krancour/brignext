@@ -51,6 +51,18 @@ func (e *endpoints) Register(router *mux.Router) {
 		"/v2/users/{id}/lock",
 		e.TokenAuthFilter.Decorate(e.unlock),
 	).Methods(http.MethodDelete)
+
+	// Grant role
+	router.HandleFunc(
+		"/v2/users/{id}/roles",
+		e.TokenAuthFilter.Decorate(e.grantRole),
+	).Methods(http.MethodPost)
+
+	// Revoke role
+	router.HandleFunc(
+		"/v2/users/{id}/roles",
+		e.TokenAuthFilter.Decorate(e.revokeRole),
+	).Methods(http.MethodDelete)
 }
 
 func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
@@ -122,6 +134,38 @@ func (e *endpoints) unlock(w http.ResponseWriter, r *http.Request) {
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
 				return nil, e.service.Unlock(r.Context(), mux.Vars(r)["id"])
+			},
+			SuccessCode: http.StatusOK,
+		},
+	)
+}
+
+func (e *endpoints) grantRole(w http.ResponseWriter, r *http.Request) {
+	role := authn.Role{}
+	e.ServeRequest(
+		apimachinery.InboundRequest{
+			W:          w,
+			R:          r,
+			ReqBodyObj: &role,
+			EndpointLogic: func() (interface{}, error) {
+				return nil, e.service.GrantRole(r.Context(), mux.Vars(r)["id"], role)
+			},
+			SuccessCode: http.StatusOK,
+		},
+	)
+}
+
+func (e *endpoints) revokeRole(w http.ResponseWriter, r *http.Request) {
+	role := authn.Role{
+		Name:  r.URL.Query().Get("name"),
+		Scope: r.URL.Query().Get("scope"),
+	}
+	e.ServeRequest(
+		apimachinery.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return nil, e.service.RevokeRole(r.Context(), mux.Vars(r)["id"], role)
 			},
 			SuccessCode: http.StatusOK,
 		},

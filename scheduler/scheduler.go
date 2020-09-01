@@ -57,11 +57,18 @@ func (s *scheduler) Run(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// Synchronously start tracking existing workers pods. This happens
+	// Synchronously start tracking existing Worker pods. This happens
 	// synchronously so that the scheduler is guaranteed a complete picture of
 	// what capacity is available before we start taking on new work.
 	if err := s.syncExistingWorkerPods(ctx); err != nil {
 		return errors.Wrap(err, "error syncing existing worker pods")
+	}
+
+	// Synchronously start tracking existing Job pods. This happens
+	// synchronously so that the scheduler is guaranteed a complete picture of
+	// what capacity is available before we start taking on new work.
+	if err := s.syncExistingJobPods(ctx); err != nil {
+		return errors.Wrap(err, "error syncing existing job pods")
 	}
 
 	wg := sync.WaitGroup{}
@@ -71,6 +78,13 @@ func (s *scheduler) Run(ctx context.Context) error {
 	go func() {
 		defer wg.Done()
 		s.continuouslySyncWorkerPods(ctx)
+	}()
+
+	// Continuously sync Job pods
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		s.continuouslySyncJobPods(ctx)
 	}()
 
 	// Manage available Worker capacity
