@@ -116,6 +116,7 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 			sessionsService.GetByToken,
 			eventsService.GetByWorkerToken,
 			usersService.Get,
+			serviceAccountsService.GetByToken,
 			apiConfig.RootUserEnabled(),
 			apiConfig.HashedSchedulerToken(),
 			apiConfig.HashedObserverToken(),

@@ -22,6 +22,7 @@ func TestTokenAuthFilterWithHeaderMissing(t *testing.T) {
 		nil,
 		nil,
 		nil,
+		nil,
 		false,
 		testSchedulerToken,
 		testObserverToken,
@@ -39,6 +40,7 @@ func TestTokenAuthFilterWithHeaderMissing(t *testing.T) {
 
 func TestTokenAuthFilterWithHeaderNotBearer(t *testing.T) {
 	a := NewTokenAuthFilter(
+		nil,
 		nil,
 		nil,
 		nil,
@@ -63,6 +65,7 @@ func TestTokenAuthFilterWithTokenInvalid(t *testing.T) {
 		func(context.Context, string) (authn.Session, error) {
 			return authn.Session{}, &core.ErrNotFound{}
 		},
+		nil,
 		nil,
 		nil,
 		false,
@@ -93,6 +96,7 @@ func TestTokenAuthFilterWithUnauthenticatedSession(t *testing.T) {
 		func(context.Context, string) (authn.User, error) {
 			return authn.User{}, nil
 		},
+		nil,
 		false,
 		testSchedulerToken,
 		testObserverToken,
@@ -129,6 +133,7 @@ func TestTokenAuthFilterWithAuthenticatedSession(t *testing.T) {
 		func(context.Context, string) (authn.User, error) {
 			return authn.User{}, nil
 		},
+		nil,
 		false,
 		testSchedulerToken,
 		testObserverToken,

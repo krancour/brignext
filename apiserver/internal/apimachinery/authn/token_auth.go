@@ -22,15 +22,18 @@ type FindSessionFn func(
 
 type FindEventFn func(ctx context.Context, token string) (core.Event, error)
 
-type FindUserFn func(
+type FindUserFn func(ctx context.Context, id string) (authn.User, error)
+
+type FindServiceAccountFn func(
 	ctx context.Context,
-	id string,
-) (authn.User, error)
+	token string,
+) (authn.ServiceAccount, error)
 
 type tokenAuthFilter struct {
 	findSession          FindSessionFn
 	findEvent            FindEventFn
 	findUser             FindUserFn
+	findServiceAccount   FindServiceAccountFn
 	rootUserEnabled      bool
 	hashedSchedulerToken string
 	hashedObserverToken  string
@@ -40,6 +43,7 @@ func NewTokenAuthFilter(
 	findSession FindSessionFn,
 	findEvent FindEventFn,
 	findUser FindUserFn,
+	findServiceAccount FindServiceAccountFn,
 	rootUserEnabled bool,
 	hashedSchedulerToken string,
 	hashedObserverToken string,
@@ -48,13 +52,13 @@ func NewTokenAuthFilter(
 		findSession:          findSession,
 		findEvent:            findEvent,
 		findUser:             findUser,
+		findServiceAccount:   findServiceAccount,
 		rootUserEnabled:      rootUserEnabled,
 		hashedSchedulerToken: hashedSchedulerToken,
 		hashedObserverToken:  hashedObserverToken,
 	}
 }
 
-// TODO: Access by service accounts isn't implemented yet
 func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		headerValue := r.Header.Get("Authorization")
@@ -85,21 +89,21 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 		}
 		token := headerValueParts[1]
 
-		// Is it the scheduler's token?
+		// Is it the Scheduler's token?
 		if crypto.ShortSHA("", token) == t.hashedSchedulerToken {
 			ctx := authn.ContextWithPrincipal(r.Context(), authn.Scheduler)
 			handle(w, r.WithContext(ctx))
 			return
 		}
 
-		// Is it the observer's token?
+		// Is it the Observer's token?
 		if crypto.ShortSHA("", token) == t.hashedObserverToken {
 			ctx := authn.ContextWithPrincipal(r.Context(), authn.Observer)
 			handle(w, r.WithContext(ctx))
 			return
 		}
 
-		// Is it a worker's token?
+		// Is it a Worker's token?
 		if event, err := t.findEvent(r.Context(), token); err != nil {
 			if _, ok := errors.Cause(err).(*core.ErrNotFound); !ok {
 				log.Println(err)
@@ -112,6 +116,28 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			}
 		} else {
 			ctx := authn.ContextWithPrincipal(r.Context(), authn.Worker(event.ID))
+			handle(w, r.WithContext(ctx))
+			return
+		}
+
+		// Is it a ServiceAccount's token?
+		if serviceAccount, err :=
+			t.findServiceAccount(r.Context(), token); err != nil {
+			if _, ok := errors.Cause(err).(*core.ErrNotFound); !ok {
+				log.Println(err)
+				t.writeResponse(
+					w,
+					http.StatusInternalServerError,
+					&core.ErrInternalServer{},
+				)
+				return
+			}
+		} else {
+			if serviceAccount.Locked != nil {
+				http.Error(w, "{}", http.StatusForbidden)
+				return
+			}
+			ctx := authn.ContextWithPrincipal(r.Context(), &serviceAccount)
 			handle(w, r.WithContext(ctx))
 			return
 		}
