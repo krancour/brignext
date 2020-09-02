@@ -37,17 +37,17 @@ type Service interface {
 }
 
 type service struct {
-	authorize    authn.AuthorizeFn
-	store        Store
-	projectStore projects.Store
+	authorize     authn.AuthorizeFn
+	store         Store
+	projectsStore projects.Store
 }
 
 // NewService returns a specialized interface for managing Users.
-func NewService(store Store, projectStore projects.Store) Service {
+func NewService(store Store, projectsStore projects.Store) Service {
 	return &service{
-		authorize:    authn.Authorize,
-		store:        store,
-		projectStore: projectStore,
+		authorize:     authn.Authorize,
+		store:         store,
+		projectsStore: projectsStore,
 	}
 }
 
@@ -179,7 +179,7 @@ func (s *service) GrantRole(
 		}
 
 		// Make sure the project exists
-		if _, err := s.projectStore.Get(ctx, role.Scope); err != nil {
+		if _, err := s.projectsStore.Get(ctx, role.Scope); err != nil {
 			return errors.Wrapf(
 				err,
 				"error retrieving project %q from store",
@@ -282,7 +282,7 @@ func (s *service) RevokeRole(
 		}
 
 		// Make sure the project exists
-		if _, err := s.projectStore.Get(ctx, role.Scope); err != nil {
+		if _, err := s.projectsStore.Get(ctx, role.Scope); err != nil {
 			return errors.Wrapf(
 				err,
 				"error retrieving project %q from store",
