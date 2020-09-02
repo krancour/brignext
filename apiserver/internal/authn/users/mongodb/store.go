@@ -65,6 +65,14 @@ func (s *store) Create(ctx context.Context, user authn.User) error {
 	return nil
 }
 
+func (s *store) Count(ctx context.Context) (int64, error) {
+	count, err := s.collection.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		return 0, errors.Wrap(err, "error counting users")
+	}
+	return count, nil
+}
+
 func (s *store) List(
 	ctx context.Context,
 	_ authn.UsersSelector,

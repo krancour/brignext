@@ -176,8 +176,22 @@ func (s *service) Authenticate(
 				},
 				Name: claims.Name,
 			}
+
+			// User 0 gets a bunch of roles automatically
+			count, err := s.usersStore.Count(ctx)
+			if err != nil {
+				return errors.Wrap(err, "error counting users in store")
+			}
+			if count == 0 {
+				user.UserRoles = []authn.Role{
+					authn.RoleAdmin(),
+					authn.RoleProjectCreator(),
+					authn.RoleReader(),
+				}
+			}
+
 			if err = s.usersStore.Create(ctx, user); err != nil {
-				return err
+				return errors.Wrapf(err, "error storing new user %q", user.ID)
 			}
 		} else {
 			// It was something else that went wrong when searching for the user.

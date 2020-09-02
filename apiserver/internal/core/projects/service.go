@@ -76,6 +76,12 @@ func (s *service) Create(
 	now := time.Now()
 	project.Created = &now
 
+	// TODO: The principal that created this should automatically be a project
+	// admin, developer, and user... but how can we do that without creating a
+	// cyclic dependency? (UserService and ServiceAccountService already depend
+	// on this package because they use the Project store to check the validity
+	// of a project scope.)
+
 	// Let the scheduler add scheduler-specific details before we persist.
 	var err error
 	if project, err = s.scheduler.PreCreate(ctx, project); err != nil {

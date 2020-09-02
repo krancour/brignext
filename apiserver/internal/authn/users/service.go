@@ -3,7 +3,6 @@ package users
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/authn"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
@@ -17,8 +16,6 @@ import (
 // reusable and consistent while the underlying tech stack remains free to
 // change.
 type Service interface {
-	// Create creates a new User.
-	Create(context.Context, authn.User) error
 	// List returns a UserList.
 	List(
 		context.Context,
@@ -52,19 +49,6 @@ func NewService(store Store, projectStore projects.Store) Service {
 		store:        store,
 		projectStore: projectStore,
 	}
-}
-
-func (s *service) Create(ctx context.Context, user authn.User) error {
-
-	// No authz requirements here because this is is never invoked at the explicit
-	// request of an end user; rather it is invoked only by the system itself.
-
-	now := time.Now()
-	user.Created = &now
-	if err := s.store.Create(ctx, user); err != nil {
-		return errors.Wrapf(err, "error storing new user %q", user.ID)
-	}
-	return nil
 }
 
 func (s *service) List(

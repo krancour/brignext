@@ -9,6 +9,7 @@ import (
 
 type Store interface {
 	Create(context.Context, authn.User) error
+	Count(context.Context) (int64, error)
 	List(
 		context.Context,
 		authn.UsersSelector,

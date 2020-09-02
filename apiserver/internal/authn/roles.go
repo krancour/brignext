@@ -124,7 +124,7 @@ func RoleProjectUser(projectID string) Role {
 // Events, Users, and Service Accounts.
 func RoleReader() Role {
 	return Role{
-		Name:  RoleNameAdmin,
+		Name:  RoleNameReader,
 		Scope: RoleScopeGlobal,
 	}
 }
@@ -149,7 +149,7 @@ func RoleObserver() Role {
 // is exclusively for the use of the Scheduler component.
 func RoleScheduler() Role {
 	return Role{
-		Name:  RoleNameObserver,
+		Name:  RoleNameScheduler,
 		Scope: RoleScopeGlobal,
 	}
 }
