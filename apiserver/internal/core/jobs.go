@@ -58,17 +58,26 @@ type JobSpec struct {
 	// sidecar container), then logic within those containers must account for
 	// these constraints.
 	SidecarContainers map[string]JobContainerSpec `json:"sidecarContainers,omitempty" bson:"sidecarContainers,omitempty"`
-	// TODO: Document this
+	// TimeoutSeconds specifies the time, in seconds, that must elapse before a
+	// running Job should be considered to have timed out.
 	TimeoutSeconds int64 `json:"timeoutSeconds,omitempty" bson:"timeoutSeconds,omitempty"`
-	// TODO: Document this
+	// Host specifies criteria for selecting a suitable host (substrate node) for
+	// the Job. This is useful in cases where a Job requires a specific,
+	// non-default operating system (i.e. Windows) or specific hardware (e.g. a
+	// GPU.)
 	Host *JobHost `json:"host,omitempty" bson:"host,omitempty"`
 }
 
-// TODO: Document this
+// JobHost represents criteria for selecting a suitable host (substrate node)
+// for a Job.
 type JobHost struct {
-	// TODO: Document this
+	// OS specifies which "family" of operating system is required on a substrate
+	// node to host a Job. Valid values are "linux" and "windows". When empty,
+	// BrigNext assumes "linux".
 	OS string `json:"os,omitempty" bson:"os,omitempty"`
-	// TODO: Document this
+	// NodeSelector specifies labels that must be present on the substrate node to
+	// host a Job. This provides an opaque mechanism for communicating Job needs
+	// such as specific hardware like an SSD or GPU.
 	NodeSelector map[string]string `json:"nodeSelector,omitempty" bson:"nodeSelector,omitempty"` // nolint: lll
 }
 

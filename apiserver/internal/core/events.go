@@ -176,7 +176,8 @@ func (d DeleteManyEventsResult) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// TODO: Document this
+// LogsSelector represents useful criteria when requesting a log stream from an
+// Event.
 type LogsSelector struct {
 	// Job specifies, by name, a Job spawned by the Worker. If this field is
 	// left blank, it is presumed logs are desired for the Worker itself.
@@ -187,7 +188,13 @@ type LogsSelector struct {
 	Container string
 }
 
+// LogStreamOptions represents useful options when requesting a log stream from
+// an Event.
 type LogStreamOptions struct {
+	// Follow indicates whether the stream should conclude after the last
+	// available line of logs has been sent to the client (false) or remain open
+	// until closed by the client (true), continuing to send new lines as they
+	// become available.
 	Follow bool `json:"follow"`
 }
 

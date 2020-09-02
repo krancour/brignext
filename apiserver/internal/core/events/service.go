@@ -342,8 +342,8 @@ func (s *service) GetByWorkerToken(
 	ctx context.Context,
 	workerToken string,
 ) (core.Event, error) {
-
-	// TODO: What's the right way to do authz for this?
+	// No authz is required here because this is only ever called by the system
+	// itself.
 
 	event, err := s.store.GetByHashedWorkerToken(
 		ctx,

@@ -123,9 +123,6 @@ func (l *logsStore) criteriaFromSelector(
 		}
 	} else { // We want job logs
 		criteria["component"] = "job"
-		// TODO: Probably we shouldn't let users set the job's primary container's
-		// name or else this assumption below doesn't hold.
-		//
 		// If no container was specified, we want the one with the same name as the
 		// job
 		if selector.Container == "" {

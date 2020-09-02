@@ -65,15 +65,13 @@ type Worker struct {
 	Spec WorkerSpec `json:"spec" bson:"spec"`
 	// Status contains details of the Worker's current state.
 	Status WorkerStatus `json:"status" bson:"status"`
-	// TODO: Document this
+	// Token is an API token that grants a Worker permission to create new Jobs
+	// only for the Event to which it belongs.
 	Token string `json:"-" bson:"-"`
-	// TODO: Document this
+	// HashedToken is a secure hash of the Token field.
 	HashedToken string `json:"-" bson:"hashedToken"`
 	// Jobs contains details of all Jobs spawned by the Worker during handling of
 	// the Event.
-	// TODO: This should NEVER be nil in the database or it will make job starts
-	// and status updates much harder to do. We probably need a custom BSON
-	// marshaler to achieve that.
 	Jobs map[string]Job `json:"jobs,omitempty" bson:"jobs,omitempty"`
 }
 
@@ -83,7 +81,13 @@ type WorkerSpec struct {
 	// Container specifies the details of an OCI container that forms the
 	// cornerstone of the Worker.
 	Container *ContainerSpec `json:"container,omitempty" bson:"container,omitempty"`
-	// TODO: Document this
+	// UseWorkspace indicates whether the Worker requires a volume to be
+	// provisioned to be shared by itself and any Jobs it creates. This is a
+	// generally useful feature, but by opting out of it (or rather, not
+	// opting-in), Job results can be made cacheable and Jobs
+	// resumable/retriable-- something which cannot be done otherwise since
+	// managing the state of the shared volume would require a layered file system
+	// that we currently do not have.
 	UseWorkspace bool `json:"useWorkspace" bson:"useWorkspace"`
 	// WorkspaceSize specifies the size of a volume that will be provisioned as
 	// a shared workspace for the Worker and any Jobs it spawns.
