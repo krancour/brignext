@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/krancour/brignext/v2/apiserver/internal/authn"
+	"github.com/krancour/brignext/v2/apiserver/internal/authx"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/core/projects"
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
@@ -127,7 +127,7 @@ type Service interface {
 }
 
 type service struct {
-	authorize     authn.AuthorizeFn
+	authorize     authx.AuthorizeFn
 	projectsStore projects.Store
 	store         Store
 	warmLogsStore LogsStore
@@ -144,7 +144,7 @@ func NewService(
 	scheduler Scheduler,
 ) Service {
 	return &service{
-		authorize:     authn.Authorize,
+		authorize:     authx.Authorize,
 		projectsStore: projectsStore,
 		store:         store,
 		scheduler:     scheduler,
@@ -164,15 +164,15 @@ func (s *service) Create(
 	if event.ProjectID == "" {
 		if err := s.authorize(
 			ctx,
-			authn.RoleEventCreator(event.Source),
+			authx.RoleEventCreator(event.Source),
 		); err != nil {
 			return events, err
 		}
 	} else {
 		if err := s.authorize(
 			ctx,
-			authn.RoleProjectUser(event.ProjectID),
-			authn.RoleEventCreator(event.Source),
+			authx.RoleProjectUser(event.ProjectID),
+			authx.RoleEventCreator(event.Source),
 		); err != nil {
 			return events, err
 		}
@@ -300,7 +300,7 @@ func (s *service) List(
 	selector core.EventsSelector,
 	opts meta.ListOptions,
 ) (core.EventList, error) {
-	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+	if err := s.authorize(ctx, authx.RoleReader()); err != nil {
 		return core.EventList{}, err
 	}
 
@@ -323,7 +323,7 @@ func (s *service) Get(
 	ctx context.Context,
 	id string,
 ) (core.Event, error) {
-	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+	if err := s.authorize(ctx, authx.RoleReader()); err != nil {
 		return core.Event{}, err
 	}
 
@@ -359,7 +359,7 @@ func (s *service) Cancel(ctx context.Context, id string) error {
 
 	if err = s.authorize(
 		ctx,
-		authn.RoleProjectUser(event.ProjectID),
+		authx.RoleProjectUser(event.ProjectID),
 	); err != nil {
 		return err
 	}
@@ -402,7 +402,7 @@ func (s *service) CancelMany(
 
 	if err := s.authorize(
 		ctx,
-		authn.RoleProjectUser(selector.ProjectID),
+		authx.RoleProjectUser(selector.ProjectID),
 	); err != nil {
 		return core.CancelManyEventsResult{}, err
 	}
@@ -463,7 +463,7 @@ func (s *service) Delete(ctx context.Context, id string) error {
 
 	if err = s.authorize(
 		ctx,
-		authn.RoleProjectUser(event.ProjectID),
+		authx.RoleProjectUser(event.ProjectID),
 	); err != nil {
 		return err
 	}
@@ -506,7 +506,7 @@ func (s *service) DeleteMany(
 
 	if err := s.authorize(
 		ctx,
-		authn.RoleProjectUser(selector.ProjectID),
+		authx.RoleProjectUser(selector.ProjectID),
 	); err != nil {
 		return core.DeleteManyEventsResult{}, err
 	}
@@ -560,7 +560,7 @@ func (s *service) DeleteMany(
 }
 
 func (s *service) StartWorker(ctx context.Context, eventID string) error {
-	if err := s.authorize(ctx, authn.RoleScheduler()); err != nil {
+	if err := s.authorize(ctx, authx.RoleScheduler()); err != nil {
 		return err
 	}
 
@@ -602,7 +602,7 @@ func (s *service) GetWorkerStatus(
 	ctx context.Context,
 	eventID string,
 ) (core.WorkerStatus, error) {
-	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+	if err := s.authorize(ctx, authx.RoleReader()); err != nil {
 		return core.WorkerStatus{}, err
 	}
 
@@ -619,7 +619,7 @@ func (s *service) WatchWorkerStatus(
 	ctx context.Context,
 	eventID string,
 ) (<-chan core.WorkerStatus, error) {
-	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+	if err := s.authorize(ctx, authx.RoleReader()); err != nil {
 		return nil, err
 	}
 
@@ -659,7 +659,7 @@ func (s *service) UpdateWorkerStatus(
 	eventID string,
 	status core.WorkerStatus,
 ) error {
-	if err := s.authorize(ctx, authn.RoleObserver()); err != nil {
+	if err := s.authorize(ctx, authx.RoleObserver()); err != nil {
 		return err
 	}
 
@@ -683,7 +683,7 @@ func (s *service) CreateJob(
 	jobName string,
 	jobSpec core.JobSpec,
 ) error {
-	if err := s.authorize(ctx, authn.RoleWorker(eventID)); err != nil {
+	if err := s.authorize(ctx, authx.RoleWorker(eventID)); err != nil {
 		return err
 	}
 
@@ -777,7 +777,7 @@ func (s *service) StartJob(
 	eventID string,
 	jobName string,
 ) error {
-	if err := s.authorize(ctx, authn.RoleScheduler()); err != nil {
+	if err := s.authorize(ctx, authx.RoleScheduler()); err != nil {
 		return err
 	}
 
@@ -822,7 +822,7 @@ func (s *service) GetJobStatus(
 	eventID string,
 	jobName string,
 ) (core.JobStatus, error) {
-	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+	if err := s.authorize(ctx, authx.RoleReader()); err != nil {
 		return core.JobStatus{}, err
 	}
 
@@ -847,7 +847,7 @@ func (s *service) WatchJobStatus(
 	eventID string,
 	jobName string,
 ) (<-chan core.JobStatus, error) {
-	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+	if err := s.authorize(ctx, authx.RoleReader()); err != nil {
 		return nil, err
 	}
 
@@ -895,7 +895,7 @@ func (s *service) UpdateJobStatus(
 	jobName string,
 	status core.JobStatus,
 ) error {
-	if err := s.authorize(ctx, authn.RoleObserver()); err != nil {
+	if err := s.authorize(ctx, authx.RoleObserver()); err != nil {
 		return err
 	}
 
@@ -921,7 +921,7 @@ func (s *service) StreamLogs(
 	selector core.LogsSelector,
 	opts core.LogStreamOptions,
 ) (<-chan core.LogEntry, error) {
-	if err := s.authorize(ctx, authn.RoleReader()); err != nil {
+	if err := s.authorize(ctx, authx.RoleReader()); err != nil {
 		return nil, err
 	}
 

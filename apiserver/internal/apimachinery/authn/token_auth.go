@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
-	"github.com/krancour/brignext/v2/apiserver/internal/authn"
+	"github.com/krancour/brignext/v2/apiserver/internal/authx"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
 	"github.com/pkg/errors"
@@ -18,16 +18,16 @@ import (
 type FindSessionFn func(
 	ctx context.Context,
 	token string,
-) (authn.Session, error)
+) (authx.Session, error)
 
 type FindEventFn func(ctx context.Context, token string) (core.Event, error)
 
-type FindUserFn func(ctx context.Context, id string) (authn.User, error)
+type FindUserFn func(ctx context.Context, id string) (authx.User, error)
 
 type FindServiceAccountFn func(
 	ctx context.Context,
 	token string,
-) (authn.ServiceAccount, error)
+) (authx.ServiceAccount, error)
 
 type tokenAuthFilter struct {
 	findSession          FindSessionFn
@@ -91,14 +91,14 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 
 		// Is it the Scheduler's token?
 		if crypto.ShortSHA("", token) == t.hashedSchedulerToken {
-			ctx := authn.ContextWithPrincipal(r.Context(), authn.Scheduler)
+			ctx := authx.ContextWithPrincipal(r.Context(), authx.Scheduler)
 			handle(w, r.WithContext(ctx))
 			return
 		}
 
 		// Is it the Observer's token?
 		if crypto.ShortSHA("", token) == t.hashedObserverToken {
-			ctx := authn.ContextWithPrincipal(r.Context(), authn.Observer)
+			ctx := authx.ContextWithPrincipal(r.Context(), authx.Observer)
 			handle(w, r.WithContext(ctx))
 			return
 		}
@@ -115,7 +115,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 		} else {
-			ctx := authn.ContextWithPrincipal(r.Context(), authn.Worker(event.ID))
+			ctx := authx.ContextWithPrincipal(r.Context(), authx.Worker(event.ID))
 			handle(w, r.WithContext(ctx))
 			return
 		}
@@ -137,7 +137,7 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 				http.Error(w, "{}", http.StatusForbidden)
 				return
 			}
-			ctx := authn.ContextWithPrincipal(r.Context(), &serviceAccount)
+			ctx := authx.ContextWithPrincipal(r.Context(), &serviceAccount)
 			handle(w, r.WithContext(ctx))
 			return
 		}
@@ -195,9 +195,9 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 			)
 			return
 		}
-		var principal authn.Principal
+		var principal authx.Principal
 		if session.Root {
-			principal = authn.Root
+			principal = authx.Root
 		} else {
 			user, err := t.findUser(r.Context(), session.UserID)
 			if err != nil {
@@ -219,8 +219,8 @@ func (t *tokenAuthFilter) Decorate(handle http.HandlerFunc) http.HandlerFunc {
 		}
 
 		// Success! Add the user and the session ID to the context.
-		ctx := authn.ContextWithPrincipal(r.Context(), principal)
-		ctx = authn.ContextWithSessionID(ctx, session.ID)
+		ctx := authx.ContextWithPrincipal(r.Context(), principal)
+		ctx = authx.ContextWithSessionID(ctx, session.ID)
 		handle(w, r.WithContext(ctx))
 	}
 }
