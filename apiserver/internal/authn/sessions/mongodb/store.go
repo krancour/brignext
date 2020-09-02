@@ -36,27 +36,7 @@ func NewStore(database *mongo.Database) (sessions.Store, error) {
 					Unique: &unique,
 				},
 			},
-			// Fast lookup for completing OIDC auth
-			//
-			// TODO: CosmosDB doesn't support this partial index. We can probably live
-			// without it because lookup by hashedOAuth2State should only occur at the
-			// end of an OIDC authentication flow, which should be relatively
-			// uncommon. We can afford for it to be relatively slow. What we should
-			// probably do is make this index optional through a configuration
-			// setting.
-			//
-			// {
-			// 	Keys: bson.M{
-			// 		"hashedOAuth2State": 1,
-			// 	},
-			// 	Options: &options.IndexOptions{
-			// 		Unique: &unique,
-			// 		PartialFilterExpression: bson.M{
-			// 			"hashedOAuth2State": bson.M{"exists": true},
-			// 		},
-			// 	},
-			// },
-			// Fast lookup by bearer token
+			// Fast lookup by token
 			{
 				Keys: bson.M{
 					"hashedToken": 1,

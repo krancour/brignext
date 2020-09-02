@@ -92,10 +92,6 @@ func (s *service) Create(
 		)
 	}
 
-	// TODO: We'd like to use transaction semantics here, but transactions in
-	// MongoDB are dicey, so we should refine this strategy to where a
-	// partially completed create leaves us, overall, in a tolerable state.
-
 	if err = s.store.Create(ctx, project); err != nil {
 		return project,
 			errors.Wrapf(err, "error storing new project %q", project.ID)
@@ -169,10 +165,6 @@ func (s *service) Update(
 		)
 	}
 
-	// TODO: We'd like to use transaction semantics here, but transactions in
-	// MongoDB are dicey, so we should refine this strategy to where a
-	// partially completed update leaves us, overall, in a tolerable state.
-
 	if err = s.store.Update(ctx, project); err != nil {
 		return project, errors.Wrapf(
 			err,
@@ -199,10 +191,6 @@ func (s *service) Delete(ctx context.Context, id string) error {
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving project %q from store", id)
 	}
-
-	// TODO: We'd like to use transaction semantics here, but transactions in
-	// MongoDB are dicey, so we should refine this strategy to where a
-	// partially completed delete leaves us, overall, in a tolerable state.
 
 	if err := s.store.Delete(ctx, id); err != nil {
 		return errors.Wrapf(err, "error removing project %q from store", id)

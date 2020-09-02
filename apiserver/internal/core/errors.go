@@ -14,6 +14,9 @@ type ErrAuthentication struct {
 }
 
 func (e *ErrAuthentication) Error() string {
+	if e.Reason == "" {
+		return "Could not authenticate the request."
+	}
 	return fmt.Sprintf("Could not authenticate the request: %s", e.Reason)
 }
 
@@ -36,10 +39,16 @@ func (e ErrAuthentication) MarshalJSON() ([]byte, error) {
 
 // ErrAuthorization represents an error wherein a principal was not authorized
 // to perform the requested operation.
-type ErrAuthorization struct{}
+type ErrAuthorization struct {
+	// Reason is a natural language explanation for why authorization failed.
+	Reason string `json:"reason,omitempty"`
+}
 
 func (e *ErrAuthorization) Error() string {
-	return "The request is not authorized."
+	if e.Reason == "" {
+		return "The request is not authorized."
+	}
+	return fmt.Sprintf("The request is not authorized: %s", e.Reason)
 }
 
 // MarshalJSON amends ErrAuthorization instances with type metadata.

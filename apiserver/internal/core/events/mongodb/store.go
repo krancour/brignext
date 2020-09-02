@@ -330,10 +330,6 @@ func (s *store) DeleteMany(
 	// we'll perform a logical delete first, select the logically deleted events,
 	// and then perform a real delete.
 
-	// TODO: We'd like to use transaction semantics here, but transactions in
-	// MongoDB are dicey, so we should refine this strategy to where a
-	// partially completed delete leaves us, overall, in a tolerable state.
-
 	deletedTime := time.Now()
 
 	// Logical delete...

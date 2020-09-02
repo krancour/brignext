@@ -276,10 +276,6 @@ func (s *service) Create(
 		)
 	}
 
-	// TODO: We'd like to use transaction semantics here, but transactions in
-	// MongoDB are dicey, so we should refine this strategy to where a
-	// partially completed create leaves us, overall, in a tolerable state.
-
 	if err = s.store.Create(ctx, event); err != nil {
 		return events, errors.Wrapf(
 			err,
@@ -733,18 +729,27 @@ func (s *service) CreateJob(
 	if usePrivileged &&
 		(event.Worker.Spec.JobPolicies == nil ||
 			!event.Worker.Spec.JobPolicies.AllowPrivileged) {
-		return &core.ErrAuthorization{} // TODO: Add more detail to this error
+		return &core.ErrAuthorization{
+			Reason: "Worker configuration forbids jobs from utilizing privileged " +
+				"containers.",
+		}
 	}
 	if useDockerSocket &&
 		(event.Worker.Spec.JobPolicies == nil ||
 			!event.Worker.Spec.JobPolicies.AllowDockerSocketMount) {
-		return &core.ErrAuthorization{} // TODO: Add more detail to this error
+		return &core.ErrAuthorization{
+			Reason: "Worker configuration forbids jobs from mounting the Docker " +
+				"socket.",
+		}
 	}
 
 	// Fail quickly if the job needs to use shared workspace, but the worker
 	// doesn't have any shared workspace.
 	if useWorkspace && !event.Worker.Spec.UseWorkspace {
-		return &core.ErrConflict{} // TODO: Add more detail to this error
+		return &core.ErrConflict{
+			Reason: "The job requested access to the shared workspace, but Worker " +
+				"configuration has not enabled this feature.",
+		}
 	}
 
 	if err = s.store.CreateJob(ctx, eventID, jobName, jobSpec); err != nil {

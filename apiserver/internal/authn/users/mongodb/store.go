@@ -153,10 +153,7 @@ func (s *store) Lock(ctx context.Context, id string) error {
 		}
 	}
 
-	// Now delete all the user's sessions. Note we're deliberately not doing this
-	// in a transaction. This way if an error occurs after successfully locking
-	// the user, but BEFORE OR WHILE deleting their existing sessions, at least
-	// the user will be locked.
+	// Now delete all the user's sessions.
 	if _, err = s.sessionsCollection.DeleteMany(
 		ctx,
 		bson.M{

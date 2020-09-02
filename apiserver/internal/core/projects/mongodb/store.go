@@ -38,29 +38,6 @@ func NewStore(database *mongo.Database) (projects.Store, error) {
 					Unique: &unique,
 				},
 			},
-			// The next two indexes are involved in locating projects that have
-			// subscribed to a given event. Two of the fields (types and labels) are
-			// array fields. Indexes involving multiple array fields aren't permitted
-			// by MongoDB, so we create two separate indexes and MongoDB *should*
-			// utilize the intersection of the two indexes to support such queries.
-			//
-			// TODO: CosmosDB doesn't support these indices. We can probably live
-			// without them because the number of projects in a cluster should usually
-			// be pretty small in comparison to the number of events. What we should
-			// probably do is make these indices optional through a configuration
-			// setting.
-			//
-			// {
-			// 	Keys: bson.M{
-			// 		"spec.eventSubscriptions.source": 1,
-			// 		"spec.eventSubscriptions.types":  1,
-			// 	},
-			// },
-			// {
-			// 	Keys: bson.M{
-			// 		"spec.eventSubscriptions.labels": 1,
-			// 	},
-			// },
 		},
 	); err != nil {
 		return nil, errors.Wrap(
@@ -232,10 +209,6 @@ func (s *store) Update(
 }
 
 func (s *store) Delete(ctx context.Context, id string) error {
-	// TODO: We'd like to use transaction semantics here, but transactions in
-	// MongoDB are dicey, so we should refine this strategy to where a
-	// partially completed delete leaves us, overall, in a tolerable state.
-
 	res, err := s.collection.DeleteOne(ctx, bson.M{"id": id})
 	if err != nil {
 		return errors.Wrapf(err, "error deleting project %q", id)
