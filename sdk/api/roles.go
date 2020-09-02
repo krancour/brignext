@@ -9,3 +9,9 @@ type Role struct {
 	// only in relation to a specific RoleName.
 	Scope string `json:"scope"`
 }
+
+type RoleAssignment struct {
+	Role             string `json:"role"`
+	UserID           string `json:"userID"`
+	ServiceAccountID string `json:"serviceAccountID"`
+}

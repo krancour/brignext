@@ -86,9 +86,6 @@ type UsersClient interface {
 	// Unlock restores access to the API for a single User specified by their
 	// identifier.
 	Unlock(context.Context, string) error
-
-	GrantRole(ctx context.Context, userID string, role Role) error
-	RevokeRole(ctx context.Context, userID string, role Role) error
 }
 
 type usersClient struct {
@@ -164,44 +161,6 @@ func (u *usersClient) Unlock(_ context.Context, id string) error {
 			method:      http.MethodDelete,
 			path:        fmt.Sprintf("v2/users/%s/lock", id),
 			authHeaders: u.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-		},
-	)
-}
-
-func (u *usersClient) GrantRole(
-	ctx context.Context,
-	userID string,
-	role Role,
-) error {
-	return u.executeRequest(
-		outboundRequest{
-			method:      http.MethodPost,
-			path:        fmt.Sprintf("v2/users/%s/roles", userID),
-			authHeaders: u.bearerTokenAuthHeaders(),
-			reqBodyObj:  role,
-			successCode: http.StatusOK,
-		},
-	)
-}
-
-func (u *usersClient) RevokeRole(
-	ctx context.Context,
-	userID string,
-	role Role,
-) error {
-	queryParams := map[string]string{
-		"name": role.Name,
-	}
-	if role.Scope != "" {
-		queryParams["scope"] = role.Scope
-	}
-	return u.executeRequest(
-		outboundRequest{
-			method:      http.MethodDelete,
-			path:        fmt.Sprintf("v2/users/%s/roles", userID),
-			authHeaders: u.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
 			successCode: http.StatusOK,
 		},
 	)

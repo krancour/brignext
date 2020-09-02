@@ -112,6 +112,17 @@ type ProjectsClient interface {
 	SetSecret(ctx context.Context, projectID string, secret sdk.Secret) error
 	// UnsetSecret clears the value of an existing Secret.
 	UnsetSecret(ctx context.Context, projectID string, key string) error
+
+	GrantRole(
+		ctx context.Context,
+		projectID string,
+		roleAssignment RoleAssignment,
+	) error
+	RevokeRole(
+		ctx context.Context,
+		projectID string,
+		roleAssignment RoleAssignment,
+	) error
 }
 
 type projectsClient struct {
@@ -305,6 +316,47 @@ func (p *projectsClient) UnsetSecret(
 				key,
 			),
 			authHeaders: p.bearerTokenAuthHeaders(),
+			successCode: http.StatusOK,
+		},
+	)
+}
+
+func (u *projectsClient) GrantRole(
+	ctx context.Context,
+	projectID string,
+	roleAssignment RoleAssignment,
+) error {
+	return u.executeRequest(
+		outboundRequest{
+			method:      http.MethodPost,
+			path:        fmt.Sprintf("v2/projects/%s/role-assignments", projectID),
+			authHeaders: u.bearerTokenAuthHeaders(),
+			reqBodyObj:  roleAssignment,
+			successCode: http.StatusOK,
+		},
+	)
+}
+
+func (u *projectsClient) RevokeRole(
+	ctx context.Context,
+	projectID string,
+	roleAssignment RoleAssignment,
+) error {
+	queryParams := map[string]string{
+		"role": roleAssignment.Role,
+	}
+	if roleAssignment.UserID != "" {
+		queryParams["userID"] = roleAssignment.UserID
+	}
+	if roleAssignment.ServiceAccountID != "" {
+		queryParams["serviceAccountID"] = roleAssignment.ServiceAccountID
+	}
+	return u.executeRequest(
+		outboundRequest{
+			method:      http.MethodDelete,
+			path:        fmt.Sprintf("v2/projects/%s/role-assignments", projectID),
+			authHeaders: u.bearerTokenAuthHeaders(),
+			queryParams: queryParams,
 			successCode: http.StatusOK,
 		},
 	)

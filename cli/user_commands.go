@@ -35,31 +35,6 @@ var userCommand = &cli.Command{
 			Action: userGet,
 		},
 		{
-			Name:  "grant",
-			Usage: "Grant a role to a user",
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:     flagID,
-					Aliases:  []string{"i"},
-					Usage:    "Grant a role to the specified user (required)",
-					Required: true,
-				},
-				&cli.StringFlag{
-					Name:     flagRole,
-					Aliases:  []string{"r"},
-					Usage:    "Grant the specified role (required)",
-					Required: true,
-				},
-				&cli.StringFlag{
-					Name:    flagScope,
-					Aliases: []string{"s"},
-					Usage: "Constrain the role to the specified scope (required " +
-						"for some roles)",
-				},
-			},
-			Action: userGrant,
-		},
-		{
 			Name:  "list",
 			Usage: "Retrieve many users",
 			Flags: []cli.Flag{
@@ -79,31 +54,6 @@ var userCommand = &cli.Command{
 				},
 			},
 			Action: userLock,
-		},
-		{
-			Name:  "revoke",
-			Usage: "Revoke a role from a user",
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:     flagID,
-					Aliases:  []string{"i"},
-					Usage:    "Revoke a role to the specified user (required)",
-					Required: true,
-				},
-				&cli.StringFlag{
-					Name:     flagRole,
-					Aliases:  []string{"r"},
-					Usage:    "Revoke the specified role (required)",
-					Required: true,
-				},
-				&cli.StringFlag{
-					Name:    flagScope,
-					Aliases: []string{"s"},
-					Usage: "Specify the scope of the role to be revoked (required " +
-						"for some roles)",
-				},
-			},
-			Action: userRevoke,
 		},
 		{
 			Name:  "unlock",
@@ -267,84 +217,6 @@ func userGet(c *cli.Context) error {
 			)
 		}
 		fmt.Println(string(prettyJSON))
-	}
-
-	return nil
-}
-
-func userGrant(c *cli.Context) error {
-	id := c.String(flagID)
-	role := c.String(flagRole)
-	scope := c.String(flagScope)
-
-	client, err := getClient(c)
-	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
-	}
-
-	if err := client.Users().GrantRole(
-		c.Context,
-		id,
-		api.Role{
-			Name:  role,
-			Scope: scope,
-		},
-	); err != nil {
-		return err
-	}
-
-	if scope == "" {
-		fmt.Printf(
-			"Granted role %q to user %q.\n\n",
-			role,
-			id,
-		)
-	} else {
-		fmt.Printf(
-			"Granted role %q with scope %q to user %q.\n\n",
-			role,
-			scope,
-			id,
-		)
-	}
-
-	return nil
-}
-
-func userRevoke(c *cli.Context) error {
-	id := c.String(flagID)
-	role := c.String(flagRole)
-	scope := c.String(flagScope)
-
-	client, err := getClient(c)
-	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
-	}
-
-	if err := client.Users().RevokeRole(
-		c.Context,
-		id,
-		api.Role{
-			Name:  role,
-			Scope: scope,
-		},
-	); err != nil {
-		return err
-	}
-
-	if scope == "" {
-		fmt.Printf(
-			"Revoked role %q from user %q.\n\n",
-			role,
-			id,
-		)
-	} else {
-		fmt.Printf(
-			"Revoked role %q with scope %q from user %q.\n\n",
-			role,
-			scope,
-			id,
-		)
 	}
 
 	return nil

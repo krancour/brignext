@@ -94,9 +94,6 @@ type ServiceAccountsClient interface {
 	// Unlock restores access to the API for a single ServiceAccount specified by
 	// its identifier. It returns a new Token.
 	Unlock(context.Context, string) (Token, error)
-
-	GrantRole(ctx context.Context, userID string, role Role) error
-	RevokeRole(ctx context.Context, userID string, role Role) error
 }
 
 type serviceAccountsClient struct {
@@ -199,50 +196,6 @@ func (s *serviceAccountsClient) Unlock(
 			authHeaders: s.bearerTokenAuthHeaders(),
 			successCode: http.StatusOK,
 			respObj:     &token,
-		},
-	)
-}
-
-func (s *serviceAccountsClient) GrantRole(
-	ctx context.Context,
-	serviceAccountID string,
-	role Role,
-) error {
-	return s.executeRequest(
-		outboundRequest{
-			method: http.MethodPost,
-			path: fmt.Sprintf(
-				"v2/service-accounts/%s/roles",
-				serviceAccountID,
-			),
-			authHeaders: s.bearerTokenAuthHeaders(),
-			reqBodyObj:  role,
-			successCode: http.StatusOK,
-		},
-	)
-}
-
-func (s *serviceAccountsClient) RevokeRole(
-	ctx context.Context,
-	serviceAccountID string,
-	role Role,
-) error {
-	queryParams := map[string]string{
-		"name": role.Name,
-	}
-	if role.Scope != "" {
-		queryParams["scope"] = role.Scope
-	}
-	return s.executeRequest(
-		outboundRequest{
-			method: http.MethodDelete,
-			path: fmt.Sprintf(
-				"v2/service-accounts/%s/roles",
-				serviceAccountID,
-			),
-			authHeaders: s.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
-			successCode: http.StatusOK,
 		},
 	)
 }

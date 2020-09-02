@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/authx"
+	"github.com/krancour/brignext/v2/apiserver/internal/authx/serviceaccounts"
+	"github.com/krancour/brignext/v2/apiserver/internal/authx/users"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/pkg/errors"
@@ -48,20 +50,40 @@ type Service interface {
 	) error
 	// UnsetSecret clears the value of an existing Secret.
 	UnsetSecret(ctx context.Context, projectID string, key string) error
+
+	GrantRole(
+		ctx context.Context,
+		projectID string,
+		roleAssignment authx.RoleAssignment,
+	) error
+	RevokeRole(
+		ctx context.Context,
+		projectID string,
+		roleAssignment authx.RoleAssignment,
+	) error
 }
 
 type service struct {
-	authorize authx.AuthorizeFn
-	store     Store
-	scheduler Scheduler
+	authorize            authx.AuthorizeFn
+	store                Store
+	usersStore           users.Store
+	serviceAccountsStore serviceaccounts.Store
+	scheduler            Scheduler
 }
 
 // NewService returns a specialized interface for managing Projects.
-func NewService(store Store, scheduler Scheduler) Service {
+func NewService(
+	store Store,
+	usersStore users.Store,
+	serviceAccountsStore serviceaccounts.Store,
+	scheduler Scheduler,
+) Service {
 	return &service{
-		authorize: authx.Authorize,
-		store:     store,
-		scheduler: scheduler,
+		authorize:            authx.Authorize,
+		store:                store,
+		usersStore:           usersStore,
+		serviceAccountsStore: serviceAccountsStore,
+		scheduler:            scheduler,
 	}
 }
 
@@ -103,6 +125,42 @@ func (s *service) Create(
 			project.ID,
 		)
 	}
+
+	// Assign roles to the principal who created the project...
+	principal := authx.PincipalFromContext(ctx)
+	roles := []authx.Role{
+		authx.RoleProjectAdmin(project.ID),
+		authx.RoleProjectDeveloper(project.ID),
+		authx.RoleProjectUser(project.ID),
+	}
+	if user, ok := principal.(*authx.User); ok {
+		if err := s.usersStore.GrantRole(
+			ctx,
+			user.ID,
+			roles...,
+		); err != nil {
+			return core.Project{}, errors.Wrapf(
+				err,
+				"error storing project %q roles for user %q",
+				project.ID,
+				user.ID,
+			)
+		}
+	} else if serviceAccount, ok := principal.(*authx.ServiceAccount); ok {
+		if err := s.serviceAccountsStore.GrantRole(
+			ctx,
+			serviceAccount.ID,
+			roles...,
+		); err != nil {
+			return core.Project{}, errors.Wrapf(
+				err,
+				"error storing project %q roles for service account %q",
+				project.ID,
+				serviceAccount.ID,
+			)
+		}
+	}
+
 	return project, nil
 }
 
@@ -293,4 +351,122 @@ func (s *service) UnsetSecret(
 		)
 	}
 	return nil
+}
+
+// TODO: Implement this
+func (s *service) GrantRole(
+	ctx context.Context,
+	projectID string,
+	roleAssignment authx.RoleAssignment,
+) error {
+	if err := s.authorize(ctx, authx.RoleProjectAdmin(projectID)); err != nil {
+		return err
+	}
+
+	if (roleAssignment.UserID == "" && roleAssignment.ServiceAccountID == "") ||
+		(roleAssignment.UserID != "" && roleAssignment.ServiceAccountID != "") {
+		return &core.ErrBadRequest{} // TODO: Add more context
+	}
+
+	// Make sure the project exists
+	_, err := s.store.Get(ctx, projectID)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			projectID,
+		)
+	}
+
+	role := authx.Role{
+		Type:  "PROJECT",
+		Name:  roleAssignment.Role,
+		Scope: projectID,
+	}
+
+	if roleAssignment.UserID != "" {
+		// Make sure the user exists
+		if _, err := s.usersStore.Get(ctx, roleAssignment.UserID); err != nil {
+			return errors.Wrapf(
+				err,
+				"error retrieving user %q from store",
+				roleAssignment.UserID,
+			)
+		}
+		// Give them the role
+		return s.usersStore.GrantRole(ctx, roleAssignment.UserID, role)
+	}
+
+	// Make sure the ServiceAccount exists
+	if _, err := s.serviceAccountsStore.Get(
+		ctx,
+		roleAssignment.ServiceAccountID,
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving service account %q from store",
+			roleAssignment.ServiceAccountID,
+		)
+	}
+	// Give it the role
+	return s.serviceAccountsStore.GrantRole(ctx, roleAssignment.UserID, role)
+}
+
+// TODO: Implement this
+func (s *service) RevokeRole(
+	ctx context.Context,
+	projectID string,
+	roleAssignment authx.RoleAssignment,
+) error {
+	if err := s.authorize(ctx, authx.RoleProjectAdmin(projectID)); err != nil {
+		return err
+	}
+
+	if (roleAssignment.UserID == "" && roleAssignment.ServiceAccountID == "") ||
+		(roleAssignment.UserID != "" && roleAssignment.ServiceAccountID != "") {
+		return &core.ErrBadRequest{} // TODO: Add more context
+	}
+
+	// Make sure the project exists
+	_, err := s.store.Get(ctx, projectID)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			projectID,
+		)
+	}
+
+	role := authx.Role{
+		Type:  "PROJECT",
+		Name:  roleAssignment.Role,
+		Scope: projectID,
+	}
+
+	if roleAssignment.UserID != "" {
+		// Make sure the user exists
+		if _, err := s.usersStore.Get(ctx, roleAssignment.UserID); err != nil {
+			return errors.Wrapf(
+				err,
+				"error retrieving user %q from store",
+				roleAssignment.UserID,
+			)
+		}
+		// Revoke the role
+		return s.usersStore.RevokeRole(ctx, roleAssignment.UserID, role)
+	}
+
+	// Make sure the ServiceAccount exists
+	if _, err := s.serviceAccountsStore.Get(
+		ctx,
+		roleAssignment.ServiceAccountID,
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving service account %q from store",
+			roleAssignment.ServiceAccountID,
+		)
+	}
+	// Revoke the role
+	return s.serviceAccountsStore.RevokeRole(ctx, roleAssignment.UserID, role)
 }

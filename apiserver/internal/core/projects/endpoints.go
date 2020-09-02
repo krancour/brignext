@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/authx"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/xeipuuv/gojsonschema"
@@ -79,6 +80,18 @@ func (e *endpoints) Register(router *mux.Router) {
 	router.HandleFunc(
 		"/v2/projects/{id}/secrets/{key}",
 		e.TokenAuthFilter.Decorate(e.unsetSecret),
+	).Methods(http.MethodDelete)
+
+	// Grant role
+	router.HandleFunc(
+		"/v2/projects/{id}/role-assignments",
+		e.TokenAuthFilter.Decorate(e.grantRole),
+	).Methods(http.MethodPost)
+
+	// Revoke role
+	router.HandleFunc(
+		"/v2/projects/{id}/role-assignments",
+		e.TokenAuthFilter.Decorate(e.revokeRole),
 	).Methods(http.MethodDelete)
 }
 
@@ -250,6 +263,47 @@ func (e *endpoints) unsetSecret(w http.ResponseWriter, r *http.Request) {
 					r.Context(),
 					mux.Vars(r)["id"],
 					key,
+				)
+			},
+			SuccessCode: http.StatusOK,
+		},
+	)
+}
+
+func (e *endpoints) grantRole(w http.ResponseWriter, r *http.Request) {
+	roleAssignment := authx.RoleAssignment{}
+	e.ServeRequest(
+		apimachinery.InboundRequest{
+			W:          w,
+			R:          r,
+			ReqBodyObj: &roleAssignment,
+			EndpointLogic: func() (interface{}, error) {
+				return nil, e.service.GrantRole(
+					r.Context(),
+					mux.Vars(r)["id"],
+					roleAssignment,
+				)
+			},
+			SuccessCode: http.StatusOK,
+		},
+	)
+}
+
+func (e *endpoints) revokeRole(w http.ResponseWriter, r *http.Request) {
+	roleAssignment := authx.RoleAssignment{
+		Role:             r.URL.Query().Get("role"),
+		UserID:           r.URL.Query().Get("userID"),
+		ServiceAccountID: r.URL.Query().Get("serviceAccountID"),
+	}
+	e.ServeRequest(
+		apimachinery.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return nil, e.service.RevokeRole(
+					r.Context(),
+					mux.Vars(r)["id"],
+					roleAssignment,
 				)
 			},
 			SuccessCode: http.StatusOK,

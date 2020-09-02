@@ -241,62 +241,64 @@ func (s *store) Unlock(
 func (s *store) GrantRole(
 	ctx context.Context,
 	serviceAccountID string,
-	role authx.Role,
+	roles ...authx.Role,
 ) error {
-	_, err := s.collection.UpdateOne(
-		ctx,
-		bson.M{
-			"id": serviceAccountID,
-			"roles": bson.M{
-				"$nin": []authx.Role{role},
-			},
-		},
-		bson.M{
-			"$push": bson.M{
+	for _, role := range roles {
+		if _, err := s.collection.UpdateOne(
+			ctx,
+			bson.M{
+				"id": serviceAccountID,
 				"roles": bson.M{
-					"$each": []authx.Role{role},
-					"$sort": bson.M{
-						"name":  1,
-						"scope": 1,
+					"$nin": []authx.Role{role},
+				},
+			},
+			bson.M{
+				"$push": bson.M{
+					"roles": bson.M{
+						"$each": []authx.Role{role},
+						"$sort": bson.M{
+							"name":  1,
+							"scope": 1,
+						},
 					},
 				},
 			},
-		},
-	)
-	if err != nil {
-		return errors.Wrapf(
-			err,
-			"error updating service account %q",
-			serviceAccountID,
-		)
+		); err != nil {
+			return errors.Wrapf(
+				err,
+				"error updating service account %q",
+				serviceAccountID,
+			)
+		}
 	}
-	return err
+	return nil
 }
 
 func (s *store) RevokeRole(
 	ctx context.Context,
 	serviceAccountID string,
-	role authx.Role,
+	roles ...authx.Role,
 ) error {
-	_, err := s.collection.UpdateOne(
-		ctx,
-		bson.M{
-			"id": serviceAccountID,
-		},
-		bson.M{
-			"$pull": bson.M{
-				"roles": bson.M{
-					"$in": []authx.Role{role},
+	for _, role := range roles {
+		if _, err := s.collection.UpdateOne(
+			ctx,
+			bson.M{
+				"id": serviceAccountID,
+			},
+			bson.M{
+				"$pull": bson.M{
+					"roles": bson.M{
+						"$in": []authx.Role{role},
+					},
 				},
 			},
-		},
-	)
-	if err != nil {
-		return errors.Wrapf(
-			err,
-			"error updating service account %q",
-			serviceAccountID,
-		)
+		); err != nil {
+			return errors.Wrapf(
+				err,
+				"error updating service account %q",
+				serviceAccountID,
+			)
+		}
 	}
 	return nil
 }

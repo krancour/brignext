@@ -72,12 +72,70 @@ var projectCommand = &cli.Command{
 			Action: projectGet,
 		},
 		{
+			Name:  "grant",
+			Usage: "Grant a project-scoped role to a user or service account",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:     flagID,
+					Aliases:  []string{"i"},
+					Usage:    "Grant the role for the specified project (required)",
+					Required: true,
+				},
+				&cli.StringFlag{
+					Name:     flagRole,
+					Aliases:  []string{"r"},
+					Usage:    "Grant the specified role (required)",
+					Required: true,
+				},
+				&cli.StringFlag{
+					Name:    flagServiceAccount,
+					Aliases: []string{"s"},
+					Usage:   "Grant the role to the specified service account",
+				},
+				&cli.StringFlag{
+					Name:    flagUser,
+					Aliases: []string{"u"},
+					Usage:   "Grant the role to the specified user",
+				},
+			},
+			Action: projectGrant,
+		},
+		{
 			Name:  "list",
 			Usage: "Retrieve many projects",
 			Flags: []cli.Flag{
 				cliFlagOutput,
 			},
 			Action: projectList,
+		},
+		{
+			Name:  "revoke",
+			Usage: "Revoke a project-scoped role from a user or service account",
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:     flagID,
+					Aliases:  []string{"i"},
+					Usage:    "Revoke the role for the specified project (required)",
+					Required: true,
+				},
+				&cli.StringFlag{
+					Name:     flagRole,
+					Aliases:  []string{"r"},
+					Usage:    "Revoke the specified role (required)",
+					Required: true,
+				},
+				&cli.StringFlag{
+					Name:    flagServiceAccount,
+					Aliases: []string{"s"},
+					Usage:   "Revoke the role from the specified service account",
+				},
+				&cli.StringFlag{
+					Name:    flagUser,
+					Aliases: []string{"i"},
+					Usage:   "Revoke the role from the specified user",
+				},
+			},
+			Action: projectRevoke,
 		},
 		{
 			Name:  "update",
@@ -364,6 +422,90 @@ func projectDelete(c *cli.Context) error {
 	}
 
 	fmt.Printf("Project %q deleted.\n", id)
+
+	return nil
+}
+
+func projectGrant(c *cli.Context) error {
+	id := c.String(flagID)
+	role := c.String(flagRole)
+	userID := c.String(flagUser)
+	serviceAccountID := c.String(flagServiceAccount)
+
+	client, err := getClient(c)
+	if err != nil {
+		return errors.Wrap(err, "error getting brignext client")
+	}
+
+	if err := client.Projects().GrantRole(
+		c.Context,
+		id,
+		api.RoleAssignment{
+			Role:             role,
+			UserID:           userID,
+			ServiceAccountID: serviceAccountID,
+		},
+	); err != nil {
+		return err
+	}
+
+	if userID != "" {
+		fmt.Printf(
+			"Granted role %q for project %q to user %q.\n\n",
+			role,
+			id,
+			userID,
+		)
+	} else {
+		fmt.Printf(
+			"Granted role %q for project %q to service account %q.\n\n",
+			role,
+			id,
+			serviceAccountID,
+		)
+	}
+
+	return nil
+}
+
+func projectRevoke(c *cli.Context) error {
+	id := c.String(flagID)
+	role := c.String(flagRole)
+	userID := c.String(flagUser)
+	serviceAccountID := c.String(flagServiceAccount)
+
+	client, err := getClient(c)
+	if err != nil {
+		return errors.Wrap(err, "error getting brignext client")
+	}
+
+	if err := client.Projects().RevokeRole(
+		c.Context,
+		id,
+		api.RoleAssignment{
+			Role:             role,
+			UserID:           userID,
+			ServiceAccountID: serviceAccountID,
+		},
+	); err != nil {
+		return err
+	}
+
+	if userID != "" {
+		fmt.Printf(
+			"Revoked role %q for project %q from user %q.\n\n",
+			role,
+			id,
+			userID,
+		)
+	} else {
+		fmt.Printf(
+			"Revoked role %q for project %q from service account %q.\n\n",
+			role,
+			id,
+			serviceAccountID,
+		)
+	}
 
 	return nil
 }

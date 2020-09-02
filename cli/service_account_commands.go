@@ -59,31 +59,6 @@ var serviceAccountCommand = &cli.Command{
 			Action: serviceAccountGet,
 		},
 		{
-			Name:  "grant",
-			Usage: "Grant a role to a service account",
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:     flagID,
-					Aliases:  []string{"i"},
-					Usage:    "Grant a role to the specified service account (required)",
-					Required: true,
-				},
-				&cli.StringFlag{
-					Name:     flagRole,
-					Aliases:  []string{"r"},
-					Usage:    "Grant the specified role (required)",
-					Required: true,
-				},
-				&cli.StringFlag{
-					Name:    flagScope,
-					Aliases: []string{"s"},
-					Usage: "Constrain the role to the specified scope (required " +
-						"for some roles)",
-				},
-			},
-			Action: serviceAccountGrant,
-		},
-		{
 			Name:  "list",
 			Usage: "Retrieve many service accounts",
 			Flags: []cli.Flag{
@@ -103,31 +78,6 @@ var serviceAccountCommand = &cli.Command{
 				},
 			},
 			Action: serviceAccountLock,
-		},
-		{
-			Name:  "revoke",
-			Usage: "Revoke a role from a service account",
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:     flagID,
-					Aliases:  []string{"i"},
-					Usage:    "Revoke a role to the specified service account (required)",
-					Required: true,
-				},
-				&cli.StringFlag{
-					Name:     flagRole,
-					Aliases:  []string{"r"},
-					Usage:    "Revoke the specified role (required)",
-					Required: true,
-				},
-				&cli.StringFlag{
-					Name:    flagScope,
-					Aliases: []string{"s"},
-					Usage: "Specify the scope of the role to be revoked (required " +
-						"for some roles)",
-				},
-			},
-			Action: serviceAccountRevoke,
 		},
 		{
 			Name:  "unlock",
@@ -173,84 +123,6 @@ func serviceAccountCreate(c *cli.Context) error {
 		"\nStore this token someplace secure NOW. It cannot be retrieved " +
 			"later through any other means.",
 	)
-
-	return nil
-}
-
-func serviceAccountGrant(c *cli.Context) error {
-	id := c.String(flagID)
-	role := c.String(flagRole)
-	scope := c.String(flagScope)
-
-	client, err := getClient(c)
-	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
-	}
-
-	if err := client.ServiceAccounts().GrantRole(
-		c.Context,
-		id,
-		api.Role{
-			Name:  role,
-			Scope: scope,
-		},
-	); err != nil {
-		return err
-	}
-
-	if scope == "" {
-		fmt.Printf(
-			"Granted role %q to service account %q.\n\n",
-			role,
-			id,
-		)
-	} else {
-		fmt.Printf(
-			"Granted role %q with scope %q to service account %q.\n\n",
-			role,
-			scope,
-			id,
-		)
-	}
-
-	return nil
-}
-
-func serviceAccountRevoke(c *cli.Context) error {
-	id := c.String(flagID)
-	role := c.String(flagRole)
-	scope := c.String(flagScope)
-
-	client, err := getClient(c)
-	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
-	}
-
-	if err := client.ServiceAccounts().RevokeRole(
-		c.Context,
-		id,
-		api.Role{
-			Name:  role,
-			Scope: scope,
-		},
-	); err != nil {
-		return err
-	}
-
-	if scope == "" {
-		fmt.Printf(
-			"Revoked role %q from service account %q.\n\n",
-			role,
-			id,
-		)
-	} else {
-		fmt.Printf(
-			"Revoked role %q with scope %q from service account %q.\n\n",
-			role,
-			scope,
-			id,
-		)
-	}
 
 	return nil
 }

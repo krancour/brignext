@@ -47,9 +47,13 @@ const (
 // RoleScopeGlobal represents an unbounded scope.
 const RoleScopeGlobal = "*"
 
+const RoleTypeSystem = "SYSTEM"
+const RoleTypeProject = "PROJECT"
+
 // Role represents a set of permissions, with domain-specific meaning, held by a
 // principal, such as a User or ServiceAccount.
 type Role struct {
+	Type string `json:"type" bson:"type"`
 	// Name is the name of a Role and has domain-specific meaning.
 	Name string `json:"name" bson:"name"`
 	// Scope qualifies the scope of the Role. The value is opaque and has meaning
@@ -57,11 +61,18 @@ type Role struct {
 	Scope string `json:"scope" bson:"scope"`
 }
 
+type RoleAssignment struct {
+	Role             string `json:"role"`
+	UserID           string `json:"userID"`
+	ServiceAccountID string `json:"serviceAccountID"`
+}
+
 // RoleAdmin returns a Role that enables a principal to manage Users,
 // ServiceAccounts, and globally scoped permissions for Users and
 // ServiceAccounts.
 func RoleAdmin() Role {
 	return Role{
+		Type:  RoleTypeSystem,
 		Name:  RoleNameAdmin,
 		Scope: RoleScopeGlobal,
 	}
@@ -72,6 +83,7 @@ func RoleAdmin() Role {
 // is useful for ServiceAccounts used for gateways.
 func RoleEventCreator(eventSource string) Role {
 	return Role{
+		Type:  RoleTypeSystem,
 		Name:  RoleNameEventCreator,
 		Scope: eventSource,
 	}
@@ -83,6 +95,7 @@ func RoleEventCreator(eventSource string) Role {
 // enables a principal to manage all Projects.
 func RoleProjectAdmin(projectID string) Role {
 	return Role{
+		Type:  RoleTypeProject,
 		Name:  RoleNameProjectAdmin,
 		Scope: projectID,
 	}
@@ -92,6 +105,7 @@ func RoleProjectAdmin(projectID string) Role {
 // Projects.
 func RoleProjectCreator() Role {
 	return Role{
+		Type:  RoleTypeSystem,
 		Name:  RoleNameProjectCreator,
 		Scope: RoleScopeGlobal,
 	}
@@ -103,6 +117,7 @@ func RoleProjectCreator() Role {
 // Role is unbounded and enables a principal to read and update all Projects.
 func RoleProjectDeveloper(projectID string) Role {
 	return Role{
+		Type:  RoleTypeProject,
 		Name:  RoleNameProjectDeveloper,
 		Scope: projectID,
 	}
@@ -115,6 +130,7 @@ func RoleProjectDeveloper(projectID string) Role {
 // for all Projects.
 func RoleProjectUser(projectID string) Role {
 	return Role{
+		Type:  RoleTypeProject,
 		Name:  RoleNameProjectUser,
 		Scope: projectID,
 	}
@@ -124,6 +140,7 @@ func RoleProjectUser(projectID string) Role {
 // Events, Users, and Service Accounts.
 func RoleReader() Role {
 	return Role{
+		Type:  RoleTypeSystem,
 		Name:  RoleNameReader,
 		Scope: RoleScopeGlobal,
 	}
@@ -139,6 +156,7 @@ func RoleReader() Role {
 // substrate. This Role is exclusively for the use of the Observer component.
 func RoleObserver() Role {
 	return Role{
+		Type:  RoleTypeSystem,
 		Name:  RoleNameObserver,
 		Scope: RoleScopeGlobal,
 	}
@@ -149,6 +167,7 @@ func RoleObserver() Role {
 // is exclusively for the use of the Scheduler component.
 func RoleScheduler() Role {
 	return Role{
+		Type:  RoleTypeSystem,
 		Name:  RoleNameScheduler,
 		Scope: RoleScopeGlobal,
 	}
@@ -159,6 +178,7 @@ func RoleScheduler() Role {
 // Workers.
 func RoleWorker(eventID string) Role {
 	return Role{
+		Type:  RoleTypeSystem,
 		Name:  RoleNameWorker,
 		Scope: eventID,
 	}
