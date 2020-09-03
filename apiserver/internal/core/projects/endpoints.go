@@ -34,64 +34,76 @@ func NewEndpoints(
 }
 
 func (e *endpoints) Register(router *mux.Router) {
-	// Create project
+	// Create Project
 	router.HandleFunc(
 		"/v2/projects",
 		e.TokenAuthFilter.Decorate(e.create),
 	).Methods(http.MethodPost)
 
-	// List projects
+	// List Projects
 	router.HandleFunc(
 		"/v2/projects",
 		e.TokenAuthFilter.Decorate(e.list),
 	).Methods(http.MethodGet)
 
-	// Get project
+	// Get Project
 	router.HandleFunc(
 		"/v2/projects/{id}",
 		e.TokenAuthFilter.Decorate(e.get),
 	).Methods(http.MethodGet)
 
-	// Update project
+	// Update Project
 	router.HandleFunc(
 		"/v2/projects/{id}",
 		e.TokenAuthFilter.Decorate(e.update),
 	).Methods(http.MethodPut)
 
-	// Delete project
+	// Delete Project
 	router.HandleFunc(
 		"/v2/projects/{id}",
 		e.TokenAuthFilter.Decorate(e.delete),
 	).Methods(http.MethodDelete)
 
-	// List secrets
+	// List Secrets
 	router.HandleFunc(
 		"/v2/projects/{id}/secrets",
 		e.TokenAuthFilter.Decorate(e.listSecrets),
 	).Methods(http.MethodGet)
 
-	// Set secret
+	// Set Secret
 	router.HandleFunc(
 		"/v2/projects/{id}/secrets/{key}",
 		e.TokenAuthFilter.Decorate(e.setSecret),
 	).Methods(http.MethodPut)
 
-	// Unset secret
+	// Unset Secret
 	router.HandleFunc(
 		"/v2/projects/{id}/secrets/{key}",
 		e.TokenAuthFilter.Decorate(e.unsetSecret),
 	).Methods(http.MethodDelete)
 
-	// Grant role
+	// Grant role to User
 	router.HandleFunc(
-		"/v2/projects/{id}/role-assignments",
-		e.TokenAuthFilter.Decorate(e.grantRole),
+		"/v2/projects/{id}/user-role-assignments",
+		e.TokenAuthFilter.Decorate(e.grantUserRole),
 	).Methods(http.MethodPost)
 
-	// Revoke role
+	// Revoke role from User
 	router.HandleFunc(
-		"/v2/projects/{id}/role-assignments",
-		e.TokenAuthFilter.Decorate(e.revokeRole),
+		"/v2/projects/{id}/user-role-assignments",
+		e.TokenAuthFilter.Decorate(e.revokeUserRole),
+	).Methods(http.MethodDelete)
+
+	// Grant role to ServiceAccount
+	router.HandleFunc(
+		"/v2/projects/{id}/service-account-role-assignments",
+		e.TokenAuthFilter.Decorate(e.grantServiceAccountRole),
+	).Methods(http.MethodPost)
+
+	// Revoke role from ServiceAccount
+	router.HandleFunc(
+		"/v2/projects/{id}/service-account-role-assignments",
+		e.TokenAuthFilter.Decorate(e.revokeServiceAccountRole),
 	).Methods(http.MethodDelete)
 }
 
@@ -270,18 +282,19 @@ func (e *endpoints) unsetSecret(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (e *endpoints) grantRole(w http.ResponseWriter, r *http.Request) {
-	roleAssignment := authx.RoleAssignment{}
+func (e *endpoints) grantUserRole(w http.ResponseWriter, r *http.Request) {
+	roleAssignment := authx.UserRoleAssignment{}
 	e.ServeRequest(
 		apimachinery.InboundRequest{
 			W:          w,
 			R:          r,
 			ReqBodyObj: &roleAssignment,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, e.service.GrantRole(
+				return nil, e.service.GrantRoleToUser(
 					r.Context(),
 					mux.Vars(r)["id"],
-					roleAssignment,
+					roleAssignment.UserID,
+					roleAssignment.Role,
 				)
 			},
 			SuccessCode: http.StatusOK,
@@ -289,10 +302,56 @@ func (e *endpoints) grantRole(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (e *endpoints) revokeRole(w http.ResponseWriter, r *http.Request) {
-	roleAssignment := authx.RoleAssignment{
+func (e *endpoints) revokeUserRole(w http.ResponseWriter, r *http.Request) {
+	roleAssignment := authx.UserRoleAssignment{
+		Role:   r.URL.Query().Get("role"),
+		UserID: r.URL.Query().Get("userID"),
+	}
+	e.ServeRequest(
+		apimachinery.InboundRequest{
+			W: w,
+			R: r,
+			EndpointLogic: func() (interface{}, error) {
+				return nil, e.service.RevokeRoleFromUser(
+					r.Context(),
+					mux.Vars(r)["id"],
+					roleAssignment.UserID,
+					roleAssignment.Role,
+				)
+			},
+			SuccessCode: http.StatusOK,
+		},
+	)
+}
+
+func (e *endpoints) grantServiceAccountRole(
+	w http.ResponseWriter,
+	r *http.Request) {
+	roleAssignment := authx.ServiceAccountRoleAssignment{}
+	e.ServeRequest(
+		apimachinery.InboundRequest{
+			W:          w,
+			R:          r,
+			ReqBodyObj: &roleAssignment,
+			EndpointLogic: func() (interface{}, error) {
+				return nil, e.service.GrantRoleToServiceAccount(
+					r.Context(),
+					mux.Vars(r)["id"],
+					roleAssignment.ServiceAccountID,
+					roleAssignment.Role,
+				)
+			},
+			SuccessCode: http.StatusOK,
+		},
+	)
+}
+
+func (e *endpoints) revokeServiceAccountRole(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	roleAssignment := authx.ServiceAccountRoleAssignment{
 		Role:             r.URL.Query().Get("role"),
-		UserID:           r.URL.Query().Get("userID"),
 		ServiceAccountID: r.URL.Query().Get("serviceAccountID"),
 	}
 	e.ServeRequest(
@@ -300,10 +359,11 @@ func (e *endpoints) revokeRole(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, e.service.RevokeRole(
+				return nil, e.service.RevokeRoleFromServiceAccount(
 					r.Context(),
 					mux.Vars(r)["id"],
-					roleAssignment,
+					roleAssignment.ServiceAccountID,
+					roleAssignment.Role,
 				)
 			},
 			SuccessCode: http.StatusOK,

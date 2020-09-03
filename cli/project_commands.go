@@ -73,7 +73,7 @@ var projectCommand = &cli.Command{
 		},
 		{
 			Name:  "grant",
-			Usage: "Grant a project-scoped role to a user or service account",
+			Usage: "Grant a project role to a user or service account",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     flagID,
@@ -90,12 +90,14 @@ var projectCommand = &cli.Command{
 				&cli.StringFlag{
 					Name:    flagServiceAccount,
 					Aliases: []string{"s"},
-					Usage:   "Grant the role to the specified service account",
+					Usage: "Grant the role to the specified service account; mutually " +
+						"exclusive with --user",
 				},
 				&cli.StringFlag{
 					Name:    flagUser,
 					Aliases: []string{"u"},
-					Usage:   "Grant the role to the specified user",
+					Usage: "Grant the role to the specified user; mutually exclusive " +
+						"with --servcice-account",
 				},
 			},
 			Action: projectGrant,
@@ -110,7 +112,7 @@ var projectCommand = &cli.Command{
 		},
 		{
 			Name:  "revoke",
-			Usage: "Revoke a project-scoped role from a user or service account",
+			Usage: "Revoke a project role from a user or service account",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     flagID,
@@ -127,12 +129,14 @@ var projectCommand = &cli.Command{
 				&cli.StringFlag{
 					Name:    flagServiceAccount,
 					Aliases: []string{"s"},
-					Usage:   "Revoke the role from the specified service account",
+					Usage: "Revoke the role from the specified service account; " +
+						"mutually exclusive with --user",
 				},
 				&cli.StringFlag{
 					Name:    flagUser,
-					Aliases: []string{"i"},
-					Usage:   "Revoke the role from the specified user",
+					Aliases: []string{"u"},
+					Usage: "Revoke the role from the specified user; mutually " +
+						"exclusive with --service-account",
 				},
 			},
 			Action: projectRevoke,
@@ -432,38 +436,57 @@ func projectGrant(c *cli.Context) error {
 	userID := c.String(flagUser)
 	serviceAccountID := c.String(flagServiceAccount)
 
+	if userID == "" && serviceAccountID == "" {
+		return errors.New(
+			"one of --user or --service-account must be specified",
+		)
+	}
+	if userID != "" && serviceAccountID != "" {
+		return errors.New(
+			"only one of --user or --service-account must be specified",
+		)
+	}
+
 	client, err := getClient(c)
 	if err != nil {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err := client.Projects().GrantRole(
-		c.Context,
-		id,
-		api.RoleAssignment{
-			Role:             role,
-			UserID:           userID,
-			ServiceAccountID: serviceAccountID,
-		},
-	); err != nil {
-		return err
-	}
-
 	if userID != "" {
+		if err := client.Projects().GrantRoleToUser(
+			c.Context,
+			id,
+			userID,
+			role,
+		); err != nil {
+			return err
+		}
+
 		fmt.Printf(
 			"Granted role %q for project %q to user %q.\n\n",
 			role,
 			id,
 			userID,
 		)
-	} else {
-		fmt.Printf(
-			"Granted role %q for project %q to service account %q.\n\n",
-			role,
-			id,
-			serviceAccountID,
-		)
+
+		return nil
 	}
+
+	if err := client.Projects().GrantRoleToServiceAccount(
+		c.Context,
+		id,
+		serviceAccountID,
+		role,
+	); err != nil {
+		return err
+	}
+
+	fmt.Printf(
+		"Granted role %q for project %q to service account %q.\n\n",
+		role,
+		id,
+		serviceAccountID,
+	)
 
 	return nil
 }
@@ -474,38 +497,57 @@ func projectRevoke(c *cli.Context) error {
 	userID := c.String(flagUser)
 	serviceAccountID := c.String(flagServiceAccount)
 
+	if userID == "" && serviceAccountID == "" {
+		return errors.New(
+			"one of --user or --service-account must be specified",
+		)
+	}
+	if userID != "" && serviceAccountID != "" {
+		return errors.New(
+			"only one of --user or --service-account must be specified",
+		)
+	}
+
 	client, err := getClient(c)
 	if err != nil {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err := client.Projects().RevokeRole(
-		c.Context,
-		id,
-		api.RoleAssignment{
-			Role:             role,
-			UserID:           userID,
-			ServiceAccountID: serviceAccountID,
-		},
-	); err != nil {
-		return err
-	}
-
 	if userID != "" {
+		if err := client.Projects().RevokeRoleFromUser(
+			c.Context,
+			id,
+			userID,
+			role,
+		); err != nil {
+			return err
+		}
+
 		fmt.Printf(
 			"Revoked role %q for project %q from user %q.\n\n",
 			role,
 			id,
 			userID,
 		)
-	} else {
-		fmt.Printf(
-			"Revoked role %q for project %q from service account %q.\n\n",
-			role,
-			id,
-			serviceAccountID,
-		)
+
+		return nil
 	}
+
+	if err := client.Projects().RevokeRoleFromServiceAccount(
+		c.Context,
+		id,
+		serviceAccountID,
+		role,
+	); err != nil {
+		return err
+	}
+
+	fmt.Printf(
+		"Revoked role %q for project %q from service account %q.\n\n",
+		role,
+		id,
+		serviceAccountID,
+	)
 
 	return nil
 }

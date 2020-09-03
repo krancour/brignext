@@ -51,15 +51,34 @@ type Service interface {
 	// UnsetSecret clears the value of an existing Secret.
 	UnsetSecret(ctx context.Context, projectID string, key string) error
 
-	GrantRole(
+	// TODO: Implement this
+	// ListUsers(context.Context) (authx.UserList, error)
+	GrantRoleToUser(
 		ctx context.Context,
 		projectID string,
-		roleAssignment authx.RoleAssignment,
+		userID string,
+		roleName string,
 	) error
-	RevokeRole(
+	RevokeRoleFromUser(
 		ctx context.Context,
 		projectID string,
-		roleAssignment authx.RoleAssignment,
+		userID string,
+		roleName string,
+	) error
+
+	// TODO: Implement this
+	// ListServiceAccounts(context.Context) (authx.UserList, error)
+	GrantRoleToServiceAccount(
+		ctx context.Context,
+		projectID string,
+		serviceAccountID string,
+		roleName string,
+	) error
+	RevokeRoleFromServiceAccount(
+		ctx context.Context,
+		projectID string,
+		serviceAccountID string,
+		roleName string,
 	) error
 }
 
@@ -353,19 +372,14 @@ func (s *service) UnsetSecret(
 	return nil
 }
 
-// TODO: Implement this
-func (s *service) GrantRole(
+func (s *service) GrantRoleToUser(
 	ctx context.Context,
 	projectID string,
-	roleAssignment authx.RoleAssignment,
+	userID string,
+	roleName string,
 ) error {
 	if err := s.authorize(ctx, authx.RoleProjectAdmin(projectID)); err != nil {
 		return err
-	}
-
-	if (roleAssignment.UserID == "" && roleAssignment.ServiceAccountID == "") ||
-		(roleAssignment.UserID != "" && roleAssignment.ServiceAccountID != "") {
-		return &core.ErrBadRequest{} // TODO: Add more context
 	}
 
 	// Make sure the project exists
@@ -378,53 +392,30 @@ func (s *service) GrantRole(
 		)
 	}
 
-	role := authx.Role{
-		Type:  "PROJECT",
-		Name:  roleAssignment.Role,
-		Scope: projectID,
+	// Make sure the User exists
+	if _, err := s.usersStore.Get(ctx, userID); err != nil {
+		return errors.Wrapf(err, "error retrieving user %q from store", userID)
 	}
 
-	if roleAssignment.UserID != "" {
-		// Make sure the user exists
-		if _, err := s.usersStore.Get(ctx, roleAssignment.UserID); err != nil {
-			return errors.Wrapf(
-				err,
-				"error retrieving user %q from store",
-				roleAssignment.UserID,
-			)
-		}
-		// Give them the role
-		return s.usersStore.GrantRole(ctx, roleAssignment.UserID, role)
-	}
-
-	// Make sure the ServiceAccount exists
-	if _, err := s.serviceAccountsStore.Get(
+	// Give them the Role
+	return s.usersStore.GrantRole(
 		ctx,
-		roleAssignment.ServiceAccountID,
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error retrieving service account %q from store",
-			roleAssignment.ServiceAccountID,
-		)
-	}
-	// Give it the role
-	return s.serviceAccountsStore.GrantRole(ctx, roleAssignment.UserID, role)
+		userID,
+		authx.Role{
+			Type:  "PROJECT",
+			Name:  roleName,
+			Scope: projectID,
+		})
 }
 
-// TODO: Implement this
-func (s *service) RevokeRole(
+func (s *service) RevokeRoleFromUser(
 	ctx context.Context,
 	projectID string,
-	roleAssignment authx.RoleAssignment,
+	userID string,
+	roleName string,
 ) error {
 	if err := s.authorize(ctx, authx.RoleProjectAdmin(projectID)); err != nil {
 		return err
-	}
-
-	if (roleAssignment.UserID == "" && roleAssignment.ServiceAccountID == "") ||
-		(roleAssignment.UserID != "" && roleAssignment.ServiceAccountID != "") {
-		return &core.ErrBadRequest{} // TODO: Add more context
 	}
 
 	// Make sure the project exists
@@ -437,36 +428,100 @@ func (s *service) RevokeRole(
 		)
 	}
 
-	role := authx.Role{
-		Type:  "PROJECT",
-		Name:  roleAssignment.Role,
-		Scope: projectID,
+	// Make sure the User exists
+	if _, err := s.usersStore.Get(ctx, userID); err != nil {
+		return errors.Wrapf(err, "error retrieving user %q from store", userID)
 	}
 
-	if roleAssignment.UserID != "" {
-		// Make sure the user exists
-		if _, err := s.usersStore.Get(ctx, roleAssignment.UserID); err != nil {
-			return errors.Wrapf(
-				err,
-				"error retrieving user %q from store",
-				roleAssignment.UserID,
-			)
-		}
-		// Revoke the role
-		return s.usersStore.RevokeRole(ctx, roleAssignment.UserID, role)
+	// Revoke the Role
+	return s.usersStore.RevokeRole(
+		ctx,
+		userID,
+		authx.Role{
+			Type:  "PROJECT",
+			Name:  roleName,
+			Scope: projectID,
+		},
+	)
+}
+
+func (s *service) GrantRoleToServiceAccount(
+	ctx context.Context,
+	projectID string,
+	serviceAccountID string,
+	roleName string,
+) error {
+	if err := s.authorize(ctx, authx.RoleProjectAdmin(projectID)); err != nil {
+		return err
+	}
+
+	// Make sure the project exists
+	_, err := s.store.Get(ctx, projectID)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			projectID,
+		)
 	}
 
 	// Make sure the ServiceAccount exists
-	if _, err := s.serviceAccountsStore.Get(
-		ctx,
-		roleAssignment.ServiceAccountID,
-	); err != nil {
+	if _, err := s.serviceAccountsStore.Get(ctx, serviceAccountID); err != nil {
 		return errors.Wrapf(
 			err,
 			"error retrieving service account %q from store",
-			roleAssignment.ServiceAccountID,
+			serviceAccountID,
 		)
 	}
-	// Revoke the role
-	return s.serviceAccountsStore.RevokeRole(ctx, roleAssignment.UserID, role)
+
+	// Give it the Role
+	return s.serviceAccountsStore.GrantRole(
+		ctx,
+		serviceAccountID,
+		authx.Role{
+			Type:  "PROJECT",
+			Name:  roleName,
+			Scope: projectID,
+		})
+}
+
+func (s *service) RevokeRoleFromServiceAccount(
+	ctx context.Context,
+	projectID string,
+	serviceAccountID string,
+	roleName string,
+) error {
+	if err := s.authorize(ctx, authx.RoleProjectAdmin(projectID)); err != nil {
+		return err
+	}
+
+	// Make sure the project exists
+	_, err := s.store.Get(ctx, projectID)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			projectID,
+		)
+	}
+
+	// Make sure the ServiceAccount exists
+	if _, err := s.serviceAccountsStore.Get(ctx, serviceAccountID); err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving service account %q from store",
+			serviceAccountID,
+		)
+	}
+
+	// Revoke the Role
+	return s.serviceAccountsStore.RevokeRole(
+		ctx,
+		serviceAccountID,
+		authx.Role{
+			Type:  "PROJECT",
+			Name:  roleName,
+			Scope: projectID,
+		},
+	)
 }

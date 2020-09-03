@@ -113,15 +113,30 @@ type ProjectsClient interface {
 	// UnsetSecret clears the value of an existing Secret.
 	UnsetSecret(ctx context.Context, projectID string, key string) error
 
-	GrantRole(
+	GrantRoleToUser(
 		ctx context.Context,
 		projectID string,
-		roleAssignment RoleAssignment,
+		userID string,
+		roleName string,
 	) error
-	RevokeRole(
+	RevokeRoleFromUser(
 		ctx context.Context,
 		projectID string,
-		roleAssignment RoleAssignment,
+		userID string,
+		roleName string,
+	) error
+
+	GrantRoleToServiceAccount(
+		ctx context.Context,
+		projectID string,
+		serviceAccountID string,
+		roleName string,
+	) error
+	RevokeRoleFromServiceAccount(
+		ctx context.Context,
+		projectID string,
+		serviceAccountID string,
+		roleName string,
 	) error
 }
 
@@ -321,41 +336,94 @@ func (p *projectsClient) UnsetSecret(
 	)
 }
 
-func (u *projectsClient) GrantRole(
+func (p *projectsClient) GrantRoleToUser(
 	ctx context.Context,
 	projectID string,
-	roleAssignment RoleAssignment,
+	userID string,
+	roleName string,
 ) error {
-	return u.executeRequest(
+	return p.executeRequest(
 		outboundRequest{
-			method:      http.MethodPost,
-			path:        fmt.Sprintf("v2/projects/%s/role-assignments", projectID),
-			authHeaders: u.bearerTokenAuthHeaders(),
-			reqBodyObj:  roleAssignment,
+			method: http.MethodPost,
+			path: fmt.Sprintf(
+				"v2/projects/%s/user-role-assignments",
+				projectID,
+			),
+			authHeaders: p.bearerTokenAuthHeaders(),
+			reqBodyObj: UserRoleAssignment{
+				UserID: userID,
+				Role:   roleName,
+			},
 			successCode: http.StatusOK,
 		},
 	)
 }
 
-func (u *projectsClient) RevokeRole(
+func (p *projectsClient) RevokeRoleFromUser(
 	ctx context.Context,
 	projectID string,
-	roleAssignment RoleAssignment,
+	userID string,
+	roleName string,
 ) error {
 	queryParams := map[string]string{
-		"role": roleAssignment.Role,
+		"userID": userID,
+		"role":   roleName,
 	}
-	if roleAssignment.UserID != "" {
-		queryParams["userID"] = roleAssignment.UserID
-	}
-	if roleAssignment.ServiceAccountID != "" {
-		queryParams["serviceAccountID"] = roleAssignment.ServiceAccountID
-	}
-	return u.executeRequest(
+	return p.executeRequest(
 		outboundRequest{
-			method:      http.MethodDelete,
-			path:        fmt.Sprintf("v2/projects/%s/role-assignments", projectID),
-			authHeaders: u.bearerTokenAuthHeaders(),
+			method: http.MethodDelete,
+			path: fmt.Sprintf(
+				"v2/projects/%s/user-role-assignments",
+				projectID,
+			),
+			authHeaders: p.bearerTokenAuthHeaders(),
+			queryParams: queryParams,
+			successCode: http.StatusOK,
+		},
+	)
+}
+
+func (p *projectsClient) GrantRoleToServiceAccount(
+	ctx context.Context,
+	projectID string,
+	serviceAccountID string,
+	roleName string,
+) error {
+	return p.executeRequest(
+		outboundRequest{
+			method: http.MethodPost,
+			path: fmt.Sprintf(
+				"v2/projects/%s/service-account-role-assignments",
+				projectID,
+			),
+			authHeaders: p.bearerTokenAuthHeaders(),
+			reqBodyObj: ServiceAccountRoleAssignment{
+				ServiceAccountID: serviceAccountID,
+				Role:             roleName,
+			},
+			successCode: http.StatusOK,
+		},
+	)
+}
+
+func (p *projectsClient) RevokeRoleFromServiceAccount(
+	ctx context.Context,
+	projectID string,
+	serviceAccountID string,
+	roleName string,
+) error {
+	queryParams := map[string]string{
+		"serviceAccountID": serviceAccountID,
+		"role":             roleName,
+	}
+	return p.executeRequest(
+		outboundRequest{
+			method: http.MethodDelete,
+			path: fmt.Sprintf(
+				"v2/projects/%s/service-account-role-assignments",
+				projectID,
+			),
+			authHeaders: p.bearerTokenAuthHeaders(),
 			queryParams: queryParams,
 			successCode: http.StatusOK,
 		},

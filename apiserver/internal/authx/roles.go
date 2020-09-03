@@ -61,9 +61,13 @@ type Role struct {
 	Scope string `json:"scope" bson:"scope"`
 }
 
-type RoleAssignment struct {
+type UserRoleAssignment struct {
+	Role   string `json:"role"`
+	UserID string `json:"userID"`
+}
+
+type ServiceAccountRoleAssignment struct {
 	Role             string `json:"role"`
-	UserID           string `json:"userID"`
 	ServiceAccountID string `json:"serviceAccountID"`
 }
 
