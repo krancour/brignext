@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/krancour/brignext/v2/sdk/core/api"
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
 
@@ -18,7 +18,7 @@ func (s *scheduler) manageProjectLoops(ctx context.Context) {
 	defer ticker.Stop()
 
 	for {
-		projects, err := s.apiClient.Projects().List(
+		projects, err := s.coreClient.Projects().List(
 			ctx,
 			api.ProjectsSelector{},
 			meta.ListOptions{},

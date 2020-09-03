@@ -11,8 +11,8 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
-	"github.com/krancour/brignext/v2/sdk"
-	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/krancour/brignext/v2/sdk/core"
+	"github.com/krancour/brignext/v2/sdk/core/api"
 	"github.com/krancour/brignext/v2/sdk/meta"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
@@ -121,7 +121,7 @@ func projectCreate(c *cli.Context) error {
 	// JSON schema validation is applied to what's in the file and NOT to a
 	// project description that was inadvertently scrubbed of non-permitted fields
 	// during client-side unmarshaling.
-	project := sdk.Project{}
+	project := core.Project{}
 	if err = json.Unmarshal(projectBytes, &project); err != nil {
 		return errors.Wrapf(err, "error unmarshaling project file %s", filename)
 	}
@@ -132,7 +132,7 @@ func projectCreate(c *cli.Context) error {
 	}
 
 	if _, err :=
-		client.Projects().CreateFromBytes(c.Context, projectBytes); err != nil {
+		client.Core().Projects().CreateFromBytes(c.Context, projectBytes); err != nil {
 		return err
 	}
 
@@ -157,7 +157,7 @@ func projectList(c *cli.Context) error {
 
 	for {
 		projects, err :=
-			client.Projects().List(c.Context, api.ProjectsSelector{}, opts)
+			client.Core().Projects().List(c.Context, api.ProjectsSelector{}, opts)
 		if err != nil {
 			return err
 		}
@@ -251,7 +251,7 @@ func projectGet(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	project, err := client.Projects().Get(c.Context, id)
+	project, err := client.Core().Projects().Get(c.Context, id)
 	if err != nil {
 		return err
 	}
@@ -316,7 +316,7 @@ func projectUpdate(c *cli.Context) error {
 	// JSON schema validation is applied to what's in the file and NOT to a
 	// project description that was inadvertently scrubbed of non-permitted fields
 	// during client-side unmarshaling.
-	project := sdk.Project{}
+	project := core.Project{}
 	if err = json.Unmarshal(projectBytes, &project); err != nil {
 		return errors.Wrapf(err, "error unmarshaling project file %s", filename)
 	}
@@ -333,7 +333,7 @@ func projectUpdate(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if _, err = client.Projects().UpdateFromBytes(
+	if _, err = client.Core().Projects().UpdateFromBytes(
 		c.Context,
 		project.ID,
 		projectBytes,
@@ -362,7 +362,7 @@ func projectDelete(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err := client.Projects().Delete(c.Context, id); err != nil {
+	if err := client.Core().Projects().Delete(c.Context, id); err != nil {
 		return err
 	}
 

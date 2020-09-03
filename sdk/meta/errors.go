@@ -1,8 +1,6 @@
-package api
+package meta
 
-import (
-	"fmt"
-)
+import "fmt"
 
 // ErrAuthentication represents an error asserting an principal's identity.
 type ErrAuthentication struct {

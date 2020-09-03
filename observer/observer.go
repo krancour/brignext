@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/krancour/brignext/v2/sdk/core/api"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -31,7 +31,7 @@ type Observer interface {
 
 type observer struct {
 	observerConfig  Config
-	apiClient       api.Client
+	workersClient   api.WorkersClient
 	kubeClient      *kubernetes.Clientset
 	podsClient      corev1.PodInterface
 	deletingPodsSet map[string]struct{}
@@ -42,13 +42,13 @@ type observer struct {
 
 func NewObserver(
 	observerConfig Config,
-	apiClient api.Client,
+	workersClient api.WorkersClient,
 	kubeClient *kubernetes.Clientset,
 ) Observer {
 	podsClient := kubeClient.CoreV1().Pods("")
 	return &observer{
 		observerConfig:  observerConfig,
-		apiClient:       apiClient,
+		workersClient:   workersClient,
 		kubeClient:      kubeClient,
 		podsClient:      podsClient,
 		deletingPodsSet: map[string]struct{}{},

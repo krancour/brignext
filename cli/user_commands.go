@@ -9,7 +9,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
-	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/krancour/brignext/v2/sdk/authx/api"
 	"github.com/krancour/brignext/v2/sdk/meta"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
@@ -87,7 +87,7 @@ func userList(c *cli.Context) error {
 	opts := meta.ListOptions{}
 
 	for {
-		users, err := client.Users().List(c.Context, api.UsersSelector{}, opts)
+		users, err := client.Authx().Users().List(c.Context, api.UsersSelector{}, opts)
 		if err != nil {
 			return err
 		}
@@ -182,7 +182,7 @@ func userGet(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	user, err := client.Users().Get(c.Context, id)
+	user, err := client.Authx().Users().Get(c.Context, id)
 	if err != nil {
 		return err
 	}
@@ -231,7 +231,7 @@ func userLock(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err := client.Users().Lock(c.Context, id); err != nil {
+	if err := client.Authx().Users().Lock(c.Context, id); err != nil {
 		return err
 	}
 
@@ -248,7 +248,7 @@ func userUnlock(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err := client.Users().Unlock(c.Context, id); err != nil {
+	if err := client.Authx().Users().Unlock(c.Context, id); err != nil {
 		return err
 	}
 

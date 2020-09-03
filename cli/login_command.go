@@ -6,7 +6,7 @@ import (
 	"runtime"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/krancour/brignext/v2/sdk/authx/api"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )

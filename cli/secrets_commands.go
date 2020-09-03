@@ -9,7 +9,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
-	"github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/core"
 	"github.com/krancour/brignext/v2/sdk/meta"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
@@ -93,7 +93,7 @@ func secretsList(c *cli.Context) error {
 	opts := meta.ListOptions{}
 
 	for {
-		secrets, err := client.Projects().Secrets().List(c.Context, projectID, opts)
+		secrets, err := client.Core().Projects().Secrets().List(c.Context, projectID, opts)
 		if err != nil {
 			return err
 		}
@@ -192,11 +192,11 @@ func secretsSet(c *cli.Context) error {
 	// API call for each one. This can be revisited in the future if someone is
 	// aware of or discovers the right pattern for this.
 	for k, v := range kvPairs {
-		secret := sdk.Secret{
+		secret := core.Secret{
 			Key:   k,
 			Value: v,
 		}
-		if err := client.Projects().Secrets().Set(
+		if err := client.Core().Projects().Secrets().Set(
 			c.Context,
 			projectID,
 			secret,
@@ -224,7 +224,7 @@ func secretsUnset(c *cli.Context) error {
 	// API call for each one. This can be revisited in the future if someone is
 	// aware of or discovers the right pattern for this.
 	for _, key := range keys {
-		if err := client.Projects().Secrets().Unset(
+		if err := client.Core().Projects().Secrets().Unset(
 			c.Context,
 			projectID,
 			key,

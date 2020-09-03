@@ -6,7 +6,7 @@ import (
 	"github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/krancour/brignext/v2/internal/signals"
 	"github.com/krancour/brignext/v2/internal/version"
-	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/krancour/brignext/v2/sdk/core/api"
 )
 
 // TODO: Observer needs functionality for timing out workers and jobs
@@ -21,7 +21,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	apiClient := api.NewClient(
+	workersClient := api.NewWorkersClient(
 		config.APIAddress,
 		config.APIToken,
 		config.IgnoreAPICertWarnings,
@@ -34,7 +34,7 @@ func main() {
 
 	observer := NewObserver(
 		config,
-		apiClient,
+		workersClient,
 		kubeClient,
 	)
 

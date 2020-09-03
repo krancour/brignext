@@ -5,18 +5,9 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-)
 
-// Role represents a set of permissions, with domain-specific meaning, held by a
-// principal, such as a User or ServiceAccount.
-type Role struct {
-	Type string `json:"type"`
-	// Name is the name of a Role and has domain-specific meaning.
-	Name string `json:"name"`
-	// Scope qualifies the scope of the Role. The value is opaque and has meaning
-	// only in relation to a specific RoleName.
-	Scope string `json:"scope"`
-}
+	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
+)
 
 type UserRoleAssignment struct {
 	UserID string `json:"userID"`
@@ -59,7 +50,7 @@ type ProjectRolesClient interface {
 }
 
 type projectRolesClient struct {
-	*baseClient
+	*apimachinery.BaseClient
 }
 
 // NewProjectRolesClient returns a specialized client for managing Project
@@ -70,10 +61,10 @@ func NewProjectRolesClient(
 	allowInsecure bool,
 ) ProjectRolesClient {
 	return &projectRolesClient{
-		baseClient: &baseClient{
-			apiAddress: apiAddress,
-			apiToken:   apiToken,
-			httpClient: &http.Client{
+		BaseClient: &apimachinery.BaseClient{
+			APIAddress: apiAddress,
+			APIToken:   apiToken,
+			HTTPClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,
@@ -90,19 +81,19 @@ func (p *projectRolesClient) GrantToUser(
 	userID string,
 	roleName string,
 ) error {
-	return p.executeRequest(
-		outboundRequest{
-			method: http.MethodPost,
-			path: fmt.Sprintf(
+	return p.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method: http.MethodPost,
+			Path: fmt.Sprintf(
 				"v2/projects/%s/user-role-assignments",
 				projectID,
 			),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			reqBodyObj: UserRoleAssignment{
+			AuthHeaders: p.BearerTokenAuthHeaders(),
+			ReqBodyObj: UserRoleAssignment{
 				UserID: userID,
 				Role:   roleName,
 			},
-			successCode: http.StatusOK,
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -117,16 +108,16 @@ func (p *projectRolesClient) RevokeFromUser(
 		"userID": userID,
 		"role":   roleName,
 	}
-	return p.executeRequest(
-		outboundRequest{
-			method: http.MethodDelete,
-			path: fmt.Sprintf(
+	return p.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method: http.MethodDelete,
+			Path: fmt.Sprintf(
 				"v2/projects/%s/user-role-assignments",
 				projectID,
 			),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
-			successCode: http.StatusOK,
+			AuthHeaders: p.BearerTokenAuthHeaders(),
+			QueryParams: queryParams,
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -137,19 +128,19 @@ func (p *projectRolesClient) GrantToServiceAccount(
 	serviceAccountID string,
 	roleName string,
 ) error {
-	return p.executeRequest(
-		outboundRequest{
-			method: http.MethodPost,
-			path: fmt.Sprintf(
+	return p.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method: http.MethodPost,
+			Path: fmt.Sprintf(
 				"v2/projects/%s/service-account-role-assignments",
 				projectID,
 			),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			reqBodyObj: ServiceAccountRoleAssignment{
+			AuthHeaders: p.BearerTokenAuthHeaders(),
+			ReqBodyObj: ServiceAccountRoleAssignment{
 				ServiceAccountID: serviceAccountID,
 				Role:             roleName,
 			},
-			successCode: http.StatusOK,
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -164,16 +155,16 @@ func (p *projectRolesClient) RevokeFromServiceAccount(
 		"serviceAccountID": serviceAccountID,
 		"role":             roleName,
 	}
-	return p.executeRequest(
-		outboundRequest{
-			method: http.MethodDelete,
-			path: fmt.Sprintf(
+	return p.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method: http.MethodDelete,
+			Path: fmt.Sprintf(
 				"v2/projects/%s/service-account-role-assignments",
 				projectID,
 			),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
-			successCode: http.StatusOK,
+			AuthHeaders: p.BearerTokenAuthHeaders(),
+			QueryParams: queryParams,
+			SuccessCode: http.StatusOK,
 		},
 	)
 }

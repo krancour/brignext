@@ -10,7 +10,8 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
-	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/krancour/brignext/v2/sdk/authx"
+	"github.com/krancour/brignext/v2/sdk/authx/api"
 	"github.com/krancour/brignext/v2/sdk/meta"
 	"golang.org/x/crypto/ssh/terminal"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -106,9 +107,9 @@ func serviceAccountCreate(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	token, err := client.ServiceAccounts().Create(
+	token, err := client.Authx().ServiceAccounts().Create(
 		c.Context,
-		api.ServiceAccount{
+		authx.ServiceAccount{
 			ObjectMeta: meta.ObjectMeta{
 				ID: id,
 			},
@@ -145,7 +146,7 @@ func serviceAccountList(c *cli.Context) error {
 
 	for {
 		serviceAccounts, err :=
-			client.ServiceAccounts().List(c.Context, api.ServiceAccountsSelector{}, opts)
+			client.Authx().ServiceAccounts().List(c.Context, api.ServiceAccountsSelector{}, opts)
 		if err != nil {
 			return err
 		}
@@ -241,7 +242,7 @@ func serviceAccountGet(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	serviceAccount, err := client.ServiceAccounts().Get(c.Context, id)
+	serviceAccount, err := client.Authx().ServiceAccounts().Get(c.Context, id)
 	if err != nil {
 		return err
 	}
@@ -294,7 +295,7 @@ func serviceAccountLock(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err := client.ServiceAccounts().Lock(c.Context, id); err != nil {
+	if err := client.Authx().ServiceAccounts().Lock(c.Context, id); err != nil {
 		return err
 	}
 
@@ -311,7 +312,7 @@ func serviceAccountUnlock(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	token, err := client.ServiceAccounts().Unlock(c.Context, id)
+	token, err := client.Authx().ServiceAccounts().Unlock(c.Context, id)
 	if err != nil {
 		return err
 	}

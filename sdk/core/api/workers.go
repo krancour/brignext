@@ -8,7 +8,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/core"
+	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
 // WorkersClient is the specialized client for managing Event Worker with the
@@ -18,26 +19,26 @@ type WorkersClient interface {
 	// substrate.
 	Start(ctx context.Context, eventID string) error
 	// Get returns an Event's Worker's status.
-	GetStatus(ctx context.Context, eventID string) (sdk.WorkerStatus, error)
+	GetStatus(ctx context.Context, eventID string) (core.WorkerStatus, error)
 	// WatchStatus returns a channel over which an Event's Worker's status is
 	// streamed. The channel receives a new WorkerStatus every time there is any
 	// change in that status.
 	WatchStatus(
 		ctx context.Context,
 		eventID string,
-	) (<-chan sdk.WorkerStatus, <-chan error, error)
+	) (<-chan core.WorkerStatus, <-chan error, error)
 	// UpdateStatus updates the status of an Event's Worker.
 	UpdateStatus(
 		ctx context.Context,
 		eventID string,
-		status sdk.WorkerStatus,
+		status core.WorkerStatus,
 	) error
 
 	Jobs() JobsClient
 }
 
 type workersClient struct {
-	*baseClient
+	*apimachinery.BaseClient
 	jobsClient JobsClient
 }
 
@@ -48,10 +49,10 @@ func NewWorkersClient(
 	allowInsecure bool,
 ) WorkersClient {
 	return &workersClient{
-		baseClient: &baseClient{
-			apiAddress: apiAddress,
-			apiToken:   apiToken,
-			httpClient: &http.Client{
+		BaseClient: &apimachinery.BaseClient{
+			APIAddress: apiAddress,
+			APIToken:   apiToken,
+			HTTPClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,
@@ -64,12 +65,12 @@ func NewWorkersClient(
 }
 
 func (w *workersClient) Start(ctx context.Context, eventID string) error {
-	return w.executeRequest(
-		outboundRequest{
-			method:      http.MethodPut,
-			path:        fmt.Sprintf("v2/events/%s/worker/start", eventID),
-			authHeaders: w.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
+	return w.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodPut,
+			Path:        fmt.Sprintf("v2/events/%s/worker/start", eventID),
+			AuthHeaders: w.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -77,15 +78,15 @@ func (w *workersClient) Start(ctx context.Context, eventID string) error {
 func (w *workersClient) GetStatus(
 	ctx context.Context,
 	eventID string,
-) (sdk.WorkerStatus, error) {
-	status := sdk.WorkerStatus{}
-	return status, w.executeRequest(
-		outboundRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
-			authHeaders: w.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-			respObj:     &status,
+) (core.WorkerStatus, error) {
+	status := core.WorkerStatus{}
+	return status, w.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodGet,
+			Path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
+			AuthHeaders: w.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
+			RespObj:     &status,
 		},
 	)
 }
@@ -93,23 +94,23 @@ func (w *workersClient) GetStatus(
 func (w *workersClient) WatchStatus(
 	ctx context.Context,
 	eventID string,
-) (<-chan sdk.WorkerStatus, <-chan error, error) {
-	resp, err := w.submitRequest(
-		outboundRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
-			authHeaders: w.bearerTokenAuthHeaders(),
-			queryParams: map[string]string{
+) (<-chan core.WorkerStatus, <-chan error, error) {
+	resp, err := w.SubmitRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodGet,
+			Path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
+			AuthHeaders: w.BearerTokenAuthHeaders(),
+			QueryParams: map[string]string{
 				"watch": "true",
 			},
-			successCode: http.StatusOK,
+			SuccessCode: http.StatusOK,
 		},
 	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	statusCh := make(chan sdk.WorkerStatus)
+	statusCh := make(chan core.WorkerStatus)
 	errCh := make(chan error)
 
 	go w.receiveStatusStream(ctx, resp.Body, statusCh, errCh)
@@ -120,15 +121,15 @@ func (w *workersClient) WatchStatus(
 func (w *workersClient) UpdateStatus(
 	_ context.Context,
 	eventID string,
-	status sdk.WorkerStatus,
+	status core.WorkerStatus,
 ) error {
-	return w.executeRequest(
-		outboundRequest{
-			method:      http.MethodPut,
-			path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
-			authHeaders: w.bearerTokenAuthHeaders(),
-			reqBodyObj:  status,
-			successCode: http.StatusOK,
+	return w.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodPut,
+			Path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
+			AuthHeaders: w.BearerTokenAuthHeaders(),
+			ReqBodyObj:  status,
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -140,13 +141,13 @@ func (w *workersClient) Jobs() JobsClient {
 func (w *workersClient) receiveStatusStream(
 	ctx context.Context,
 	reader io.ReadCloser,
-	statusCh chan<- sdk.WorkerStatus,
+	statusCh chan<- core.WorkerStatus,
 	errCh chan<- error,
 ) {
 	defer reader.Close()
 	decoder := json.NewDecoder(reader)
 	for {
-		status := sdk.WorkerStatus{}
+		status := core.WorkerStatus{}
 		if err := decoder.Decode(&status); err != nil {
 			select {
 			case errCh <- err:

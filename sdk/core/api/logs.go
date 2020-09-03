@@ -8,7 +8,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/core"
+	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
 // TODO: Document this
@@ -37,11 +38,11 @@ type LogsClient interface {
 		eventID string,
 		selector LogsSelector,
 		opts LogStreamOptions,
-	) (<-chan sdk.LogEntry, <-chan error, error)
+	) (<-chan core.LogEntry, <-chan error, error)
 }
 
 type logsClient struct {
-	*baseClient
+	*apimachinery.BaseClient
 }
 
 // NewLogsClient returns a specialized client for managing Event Logs.
@@ -51,10 +52,10 @@ func NewLogsClient(
 	allowInsecure bool,
 ) LogsClient {
 	return &logsClient{
-		baseClient: &baseClient{
-			apiAddress: apiAddress,
-			apiToken:   apiToken,
-			httpClient: &http.Client{
+		BaseClient: &apimachinery.BaseClient{
+			APIAddress: apiAddress,
+			APIToken:   apiToken,
+			HTTPClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,
@@ -70,7 +71,7 @@ func (l *logsClient) Stream(
 	eventID string,
 	selector LogsSelector,
 	opts LogStreamOptions,
-) (<-chan sdk.LogEntry, <-chan error, error) {
+) (<-chan core.LogEntry, <-chan error, error) {
 	queryParams := map[string]string{}
 	if selector.Job != "" {
 		queryParams["job"] = selector.Job
@@ -82,20 +83,20 @@ func (l *logsClient) Stream(
 		queryParams["follow"] = "true"
 	}
 
-	resp, err := l.submitRequest(
-		outboundRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/events/%s/logs", eventID),
-			authHeaders: l.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
-			successCode: http.StatusOK,
+	resp, err := l.SubmitRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodGet,
+			Path:        fmt.Sprintf("v2/events/%s/logs", eventID),
+			AuthHeaders: l.BearerTokenAuthHeaders(),
+			QueryParams: queryParams,
+			SuccessCode: http.StatusOK,
 		},
 	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	logCh := make(chan sdk.LogEntry)
+	logCh := make(chan core.LogEntry)
 	errCh := make(chan error)
 
 	go l.receiveStream(ctx, resp.Body, logCh, errCh)
@@ -108,7 +109,7 @@ func (l *logsClient) Stream(
 func (l *logsClient) receiveStream(
 	ctx context.Context,
 	reader io.ReadCloser,
-	logEntryCh chan<- sdk.LogEntry,
+	logEntryCh chan<- core.LogEntry,
 	errCh chan<- error,
 ) {
 	defer close(logEntryCh)
@@ -116,7 +117,7 @@ func (l *logsClient) receiveStream(
 	defer reader.Close()
 	decoder := json.NewDecoder(reader)
 	for {
-		logEntry := sdk.LogEntry{}
+		logEntry := core.LogEntry{}
 		if err := decoder.Decode(&logEntry); err != nil {
 			if err == io.EOF {
 				return

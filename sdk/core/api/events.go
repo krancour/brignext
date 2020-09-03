@@ -8,7 +8,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/core"
+	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
 
@@ -20,7 +21,7 @@ type EventsSelector struct {
 	ProjectID string
 	// WorkerPhases specifies that Events with their Worker's in any of the
 	// indicated phases should be selected.
-	WorkerPhases []sdk.WorkerPhase
+	WorkerPhases []core.WorkerPhase
 }
 
 // EventList is an ordered and pageable list of Events.
@@ -28,7 +29,7 @@ type EventList struct {
 	// ListMeta contains list metadata.
 	meta.ListMeta `json:"metadata"`
 	// Items is a slice of Events.
-	Items []sdk.Event `json:"items,omitempty"`
+	Items []core.Event `json:"items,omitempty"`
 }
 
 // MarshalJSON amends EventList instances with type metadata so that clients do
@@ -61,13 +62,13 @@ type DeleteManyEventsResult struct {
 // API.
 type EventsClient interface {
 	// Create creates a new Event.
-	Create(context.Context, sdk.Event) (EventList, error)
+	Create(context.Context, core.Event) (EventList, error)
 	// List returns an EventList, with its Items (Events) ordered by age, newest
 	// first. Criteria for which Events should be retrieved can be specified using
 	// the EventListOptions parameter.
 	List(context.Context, EventsSelector, meta.ListOptions) (EventList, error)
 	// Get retrieves a single Event specified by its identifier.
-	Get(context.Context, string) (sdk.Event, error)
+	Get(context.Context, string) (core.Event, error)
 	// Cancel cancels a single Event specified by its identifier.
 	Cancel(context.Context, string) error
 	// CancelMany cancels multiple Events specified by the EventListOptions
@@ -85,7 +86,7 @@ type EventsClient interface {
 }
 
 type eventsClient struct {
-	*baseClient
+	*apimachinery.BaseClient
 	workersClient WorkersClient
 	logsClient    LogsClient
 }
@@ -97,10 +98,10 @@ func NewEventsClient(
 	allowInsecure bool,
 ) EventsClient {
 	return &eventsClient{
-		baseClient: &baseClient{
-			apiAddress: apiAddress,
-			apiToken:   apiToken,
-			httpClient: &http.Client{
+		BaseClient: &apimachinery.BaseClient{
+			APIAddress: apiAddress,
+			APIToken:   apiToken,
+			HTTPClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,
@@ -115,17 +116,17 @@ func NewEventsClient(
 
 func (e *eventsClient) Create(
 	_ context.Context,
-	event sdk.Event,
+	event core.Event,
 ) (EventList, error) {
 	events := EventList{}
-	return events, e.executeRequest(
-		outboundRequest{
-			method:      http.MethodPost,
-			path:        "v2/events",
-			authHeaders: e.bearerTokenAuthHeaders(),
-			reqBodyObj:  event,
-			successCode: http.StatusCreated,
-			respObj:     &events,
+	return events, e.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodPost,
+			Path:        "v2/events",
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			ReqBodyObj:  event,
+			SuccessCode: http.StatusCreated,
+			RespObj:     &events,
 		},
 	)
 }
@@ -147,14 +148,14 @@ func (e *eventsClient) List(
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
 	events := EventList{}
-	return events, e.executeRequest(
-		outboundRequest{
-			method:      http.MethodGet,
-			path:        "v2/events",
-			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: e.appendListQueryParams(queryParams, opts),
-			successCode: http.StatusOK,
-			respObj:     &events,
+	return events, e.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodGet,
+			Path:        "v2/events",
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			QueryParams: e.AppendListQueryParams(queryParams, opts),
+			SuccessCode: http.StatusOK,
+			RespObj:     &events,
 		},
 	)
 }
@@ -162,26 +163,26 @@ func (e *eventsClient) List(
 func (e *eventsClient) Get(
 	_ context.Context,
 	id string,
-) (sdk.Event, error) {
-	event := sdk.Event{}
-	return event, e.executeRequest(
-		outboundRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/events/%s", id),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-			respObj:     &event,
+) (core.Event, error) {
+	event := core.Event{}
+	return event, e.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodGet,
+			Path:        fmt.Sprintf("v2/events/%s", id),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
+			RespObj:     &event,
 		},
 	)
 }
 
 func (e *eventsClient) Cancel(_ context.Context, id string) error {
-	return e.executeRequest(
-		outboundRequest{
-			method:      http.MethodPut,
-			path:        fmt.Sprintf("v2/events/%s/cancellation", id),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
+	return e.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodPut,
+			Path:        fmt.Sprintf("v2/events/%s/cancellation", id),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -202,25 +203,25 @@ func (e *eventsClient) CancelMany(
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
 	result := CancelManyEventsResult{}
-	return result, e.executeRequest(
-		outboundRequest{
-			method:      http.MethodPost,
-			path:        "v2/events/cancellations",
-			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
-			successCode: http.StatusOK,
-			respObj:     &result,
+	return result, e.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodPost,
+			Path:        "v2/events/cancellations",
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			QueryParams: queryParams,
+			SuccessCode: http.StatusOK,
+			RespObj:     &result,
 		},
 	)
 }
 
 func (e *eventsClient) Delete(_ context.Context, id string) error {
-	return e.executeRequest(
-		outboundRequest{
-			method:      http.MethodDelete,
-			path:        fmt.Sprintf("v2/events/%s", id),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
+	return e.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodDelete,
+			Path:        fmt.Sprintf("v2/events/%s", id),
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -241,14 +242,14 @@ func (e *eventsClient) DeleteMany(
 		queryParams["workerPhases"] = strings.Join(workerPhaseStrs, ",")
 	}
 	result := DeleteManyEventsResult{}
-	return result, e.executeRequest(
-		outboundRequest{
-			method:      http.MethodDelete,
-			path:        "v2/events",
-			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
-			successCode: http.StatusOK,
-			respObj:     &result,
+	return result, e.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodDelete,
+			Path:        "v2/events",
+			AuthHeaders: e.BearerTokenAuthHeaders(),
+			QueryParams: queryParams,
+			SuccessCode: http.StatusOK,
+			RespObj:     &result,
 		},
 	)
 }

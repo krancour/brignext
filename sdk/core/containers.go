@@ -1,4 +1,4 @@
-package sdk
+package core
 
 // ImagePullPolicy represents a policy for whether container hosts already
 // having a certain OCI image should attempt to re-pull that image prior to

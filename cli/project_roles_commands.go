@@ -99,7 +99,7 @@ func projectRolesGrant(c *cli.Context) error {
 	}
 
 	if userID != "" {
-		if err := client.Projects().Roles().GrantToUser(
+		if err := client.Core().Projects().Roles().GrantToUser(
 			c.Context,
 			projectID,
 			userID,
@@ -118,7 +118,7 @@ func projectRolesGrant(c *cli.Context) error {
 		return nil
 	}
 
-	if err := client.Projects().Roles().GrantToServiceAccount(
+	if err := client.Core().Projects().Roles().GrantToServiceAccount(
 		c.Context,
 		projectID,
 		serviceAccountID,
@@ -160,7 +160,7 @@ func projectRolesRevoke(c *cli.Context) error {
 	}
 
 	if userID != "" {
-		if err := client.Projects().Roles().RevokeFromUser(
+		if err := client.Core().Projects().Roles().RevokeFromUser(
 			c.Context,
 			projectID,
 			userID,
@@ -179,7 +179,7 @@ func projectRolesRevoke(c *cli.Context) error {
 		return nil
 	}
 
-	if err := client.Projects().Roles().RevokeFromServiceAccount(
+	if err := client.Core().Projects().Roles().RevokeFromServiceAccount(
 		c.Context,
 		projectID,
 		serviceAccountID,

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/scheduler/internal/queue"
-	"github.com/krancour/brignext/v2/sdk/api"
+	core "github.com/krancour/brignext/v2/sdk/core/api"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -18,7 +18,7 @@ type Scheduler interface {
 
 type scheduler struct {
 	schedulerConfig Config
-	apiClient       api.Client
+	coreClient      core.Client
 	// TODO: This should be closed somewhere
 	queueReaderFactory   queue.ReaderFactory
 	kubeClient           *kubernetes.Clientset
@@ -33,14 +33,14 @@ type scheduler struct {
 
 func NewScheduler(
 	schedulerConfig Config,
-	apiClient api.Client,
+	coreClient core.Client,
 	queueReaderFactory queue.ReaderFactory,
 	kubeClient *kubernetes.Clientset,
 ) Scheduler {
 	podsClient := kubeClient.CoreV1().Pods("")
 	return &scheduler{
 		schedulerConfig:      schedulerConfig,
-		apiClient:            apiClient,
+		coreClient:           coreClient,
 		queueReaderFactory:   queueReaderFactory,
 		kubeClient:           kubeClient,
 		podsClient:           podsClient,

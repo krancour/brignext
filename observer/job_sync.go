@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/core"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -58,8 +58,8 @@ func (o *observer) syncJobPod(obj interface{}) {
 	// primary container
 	eventID := jobPod.Labels["brignext.io/event"]
 	jobName := jobPod.Labels["brignext.io/job"]
-	status := sdk.JobStatus{
-		Phase: sdk.JobPhaseRunning,
+	status := core.JobStatus{
+		Phase: core.JobPhaseRunning,
 	}
 
 	if jobPod.Status.StartTime != nil {
@@ -70,9 +70,9 @@ func (o *observer) syncJobPod(obj interface{}) {
 		if containerStatus.Name == jobPod.Spec.Containers[0].Name {
 			if containerStatus.State.Terminated != nil {
 				if containerStatus.State.Terminated.Reason == "Completed" {
-					status.Phase = sdk.JobPhaseSucceeded
+					status.Phase = core.JobPhaseSucceeded
 				} else {
-					status.Phase = sdk.JobPhaseFailed
+					status.Phase = core.JobPhaseFailed
 				}
 				status.Ended = &containerStatus.State.Terminated.FinishedAt.Time
 			}
@@ -82,7 +82,7 @@ func (o *observer) syncJobPod(obj interface{}) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := o.apiClient.Events().Workers().Jobs().UpdateStatus(
+	if err := o.workersClient.Jobs().UpdateStatus(
 		ctx,
 		eventID,
 		jobName,

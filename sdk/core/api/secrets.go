@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/core"
+	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
 
@@ -16,7 +17,7 @@ type SecretList struct {
 	// ListMeta contains list metadata.
 	meta.ListMeta `json:"metadata"`
 	// Items is a slice of Secrets.
-	Items []sdk.Secret `json:"items,omitempty"`
+	Items []core.Secret `json:"items,omitempty"`
 }
 
 // MarshalJSON amends SecretList instances with type metadata so that clients do
@@ -50,13 +51,13 @@ type SecretsClient interface {
 	) (SecretList, error)
 	// Set sets the value of a new Secret or updates the value of an existing
 	// Secret.
-	Set(ctx context.Context, projectID string, secret sdk.Secret) error
+	Set(ctx context.Context, projectID string, secret core.Secret) error
 	// Unset clears the value of an existing Secret.
 	Unset(ctx context.Context, projectID string, key string) error
 }
 
 type secretsClient struct {
-	*baseClient
+	*apimachinery.BaseClient
 }
 
 // NewSecretsClient returns a specialized client for managing
@@ -67,10 +68,10 @@ func NewSecretsClient(
 	allowInsecure bool,
 ) SecretsClient {
 	return &secretsClient{
-		baseClient: &baseClient{
-			apiAddress: apiAddress,
-			apiToken:   apiToken,
-			httpClient: &http.Client{
+		BaseClient: &apimachinery.BaseClient{
+			APIAddress: apiAddress,
+			APIToken:   apiToken,
+			HTTPClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,
@@ -87,14 +88,14 @@ func (s *secretsClient) List(
 	opts meta.ListOptions,
 ) (SecretList, error) {
 	secrets := SecretList{}
-	return secrets, s.executeRequest(
-		outboundRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/projects/%s/secrets", projectID),
-			authHeaders: s.bearerTokenAuthHeaders(),
-			queryParams: s.appendListQueryParams(nil, opts),
-			successCode: http.StatusOK,
-			respObj:     &secrets,
+	return secrets, s.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodGet,
+			Path:        fmt.Sprintf("v2/projects/%s/secrets", projectID),
+			AuthHeaders: s.BearerTokenAuthHeaders(),
+			QueryParams: s.AppendListQueryParams(nil, opts),
+			SuccessCode: http.StatusOK,
+			RespObj:     &secrets,
 		},
 	)
 }
@@ -102,19 +103,19 @@ func (s *secretsClient) List(
 func (s *secretsClient) Set(
 	ctx context.Context,
 	projectID string,
-	secret sdk.Secret,
+	secret core.Secret,
 ) error {
-	return s.executeRequest(
-		outboundRequest{
-			method: http.MethodPut,
-			path: fmt.Sprintf(
+	return s.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method: http.MethodPut,
+			Path: fmt.Sprintf(
 				"v2/projects/%s/secrets/%s",
 				projectID,
 				secret.Key,
 			),
-			authHeaders: s.bearerTokenAuthHeaders(),
-			reqBodyObj:  secret,
-			successCode: http.StatusOK,
+			AuthHeaders: s.BearerTokenAuthHeaders(),
+			ReqBodyObj:  secret,
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -124,16 +125,16 @@ func (s *secretsClient) Unset(
 	projectID string,
 	key string,
 ) error {
-	return s.executeRequest(
-		outboundRequest{
-			method: http.MethodDelete,
-			path: fmt.Sprintf(
+	return s.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method: http.MethodDelete,
+			Path: fmt.Sprintf(
 				"v2/projects/%s/secrets/%s",
 				projectID,
 				key,
 			),
-			authHeaders: s.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
+			AuthHeaders: s.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
 		},
 	)
 }

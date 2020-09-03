@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/krancour/brignext/v2/sdk/core/api"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -57,7 +57,7 @@ func logs(c *cli.Context) error {
 	}
 
 	logEntryCh, errCh, err :=
-		client.Events().Logs().Stream(c.Context, eventID, selector, opts)
+		client.Core().Events().Logs().Stream(c.Context, eventID, selector, opts)
 	if err != nil {
 		return err
 	}

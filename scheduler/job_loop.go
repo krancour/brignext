@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/scheduler/internal/queue"
-	"github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/core"
 )
 
 func (s *scheduler) runJobLoop(ctx context.Context, projectID string) {
@@ -65,7 +65,7 @@ outerLoop:
 			eventID := messageTokens[0]
 			jobName := messageTokens[1]
 
-			event, err := s.apiClient.Events().Get(ctx, eventID)
+			event, err := s.coreClient.Events().Get(ctx, eventID)
 			if err != nil {
 				// TODO: We should check what went wrong
 				log.Println(err)
@@ -85,7 +85,7 @@ outerLoop:
 			}
 
 			// If the Job's phase isn't PENDING, then there's nothing to do
-			if job.Status.Phase != sdk.JobPhasePending {
+			if job.Status.Phase != core.JobPhasePending {
 				msg.Ack() // nolint: errcheck
 				continue  // Next Job
 			}
@@ -108,7 +108,7 @@ outerLoop:
 
 			// Now use the API to start the Job...
 
-			if err := s.apiClient.Events().Workers().Jobs().Start(
+			if err := s.coreClient.Events().Workers().Jobs().Start(
 				ctx,
 				event.ID,
 				jobName,

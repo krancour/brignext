@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/core"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -57,19 +57,19 @@ func (o *observer) syncWorkerPod(obj interface{}) {
 	// Use the API to update worker phase so it corresponds to worker pod phase
 	eventID := workerPod.Labels["brignext.io/event"]
 
-	status := sdk.WorkerStatus{}
+	status := core.WorkerStatus{}
 	switch workerPod.Status.Phase {
 	case corev1.PodPending:
 		// For BrigNext's purposes, this counts as running
-		status.Phase = sdk.WorkerPhaseRunning
+		status.Phase = core.WorkerPhaseRunning
 	case corev1.PodRunning:
-		status.Phase = sdk.WorkerPhaseRunning
+		status.Phase = core.WorkerPhaseRunning
 	case corev1.PodSucceeded:
-		status.Phase = sdk.WorkerPhaseSucceeded
+		status.Phase = core.WorkerPhaseSucceeded
 	case corev1.PodFailed:
-		status.Phase = sdk.WorkerPhaseFailed
+		status.Phase = core.WorkerPhaseFailed
 	case corev1.PodUnknown:
-		status.Phase = sdk.WorkerPhaseUnknown
+		status.Phase = core.WorkerPhaseUnknown
 	}
 
 	if workerPod.Status.StartTime != nil {
@@ -83,7 +83,7 @@ func (o *observer) syncWorkerPod(obj interface{}) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := o.apiClient.Events().Workers().UpdateStatus(
+	if err := o.workersClient.UpdateStatus(
 		ctx,
 		eventID,
 		status,

@@ -6,43 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
+	"github.com/krancour/brignext/v2/sdk/authx"
+	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
-
-// ServiceAccount represents a non-human BrigNext user, such as an Event
-// gateway.
-type ServiceAccount struct {
-	// ObjectMeta encapsulates ServiceAccount metadata.
-	meta.ObjectMeta `json:"metadata"`
-	// Description is a natural language description of the ServiceAccount's
-	// purpose.
-	Description string `json:"description,omitempty"`
-	// Locked indicates when the ServiceAccount has been locked out of the system
-	// by an administrator. If this field's value is nil, the User can be presumed
-	// NOT to be locked.
-	Locked *time.Time `json:"locked,omitempty"`
-	Roles  []Role     `json:"roles,omitempty"`
-}
-
-// MarshalJSON amends ServiceAccount instances with type metadata so that
-// clients do not need to be concerned with the tedium of doing so.
-func (s ServiceAccount) MarshalJSON() ([]byte, error) {
-	type Alias ServiceAccount
-	return json.Marshal(
-		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
-		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
-				Kind:       "ServiceAccount",
-			},
-			Alias: (Alias)(s),
-		},
-	)
-}
 
 // ServiceAccountsSelector represents useful filter criteria when selecting
 // multiple ServiceAccounts for API group operations like list. It currently has
@@ -54,7 +22,7 @@ type ServiceAccountList struct {
 	// ListMeta contains list metadata.
 	meta.ListMeta `json:"metadata"`
 	// Items is a slice of ServiceAccounts.
-	Items []ServiceAccount `json:"items,omitempty"`
+	Items []authx.ServiceAccount `json:"items,omitempty"`
 }
 
 // MarshalJSON amends ServiceAccountList instances with type metadata so that
@@ -79,7 +47,7 @@ func (s ServiceAccountList) MarshalJSON() ([]byte, error) {
 // with the BrigNext API.
 type ServiceAccountsClient interface {
 	// Create creates a new ServiceAccount.
-	Create(context.Context, ServiceAccount) (Token, error)
+	Create(context.Context, authx.ServiceAccount) (Token, error)
 	// List returns a ServiceAccountList.
 	List(
 		context.Context,
@@ -87,7 +55,7 @@ type ServiceAccountsClient interface {
 		meta.ListOptions,
 	) (ServiceAccountList, error)
 	// Get retrieves a single ServiceAccount specified by its identifier.
-	Get(context.Context, string) (ServiceAccount, error)
+	Get(context.Context, string) (authx.ServiceAccount, error)
 
 	// Lock removes access to the API for a single ServiceAccount specified by its
 	// identifier.
@@ -98,7 +66,7 @@ type ServiceAccountsClient interface {
 }
 
 type serviceAccountsClient struct {
-	*baseClient
+	*apimachinery.BaseClient
 }
 
 // NewServiceAccountsClient returns a specialized client for managing
@@ -109,10 +77,10 @@ func NewServiceAccountsClient(
 	allowInsecure bool,
 ) ServiceAccountsClient {
 	return &serviceAccountsClient{
-		baseClient: &baseClient{
-			apiAddress: apiAddress,
-			apiToken:   apiToken,
-			httpClient: &http.Client{
+		BaseClient: &apimachinery.BaseClient{
+			APIAddress: apiAddress,
+			APIToken:   apiToken,
+			HTTPClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,
@@ -125,17 +93,17 @@ func NewServiceAccountsClient(
 
 func (s *serviceAccountsClient) Create(
 	_ context.Context,
-	serviceAccount ServiceAccount,
+	serviceAccount authx.ServiceAccount,
 ) (Token, error) {
 	token := Token{}
-	return token, s.executeRequest(
-		outboundRequest{
-			method:      http.MethodPost,
-			path:        "v2/service-accounts",
-			authHeaders: s.bearerTokenAuthHeaders(),
-			reqBodyObj:  serviceAccount,
-			successCode: http.StatusCreated,
-			respObj:     &token,
+	return token, s.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodPost,
+			Path:        "v2/service-accounts",
+			AuthHeaders: s.BearerTokenAuthHeaders(),
+			ReqBodyObj:  serviceAccount,
+			SuccessCode: http.StatusCreated,
+			RespObj:     &token,
 		},
 	)
 }
@@ -146,14 +114,14 @@ func (s *serviceAccountsClient) List(
 	opts meta.ListOptions,
 ) (ServiceAccountList, error) {
 	serviceAccounts := ServiceAccountList{}
-	return serviceAccounts, s.executeRequest(
-		outboundRequest{
-			method:      http.MethodGet,
-			path:        "v2/service-accounts",
-			authHeaders: s.bearerTokenAuthHeaders(),
-			queryParams: s.appendListQueryParams(nil, opts),
-			successCode: http.StatusOK,
-			respObj:     &serviceAccounts,
+	return serviceAccounts, s.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodGet,
+			Path:        "v2/service-accounts",
+			AuthHeaders: s.BearerTokenAuthHeaders(),
+			QueryParams: s.AppendListQueryParams(nil, opts),
+			SuccessCode: http.StatusOK,
+			RespObj:     &serviceAccounts,
 		},
 	)
 }
@@ -161,26 +129,26 @@ func (s *serviceAccountsClient) List(
 func (s *serviceAccountsClient) Get(
 	_ context.Context,
 	id string,
-) (ServiceAccount, error) {
-	serviceAccount := ServiceAccount{}
-	return serviceAccount, s.executeRequest(
-		outboundRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/service-accounts/%s", id),
-			authHeaders: s.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-			respObj:     &serviceAccount,
+) (authx.ServiceAccount, error) {
+	serviceAccount := authx.ServiceAccount{}
+	return serviceAccount, s.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodGet,
+			Path:        fmt.Sprintf("v2/service-accounts/%s", id),
+			AuthHeaders: s.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
+			RespObj:     &serviceAccount,
 		},
 	)
 }
 
 func (s *serviceAccountsClient) Lock(_ context.Context, id string) error {
-	return s.executeRequest(
-		outboundRequest{
-			method:      http.MethodPut,
-			path:        fmt.Sprintf("v2/service-accounts/%s/lock", id),
-			authHeaders: s.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
+	return s.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodPut,
+			Path:        fmt.Sprintf("v2/service-accounts/%s/lock", id),
+			AuthHeaders: s.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -190,13 +158,13 @@ func (s *serviceAccountsClient) Unlock(
 	id string,
 ) (Token, error) {
 	token := Token{}
-	return token, s.executeRequest(
-		outboundRequest{
-			method:      http.MethodDelete,
-			path:        fmt.Sprintf("v2/service-accounts/%s/lock", id),
-			authHeaders: s.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-			respObj:     &token,
+	return token, s.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method:      http.MethodDelete,
+			Path:        fmt.Sprintf("v2/service-accounts/%s/lock", id),
+			AuthHeaders: s.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
+			RespObj:     &token,
 		},
 	)
 }

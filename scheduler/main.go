@@ -7,7 +7,7 @@ import (
 	"github.com/krancour/brignext/v2/internal/signals"
 	"github.com/krancour/brignext/v2/internal/version"
 	"github.com/krancour/brignext/v2/scheduler/internal/queue/amqp"
-	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/krancour/brignext/v2/sdk/core/api"
 )
 
 func main() {

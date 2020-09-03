@@ -12,8 +12,8 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/krancour/brignext/v2/internal/file"
-	"github.com/krancour/brignext/v2/sdk"
-	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/krancour/brignext/v2/sdk/core"
+	"github.com/krancour/brignext/v2/sdk/core/api"
 	"github.com/krancour/brignext/v2/sdk/meta"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
@@ -323,7 +323,7 @@ func eventCreate(c *cli.Context) error {
 		payload = string(payloadBytes)
 	}
 
-	event := sdk.Event{
+	event := core.Event{
 		ProjectID: projectID,
 		Source:    source,
 		Type:      eventType,
@@ -335,7 +335,7 @@ func eventCreate(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	events, err := client.Events().Create(c.Context, event)
+	events, err := client.Core().Events().Create(c.Context, event)
 	if err != nil {
 		return err
 	}
@@ -348,31 +348,31 @@ func eventList(c *cli.Context) error {
 	output := c.String(flagOutput)
 	projectID := c.String(flagProject)
 
-	workerPhases := []sdk.WorkerPhase{}
+	workerPhases := []core.WorkerPhase{}
 
 	if c.Bool(flagAborted) {
-		workerPhases = append(workerPhases, sdk.WorkerPhaseAborted)
+		workerPhases = append(workerPhases, core.WorkerPhaseAborted)
 	}
 	if c.Bool(flagCanceled) {
-		workerPhases = append(workerPhases, sdk.WorkerPhaseCanceled)
+		workerPhases = append(workerPhases, core.WorkerPhaseCanceled)
 	}
 	if c.Bool(flagFailed) {
-		workerPhases = append(workerPhases, sdk.WorkerPhaseFailed)
+		workerPhases = append(workerPhases, core.WorkerPhaseFailed)
 	}
 	if c.Bool(flagPending) {
-		workerPhases = append(workerPhases, sdk.WorkerPhasePending)
+		workerPhases = append(workerPhases, core.WorkerPhasePending)
 	}
 	if c.Bool(flagRunning) {
-		workerPhases = append(workerPhases, sdk.WorkerPhaseRunning)
+		workerPhases = append(workerPhases, core.WorkerPhaseRunning)
 	}
 	if c.Bool(flagSucceeded) {
-		workerPhases = append(workerPhases, sdk.WorkerPhaseSucceeded)
+		workerPhases = append(workerPhases, core.WorkerPhaseSucceeded)
 	}
 	if c.Bool(flagTimedOut) {
-		workerPhases = append(workerPhases, sdk.WorkerPhaseTimedOut)
+		workerPhases = append(workerPhases, core.WorkerPhaseTimedOut)
 	}
 	if c.Bool(flagUnknown) {
-		workerPhases = append(workerPhases, sdk.WorkerPhaseUnknown)
+		workerPhases = append(workerPhases, core.WorkerPhaseUnknown)
 	}
 
 	if c.Bool(flagTerminal) {
@@ -381,7 +381,7 @@ func eventList(c *cli.Context) error {
 				"--terminal is mutually exclusive with all other state flags",
 			)
 		}
-		workerPhases = sdk.WorkerPhasesTerminal()
+		workerPhases = core.WorkerPhasesTerminal()
 	}
 
 	if c.Bool(flagNonTerminal) {
@@ -390,7 +390,7 @@ func eventList(c *cli.Context) error {
 				"--non-terminal is mutually exclusive with all other state flags",
 			)
 		}
-		workerPhases = sdk.WorkerPhasesNonTerminal()
+		workerPhases = core.WorkerPhasesNonTerminal()
 	}
 
 	if err := validateOutputFormat(output); err != nil {
@@ -409,7 +409,7 @@ func eventList(c *cli.Context) error {
 	opts := meta.ListOptions{}
 
 	for {
-		events, err := client.Events().List(c.Context, selector, opts)
+		events, err := client.Core().Events().List(c.Context, selector, opts)
 		if err != nil {
 			return err
 		}
@@ -506,7 +506,7 @@ func eventGet(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	event, err := client.Events().Get(c.Context, id)
+	event, err := client.Core().Events().Get(c.Context, id)
 	if err != nil {
 		return err
 	}
@@ -594,7 +594,7 @@ func eventCancel(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err = client.Events().Cancel(c.Context, id); err != nil {
+	if err = client.Core().Events().Cancel(c.Context, id); err != nil {
 		return err
 	}
 	fmt.Printf("Event %q canceled.\n", id)
@@ -621,13 +621,13 @@ func eventCancelMany(c *cli.Context) error {
 
 	selector := api.EventsSelector{
 		ProjectID:    projectID,
-		WorkerPhases: []sdk.WorkerPhase{sdk.WorkerPhasePending},
+		WorkerPhases: []core.WorkerPhase{core.WorkerPhasePending},
 	}
 	if cancelRunning {
-		selector.WorkerPhases = append(selector.WorkerPhases, sdk.WorkerPhaseRunning)
+		selector.WorkerPhases = append(selector.WorkerPhases, core.WorkerPhaseRunning)
 	}
 
-	events, err := client.Events().CancelMany(c.Context, selector)
+	events, err := client.Core().Events().CancelMany(c.Context, selector)
 	if err != nil {
 		return err
 	}
@@ -652,7 +652,7 @@ func eventDelete(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brignext client")
 	}
 
-	if err = client.Events().Delete(c.Context, id); err != nil {
+	if err = client.Core().Events().Delete(c.Context, id); err != nil {
 		return err
 	}
 	fmt.Printf("Event %q deleted.\n", id)
@@ -662,31 +662,31 @@ func eventDelete(c *cli.Context) error {
 
 func eventDeleteMany(c *cli.Context) error {
 	projectID := c.String(flagProject)
-	workerPhases := []sdk.WorkerPhase{}
+	workerPhases := []core.WorkerPhase{}
 
 	if c.Bool(flagAborted) {
-		workerPhases = append(workerPhases, sdk.WorkerPhaseAborted)
+		workerPhases = append(workerPhases, core.WorkerPhaseAborted)
 	}
 	if c.Bool(flagCanceled) {
-		workerPhases = append(workerPhases, sdk.WorkerPhaseCanceled)
+		workerPhases = append(workerPhases, core.WorkerPhaseCanceled)
 	}
 	if c.Bool(flagFailed) {
-		workerPhases = append(workerPhases, sdk.WorkerPhaseFailed)
+		workerPhases = append(workerPhases, core.WorkerPhaseFailed)
 	}
 	if c.Bool(flagPending) {
-		workerPhases = append(workerPhases, sdk.WorkerPhasePending)
+		workerPhases = append(workerPhases, core.WorkerPhasePending)
 	}
 	if c.Bool(flagRunning) {
-		workerPhases = append(workerPhases, sdk.WorkerPhaseRunning)
+		workerPhases = append(workerPhases, core.WorkerPhaseRunning)
 	}
 	if c.Bool(flagSucceeded) {
-		workerPhases = append(workerPhases, sdk.WorkerPhaseSucceeded)
+		workerPhases = append(workerPhases, core.WorkerPhaseSucceeded)
 	}
 	if c.Bool(flagTimedOut) {
-		workerPhases = append(workerPhases, sdk.WorkerPhaseTimedOut)
+		workerPhases = append(workerPhases, core.WorkerPhaseTimedOut)
 	}
 	if c.Bool(flagUnknown) {
-		workerPhases = append(workerPhases, sdk.WorkerPhaseUnknown)
+		workerPhases = append(workerPhases, core.WorkerPhaseUnknown)
 	}
 
 	if c.Bool(flagAnyState) {
@@ -695,7 +695,7 @@ func eventDeleteMany(c *cli.Context) error {
 				"--any-state is mutually exclusive with all other state flags",
 			)
 		}
-		workerPhases = sdk.WorkerPhasesAll()
+		workerPhases = core.WorkerPhasesAll()
 	}
 
 	if c.Bool(flagTerminal) {
@@ -704,7 +704,7 @@ func eventDeleteMany(c *cli.Context) error {
 				"--terminal is mutually exclusive with all other state flags",
 			)
 		}
-		workerPhases = sdk.WorkerPhasesTerminal()
+		workerPhases = core.WorkerPhasesTerminal()
 	}
 
 	confirmed, err := confirmed(c)
@@ -725,7 +725,7 @@ func eventDeleteMany(c *cli.Context) error {
 		WorkerPhases: workerPhases,
 	}
 
-	events, err := client.Events().DeleteMany(c.Context, selector)
+	events, err := client.Core().Events().DeleteMany(c.Context, selector)
 	if err != nil {
 		return err
 	}

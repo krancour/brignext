@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/scheduler/internal/queue"
-	"github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/core"
 )
 
 func (s *scheduler) runWorkerLoop(ctx context.Context, projectID string) {
@@ -52,7 +52,7 @@ outerLoop:
 				continue outerLoop // Try again with a new reader
 			}
 
-			event, err := s.apiClient.Events().Get(ctx, msg.Message)
+			event, err := s.coreClient.Events().Get(ctx, msg.Message)
 			if err != nil {
 				// TODO: We should check what went wrong
 				log.Println(err)
@@ -61,7 +61,7 @@ outerLoop:
 			}
 
 			// If the Worker's phase isn't PENDING, then there's nothing to do
-			if event.Worker.Status.Phase != sdk.WorkerPhasePending {
+			if event.Worker.Status.Phase != core.WorkerPhasePending {
 				msg.Ack() // nolint: errcheck
 				continue  // Next Worker
 			}
@@ -85,7 +85,7 @@ outerLoop:
 			// Now use the API to start the Worker...
 
 			if err :=
-				s.apiClient.Events().Workers().Start(ctx, event.ID); err != nil {
+				s.coreClient.Events().Workers().Start(ctx, event.ID); err != nil {
 				log.Printf(
 					"error starting worker for event %q: %s",
 					msg.Message,

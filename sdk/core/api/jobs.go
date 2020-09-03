@@ -8,7 +8,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/krancour/brignext/v2/sdk"
+	"github.com/krancour/brignext/v2/sdk/core"
+	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
 )
 
 // JobsClient is the specialized client for managing Event Jobs with the
@@ -20,7 +21,7 @@ type JobsClient interface {
 		ctx context.Context,
 		eventID string,
 		jobName string,
-		jobSpec sdk.JobSpec,
+		jobSpec core.JobSpec,
 	) error
 	// Start initiates execution of a pending Job.
 	Start(
@@ -34,7 +35,7 @@ type JobsClient interface {
 		ctx context.Context,
 		eventID string,
 		jobName string,
-	) (sdk.JobStatus, error)
+	) (core.JobStatus, error)
 	// WatchStatus, given an Event identifier and Job name, returns a channel
 	// over which the Job's status is streamed. The channel receives a new
 	// JobStatus every time there is any change in that status.
@@ -42,19 +43,19 @@ type JobsClient interface {
 		ctx context.Context,
 		eventID string,
 		jobName string,
-	) (<-chan sdk.JobStatus, <-chan error, error)
+	) (<-chan core.JobStatus, <-chan error, error)
 	// UpdateStatus, given an Event identifier and Job name, updates the status
 	// of that Job.
 	UpdateStatus(
 		ctx context.Context,
 		eventID string,
 		jobName string,
-		status sdk.JobStatus,
+		status core.JobStatus,
 	) error
 }
 
 type jobsClient struct {
-	*baseClient
+	*apimachinery.BaseClient
 }
 
 // NewJobsClient returns a specialized client for managing Event Jobs.
@@ -64,10 +65,10 @@ func NewJobsClient(
 	allowInsecure bool,
 ) JobsClient {
 	return &jobsClient{
-		baseClient: &baseClient{
-			apiAddress: apiAddress,
-			apiToken:   apiToken,
-			httpClient: &http.Client{
+		BaseClient: &apimachinery.BaseClient{
+			APIAddress: apiAddress,
+			APIToken:   apiToken,
+			HTTPClient: &http.Client{
 				Transport: &http.Transport{
 					TLSClientConfig: &tls.Config{
 						InsecureSkipVerify: allowInsecure,
@@ -82,19 +83,19 @@ func (j *jobsClient) Create(
 	ctx context.Context,
 	eventID string,
 	jobName string,
-	jobSpec sdk.JobSpec,
+	jobSpec core.JobSpec,
 ) error {
-	return j.executeRequest(
-		outboundRequest{
-			method: http.MethodPut,
-			path: fmt.Sprintf(
+	return j.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method: http.MethodPut,
+			Path: fmt.Sprintf(
 				"v2/events/%s/worker/jobs/%s/spec",
 				eventID,
 				jobName,
 			),
-			authHeaders: j.bearerTokenAuthHeaders(),
-			reqBodyObj:  jobSpec,
-			successCode: http.StatusCreated,
+			AuthHeaders: j.BearerTokenAuthHeaders(),
+			ReqBodyObj:  jobSpec,
+			SuccessCode: http.StatusCreated,
 		},
 	)
 }
@@ -104,16 +105,16 @@ func (j *jobsClient) Start(
 	eventID string,
 	jobName string,
 ) error {
-	return j.executeRequest(
-		outboundRequest{
-			method: http.MethodPut,
-			path: fmt.Sprintf(
+	return j.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method: http.MethodPut,
+			Path: fmt.Sprintf(
 				"v2/events/%s/worker/jobs/%s/start",
 				eventID,
 				jobName,
 			),
-			authHeaders: j.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
+			AuthHeaders: j.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -122,19 +123,19 @@ func (j *jobsClient) GetStatus(
 	ctx context.Context,
 	eventID string,
 	jobName string,
-) (sdk.JobStatus, error) {
-	status := sdk.JobStatus{}
-	return status, j.executeRequest(
-		outboundRequest{
-			method: http.MethodGet,
-			path: fmt.Sprintf(
+) (core.JobStatus, error) {
+	status := core.JobStatus{}
+	return status, j.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method: http.MethodGet,
+			Path: fmt.Sprintf(
 				"v2/events/%s/worker/jobs/%s/status",
 				eventID,
 				jobName,
 			),
-			authHeaders: j.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-			respObj:     &status,
+			AuthHeaders: j.BearerTokenAuthHeaders(),
+			SuccessCode: http.StatusOK,
+			RespObj:     &status,
 		},
 	)
 }
@@ -143,27 +144,27 @@ func (j *jobsClient) WatchStatus(
 	ctx context.Context,
 	eventID string,
 	jobName string,
-) (<-chan sdk.JobStatus, <-chan error, error) {
-	resp, err := j.submitRequest(
-		outboundRequest{
-			method: http.MethodGet,
-			path: fmt.Sprintf(
+) (<-chan core.JobStatus, <-chan error, error) {
+	resp, err := j.SubmitRequest(
+		apimachinery.OutboundRequest{
+			Method: http.MethodGet,
+			Path: fmt.Sprintf(
 				"v2/events/%s/worker/jobs/%s/status",
 				eventID,
 				jobName,
 			),
-			authHeaders: j.bearerTokenAuthHeaders(),
-			queryParams: map[string]string{
+			AuthHeaders: j.BearerTokenAuthHeaders(),
+			QueryParams: map[string]string{
 				"watch": "true",
 			},
-			successCode: http.StatusOK,
+			SuccessCode: http.StatusOK,
 		},
 	)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	statusCh := make(chan sdk.JobStatus)
+	statusCh := make(chan core.JobStatus)
 	errCh := make(chan error)
 
 	go j.receiveStatusStream(ctx, resp.Body, statusCh, errCh)
@@ -175,19 +176,19 @@ func (j *jobsClient) UpdateStatus(
 	_ context.Context,
 	eventID string,
 	jobName string,
-	status sdk.JobStatus,
+	status core.JobStatus,
 ) error {
-	return j.executeRequest(
-		outboundRequest{
-			method: http.MethodPut,
-			path: fmt.Sprintf(
+	return j.ExecuteRequest(
+		apimachinery.OutboundRequest{
+			Method: http.MethodPut,
+			Path: fmt.Sprintf(
 				"v2/events/%s/worker/jobs/%s/status",
 				eventID,
 				jobName,
 			),
-			authHeaders: j.bearerTokenAuthHeaders(),
-			reqBodyObj:  status,
-			successCode: http.StatusOK,
+			AuthHeaders: j.BearerTokenAuthHeaders(),
+			ReqBodyObj:  status,
+			SuccessCode: http.StatusOK,
 		},
 	)
 }
@@ -195,13 +196,13 @@ func (j *jobsClient) UpdateStatus(
 func (j *jobsClient) receiveStatusStream(
 	ctx context.Context,
 	reader io.ReadCloser,
-	statusCh chan<- sdk.JobStatus,
+	statusCh chan<- core.JobStatus,
 	errCh chan<- error,
 ) {
 	defer reader.Close()
 	decoder := json.NewDecoder(reader)
 	for {
-		status := sdk.JobStatus{}
+		status := core.JobStatus{}
 		if err := decoder.Decode(&status); err != nil {
 			select {
 			case errCh <- err:
