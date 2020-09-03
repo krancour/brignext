@@ -42,32 +42,6 @@ func (p ProjectList) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// SecretList is an ordered and pageable list of Secrets.
-type SecretList struct {
-	// ListMeta contains list metadata.
-	meta.ListMeta `json:"metadata"`
-	// Items is a slice of Secrets.
-	Items []sdk.Secret `json:"items,omitempty"`
-}
-
-// MarshalJSON amends SecretList instances with type metadata so that clients do
-// not need to be concerned with the tedium of doing so.
-func (s SecretList) MarshalJSON() ([]byte, error) {
-	type Alias SecretList
-	return json.Marshal(
-		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
-		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
-				Kind:       "SecretList",
-			},
-			Alias: (Alias)(s),
-		},
-	)
-}
-
 // ProjectsClient is the specialized client for managing Projects with the
 // BrigNext API.
 type ProjectsClient interface {
@@ -99,49 +73,19 @@ type ProjectsClient interface {
 	// Delete deletes a single Project specified by its identifier.
 	Delete(context.Context, string) error
 
-	// ListSecrets returns a SecretList who Items (Secrets) contain Keys only and
-	// not Values (all Value fields are empty). i.e. Once a secret is set, end
-	// clients are unable to retrieve values.
-	ListSecrets(
-		ctx context.Context,
-		projectID string,
-		opts meta.ListOptions,
-	) (SecretList, error)
-	// SetSecret set the value of a new Secret or updates the value of an existing
-	// Secret.
-	SetSecret(ctx context.Context, projectID string, secret sdk.Secret) error
-	// UnsetSecret clears the value of an existing Secret.
-	UnsetSecret(ctx context.Context, projectID string, key string) error
+	// Roles returns a specialized client for Project Role management.
+	Roles() ProjectRolesClient
 
-	GrantRoleToUser(
-		ctx context.Context,
-		projectID string,
-		userID string,
-		roleName string,
-	) error
-	RevokeRoleFromUser(
-		ctx context.Context,
-		projectID string,
-		userID string,
-		roleName string,
-	) error
-
-	GrantRoleToServiceAccount(
-		ctx context.Context,
-		projectID string,
-		serviceAccountID string,
-		roleName string,
-	) error
-	RevokeRoleFromServiceAccount(
-		ctx context.Context,
-		projectID string,
-		serviceAccountID string,
-		roleName string,
-	) error
+	// Secrets returns a specialized client for Secret management.
+	Secrets() SecretsClient
 }
 
 type projectsClient struct {
 	*baseClient
+	// rolesClient is a specialized client for Project Role managament.
+	rolesClient ProjectRolesClient
+	// secretsClient is a specialized client for Secret managament.
+	secretsClient SecretsClient
 }
 
 // NewProjectsClient returns a specialized client for managing Projects.
@@ -162,6 +106,8 @@ func NewProjectsClient(
 				},
 			},
 		},
+		rolesClient:   NewProjectRolesClient(apiAddress, apiToken, allowInsecure),
+		secretsClient: NewSecretsClient(apiAddress, apiToken, allowInsecure),
 	}
 }
 
@@ -279,153 +225,10 @@ func (p *projectsClient) Delete(_ context.Context, id string) error {
 	)
 }
 
-func (p *projectsClient) ListSecrets(
-	ctx context.Context,
-	projectID string,
-	opts meta.ListOptions,
-) (SecretList, error) {
-	secrets := SecretList{}
-	return secrets, p.executeRequest(
-		outboundRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/projects/%s/secrets", projectID),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			queryParams: p.appendListQueryParams(nil, opts),
-			successCode: http.StatusOK,
-			respObj:     &secrets,
-		},
-	)
+func (p *projectsClient) Roles() ProjectRolesClient {
+	return p.rolesClient
 }
 
-func (p *projectsClient) SetSecret(
-	ctx context.Context,
-	projectID string,
-	secret sdk.Secret,
-) error {
-	return p.executeRequest(
-		outboundRequest{
-			method: http.MethodPut,
-			path: fmt.Sprintf(
-				"v2/projects/%s/secrets/%s",
-				projectID,
-				secret.Key,
-			),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			reqBodyObj:  secret,
-			successCode: http.StatusOK,
-		},
-	)
-}
-
-func (p *projectsClient) UnsetSecret(
-	ctx context.Context,
-	projectID string,
-	key string,
-) error {
-	return p.executeRequest(
-		outboundRequest{
-			method: http.MethodDelete,
-			path: fmt.Sprintf(
-				"v2/projects/%s/secrets/%s",
-				projectID,
-				key,
-			),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-		},
-	)
-}
-
-func (p *projectsClient) GrantRoleToUser(
-	ctx context.Context,
-	projectID string,
-	userID string,
-	roleName string,
-) error {
-	return p.executeRequest(
-		outboundRequest{
-			method: http.MethodPost,
-			path: fmt.Sprintf(
-				"v2/projects/%s/user-role-assignments",
-				projectID,
-			),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			reqBodyObj: UserRoleAssignment{
-				UserID: userID,
-				Role:   roleName,
-			},
-			successCode: http.StatusOK,
-		},
-	)
-}
-
-func (p *projectsClient) RevokeRoleFromUser(
-	ctx context.Context,
-	projectID string,
-	userID string,
-	roleName string,
-) error {
-	queryParams := map[string]string{
-		"userID": userID,
-		"role":   roleName,
-	}
-	return p.executeRequest(
-		outboundRequest{
-			method: http.MethodDelete,
-			path: fmt.Sprintf(
-				"v2/projects/%s/user-role-assignments",
-				projectID,
-			),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
-			successCode: http.StatusOK,
-		},
-	)
-}
-
-func (p *projectsClient) GrantRoleToServiceAccount(
-	ctx context.Context,
-	projectID string,
-	serviceAccountID string,
-	roleName string,
-) error {
-	return p.executeRequest(
-		outboundRequest{
-			method: http.MethodPost,
-			path: fmt.Sprintf(
-				"v2/projects/%s/service-account-role-assignments",
-				projectID,
-			),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			reqBodyObj: ServiceAccountRoleAssignment{
-				ServiceAccountID: serviceAccountID,
-				Role:             roleName,
-			},
-			successCode: http.StatusOK,
-		},
-	)
-}
-
-func (p *projectsClient) RevokeRoleFromServiceAccount(
-	ctx context.Context,
-	projectID string,
-	serviceAccountID string,
-	roleName string,
-) error {
-	queryParams := map[string]string{
-		"serviceAccountID": serviceAccountID,
-		"role":             roleName,
-	}
-	return p.executeRequest(
-		outboundRequest{
-			method: http.MethodDelete,
-			path: fmt.Sprintf(
-				"v2/projects/%s/service-account-role-assignments",
-				projectID,
-			),
-			authHeaders: p.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
-			successCode: http.StatusOK,
-		},
-	)
+func (p *projectsClient) Secrets() SecretsClient {
+	return p.secretsClient
 }

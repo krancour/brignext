@@ -83,7 +83,7 @@ func (o *observer) syncWorkerPod(obj interface{}) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := o.apiClient.Events().UpdateWorkerStatus(
+	if err := o.apiClient.Events().Workers().UpdateStatus(
 		ctx,
 		eventID,
 		status,

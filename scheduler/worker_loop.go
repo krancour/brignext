@@ -84,7 +84,8 @@ outerLoop:
 
 			// Now use the API to start the Worker...
 
-			if err := s.apiClient.Events().StartWorker(ctx, event.ID); err != nil {
+			if err :=
+				s.apiClient.Events().Workers().Start(ctx, event.ID); err != nil {
 				log.Printf(
 					"error starting worker for event %q: %s",
 					msg.Message,

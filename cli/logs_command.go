@@ -57,7 +57,7 @@ func logs(c *cli.Context) error {
 	}
 
 	logEntryCh, errCh, err :=
-		client.Events().StreamLogs(c.Context, eventID, selector, opts)
+		client.Events().Logs().Stream(c.Context, eventID, selector, opts)
 	if err != nil {
 		return err
 	}

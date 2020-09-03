@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
@@ -58,21 +57,6 @@ type DeleteManyEventsResult struct {
 	Count int64 `json:"count"`
 }
 
-// TODO: Document this
-type LogsSelector struct {
-	// Job specifies, by name, a Job spawned by the Worker. If this field is
-	// left blank, it is presumed logs are desired for the Worker itself.
-	Job string
-	// Container specifies, by name, a container belonging to the Worker or Job
-	// whose logs are being retrieved. If left blank, a container with the same
-	// name as the Worker or Job is assumed.
-	Container string
-}
-
-type LogStreamOptions struct {
-	Follow bool `json:"follow"`
-}
-
 // EventsClient is the specialized client for managing Events with the BrigNext
 // API.
 type EventsClient interface {
@@ -95,76 +79,15 @@ type EventsClient interface {
 	// parameter.
 	DeleteMany(context.Context, EventsSelector) (DeleteManyEventsResult, error)
 
-	// StartWorker starts the indicated Event's Worker on BrigNext's workload
-	// execution substrate.
-	StartWorker(ctx context.Context, eventID string) error
-	// GetWorkerStatus returns an Event's Worker's status.
-	GetWorkerStatus(ctx context.Context, eventID string) (sdk.WorkerStatus, error)
-	// WatchWorkerStatus returns a channel over which an Event's Worker's status
-	// is streamed. The channel receives a new WorkerStatus every time there is
-	// any change in that status.
-	WatchWorkerStatus(
-		ctx context.Context,
-		eventID string,
-	) (<-chan sdk.WorkerStatus, <-chan error, error)
-	// UpdateWorkerStatus updates the status of an Event's Worker.
-	UpdateWorkerStatus(
-		ctx context.Context,
-		eventID string,
-		status sdk.WorkerStatus,
-	) error
+	Workers() WorkersClient
 
-	// CreateJob, given an Event identifier and JobSpec, creates a new pending Job
-	// and schedules it for execution.
-	CreateJob(
-		ctx context.Context,
-		eventID string,
-		jobName string,
-		jobSpec sdk.JobSpec,
-	) error
-	// StartJob initiates execution of a pending Job.
-	StartJob(
-		ctx context.Context,
-		eventID string,
-		jobName string,
-	) error
-	// GetJobStatus, given an Event identifier and Job name, returns the Job's
-	// status.
-	GetJobStatus(
-		ctx context.Context,
-		eventID string,
-		jobName string,
-	) (sdk.JobStatus, error)
-	// WatchJobStatus, given an Event identifier and Job name, returns a channel
-	// over which the Job's status is streamed. The channel receives a new
-	// JobStatus every time there is any change in that status.
-	WatchJobStatus(
-		ctx context.Context,
-		eventID string,
-		jobName string,
-	) (<-chan sdk.JobStatus, <-chan error, error)
-	// UpdateJobStatus, given an Event identifier and Job name, updates the status
-	// of that Job.
-	UpdateJobStatus(
-		ctx context.Context,
-		eventID string,
-		jobName string,
-		status sdk.JobStatus,
-	) error
-
-	// StreamLogs returns a channel over which logs for an Event's Worker, or
-	// using the LogsSelector parameter, a Job spawned by that Worker (or specific
-	// container thereof), are streamed.
-	StreamLogs(
-		ctx context.Context,
-		eventID string,
-		selector LogsSelector,
-		opts LogStreamOptions,
-	) (<-chan sdk.LogEntry, <-chan error, error)
+	Logs() LogsClient
 }
 
 type eventsClient struct {
 	*baseClient
+	workersClient WorkersClient
+	logsClient    LogsClient
 }
 
 // NewEventsClient returns a specialized client for managing Events.
@@ -185,6 +108,8 @@ func NewEventsClient(
 				},
 			},
 		},
+		workersClient: NewWorkersClient(apiAddress, apiToken, allowInsecure),
+		logsClient:    NewLogsClient(apiAddress, apiToken, allowInsecure),
 	}
 }
 
@@ -328,306 +253,10 @@ func (e *eventsClient) DeleteMany(
 	)
 }
 
-func (e *eventsClient) StartWorker(ctx context.Context, eventID string) error {
-	return e.executeRequest(
-		outboundRequest{
-			method:      http.MethodPut,
-			path:        fmt.Sprintf("v2/events/%s/worker/start", eventID),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-		},
-	)
+func (e *eventsClient) Workers() WorkersClient {
+	return e.workersClient
 }
 
-func (e *eventsClient) GetWorkerStatus(
-	ctx context.Context,
-	eventID string,
-) (sdk.WorkerStatus, error) {
-	status := sdk.WorkerStatus{}
-	return status, e.executeRequest(
-		outboundRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-			respObj:     &status,
-		},
-	)
-}
-
-func (e *eventsClient) WatchWorkerStatus(
-	ctx context.Context,
-	eventID string,
-) (<-chan sdk.WorkerStatus, <-chan error, error) {
-	resp, err := e.submitRequest(
-		outboundRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: map[string]string{
-				"watch": "true",
-			},
-			successCode: http.StatusOK,
-		},
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	statusCh := make(chan sdk.WorkerStatus)
-	errCh := make(chan error)
-
-	go e.receiveWorkerStatusStream(ctx, resp.Body, statusCh, errCh)
-
-	return statusCh, errCh, nil
-}
-
-func (e *eventsClient) UpdateWorkerStatus(
-	_ context.Context,
-	eventID string,
-	status sdk.WorkerStatus,
-) error {
-	return e.executeRequest(
-		outboundRequest{
-			method:      http.MethodPut,
-			path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			reqBodyObj:  status,
-			successCode: http.StatusOK,
-		},
-	)
-}
-
-func (e *eventsClient) CreateJob(
-	ctx context.Context,
-	eventID string,
-	jobName string,
-	jobSpec sdk.JobSpec,
-) error {
-	return e.executeRequest(
-		outboundRequest{
-			method: http.MethodPut,
-			path: fmt.Sprintf(
-				"v2/events/%s/worker/jobs/%s/spec",
-				eventID,
-				jobName,
-			),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			reqBodyObj:  jobSpec,
-			successCode: http.StatusCreated,
-		},
-	)
-}
-
-func (e *eventsClient) StartJob(
-	ctx context.Context,
-	eventID string,
-	jobName string,
-) error {
-	return e.executeRequest(
-		outboundRequest{
-			method: http.MethodPut,
-			path: fmt.Sprintf(
-				"v2/events/%s/worker/jobs/%s/start",
-				eventID,
-				jobName,
-			),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-		},
-	)
-}
-
-func (e *eventsClient) GetJobStatus(
-	ctx context.Context,
-	eventID string,
-	jobName string,
-) (sdk.JobStatus, error) {
-	status := sdk.JobStatus{}
-	return status, e.executeRequest(
-		outboundRequest{
-			method: http.MethodGet,
-			path: fmt.Sprintf(
-				"v2/events/%s/worker/jobs/%s/status",
-				eventID,
-				jobName,
-			),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			successCode: http.StatusOK,
-			respObj:     &status,
-		},
-	)
-}
-
-func (e *eventsClient) WatchJobStatus(
-	ctx context.Context,
-	eventID string,
-	jobName string,
-) (<-chan sdk.JobStatus, <-chan error, error) {
-	resp, err := e.submitRequest(
-		outboundRequest{
-			method: http.MethodGet,
-			path: fmt.Sprintf(
-				"v2/events/%s/worker/jobs/%s/status",
-				eventID,
-				jobName,
-			),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: map[string]string{
-				"watch": "true",
-			},
-			successCode: http.StatusOK,
-		},
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	statusCh := make(chan sdk.JobStatus)
-	errCh := make(chan error)
-
-	go e.receiveJobStatusStream(ctx, resp.Body, statusCh, errCh)
-
-	return statusCh, errCh, nil
-}
-
-func (e *eventsClient) UpdateJobStatus(
-	_ context.Context,
-	eventID string,
-	jobName string,
-	status sdk.JobStatus,
-) error {
-	return e.executeRequest(
-		outboundRequest{
-			method: http.MethodPut,
-			path: fmt.Sprintf(
-				"v2/events/%s/worker/jobs/%s/status",
-				eventID,
-				jobName,
-			),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			reqBodyObj:  status,
-			successCode: http.StatusOK,
-		},
-	)
-}
-
-func (e *eventsClient) StreamLogs(
-	ctx context.Context,
-	eventID string,
-	selector LogsSelector,
-	opts LogStreamOptions,
-) (<-chan sdk.LogEntry, <-chan error, error) {
-	queryParams := map[string]string{}
-	if selector.Job != "" {
-		queryParams["job"] = selector.Job
-	}
-	if selector.Container != "" {
-		queryParams["container"] = selector.Container
-	}
-	if opts.Follow {
-		queryParams["follow"] = "true"
-	}
-
-	resp, err := e.submitRequest(
-		outboundRequest{
-			method:      http.MethodGet,
-			path:        fmt.Sprintf("v2/events/%s/logs", eventID),
-			authHeaders: e.bearerTokenAuthHeaders(),
-			queryParams: queryParams,
-			successCode: http.StatusOK,
-		},
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	logCh := make(chan sdk.LogEntry)
-	errCh := make(chan error)
-
-	go e.receiveLogStream(ctx, resp.Body, logCh, errCh)
-
-	return logCh, errCh, nil
-}
-
-func (e *eventsClient) receiveWorkerStatusStream(
-	ctx context.Context,
-	reader io.ReadCloser,
-	statusCh chan<- sdk.WorkerStatus,
-	errCh chan<- error,
-) {
-	defer reader.Close()
-	decoder := json.NewDecoder(reader)
-	for {
-		status := sdk.WorkerStatus{}
-		if err := decoder.Decode(&status); err != nil {
-			select {
-			case errCh <- err:
-			case <-ctx.Done():
-			}
-			return
-		}
-		select {
-		case statusCh <- status:
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-func (e *eventsClient) receiveJobStatusStream(
-	ctx context.Context,
-	reader io.ReadCloser,
-	statusCh chan<- sdk.JobStatus,
-	errCh chan<- error,
-) {
-	defer reader.Close()
-	decoder := json.NewDecoder(reader)
-	for {
-		status := sdk.JobStatus{}
-		if err := decoder.Decode(&status); err != nil {
-			select {
-			case errCh <- err:
-			case <-ctx.Done():
-			}
-			return
-		}
-		select {
-		case statusCh <- status:
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-// receiveLogStream is used to receive log messages as SSEs (server sent
-// events), decode those, and publish them to a channel.
-func (e *eventsClient) receiveLogStream(
-	ctx context.Context,
-	reader io.ReadCloser,
-	logEntryCh chan<- sdk.LogEntry,
-	errCh chan<- error,
-) {
-	defer close(logEntryCh)
-	defer close(errCh)
-	defer reader.Close()
-	decoder := json.NewDecoder(reader)
-	for {
-		logEntry := sdk.LogEntry{}
-		if err := decoder.Decode(&logEntry); err != nil {
-			if err == io.EOF {
-				return
-			}
-			select {
-			case errCh <- err:
-			case <-ctx.Done():
-			}
-			return
-		}
-		select {
-		case logEntryCh <- logEntry:
-		case <-ctx.Done():
-			return
-		}
-	}
+func (e *eventsClient) Logs() LogsClient {
+	return e.logsClient
 }

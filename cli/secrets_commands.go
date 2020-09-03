@@ -93,7 +93,7 @@ func secretsList(c *cli.Context) error {
 	opts := meta.ListOptions{}
 
 	for {
-		secrets, err := client.Projects().ListSecrets(c.Context, projectID, opts)
+		secrets, err := client.Projects().Secrets().List(c.Context, projectID, opts)
 		if err != nil {
 			return err
 		}
@@ -196,7 +196,7 @@ func secretsSet(c *cli.Context) error {
 			Key:   k,
 			Value: v,
 		}
-		if err := client.Projects().SetSecret(
+		if err := client.Projects().Secrets().Set(
 			c.Context,
 			projectID,
 			secret,
@@ -224,7 +224,7 @@ func secretsUnset(c *cli.Context) error {
 	// API call for each one. This can be revisited in the future if someone is
 	// aware of or discovers the right pattern for this.
 	for _, key := range keys {
-		if err := client.Projects().UnsetSecret(
+		if err := client.Projects().Secrets().Unset(
 			c.Context,
 			projectID,
 			key,
