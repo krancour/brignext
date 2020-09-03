@@ -4,17 +4,11 @@ package main
 import (
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/authn"
-	"github.com/krancour/brignext/v2/apiserver/internal/authx/serviceaccounts"
-	serviceaccountsMongodb "github.com/krancour/brignext/v2/apiserver/internal/authx/serviceaccounts/mongodb"
-	"github.com/krancour/brignext/v2/apiserver/internal/authx/sessions"
-	sessionsMongodb "github.com/krancour/brignext/v2/apiserver/internal/authx/sessions/mongodb"
-	"github.com/krancour/brignext/v2/apiserver/internal/authx/users"
-	usersMongodb "github.com/krancour/brignext/v2/apiserver/internal/authx/users/mongodb"
-	"github.com/krancour/brignext/v2/apiserver/internal/core/events"
-	eventsKubernetes "github.com/krancour/brignext/v2/apiserver/internal/core/events/kubernetes"
-	eventsMongodb "github.com/krancour/brignext/v2/apiserver/internal/core/events/mongodb"
-	"github.com/krancour/brignext/v2/apiserver/internal/core/projects"
-	projectsMongodb "github.com/krancour/brignext/v2/apiserver/internal/core/projects/mongodb"
+	"github.com/krancour/brignext/v2/apiserver/internal/authx"
+	authxMongodb "github.com/krancour/brignext/v2/apiserver/internal/authx/mongodb"
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
+	coreKubernetes "github.com/krancour/brignext/v2/apiserver/internal/core/kubernetes"
+	coreMongodb "github.com/krancour/brignext/v2/apiserver/internal/core/mongodb"
 	"github.com/krancour/brignext/v2/apiserver/internal/mongodb"
 	"github.com/krancour/brignext/v2/apiserver/internal/oidc"
 	"github.com/krancour/brignext/v2/apiserver/internal/queue/amqp"
@@ -40,18 +34,18 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 	}
 
 	// Service Accounts
-	serviceAccountsStore, err := serviceaccountsMongodb.NewStore(database)
+	serviceAccountsStore, err := authxMongodb.NewServiceAccountsStore(database)
 	if err != nil {
 		return nil, err
 	}
-	serviceAccountsService := serviceaccounts.NewService(serviceAccountsStore)
+	serviceAccountsService := authx.NewServiceAccountsService(serviceAccountsStore)
 
 	// Users
-	usersStore, err := usersMongodb.NewStore(database)
+	usersStore, err := authxMongodb.NewUsersStore(database)
 	if err != nil {
 		return nil, err
 	}
-	usersService := users.NewService(usersStore)
+	usersService := authx.NewUsersService(usersStore)
 
 	// Sessions-- depends on users
 	oauth2Config, oidcIdentityVerifier, err :=
@@ -59,11 +53,11 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	sessionsStore, err := sessionsMongodb.NewStore(database)
+	sessionsStore, err := authxMongodb.NewSessionsStore(database)
 	if err != nil {
 		return nil, err
 	}
-	sessionsService := sessions.NewService(
+	sessionsService := authx.NewSessionsService(
 		sessionsStore,
 		usersStore,
 		apiConfig.RootUserEnabled(),
@@ -73,15 +67,15 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 	)
 
 	// Projects
-	projectsStore, err := projectsMongodb.NewStore(database)
+	projectsStore, err := coreMongodb.NewProjectsStore(database)
 	if err != nil {
 		return nil, err
 	}
-	projectsService := projects.NewService(
+	projectsService := core.NewProjectsService(
 		projectsStore,
 		usersStore,
 		serviceAccountsStore,
-		projects.NewScheduler(kubeClient),
+		core.NewScheduler(kubeClient),
 	)
 
 	// Events-- depends on projects
@@ -89,24 +83,24 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	eventsStore, err := eventsMongodb.NewStore(database)
+	eventsStore, err := coreMongodb.NewEventsStore(database)
 	if err != nil {
 		return nil, err
 	}
-	schedulerConfig, err := events.GetConfigFromEnvironment()
+	schedulerConfig, err := core.GetConfigFromEnvironment()
 	if err != nil {
 		return nil, err
 	}
-	scheduler := events.NewScheduler(
+	scheduler := core.NewEventsScheduler(
 		schedulerConfig,
 		queueWriterFactory,
 		kubeClient,
 	)
-	eventsService := events.NewService(
+	eventsService := core.NewEventsService(
 		projectsStore,
 		eventsStore,
-		eventsKubernetes.NewLogsStore(kubeClient),
-		eventsMongodb.NewLogsStore(database),
+		coreKubernetes.NewLogsStore(kubeClient),
+		coreMongodb.NewLogsStore(database),
 		scheduler,
 	)
 
@@ -126,11 +120,11 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 		apiConfig,
 		baseEndpoints,
 		[]apimachinery.Endpoints{
-			events.NewEndpoints(baseEndpoints, eventsService),
-			projects.NewEndpoints(baseEndpoints, projectsService),
-			serviceaccounts.NewEndpoints(baseEndpoints, serviceAccountsService),
-			sessions.NewEndpoints(baseEndpoints, sessionsService),
-			users.NewEndpoints(baseEndpoints, usersService),
+			core.NewEventsEndpoints(baseEndpoints, eventsService),
+			core.NewProjectsEndpoints(baseEndpoints, projectsService),
+			authx.NewServiceAccountEndpoints(baseEndpoints, serviceAccountsService),
+			authx.NewSessionsEndpoints(baseEndpoints, sessionsService),
+			authx.NewUsersEndpoints(baseEndpoints, usersService),
 		},
 	), nil
 }
