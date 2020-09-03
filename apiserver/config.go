@@ -12,6 +12,7 @@ import (
 	"github.com/krancour/brignext/v2/apiserver/internal/mongodb"
 	"github.com/krancour/brignext/v2/apiserver/internal/oidc"
 	"github.com/krancour/brignext/v2/apiserver/internal/queue/amqp"
+	"github.com/krancour/brignext/v2/apiserver/internal/system"
 	"github.com/krancour/brignext/v2/internal/kubernetes"
 )
 
@@ -104,6 +105,8 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 		scheduler,
 	)
 
+	systemService := system.NewService(usersStore, serviceAccountsStore)
+
 	baseEndpoints := &apimachinery.BaseEndpoints{
 		TokenAuthFilter: authn.NewTokenAuthFilter(
 			sessionsService.GetByToken,
@@ -120,11 +123,12 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 		apiConfig,
 		baseEndpoints,
 		[]apimachinery.Endpoints{
-			core.NewEventsEndpoints(baseEndpoints, eventsService),
-			core.NewProjectsEndpoints(baseEndpoints, projectsService),
 			authx.NewServiceAccountEndpoints(baseEndpoints, serviceAccountsService),
 			authx.NewSessionsEndpoints(baseEndpoints, sessionsService),
 			authx.NewUsersEndpoints(baseEndpoints, usersService),
+			core.NewEventsEndpoints(baseEndpoints, eventsService),
+			core.NewProjectsEndpoints(baseEndpoints, projectsService),
+			system.NewEndpoints(baseEndpoints, systemService),
 		},
 	), nil
 }

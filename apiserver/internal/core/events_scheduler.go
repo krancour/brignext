@@ -711,11 +711,11 @@ func (e *eventsScheduler) createJobSecret(
 	}
 
 	for k, v := range jobSpec.PrimaryContainer.Environment {
-		jobSecret.StringData[fmt.Sprintf("%e.%s", jobName, k)] = v
+		jobSecret.StringData[fmt.Sprintf("%s.%s", jobName, k)] = v
 	}
 	for sidecarName, sidecareSpec := range jobSpec.SidecarContainers {
 		for k, v := range sidecareSpec.Environment {
-			jobSecret.StringData[fmt.Sprintf("%e.%s", sidecarName, k)] = v
+			jobSecret.StringData[fmt.Sprintf("%s.%s", sidecarName, k)] = v
 		}
 	}
 
@@ -905,7 +905,7 @@ func (e *eventsScheduler) createJobPod(
 							strings.ToLower(jobName),
 						),
 					},
-					Key: fmt.Sprintf("%e.%s", jobName, key),
+					Key: fmt.Sprintf("%s.%s", jobName, key),
 				},
 			},
 		}
@@ -967,7 +967,7 @@ func (e *eventsScheduler) createJobPod(
 								strings.ToLower(jobName),
 							),
 						},
-						Key: fmt.Sprintf("%e.%s", sidecarName, key),
+						Key: fmt.Sprintf("%s.%s", sidecarName, key),
 					},
 				},
 			}

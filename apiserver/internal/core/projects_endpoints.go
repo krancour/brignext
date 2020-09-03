@@ -281,6 +281,7 @@ func (p *projectsEndpoints) unsetSecret(w http.ResponseWriter, r *http.Request) 
 	)
 }
 
+// TODO: This still needs some validation
 func (p *projectsEndpoints) grantUserRole(w http.ResponseWriter, r *http.Request) {
 	roleAssignment := authx.UserRoleAssignment{}
 	p.ServeRequest(
@@ -301,6 +302,7 @@ func (p *projectsEndpoints) grantUserRole(w http.ResponseWriter, r *http.Request
 	)
 }
 
+// TODO: This still needs some validation
 func (p *projectsEndpoints) revokeUserRole(w http.ResponseWriter, r *http.Request) {
 	roleAssignment := authx.UserRoleAssignment{
 		Role:   r.URL.Query().Get("role"),
@@ -323,6 +325,7 @@ func (p *projectsEndpoints) revokeUserRole(w http.ResponseWriter, r *http.Reques
 	)
 }
 
+// TODO: This still needs some validation
 func (p *projectsEndpoints) grantServiceAccountRole(
 	w http.ResponseWriter,
 	r *http.Request) {
@@ -345,6 +348,7 @@ func (p *projectsEndpoints) grantServiceAccountRole(
 	)
 }
 
+// TODO: This still needs some validation
 func (p *projectsEndpoints) revokeServiceAccountRole(
 	w http.ResponseWriter,
 	r *http.Request,

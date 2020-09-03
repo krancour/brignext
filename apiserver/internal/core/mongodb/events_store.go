@@ -448,8 +448,8 @@ func (e *eventsStore) CreateJob(
 		bson.M{"id": eventID},
 		bson.M{
 			"$set": bson.M{
-				fmt.Sprintf("worker.jobs.%e.spec", jobName): jobSpec,
-				fmt.Sprintf("worker.jobs.%e.status", jobName): core.JobStatus{
+				fmt.Sprintf("worker.jobs.%s.spec", jobName): jobSpec,
+				fmt.Sprintf("worker.jobs.%s.status", jobName): core.JobStatus{
 					Phase: core.JobPhasePending,
 				},
 			},
