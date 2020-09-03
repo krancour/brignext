@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/core"
+	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -37,7 +37,7 @@ func (b *BaseEndpoints) readAndValidateRequestBody(
 		b.WriteAPIResponse(
 			w,
 			http.StatusBadRequest,
-			&core.ErrBadRequest{
+			&meta.ErrBadRequest{
 				Reason: "Could not read request body.",
 			},
 		)
@@ -58,7 +58,7 @@ func (b *BaseEndpoints) readAndValidateRequestBody(
 			b.WriteAPIResponse(
 				w,
 				http.StatusBadRequest,
-				&core.ErrBadRequest{
+				&meta.ErrBadRequest{
 					Reason: "Could not validate request body.",
 				},
 			)
@@ -73,7 +73,7 @@ func (b *BaseEndpoints) readAndValidateRequestBody(
 			b.WriteAPIResponse(
 				w,
 				http.StatusBadRequest,
-				&core.ErrBadRequest{
+				&meta.ErrBadRequest{
 					Reason:  "Request body failed JSON validation",
 					Details: verrStrs,
 				},
@@ -90,7 +90,7 @@ func (b *BaseEndpoints) readAndValidateRequestBody(
 			b.WriteAPIResponse(
 				w,
 				http.StatusInternalServerError,
-				&core.ErrInternalServer{},
+				&meta.ErrInternalServer{},
 			)
 			return false
 		}
@@ -112,26 +112,26 @@ func (b *BaseEndpoints) ServeRequest(req InboundRequest) {
 	respBodyObj, err := req.EndpointLogic()
 	if err != nil {
 		switch e := errors.Cause(err).(type) {
-		case *core.ErrAuthentication:
+		case *meta.ErrAuthentication:
 			b.WriteAPIResponse(req.W, http.StatusUnauthorized, e)
-		case *core.ErrAuthorization:
+		case *meta.ErrAuthorization:
 			b.WriteAPIResponse(req.W, http.StatusForbidden, e)
-		case *core.ErrBadRequest:
+		case *meta.ErrBadRequest:
 			b.WriteAPIResponse(req.W, http.StatusBadRequest, e)
-		case *core.ErrNotFound:
+		case *meta.ErrNotFound:
 			b.WriteAPIResponse(req.W, http.StatusNotFound, e)
-		case *core.ErrConflict:
+		case *meta.ErrConflict:
 			b.WriteAPIResponse(req.W, http.StatusConflict, e)
-		case *core.ErrNotSupported:
+		case *meta.ErrNotSupported:
 			b.WriteAPIResponse(req.W, http.StatusNotImplemented, e)
-		case *core.ErrInternalServer:
+		case *meta.ErrInternalServer:
 			b.WriteAPIResponse(req.W, http.StatusInternalServerError, e)
 		default:
 			log.Println(err)
 			b.WriteAPIResponse(
 				req.W,
 				http.StatusInternalServerError,
-				&core.ErrInternalServer{},
+				&meta.ErrInternalServer{},
 			)
 		}
 		return
@@ -168,19 +168,19 @@ func (b *BaseEndpoints) ServeHumanRequest(humanReq HumanRequest) {
 	respBodyObj, err := humanReq.EndpointLogic()
 	if err != nil {
 		switch e := errors.Cause(err).(type) {
-		case *core.ErrAuthentication:
+		case *meta.ErrAuthentication:
 			http.Error(humanReq.W, e.Error(), http.StatusUnauthorized)
-		case *core.ErrAuthorization:
+		case *meta.ErrAuthorization:
 			http.Error(humanReq.W, e.Error(), http.StatusForbidden)
-		case *core.ErrBadRequest:
+		case *meta.ErrBadRequest:
 			http.Error(humanReq.W, e.Error(), http.StatusBadRequest)
-		case *core.ErrNotFound:
+		case *meta.ErrNotFound:
 			http.Error(humanReq.W, e.Error(), http.StatusNotFound)
-		case *core.ErrConflict:
+		case *meta.ErrConflict:
 			http.Error(humanReq.W, e.Error(), http.StatusConflict)
-		case *core.ErrNotSupported:
+		case *meta.ErrNotSupported:
 			http.Error(humanReq.W, e.Error(), http.StatusNotImplemented)
-		case *core.ErrInternalServer:
+		case *meta.ErrInternalServer:
 			http.Error(humanReq.W, e.Error(), http.StatusInternalServerError)
 		default:
 			log.Println(e)

@@ -59,7 +59,7 @@ func (s *store) Create(
 		if writeException, ok := err.(mongo.WriteException); ok {
 			if len(writeException.WriteErrors) == 1 &&
 				writeException.WriteErrors[0].Code == 11000 {
-				return &core.ErrConflict{
+				return &meta.ErrConflict{
 					Type: "Project",
 					ID:   project.ID,
 					Reason: fmt.Sprintf(
@@ -167,7 +167,7 @@ func (s *store) Get(
 	project := core.Project{}
 	res := s.collection.FindOne(ctx, bson.M{"id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return project, &core.ErrNotFound{
+		return project, &meta.ErrNotFound{
 			Type: "Project",
 			ID:   id,
 		}
@@ -200,7 +200,7 @@ func (s *store) Update(
 		return errors.Wrapf(err, "error replacing project %q", project.ID)
 	}
 	if res.MatchedCount == 0 {
-		return &core.ErrNotFound{
+		return &meta.ErrNotFound{
 			Type: "Project",
 			ID:   project.ID,
 		}
@@ -214,7 +214,7 @@ func (s *store) Delete(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error deleting project %q", id)
 	}
 	if res.DeletedCount == 0 {
-		return &core.ErrNotFound{
+		return &meta.ErrNotFound{
 			Type: "Project",
 			ID:   id,
 		}

@@ -1,10 +1,8 @@
-package core
+package meta
 
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 )
 
 // ErrAuthentication represents an error asserting an principal's identity.
@@ -25,11 +23,11 @@ func (e ErrAuthentication) MarshalJSON() ([]byte, error) {
 	type Alias ErrAuthentication
 	return json.Marshal(
 		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
+			TypeMeta `json:",inline"`
+			Alias    `json:",inline"`
 		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
+			TypeMeta: TypeMeta{
+				APIVersion: APIVersion,
 				Kind:       "AuthenticationError",
 			},
 			Alias: (Alias)(e),
@@ -56,11 +54,11 @@ func (e ErrAuthorization) MarshalJSON() ([]byte, error) {
 	type Alias ErrAuthorization
 	return json.Marshal(
 		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
+			TypeMeta `json:",inline"`
+			Alias    `json:",inline"`
 		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
+			TypeMeta: TypeMeta{
+				APIVersion: APIVersion,
 				Kind:       "AuthorizationError",
 			},
 			Alias: (Alias)(e),
@@ -95,11 +93,11 @@ func (e ErrBadRequest) MarshalJSON() ([]byte, error) {
 	type Alias ErrBadRequest
 	return json.Marshal(
 		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
+			TypeMeta `json:",inline"`
+			Alias    `json:",inline"`
 		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
+			TypeMeta: TypeMeta{
+				APIVersion: APIVersion,
 				Kind:       "BadRequestError",
 			},
 			Alias: (Alias)(e),
@@ -126,11 +124,11 @@ func (e ErrNotFound) MarshalJSON() ([]byte, error) {
 	type Alias ErrNotFound
 	return json.Marshal(
 		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
+			TypeMeta `json:",inline"`
+			Alias    `json:",inline"`
 		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
+			TypeMeta: TypeMeta{
+				APIVersion: APIVersion,
 				Kind:       "NotFoundError",
 			},
 			Alias: (Alias)(e),
@@ -160,11 +158,11 @@ func (e ErrConflict) MarshalJSON() ([]byte, error) {
 	type Alias ErrConflict
 	return json.Marshal(
 		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
+			TypeMeta `json:",inline"`
+			Alias    `json:",inline"`
 		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
+			TypeMeta: TypeMeta{
+				APIVersion: APIVersion,
 				Kind:       "ConflictError",
 			},
 			Alias: (Alias)(e),
@@ -186,11 +184,11 @@ func (e ErrInternalServer) MarshalJSON() ([]byte, error) {
 	type Alias ErrInternalServer
 	return json.Marshal(
 		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
+			TypeMeta `json:",inline"`
+			Alias    `json:",inline"`
 		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
+			TypeMeta: TypeMeta{
+				APIVersion: APIVersion,
 				Kind:       "InternalServerError",
 			},
 			Alias: (Alias)(e),
@@ -217,11 +215,11 @@ func (e ErrNotSupported) MarshalJSON() ([]byte, error) {
 	type Alias ErrNotSupported
 	return json.Marshal(
 		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
+			TypeMeta `json:",inline"`
+			Alias    `json:",inline"`
 		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
+			TypeMeta: TypeMeta{
+				APIVersion: APIVersion,
 				Kind:       "NotSupportedError",
 			},
 			Alias: (Alias)(e),

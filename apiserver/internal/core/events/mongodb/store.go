@@ -126,7 +126,7 @@ func (s *store) Get(
 	event := core.Event{}
 	res := s.collection.FindOne(ctx, bson.M{"id": id})
 	if res.Err() == mongo.ErrNoDocuments {
-		return event, &core.ErrNotFound{
+		return event, &meta.ErrNotFound{
 			Type: "Event",
 			ID:   id,
 		}
@@ -152,7 +152,7 @@ func (s *store) GetByHashedWorkerToken(
 		},
 	)
 	if res.Err() == mongo.ErrNoDocuments {
-		return event, &core.ErrNotFound{
+		return event, &meta.ErrNotFound{
 			Type: "Event",
 		}
 	}
@@ -207,7 +207,7 @@ func (s *store) Cancel(ctx context.Context, id string) error {
 	}
 
 	if res.MatchedCount == 0 {
-		return &core.ErrConflict{
+		return &meta.ErrConflict{
 			Type: "Event",
 			ID:   id,
 			Reason: fmt.Sprintf(
@@ -311,7 +311,7 @@ func (s *store) Delete(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error deleting event %q", id)
 	}
 	if res.DeletedCount != 1 {
-		return &core.ErrNotFound{
+		return &meta.ErrNotFound{
 			Type: "Event",
 			ID:   id,
 		}
@@ -402,7 +402,7 @@ func (s *store) UpdateWorkerSpec(
 		)
 	}
 	if res.MatchedCount == 0 {
-		return &core.ErrNotFound{
+		return &meta.ErrNotFound{
 			Type: "Event",
 			ID:   eventID,
 		}
@@ -432,7 +432,7 @@ func (s *store) UpdateWorkerStatus(
 		)
 	}
 	if res.MatchedCount == 0 {
-		return &core.ErrNotFound{
+		return &meta.ErrNotFound{
 			Type: "Event",
 			ID:   eventID,
 		}
@@ -467,7 +467,7 @@ func (s *store) CreateJob(
 		)
 	}
 	if res.MatchedCount == 0 {
-		return &core.ErrNotFound{
+		return &meta.ErrNotFound{
 			Type: "Event",
 			ID:   eventID,
 		}
@@ -504,7 +504,7 @@ func (s *store) UpdateJobStatus(
 		)
 	}
 	if res.MatchedCount == 0 {
-		return &core.ErrNotFound{
+		return &meta.ErrNotFound{
 			Type: "Event",
 			ID:   eventID,
 		}

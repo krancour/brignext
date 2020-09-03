@@ -134,7 +134,7 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 			e.WriteAPIResponse(
 				w,
 				http.StatusBadRequest,
-				&core.ErrBadRequest{
+				&meta.ErrBadRequest{
 					Reason: fmt.Sprintf(
 						`Invalid value %q for "limit" query parameter`,
 						limitStr,
@@ -179,7 +179,7 @@ func (e *endpoints) update(w http.ResponseWriter, r *http.Request) {
 			ReqBodyObj:          &project,
 			EndpointLogic: func() (interface{}, error) {
 				if mux.Vars(r)["id"] != project.ID {
-					return nil, &core.ErrBadRequest{
+					return nil, &meta.ErrBadRequest{
 						Reason: "The project IDs in the URL path and request body do " +
 							"not match.",
 					}
@@ -215,7 +215,7 @@ func (e *endpoints) listSecrets(w http.ResponseWriter, r *http.Request) {
 			e.WriteAPIResponse(
 				w,
 				http.StatusBadRequest,
-				&core.ErrBadRequest{
+				&meta.ErrBadRequest{
 					Reason: fmt.Sprintf(
 						`Invalid value %q for "limit" query parameter`,
 						limitStr,
@@ -248,7 +248,7 @@ func (e *endpoints) setSecret(w http.ResponseWriter, r *http.Request) {
 			ReqBodyObj:          &secret,
 			EndpointLogic: func() (interface{}, error) {
 				if key != secret.Key {
-					return nil, &core.ErrBadRequest{
+					return nil, &meta.ErrBadRequest{
 						Reason: "The secret key in the URL path and request body do not " +
 							"match.",
 					}

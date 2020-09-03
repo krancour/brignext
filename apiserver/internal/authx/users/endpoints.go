@@ -8,7 +8,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/authx"
-	"github.com/krancour/brignext/v2/apiserver/internal/core"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 )
 
@@ -66,7 +65,7 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 				e.WriteAPIResponse(
 					w,
 					http.StatusBadRequest,
-					&core.ErrBadRequest{
+					&meta.ErrBadRequest{
 						Reason: fmt.Sprintf(
 							`Invalid value %q for "limit" query parameter`,
 							limitStr,

@@ -394,7 +394,7 @@ func (s *service) CancelMany(
 
 	// Refuse requests not qualified by project
 	if selector.ProjectID == "" {
-		return result, &core.ErrBadRequest{
+		return result, &meta.ErrBadRequest{
 			Reason: "Requests to cancel multiple events must be qualified by " +
 				"project.",
 		}
@@ -409,7 +409,7 @@ func (s *service) CancelMany(
 
 	// Refuse requests not qualified by worker phases
 	if len(selector.WorkerPhases) == 0 {
-		return result, &core.ErrBadRequest{
+		return result, &meta.ErrBadRequest{
 			Reason: "Requests to cancel multiple events must be qualified by " +
 				"worker phase(s).",
 		}
@@ -498,7 +498,7 @@ func (s *service) DeleteMany(
 
 	// Refuse requests not qualified by project
 	if selector.ProjectID == "" {
-		return result, &core.ErrBadRequest{
+		return result, &meta.ErrBadRequest{
 			Reason: "Requests to delete multiple events must be qualified by " +
 				"project.",
 		}
@@ -513,7 +513,7 @@ func (s *service) DeleteMany(
 
 	// Refuse requests not qualified by worker phases
 	if len(selector.WorkerPhases) == 0 {
-		return result, &core.ErrBadRequest{
+		return result, &meta.ErrBadRequest{
 			Reason: "Requests to delete multiple events must be qualified by " +
 				"worker phase(s).",
 		}
@@ -582,7 +582,7 @@ func (s *service) StartWorker(ctx context.Context, eventID string) error {
 	// }
 
 	if event.Worker.Status.Phase != core.WorkerPhasePending {
-		return &core.ErrConflict{
+		return &meta.ErrConflict{
 			Type: "Event",
 			ID:   event.ID,
 			Reason: fmt.Sprintf(
@@ -692,7 +692,7 @@ func (s *service) CreateJob(
 		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
 	if _, ok := event.Worker.Jobs[jobName]; ok {
-		return &core.ErrConflict{
+		return &meta.ErrConflict{
 			Type: "Job",
 			ID:   jobName,
 			Reason: fmt.Sprintf(
@@ -729,7 +729,7 @@ func (s *service) CreateJob(
 	if usePrivileged &&
 		(event.Worker.Spec.JobPolicies == nil ||
 			!event.Worker.Spec.JobPolicies.AllowPrivileged) {
-		return &core.ErrAuthorization{
+		return &meta.ErrAuthorization{
 			Reason: "Worker configuration forbids jobs from utilizing privileged " +
 				"containers.",
 		}
@@ -737,7 +737,7 @@ func (s *service) CreateJob(
 	if useDockerSocket &&
 		(event.Worker.Spec.JobPolicies == nil ||
 			!event.Worker.Spec.JobPolicies.AllowDockerSocketMount) {
-		return &core.ErrAuthorization{
+		return &meta.ErrAuthorization{
 			Reason: "Worker configuration forbids jobs from mounting the Docker " +
 				"socket.",
 		}
@@ -746,7 +746,7 @@ func (s *service) CreateJob(
 	// Fail quickly if the job needs to use shared workspace, but the worker
 	// doesn't have any shared workspace.
 	if useWorkspace && !event.Worker.Spec.UseWorkspace {
-		return &core.ErrConflict{
+		return &meta.ErrConflict{
 			Reason: "The job requested access to the shared workspace, but Worker " +
 				"configuration has not enabled this feature.",
 		}
@@ -787,14 +787,14 @@ func (s *service) StartJob(
 	}
 	job, ok := event.Worker.Jobs[jobName]
 	if !ok {
-		return &core.ErrNotFound{
+		return &meta.ErrNotFound{
 			Type: "Job",
 			ID:   jobName,
 		}
 	}
 
 	if job.Status.Phase != core.JobPhasePending {
-		return &core.ErrConflict{
+		return &meta.ErrConflict{
 			Type: "Job",
 			ID:   jobName,
 			Reason: fmt.Sprintf(
@@ -833,7 +833,7 @@ func (s *service) GetJobStatus(
 	}
 	job, ok := event.Worker.Jobs[jobName]
 	if !ok {
-		return core.JobStatus{}, &core.ErrNotFound{
+		return core.JobStatus{}, &meta.ErrNotFound{
 			Type: "Job",
 			ID:   jobName,
 		}
@@ -858,7 +858,7 @@ func (s *service) WatchJobStatus(
 			errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
 	if _, ok := event.Worker.Jobs[jobName]; !ok {
-		return nil, &core.ErrNotFound{
+		return nil, &meta.ErrNotFound{
 			Type: "Job",
 			ID:   jobName,
 		}

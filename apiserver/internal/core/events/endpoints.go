@@ -162,7 +162,7 @@ func (e *endpoints) list(w http.ResponseWriter, r *http.Request) {
 			e.WriteAPIResponse(
 				w,
 				http.StatusBadRequest,
-				&core.ErrBadRequest{
+				&meta.ErrBadRequest{
 					Reason: fmt.Sprintf(
 						`Invalid value %q for "limit" query parameter`,
 						limitStr,
@@ -320,7 +320,7 @@ func (e *endpoints) getOrStreamWorkerStatus(
 
 	statusCh, err := e.service.WatchWorkerStatus(r.Context(), id)
 	if err != nil {
-		if _, ok := errors.Cause(err).(*core.ErrNotFound); ok {
+		if _, ok := errors.Cause(err).(*meta.ErrNotFound); ok {
 			e.WriteAPIResponse(w, http.StatusNotFound, errors.Cause(err))
 			return
 		}
@@ -332,7 +332,7 @@ func (e *endpoints) getOrStreamWorkerStatus(
 		e.WriteAPIResponse(
 			w,
 			http.StatusInternalServerError,
-			&core.ErrInternalServer{},
+			&meta.ErrInternalServer{},
 		)
 		return
 	}
@@ -430,7 +430,7 @@ func (e *endpoints) getOrStreamJobStatus(
 
 	statusCh, err := e.service.WatchJobStatus(r.Context(), id, jobName)
 	if err != nil {
-		if _, ok := errors.Cause(err).(*core.ErrNotFound); ok {
+		if _, ok := errors.Cause(err).(*meta.ErrNotFound); ok {
 			e.WriteAPIResponse(w, http.StatusNotFound, errors.Cause(err))
 			return
 		}
@@ -443,7 +443,7 @@ func (e *endpoints) getOrStreamJobStatus(
 		e.WriteAPIResponse(
 			w,
 			http.StatusInternalServerError,
-			&core.ErrInternalServer{},
+			&meta.ErrInternalServer{},
 		)
 		return
 	}
@@ -503,7 +503,7 @@ func (e *endpoints) streamLogs(
 
 	logEntryCh, err := e.service.StreamLogs(r.Context(), id, selector, opts)
 	if err != nil {
-		if _, ok := errors.Cause(err).(*core.ErrNotFound); ok {
+		if _, ok := errors.Cause(err).(*meta.ErrNotFound); ok {
 			e.WriteAPIResponse(w, http.StatusNotFound, errors.Cause(err))
 			return
 		}
@@ -513,7 +513,7 @@ func (e *endpoints) streamLogs(
 		e.WriteAPIResponse(
 			w,
 			http.StatusInternalServerError,
-			&core.ErrInternalServer{},
+			&meta.ErrInternalServer{},
 		)
 		return
 	}

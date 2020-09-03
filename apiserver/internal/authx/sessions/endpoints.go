@@ -7,7 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/authx"
-	"github.com/krancour/brignext/v2/apiserver/internal/core"
+	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/pkg/errors"
 )
 
@@ -58,7 +58,7 @@ func (e *endpoints) create(w http.ResponseWriter, r *http.Request) {
 				EndpointLogic: func() (interface{}, error) {
 					username, password, ok := r.BasicAuth()
 					if !ok {
-						return nil, &core.ErrBadRequest{
+						return nil, &meta.ErrBadRequest{
 							Reason: "The request to create a new root session did not " +
 								"include a valid basic auth header.",
 						}
@@ -113,7 +113,7 @@ func (e *endpoints) authenticate(w http.ResponseWriter, r *http.Request) {
 		W: w,
 		EndpointLogic: func() (interface{}, error) {
 			if oauth2State == "" || oidcCode == "" {
-				return nil, &core.ErrBadRequest{
+				return nil, &meta.ErrBadRequest{
 					Reason: `The OpenID Connect authentication completion request ` +
 						`lacked one or both of the "oauth2State" and "oidcCode" ` +
 						`query parameters.`,
