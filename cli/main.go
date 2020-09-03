@@ -31,6 +31,7 @@ func main() {
 		logoutCommand,
 		projectCommand,
 		serviceAccountCommand,
+		systemCommand,
 		userCommand,
 	}
 	fmt.Println()
