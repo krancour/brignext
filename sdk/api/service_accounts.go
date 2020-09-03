@@ -23,6 +23,7 @@ type ServiceAccount struct {
 	// by an administrator. If this field's value is nil, the User can be presumed
 	// NOT to be locked.
 	Locked *time.Time `json:"locked,omitempty"`
+	Roles  []Role     `json:"roles,omitempty"`
 }
 
 // MarshalJSON amends ServiceAccount instances with type metadata so that

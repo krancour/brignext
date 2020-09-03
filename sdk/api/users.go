@@ -20,8 +20,8 @@ type User struct {
 	// Locked indicates when the User has been locked out of the system by
 	// an administrator. If this field's value is nil, the User can be presumed
 	// NOT to be locked.
-	Locked    *time.Time `json:"locked,omitempty"`
-	UserRoles []Role     `json:"roles,omitempty" bson:"roles,omitempty"`
+	Locked *time.Time `json:"locked,omitempty"`
+	Roles  []Role     `json:"roles,omitempty"`
 }
 
 // MarshalJSON amends User instances with type metadata so that clients do

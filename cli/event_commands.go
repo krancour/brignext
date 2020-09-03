@@ -49,8 +49,9 @@ var eventCommand = &cli.Command{
 		// TODO: This should error locally (without making a roundtrip) if no states
 		// were specified.
 		{
-			Name:  "cancel-many",
-			Usage: "Cancel multiple events without deleting them",
+			Name:    "cancel-many",
+			Aliases: []string{"cm"},
+			Usage:   "Cancel multiple events without deleting them",
 			Description: "By default, only cancels events for the specified " +
 				"project with their worker in a PENDING state",
 			Flags: []cli.Flag{
@@ -132,8 +133,9 @@ var eventCommand = &cli.Command{
 		// TODO: This should error locally (without making a roundtrip) if no states
 		// were specified.
 		{
-			Name:  "delete-many",
-			Usage: "Delete multiple events",
+			Name:    "delete-many",
+			Aliases: []string{"dm"},
+			Usage:   "Delete multiple events",
 			Description: "Deletes (and aborts if applicable) events for the " +
 				"specified project with their workers in the specified state(s)",
 			Flags: []cli.Flag{
@@ -220,7 +222,8 @@ var eventCommand = &cli.Command{
 		},
 		{
 			Name:        "list",
-			Usage:       "Retrieve many events",
+			Aliases:     []string{"ls"},
+			Usage:       "List events",
 			Description: "Retrieves all events unless specific criteria are provided",
 			Flags: []cli.Flag{
 				cliFlagOutput,
@@ -289,6 +292,7 @@ var eventCommand = &cli.Command{
 			},
 			Action: eventList,
 		},
+		logsCommand,
 	},
 }
 

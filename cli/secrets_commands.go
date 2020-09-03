@@ -21,8 +21,9 @@ var secretsCommand = &cli.Command{
 	Usage: "Manage project secrets",
 	Subcommands: []*cli.Command{
 		{
-			Name:  "list",
-			Usage: "Retrieve many secrets; values are always redacted",
+			Name:    "list",
+			Aliases: []string{"ls"},
+			Usage:   "List project secrets; values are always redacted",
 			Flags: []cli.Flag{
 				cliFlagOutput,
 				&cli.StringFlag{

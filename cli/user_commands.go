@@ -35,8 +35,9 @@ var userCommand = &cli.Command{
 			Action: userGet,
 		},
 		{
-			Name:  "list",
-			Usage: "Retrieve many users",
+			Name:    "list",
+			Aliases: []string{"ls"},
+			Usage:   "List users",
 			Flags: []cli.Flag{
 				cliFlagOutput,
 			},

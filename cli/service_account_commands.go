@@ -20,8 +20,9 @@ import (
 )
 
 var serviceAccountCommand = &cli.Command{
-	Name:  "service-account",
-	Usage: "Manage service accounts",
+	Name:    "service-account",
+	Aliases: []string{"sa"},
+	Usage:   "Manage service accounts",
 	Subcommands: []*cli.Command{
 		{
 			Name:  "create",
@@ -59,8 +60,9 @@ var serviceAccountCommand = &cli.Command{
 			Action: serviceAccountGet,
 		},
 		{
-			Name:  "list",
-			Usage: "Retrieve many service accounts",
+			Name:    "list",
+			Aliases: []string{"ls"},
+			Usage:   "List service accounts",
 			Flags: []cli.Flag{
 				cliFlagOutput,
 			},
