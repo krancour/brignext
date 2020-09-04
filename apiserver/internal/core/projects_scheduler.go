@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/crypto"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/pkg/errors"

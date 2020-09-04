@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc"
-	"github.com/krancour/brignext/v2/apiserver/internal/crypto"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/crypto"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"

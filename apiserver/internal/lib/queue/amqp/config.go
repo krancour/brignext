@@ -2,7 +2,7 @@ package amqp
 
 import (
 	"github.com/kelseyhightower/envconfig"
-	"github.com/krancour/brignext/v2/apiserver/internal/queue"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/queue"
 	"github.com/pkg/errors"
 )
 

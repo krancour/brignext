@@ -7,7 +7,7 @@ import (
 	"time"
 
 	amqp "github.com/Azure/go-amqp"
-	"github.com/krancour/brignext/v2/apiserver/internal/queue"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/queue"
 	"github.com/krancour/brignext/v2/internal/retries"
 	"github.com/pkg/errors"
 )

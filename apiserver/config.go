@@ -2,17 +2,20 @@ package main
 
 // nolint: lll
 import (
-	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
-	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery/authn"
 	"github.com/krancour/brignext/v2/apiserver/internal/authx"
+	authxAPI "github.com/krancour/brignext/v2/apiserver/internal/authx/api"
 	authxMongodb "github.com/krancour/brignext/v2/apiserver/internal/authx/mongodb"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
+	coreAPI "github.com/krancour/brignext/v2/apiserver/internal/core/api"
 	coreKubernetes "github.com/krancour/brignext/v2/apiserver/internal/core/kubernetes"
 	coreMongodb "github.com/krancour/brignext/v2/apiserver/internal/core/mongodb"
-	"github.com/krancour/brignext/v2/apiserver/internal/mongodb"
-	"github.com/krancour/brignext/v2/apiserver/internal/oidc"
-	"github.com/krancour/brignext/v2/apiserver/internal/queue/amqp"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery/authn"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/mongodb"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/oidc"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/queue/amqp"
 	"github.com/krancour/brignext/v2/apiserver/internal/system"
+	systemAPI "github.com/krancour/brignext/v2/apiserver/internal/system/api"
 	"github.com/krancour/brignext/v2/internal/kubernetes"
 )
 
@@ -123,12 +126,17 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 		apiConfig,
 		baseEndpoints,
 		[]apimachinery.Endpoints{
-			authx.NewServiceAccountEndpoints(baseEndpoints, serviceAccountsService),
-			authx.NewSessionsEndpoints(baseEndpoints, sessionsService),
-			authx.NewUsersEndpoints(baseEndpoints, usersService),
-			core.NewEventsEndpoints(baseEndpoints, eventsService),
-			core.NewProjectsEndpoints(baseEndpoints, projectsService),
-			system.NewEndpoints(baseEndpoints, systemService),
+			authxAPI.NewServiceAccountEndpoints(baseEndpoints, serviceAccountsService),
+			authxAPI.NewSessionsEndpoints(baseEndpoints, sessionsService),
+			authxAPI.NewUsersEndpoints(baseEndpoints, usersService),
+			coreAPI.NewEventsEndpoints(baseEndpoints, eventsService),
+			coreAPI.NewWorkersEndpoints(baseEndpoints, eventsService),
+			coreAPI.NewJobsEndpoints(baseEndpoints, eventsService),
+			coreAPI.NewLogsEndpoints(baseEndpoints, eventsService),
+			coreAPI.NewProjectsEndpoints(baseEndpoints, projectsService),
+			coreAPI.NewSecretsEndpoints(baseEndpoints, projectsService),
+			coreAPI.NewProjectsRolesEndpoints(baseEndpoints, projectsService),
+			systemAPI.NewSystemRolesEndpoints(baseEndpoints, systemService),
 		},
 	), nil
 }

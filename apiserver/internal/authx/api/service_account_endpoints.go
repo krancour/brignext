@@ -1,4 +1,4 @@
-package authx
+package api
 
 import (
 	"fmt"
@@ -6,7 +6,8 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/authx"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -14,12 +15,12 @@ import (
 type serviceAccountEndpoints struct {
 	*apimachinery.BaseEndpoints
 	serviceAccountSchemaLoader gojsonschema.JSONLoader
-	service                    ServiceAccountsService
+	service                    authx.ServiceAccountsService
 }
 
 func NewServiceAccountEndpoints(
 	baseEndpoints *apimachinery.BaseEndpoints,
-	service ServiceAccountsService,
+	service authx.ServiceAccountsService,
 ) apimachinery.Endpoints {
 	// nolint: lll
 	return &serviceAccountEndpoints{
@@ -65,7 +66,7 @@ func (s *serviceAccountEndpoints) create(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	serviceAccount := ServiceAccount{}
+	serviceAccount := authx.ServiceAccount{}
 	s.ServeRequest(
 		apimachinery.InboundRequest{
 			W:                   w,
@@ -108,7 +109,7 @@ func (s *serviceAccountEndpoints) list(w http.ResponseWriter, r *http.Request) {
 			EndpointLogic: func() (interface{}, error) {
 				return s.service.List(
 					r.Context(),
-					ServiceAccountsSelector{},
+					authx.ServiceAccountsSelector{},
 					opts,
 				)
 			},

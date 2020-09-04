@@ -1,23 +1,24 @@
-package authx
+package api
 
 import (
 	"net/http"
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/authx"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/pkg/errors"
 )
 
 type sessionsEndpoints struct {
 	*apimachinery.BaseEndpoints
-	service SessionsService
+	service authx.SessionsService
 }
 
 func NewSessionsEndpoints(
 	baseEndpoints *apimachinery.BaseEndpoints,
-	service SessionsService,
+	service authx.SessionsService,
 ) apimachinery.Endpoints {
 	return &sessionsEndpoints{
 		BaseEndpoints: baseEndpoints,
@@ -88,7 +89,7 @@ func (s *sessionsEndpoints) delete(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				sessionID := SessionIDFromContext(r.Context())
+				sessionID := authx.SessionIDFromContext(r.Context())
 				if sessionID == "" {
 					return nil, errors.New(
 						"error: delete session request authenticated, but no session ID " +

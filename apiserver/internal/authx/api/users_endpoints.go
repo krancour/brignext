@@ -1,4 +1,4 @@
-package authx
+package api
 
 import (
 	"fmt"
@@ -6,18 +6,19 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/authx"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 )
 
 type usersEndpoints struct {
 	*apimachinery.BaseEndpoints
-	service UsersService
+	service authx.UsersService
 }
 
 func NewUsersEndpoints(
 	baseEndpoints *apimachinery.BaseEndpoints,
-	service UsersService,
+	service authx.UsersService,
 ) apimachinery.Endpoints {
 	return &usersEndpoints{
 		BaseEndpoints: baseEndpoints,
@@ -80,7 +81,7 @@ func (u *usersEndpoints) list(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return u.service.List(r.Context(), UsersSelector{}, opts)
+				return u.service.List(r.Context(), authx.UsersSelector{}, opts)
 			},
 			SuccessCode: http.StatusOK,
 		},
