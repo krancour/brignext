@@ -15,17 +15,17 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-type projectsScheduler struct {
+type projectsSubstrate struct {
 	kubeClient *kubernetes.Clientset
 }
 
-func NewProjectsScheduler(kubeClient *kubernetes.Clientset) core.ProjectsScheduler {
-	return &projectsScheduler{
+func NewProjectsSubstrate(kubeClient *kubernetes.Clientset) core.ProjectsSubstrate {
+	return &projectsSubstrate{
 		kubeClient: kubeClient,
 	}
 }
 
-func (p *projectsScheduler) PreCreate(
+func (p *projectsSubstrate) PreCreate(
 	ctx context.Context,
 	project core.Project,
 ) (core.Project, error) {
@@ -35,11 +35,10 @@ func (p *projectsScheduler) PreCreate(
 			fmt.Sprintf("brignext-%s-%s", project.ID, crypto.NewToken(10)),
 		),
 	}
-	project = p.projectWithDefaults(project)
 	return project, nil
 }
 
-func (p *projectsScheduler) Create(
+func (p *projectsSubstrate) Create(
 	ctx context.Context,
 	project core.Project,
 ) error {
@@ -68,13 +67,7 @@ func (p *projectsScheduler) Create(
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "workers",
 			},
-			Rules: []rbacv1.PolicyRule{
-				{
-					APIGroups: []string{""},
-					Resources: []string{"configmaps", "secrets", "pods", "pods/log"},
-					Verbs:     []string{"create", "get", "list", "watch"},
-				},
-			},
+			Rules: []rbacv1.PolicyRule{},
 		},
 		metav1.CreateOptions{},
 	); err != nil {
@@ -230,18 +223,20 @@ func (p *projectsScheduler) Create(
 	return nil
 }
 
-func (p *projectsScheduler) PreUpdate(
+func (p *projectsSubstrate) PreUpdate(
 	ctx context.Context,
-	project core.Project,
+	oldProject core.Project,
+	newProject core.Project,
 ) (core.Project, error) {
-	return p.projectWithDefaults(project), nil
+	newProject.Kubernetes = oldProject.Kubernetes
+	return newProject, nil
 }
 
-func (p *projectsScheduler) Update(context.Context, core.Project) error {
+func (p *projectsSubstrate) Update(context.Context, core.Project) error {
 	return nil
 }
 
-func (p *projectsScheduler) Delete(
+func (p *projectsSubstrate) Delete(
 	ctx context.Context,
 	project core.Project,
 ) error {
@@ -257,25 +252,4 @@ func (p *projectsScheduler) Delete(
 		)
 	}
 	return nil
-}
-
-// TODO: We might not want to set this stuff now, but rather defer it to later.
-// nolint: lll
-func (p *projectsScheduler) projectWithDefaults(
-	project core.Project,
-) core.Project {
-
-	// if project.Spec.WorkerTemplate.JobPolicies == nil {
-	// 	project.Spec.WorkerTemplate.JobPolicies = &JobPolicies{}
-	// }
-	// if project.Spec.WorkerTemplate.JobPolicies.Kubernetes == nil {
-	// 	project.Spec.WorkerTemplate.JobPolicies.Kubernetes =
-	// 		&KubernetesJobPolicies{}
-	// }
-	// if project.Spec.WorkerTemplate.JobPolicies.Kubernetes.ImagePullSecrets == nil {
-	// 	project.Spec.WorkerTemplate.JobPolicies.Kubernetes.ImagePullSecrets =
-	// 		[]string{}
-	// }
-
-	return project
 }

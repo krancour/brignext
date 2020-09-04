@@ -37,7 +37,7 @@ type projectsService struct {
 	usersStore           authx.UsersStore
 	serviceAccountsStore authx.ServiceAccountsStore
 	rolesStore           authx.RolesStore
-	scheduler            ProjectsScheduler
+	projectsSubstrate    ProjectsSubstrate
 }
 
 // NewProjectsService returns a specialized interface for managing Projects.
@@ -46,7 +46,7 @@ func NewProjectsService(
 	usersStore authx.UsersStore,
 	serviceAccountsStore authx.ServiceAccountsStore,
 	rolesStore authx.RolesStore,
-	scheduler ProjectsScheduler,
+	projectsSubstrate ProjectsSubstrate,
 ) ProjectsService {
 	return &projectsService{
 		authorize:            authx.Authorize,
@@ -54,7 +54,7 @@ func NewProjectsService(
 		usersStore:           usersStore,
 		serviceAccountsStore: serviceAccountsStore,
 		rolesStore:           rolesStore,
-		scheduler:            scheduler,
+		projectsSubstrate:    projectsSubstrate,
 	}
 }
 
@@ -69,12 +69,12 @@ func (p *projectsService) Create(
 	now := time.Now()
 	project.Created = &now
 
-	// Let the scheduler add scheduler-specific details before we persist.
+	// Add substrate-specific details before we persist.
 	var err error
-	if project, err = p.scheduler.PreCreate(ctx, project); err != nil {
+	if project, err = p.projectsSubstrate.PreCreate(ctx, project); err != nil {
 		return project, errors.Wrapf(
 			err,
-			"error pre-creating project %q in the scheduler",
+			"error pre-creating project %q in the substrate",
 			project.ID,
 		)
 	}
@@ -83,10 +83,10 @@ func (p *projectsService) Create(
 		return project,
 			errors.Wrapf(err, "error storing new project %q", project.ID)
 	}
-	if err = p.scheduler.Create(ctx, project); err != nil {
+	if err = p.projectsSubstrate.Create(ctx, project); err != nil {
 		return project, errors.Wrapf(
 			err,
-			"error creating project %q in the scheduler",
+			"error creating project %q in the substrate",
 			project.ID,
 		)
 	}
@@ -169,40 +169,49 @@ func (p *projectsService) Get(
 
 func (p *projectsService) Update(
 	ctx context.Context,
-	project Project,
+	updatedProject Project,
 ) (Project, error) {
 	if err := p.authorize(
 		ctx,
-		authx.RoleProjectDeveloper(project.ID),
+		authx.RoleProjectDeveloper(updatedProject.ID),
 	); err != nil {
 		return Project{}, err
 	}
 
-	// Let the scheduler update scheduler-specific details before we persist.
 	var err error
-	if project, err = p.scheduler.PreUpdate(ctx, project); err != nil {
-		return project, errors.Wrapf(
+	oldProject, err := p.projectsStore.Get(ctx, updatedProject.ID)
+	if err != nil {
+		return updatedProject, errors.Wrapf(
 			err,
-			"error pre-updating project %q in the scheduler",
-			project.ID,
+			"error retrieving project %q from store",
+			updatedProject.ID,
 		)
 	}
 
-	if err = p.projectsStore.Update(ctx, project); err != nil {
-		return project, errors.Wrapf(
+	// Update substrate-specific details before we persist.
+	if updatedProject, err = p.projectsSubstrate.PreUpdate(ctx, oldProject, updatedProject); err != nil {
+		return updatedProject, errors.Wrapf(
+			err,
+			"error pre-updating project %q in the substrate",
+			updatedProject.ID,
+		)
+	}
+
+	if err = p.projectsStore.Update(ctx, updatedProject); err != nil {
+		return updatedProject, errors.Wrapf(
 			err,
 			"error updating project %q in store",
-			project.ID,
+			updatedProject.ID,
 		)
 	}
-	if err = p.scheduler.Update(ctx, project); err != nil {
-		return project, errors.Wrapf(
+	if err = p.projectsSubstrate.Update(ctx, updatedProject); err != nil {
+		return updatedProject, errors.Wrapf(
 			err,
-			"error updating project %q in the scheduler",
-			project.ID,
+			"error updating project %q in the substrate",
+			updatedProject.ID,
 		)
 	}
-	return project, nil
+	return updatedProject, nil
 }
 
 func (p *projectsService) Delete(ctx context.Context, id string) error {
@@ -218,10 +227,10 @@ func (p *projectsService) Delete(ctx context.Context, id string) error {
 	if err := p.projectsStore.Delete(ctx, id); err != nil {
 		return errors.Wrapf(err, "error removing project %q from store", id)
 	}
-	if err := p.scheduler.Delete(ctx, project); err != nil {
+	if err := p.projectsSubstrate.Delete(ctx, project); err != nil {
 		return errors.Wrapf(
 			err,
-			"error deleting project %q from scheduler",
+			"error deleting project %q from substrate",
 			id,
 		)
 	}

@@ -81,13 +81,13 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 		return nil, err
 	}
 	secretsStore := coreKubernetes.NewSecretsStore(kubeClient)
-	projectsScheduler := coreKubernetes.NewProjectsScheduler(kubeClient)
+	projectsSubstrate := coreKubernetes.NewProjectsSubstrate(kubeClient)
 	projectsService := core.NewProjectsService(
 		projectsStore,
 		usersStore,
 		serviceAccountsStore,
 		rolesStore,
-		projectsScheduler,
+		projectsSubstrate,
 	)
 	secretsService := core.NewSecretsService(projectsStore, secretsStore)
 	projectRolesService := core.NewProjectRolesService(

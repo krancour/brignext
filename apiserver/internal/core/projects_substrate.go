@@ -4,7 +4,7 @@ import (
 	"context"
 )
 
-type ProjectsScheduler interface {
+type ProjectsSubstrate interface {
 	PreCreate(
 		ctx context.Context,
 		project Project,
@@ -15,7 +15,8 @@ type ProjectsScheduler interface {
 	) error
 	PreUpdate(
 		ctx context.Context,
-		project Project,
+		oldProject Project,
+		newProject Project,
 	) (Project, error)
 	Update(
 		ctx context.Context,
