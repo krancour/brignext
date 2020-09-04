@@ -44,18 +44,21 @@ type projectRolesService struct {
 	projectsStore        ProjectsStore
 	usersStore           authx.UsersStore
 	serviceAccountsStore authx.ServiceAccountsStore
+	rolesStore           authx.RolesStore
 }
 
 func NewProjectRolesService(
 	projectsStore ProjectsStore,
 	usersStore authx.UsersStore,
 	serviceAccountsStore authx.ServiceAccountsStore,
+	rolesStore authx.RolesStore,
 ) ProjectRolesService {
 	return &projectRolesService{
 		authorize:            authx.Authorize,
 		projectsStore:        projectsStore,
 		usersStore:           usersStore,
 		serviceAccountsStore: serviceAccountsStore,
+		rolesStore:           rolesStore,
 	}
 }
 
@@ -85,7 +88,7 @@ func (p *projectRolesService) GrantToUser(
 	}
 
 	// Give them the Role
-	return p.usersStore.GrantRole(
+	return p.rolesStore.GrantToUser(
 		ctx,
 		userID,
 		authx.Role{
@@ -121,7 +124,7 @@ func (p *projectRolesService) RevokeFromUser(
 	}
 
 	// Revoke the Role
-	return p.usersStore.RevokeRole(
+	return p.rolesStore.RevokeFromUser(
 		ctx,
 		userID,
 		authx.Role{
@@ -162,7 +165,7 @@ func (p *projectRolesService) GrantToServiceAccount(
 	}
 
 	// Give it the Role
-	return p.serviceAccountsStore.GrantRole(
+	return p.rolesStore.GrantToServiceAccount(
 		ctx,
 		serviceAccountID,
 		authx.Role{
@@ -202,7 +205,7 @@ func (p *projectRolesService) RevokeFromServiceAccount(
 	}
 
 	// Revoke the Role
-	return p.serviceAccountsStore.RevokeRole(
+	return p.rolesStore.RevokeFromServiceAccount(
 		ctx,
 		serviceAccountID,
 		authx.Role{

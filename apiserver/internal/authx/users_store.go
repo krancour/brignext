@@ -15,10 +15,6 @@ type UsersStore interface {
 		meta.ListOptions,
 	) (UserList, error)
 	Get(context.Context, string) (User, error)
-
 	Lock(context.Context, string) error
 	Unlock(context.Context, string) error
-
-	GrantRole(ctx context.Context, userID string, roles ...Role) error
-	RevokeRole(ctx context.Context, userID string, roles ...Role) error
 }

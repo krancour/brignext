@@ -30,15 +30,15 @@ type UsersService interface {
 }
 
 type usersService struct {
-	authorize AuthorizeFn
-	store     UsersStore
+	authorize  AuthorizeFn
+	usersStore UsersStore
 }
 
 // NewUsersService returns a specialized interface for managing Users.
-func NewUsersService(store UsersStore) UsersService {
+func NewUsersService(usersStore UsersStore) UsersService {
 	return &usersService{
-		authorize: Authorize,
-		store:     store,
+		authorize:  Authorize,
+		usersStore: usersStore,
 	}
 }
 
@@ -54,7 +54,7 @@ func (u *usersService) List(
 	if opts.Limit == 0 {
 		opts.Limit = 20
 	}
-	users, err := u.store.List(ctx, selector, opts)
+	users, err := u.usersStore.List(ctx, selector, opts)
 	if err != nil {
 		return users, errors.Wrap(err, "error retrieving users from store")
 	}
@@ -66,7 +66,7 @@ func (u *usersService) Get(ctx context.Context, id string) (User, error) {
 		return User{}, err
 	}
 
-	user, err := u.store.Get(ctx, id)
+	user, err := u.usersStore.Get(ctx, id)
 	if err != nil {
 		return user, errors.Wrapf(
 			err,
@@ -82,7 +82,7 @@ func (u *usersService) Lock(ctx context.Context, id string) error {
 		return err
 	}
 
-	if err := u.store.Lock(ctx, id); err != nil {
+	if err := u.usersStore.Lock(ctx, id); err != nil {
 		return errors.Wrapf(err, "error locking user %q in store", id)
 	}
 	return nil
@@ -93,7 +93,7 @@ func (u *usersService) Unlock(ctx context.Context, id string) error {
 		return err
 	}
 
-	if err := u.store.Unlock(ctx, id); err != nil {
+	if err := u.usersStore.Unlock(ctx, id); err != nil {
 		return errors.Wrapf(err, "error unlocking user %q in store", id)
 	}
 	return nil

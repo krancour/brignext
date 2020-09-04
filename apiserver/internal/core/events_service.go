@@ -55,20 +55,20 @@ type EventsService interface {
 type eventsService struct {
 	authorize     authx.AuthorizeFn
 	projectsStore ProjectsStore
-	store         EventsStore
+	eventsStore   EventsStore
 	scheduler     EventsScheduler
 }
 
 // NewEventsService returns a specialized interface for managing Events.
 func NewEventsService(
 	projectsStore ProjectsStore,
-	store EventsStore,
+	eventsStore EventsStore,
 	scheduler EventsScheduler,
 ) EventsService {
 	return &eventsService{
 		authorize:     authx.Authorize,
 		projectsStore: projectsStore,
-		store:         store,
+		eventsStore:   eventsStore,
 		scheduler:     scheduler,
 	}
 }
@@ -196,7 +196,7 @@ func (e *eventsService) Create(
 		)
 	}
 
-	if err = e.store.Create(ctx, event); err != nil {
+	if err = e.eventsStore.Create(ctx, event); err != nil {
 		return events, errors.Wrapf(
 			err,
 			"error storing new event %q",
@@ -232,7 +232,7 @@ func (e *eventsService) List(
 		opts.Limit = 20
 	}
 
-	events, err := e.store.List(ctx, selector, opts)
+	events, err := e.eventsStore.List(ctx, selector, opts)
 	if err != nil {
 		return events, errors.Wrap(err, "error retrieving events from store")
 	}
@@ -247,7 +247,7 @@ func (e *eventsService) Get(
 		return Event{}, err
 	}
 
-	event, err := e.store.Get(ctx, id)
+	event, err := e.eventsStore.Get(ctx, id)
 	if err != nil {
 		return event, errors.Wrapf(err, "error retrieving event %q from store", id)
 	}
@@ -261,7 +261,7 @@ func (e *eventsService) GetByWorkerToken(
 	// No authz is required here because this is only ever called by the system
 	// itself.
 
-	event, err := e.store.GetByHashedWorkerToken(
+	event, err := e.eventsStore.GetByHashedWorkerToken(
 		ctx,
 		crypto.ShortSHA("", workerToken),
 	)
@@ -272,7 +272,7 @@ func (e *eventsService) GetByWorkerToken(
 }
 
 func (e *eventsService) Cancel(ctx context.Context, id string) error {
-	event, err := e.store.Get(ctx, id)
+	event, err := e.eventsStore.Get(ctx, id)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving event %q from store", id)
 	}
@@ -284,7 +284,7 @@ func (e *eventsService) Cancel(ctx context.Context, id string) error {
 		return err
 	}
 
-	if err = e.store.Cancel(ctx, id); err != nil {
+	if err = e.eventsStore.Cancel(ctx, id); err != nil {
 		return errors.Wrapf(err, "error canceling event %q in store", id)
 	}
 
@@ -347,7 +347,7 @@ func (e *eventsService) CancelMany(
 		}
 	}
 
-	events, err := e.store.CancelMany(ctx, selector)
+	events, err := e.eventsStore.CancelMany(ctx, selector)
 	if err != nil {
 		return result, errors.Wrap(err, "error canceling events in store")
 	}
@@ -376,7 +376,7 @@ func (e *eventsService) CancelMany(
 }
 
 func (e *eventsService) Delete(ctx context.Context, id string) error {
-	event, err := e.store.Get(ctx, id)
+	event, err := e.eventsStore.Get(ctx, id)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving event %q from store", id)
 	}
@@ -388,7 +388,7 @@ func (e *eventsService) Delete(ctx context.Context, id string) error {
 		return err
 	}
 
-	if err = e.store.Delete(ctx, id); err != nil {
+	if err = e.eventsStore.Delete(ctx, id); err != nil {
 		return errors.Wrapf(err, "error deleting event %q from store", id)
 	}
 
@@ -451,7 +451,7 @@ func (e *eventsService) DeleteMany(
 		}
 	}
 
-	events, err := e.store.DeleteMany(ctx, selector)
+	events, err := e.eventsStore.DeleteMany(ctx, selector)
 	if err != nil {
 		return result, errors.Wrap(err, "error deleting events from store")
 	}

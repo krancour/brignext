@@ -53,21 +53,21 @@ type JobsService interface {
 }
 
 type jobsService struct {
-	authorize authx.AuthorizeFn
-	// projectsStore ProjectsStore
+	authorize   authx.AuthorizeFn
 	eventsStore EventsStore
+	jobsStore   JobsStore
 	scheduler   EventsScheduler
 }
 
 func NewJobsService(
-	// projectsStore ProjectsStore,
 	eventsStore EventsStore,
+	jobsStore JobsStore,
 	scheduler EventsScheduler,
 ) JobsService {
 	return &jobsService{
-		authorize: authx.Authorize,
-		// projectsStore: projectsStore,
+		authorize:   authx.Authorize,
 		eventsStore: eventsStore,
+		jobsStore:   jobsStore,
 		scheduler:   scheduler,
 	}
 }
@@ -147,7 +147,7 @@ func (j *jobsService) Create(
 		}
 	}
 
-	if err = j.eventsStore.CreateJob(ctx, eventID, jobName, jobSpec); err != nil {
+	if err = j.jobsStore.Create(ctx, eventID, jobName, jobSpec); err != nil {
 		return errors.Wrapf(
 			err, "error saving event %q job %q in store",
 			eventID,
@@ -294,7 +294,7 @@ func (j *jobsService) UpdateStatus(
 		return err
 	}
 
-	if err := j.eventsStore.UpdateJobStatus(
+	if err := j.jobsStore.UpdateStatus(
 		ctx,
 		eventID,
 		jobName,

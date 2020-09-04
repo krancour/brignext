@@ -108,7 +108,7 @@ func (s *systemRolesClient) GrantToServiceAccount(
 	return s.ExecuteRequest(
 		restmachinery.OutboundRequest{
 			Method:      http.MethodPost,
-			Path:        "v2/system/user-role-assignments",
+			Path:        "v2/system/service-account-role-assignments",
 			AuthHeaders: s.BearerTokenAuthHeaders(),
 			ReqBodyObj: authx.ServiceAccountRoleAssignment{
 				ServiceAccountID: serviceAccountID,
@@ -131,7 +131,7 @@ func (s *systemRolesClient) RevokeFromServiceAccount(
 	return s.ExecuteRequest(
 		restmachinery.OutboundRequest{
 			Method:      http.MethodDelete,
-			Path:        "v2/system/user-role-assignments",
+			Path:        "v2/system/service-account-role-assignments",
 			AuthHeaders: s.BearerTokenAuthHeaders(),
 			QueryParams: queryParams,
 			SuccessCode: http.StatusOK,

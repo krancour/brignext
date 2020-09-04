@@ -150,6 +150,7 @@ func (u *usersStore) Lock(ctx context.Context, id string) error {
 	}
 
 	// Now delete all the user's sessions.
+	// TODO: Make the service do this
 	if _, err = u.sessionsCollection.DeleteMany(
 		ctx,
 		bson.M{
@@ -179,64 +180,6 @@ func (u *usersStore) Unlock(ctx context.Context, id string) error {
 		return &meta.ErrNotFound{
 			Type: "User",
 			ID:   id,
-		}
-	}
-	return nil
-}
-
-func (u *usersStore) GrantRole(
-	ctx context.Context,
-	userID string,
-	roles ...authx.Role,
-) error {
-	for _, role := range roles {
-		if _, err := u.collection.UpdateOne(
-			ctx,
-			bson.M{
-				"id": userID,
-				"roles": bson.M{
-					"$nin": []authx.Role{role},
-				},
-			},
-			bson.M{
-				"$push": bson.M{
-					"roles": bson.M{
-						"$each": []authx.Role{role},
-						"$sort": bson.M{
-							"type":  1,
-							"name":  1,
-							"scope": 1,
-						},
-					},
-				},
-			},
-		); err != nil {
-			return errors.Wrapf(err, "error updating user %q", userID)
-		}
-	}
-	return nil
-}
-
-func (u *usersStore) RevokeRole(
-	ctx context.Context,
-	userID string,
-	roles ...authx.Role,
-) error {
-	for _, role := range roles {
-		if _, err := u.collection.UpdateOne(
-			ctx,
-			bson.M{
-				"id": userID,
-			},
-			bson.M{
-				"$pull": bson.M{
-					"roles": bson.M{
-						"$in": []authx.Role{role},
-					},
-				},
-			},
-		); err != nil {
-			return errors.Wrapf(err, "error updating user %q", userID)
 		}
 	}
 	return nil

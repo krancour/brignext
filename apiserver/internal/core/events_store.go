@@ -25,28 +25,4 @@ type EventsStore interface {
 		context.Context,
 		EventsSelector,
 	) (EventList, error)
-
-	UpdateWorkerSpec(
-		ctx context.Context,
-		eventID string,
-		spec WorkerSpec,
-	) error
-	UpdateWorkerStatus(
-		ctx context.Context,
-		eventID string,
-		status WorkerStatus,
-	) error
-
-	CreateJob(
-		ctx context.Context,
-		eventID string,
-		jobName string,
-		jobSpec JobSpec,
-	) error
-	UpdateJobStatus(
-		ctx context.Context,
-		eventID string,
-		jobName string,
-		status JobStatus,
-	) error
 }

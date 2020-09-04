@@ -37,15 +37,15 @@ type ServiceAccountsService interface {
 }
 
 type serviceAccountsService struct {
-	authorize AuthorizeFn
-	store     ServiceAccountsStore
+	authorize            AuthorizeFn
+	serviceAccountsStore ServiceAccountsStore
 }
 
 // NewServiceAccountsService returns a specialized interface for managing ServiceAccounts.
-func NewServiceAccountsService(store ServiceAccountsStore) ServiceAccountsService {
+func NewServiceAccountsService(serviceAccountsStore ServiceAccountsStore) ServiceAccountsService {
 	return &serviceAccountsService{
-		authorize: Authorize,
-		store:     store,
+		authorize:            Authorize,
+		serviceAccountsStore: serviceAccountsStore,
 	}
 }
 
@@ -63,7 +63,7 @@ func (s *serviceAccountsService) Create(
 	now := time.Now()
 	serviceAccount.Created = &now
 	serviceAccount.HashedToken = crypto.ShortSHA("", token.Value)
-	if err := s.store.Create(ctx, serviceAccount); err != nil {
+	if err := s.serviceAccountsStore.Create(ctx, serviceAccount); err != nil {
 		return token, errors.Wrapf(
 			err,
 			"error storing new service account %q",
@@ -85,7 +85,7 @@ func (s *serviceAccountsService) List(
 	if opts.Limit == 0 {
 		opts.Limit = 20
 	}
-	serviceAccounts, err := s.store.List(ctx, selector, opts)
+	serviceAccounts, err := s.serviceAccountsStore.List(ctx, selector, opts)
 	if err != nil {
 		return serviceAccounts,
 			errors.Wrap(err, "error retrieving service accounts from store")
@@ -101,7 +101,7 @@ func (s *serviceAccountsService) Get(
 		return ServiceAccount{}, err
 	}
 
-	serviceAccount, err := s.store.Get(ctx, id)
+	serviceAccount, err := s.serviceAccountsStore.Get(ctx, id)
 	if err != nil {
 		return serviceAccount, errors.Wrapf(
 			err,
@@ -120,7 +120,7 @@ func (s *serviceAccountsService) GetByToken(
 	// No authz requirements here because this is is never invoked at the explicit
 	// request of an end user; rather it is invoked only by the system itself.
 
-	serviceAccount, err := s.store.GetByHashedToken(
+	serviceAccount, err := s.serviceAccountsStore.GetByHashedToken(
 		ctx,
 		crypto.ShortSHA("", token),
 	)
@@ -138,7 +138,7 @@ func (s *serviceAccountsService) Lock(ctx context.Context, id string) error {
 		return err
 	}
 
-	if err := s.store.Lock(ctx, id); err != nil {
+	if err := s.serviceAccountsStore.Lock(ctx, id); err != nil {
 		return errors.Wrapf(
 			err,
 			"error locking service account %q in the store",
@@ -159,7 +159,7 @@ func (s *serviceAccountsService) Unlock(
 	newToken := Token{
 		Value: crypto.NewToken(256),
 	}
-	if err := s.store.Unlock(
+	if err := s.serviceAccountsStore.Unlock(
 		ctx,
 		id,
 		crypto.ShortSHA("", newToken.Value),

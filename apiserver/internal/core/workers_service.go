@@ -36,19 +36,22 @@ type WorkersService interface {
 }
 
 type workersService struct {
-	authorize   authx.AuthorizeFn
-	eventsStore EventsStore
-	scheduler   EventsScheduler
+	authorize    authx.AuthorizeFn
+	eventsStore  EventsStore
+	workersStore WorkersStore
+	scheduler    EventsScheduler
 }
 
 func NewWorkersService(
 	eventsStore EventsStore,
+	workersStore WorkersStore,
 	scheduler EventsScheduler,
 ) WorkersService {
 	return &workersService{
-		authorize:   authx.Authorize,
-		eventsStore: eventsStore,
-		scheduler:   scheduler,
+		authorize:    authx.Authorize,
+		eventsStore:  eventsStore,
+		workersStore: workersStore,
+		scheduler:    scheduler,
 	}
 }
 
@@ -156,7 +159,7 @@ func (w *workersService) UpdateStatus(
 		return err
 	}
 
-	if err := w.eventsStore.UpdateWorkerStatus(
+	if err := w.workersStore.UpdateStatus(
 		ctx,
 		eventID,
 		status,

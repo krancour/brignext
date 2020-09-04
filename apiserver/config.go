@@ -70,6 +70,11 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 		oidcIdentityVerifier,
 	)
 
+	rolesStore, err := authxMongodb.NewRolesStore(database)
+	if err != nil {
+		return nil, err
+	}
+
 	// Projects
 	projectsStore, err := coreMongodb.NewProjectsStore(database)
 	if err != nil {
@@ -80,6 +85,7 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 		projectsStore,
 		usersStore,
 		serviceAccountsStore,
+		rolesStore,
 		projectsScheduler,
 	)
 	secretsService := core.NewSecretsService(projectsStore, projectsScheduler)
@@ -87,6 +93,7 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 		projectsStore,
 		usersStore,
 		serviceAccountsStore,
+		rolesStore,
 	)
 
 	// Events-- depends on projects
@@ -95,6 +102,14 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 		return nil, err
 	}
 	eventsStore, err := coreMongodb.NewEventsStore(database)
+	if err != nil {
+		return nil, err
+	}
+	workersStore, err := coreMongodb.NewWorkersStore(database)
+	if err != nil {
+		return nil, err
+	}
+	jobsStore, err := coreMongodb.NewJobsStore(database)
 	if err != nil {
 		return nil, err
 	}
@@ -112,15 +127,19 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 		eventsStore,
 		scheduler,
 	)
-	workersService := core.NewWorkersService(eventsStore, scheduler)
-	jobsService := core.NewJobsService(eventsStore, scheduler)
+	workersService := core.NewWorkersService(eventsStore, workersStore, scheduler)
+	jobsService := core.NewJobsService(eventsStore, jobsStore, scheduler)
 	logsService := core.NewLogsService(
 		eventsStore,
 		coreKubernetes.NewLogsStore(kubeClient),
 		coreMongodb.NewLogsStore(database),
 	)
 
-	systemRolesService := system.NewSystemRolesService(usersStore, serviceAccountsStore)
+	systemRolesService := system.NewSystemRolesService(
+		usersStore,
+		serviceAccountsStore,
+		rolesStore,
+	)
 
 	baseEndpoints := &restmachinery.BaseEndpoints{
 		TokenAuthFilter: authn.NewTokenAuthFilter(

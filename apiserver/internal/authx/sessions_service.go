@@ -29,7 +29,7 @@ type SessionsService interface {
 
 type sessionsService struct {
 	authorize              AuthorizeFn
-	store                  SessionsStore
+	sessionsStore          SessionsStore
 	usersStore             UsersStore
 	rootUserEnabled        bool
 	hashedRootUserPassword string
@@ -38,7 +38,7 @@ type sessionsService struct {
 }
 
 func NewSessionsService(
-	store SessionsStore,
+	sessionsStore SessionsStore,
 	usersStore UsersStore,
 	rootUserEnabled bool,
 	hashedRootUserPassword string,
@@ -47,7 +47,7 @@ func NewSessionsService(
 ) SessionsService {
 	return &sessionsService{
 		authorize:              Authorize,
-		store:                  store,
+		sessionsStore:          sessionsStore,
 		usersStore:             usersStore,
 		rootUserEnabled:        rootUserEnabled,
 		hashedRootUserPassword: hashedRootUserPassword,
@@ -79,7 +79,7 @@ func (s *sessionsService) CreateRootSession(
 	session := NewRootSession(token.Value)
 	now := time.Now()
 	session.Created = &now
-	if err := s.store.Create(ctx, session); err != nil {
+	if err := s.sessionsStore.Create(ctx, session); err != nil {
 		return token, errors.Wrapf(
 			err,
 			"error storing new root session %q",
@@ -102,7 +102,7 @@ func (s *sessionsService) CreateUserSession(
 	)
 	now := time.Now()
 	session.Created = &now
-	if err := s.store.Create(ctx, session); err != nil {
+	if err := s.sessionsStore.Create(ctx, session); err != nil {
 		return userSessionAuthDetails, errors.Wrapf(
 			err,
 			"error storing new user session %q",
@@ -126,7 +126,7 @@ func (s *sessionsService) Authenticate(
 				"server.",
 		}
 	}
-	session, err := s.store.GetByHashedOAuth2State(
+	session, err := s.sessionsStore.GetByHashedOAuth2State(
 		ctx,
 		crypto.ShortSHA("", oauth2State),
 	)
@@ -195,7 +195,7 @@ func (s *sessionsService) Authenticate(
 			return err
 		}
 	}
-	if err := s.store.Authenticate(
+	if err := s.sessionsStore.Authenticate(
 		ctx,
 		session.ID,
 		user.ID,
@@ -214,7 +214,7 @@ func (s *sessionsService) GetByOAuth2State(
 	ctx context.Context,
 	oauth2State string,
 ) (Session, error) {
-	session, err := s.store.GetByHashedOAuth2State(
+	session, err := s.sessionsStore.GetByHashedOAuth2State(
 		ctx,
 		crypto.ShortSHA("", oauth2State),
 	)
@@ -231,7 +231,7 @@ func (s *sessionsService) GetByToken(
 	ctx context.Context,
 	token string,
 ) (Session, error) {
-	session, err := s.store.GetByHashedToken(
+	session, err := s.sessionsStore.GetByHashedToken(
 		ctx,
 		crypto.ShortSHA("", token),
 	)
@@ -245,7 +245,7 @@ func (s *sessionsService) GetByToken(
 }
 
 func (s *sessionsService) Delete(ctx context.Context, id string) error {
-	if err := s.store.Delete(ctx, id); err != nil {
+	if err := s.sessionsStore.Delete(ctx, id); err != nil {
 		return errors.Wrapf(err, "error removing session %q from store", id)
 	}
 	return nil

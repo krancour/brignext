@@ -14,20 +14,7 @@ type ServiceAccountsStore interface {
 		meta.ListOptions,
 	) (ServiceAccountList, error)
 	Get(context.Context, string) (ServiceAccount, error)
-
 	GetByHashedToken(context.Context, string) (ServiceAccount, error)
-
 	Lock(context.Context, string) error
 	Unlock(ctx context.Context, id string, newHashedToken string) error
-
-	GrantRole(
-		ctx context.Context,
-		serviceAccountID string,
-		roles ...Role,
-	) error
-	RevokeRole(
-		ctx context.Context,
-		serviceAccountID string,
-		roles ...Role,
-	) error
 }

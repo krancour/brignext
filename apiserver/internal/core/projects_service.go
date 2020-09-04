@@ -33,24 +33,27 @@ type ProjectsService interface {
 
 type projectsService struct {
 	authorize            authx.AuthorizeFn
-	store                ProjectsStore
+	projectsStore        ProjectsStore
 	usersStore           authx.UsersStore
 	serviceAccountsStore authx.ServiceAccountsStore
+	rolesStore           authx.RolesStore
 	scheduler            ProjectsScheduler
 }
 
 // NewProjectsService returns a specialized interface for managing Projects.
 func NewProjectsService(
-	store ProjectsStore,
+	projectsStore ProjectsStore,
 	usersStore authx.UsersStore,
 	serviceAccountsStore authx.ServiceAccountsStore,
+	rolesStore authx.RolesStore,
 	scheduler ProjectsScheduler,
 ) ProjectsService {
 	return &projectsService{
 		authorize:            authx.Authorize,
-		store:                store,
+		projectsStore:        projectsStore,
 		usersStore:           usersStore,
 		serviceAccountsStore: serviceAccountsStore,
+		rolesStore:           rolesStore,
 		scheduler:            scheduler,
 	}
 }
@@ -66,12 +69,6 @@ func (p *projectsService) Create(
 	now := time.Now()
 	project.Created = &now
 
-	// TODO: The principal that created this should automatically be a project
-	// admin, developer, and user... but how can we do that without creating a
-	// cyclic dependency? (UserService and ServiceAccountService already depend
-	// on this package because they use the Project store to check the validity
-	// of a project scope.)
-
 	// Let the scheduler add scheduler-specific details before we persist.
 	var err error
 	if project, err = p.scheduler.PreCreate(ctx, project); err != nil {
@@ -82,7 +79,7 @@ func (p *projectsService) Create(
 		)
 	}
 
-	if err = p.store.Create(ctx, project); err != nil {
+	if err = p.projectsStore.Create(ctx, project); err != nil {
 		return project,
 			errors.Wrapf(err, "error storing new project %q", project.ID)
 	}
@@ -102,7 +99,7 @@ func (p *projectsService) Create(
 		authx.RoleProjectUser(project.ID),
 	}
 	if user, ok := principal.(*authx.User); ok {
-		if err := p.usersStore.GrantRole(
+		if err := p.rolesStore.GrantToUser(
 			ctx,
 			user.ID,
 			roles...,
@@ -115,7 +112,7 @@ func (p *projectsService) Create(
 			)
 		}
 	} else if serviceAccount, ok := principal.(*authx.ServiceAccount); ok {
-		if err := p.serviceAccountsStore.GrantRole(
+		if err := p.rolesStore.GrantToServiceAccount(
 			ctx,
 			serviceAccount.ID,
 			roles...,
@@ -144,7 +141,7 @@ func (p *projectsService) List(
 	if opts.Limit == 0 {
 		opts.Limit = 20
 	}
-	projects, err := p.store.List(ctx, selector, opts)
+	projects, err := p.projectsStore.List(ctx, selector, opts)
 	if err != nil {
 		return projects, errors.Wrap(err, "error retrieving projects from store")
 	}
@@ -159,7 +156,7 @@ func (p *projectsService) Get(
 		return Project{}, err
 	}
 
-	project, err := p.store.Get(ctx, id)
+	project, err := p.projectsStore.Get(ctx, id)
 	if err != nil {
 		return project, errors.Wrapf(
 			err,
@@ -191,7 +188,7 @@ func (p *projectsService) Update(
 		)
 	}
 
-	if err = p.store.Update(ctx, project); err != nil {
+	if err = p.projectsStore.Update(ctx, project); err != nil {
 		return project, errors.Wrapf(
 			err,
 			"error updating project %q in store",
@@ -213,12 +210,12 @@ func (p *projectsService) Delete(ctx context.Context, id string) error {
 		return err
 	}
 
-	project, err := p.store.Get(ctx, id)
+	project, err := p.projectsStore.Get(ctx, id)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving project %q from store", id)
 	}
 
-	if err := p.store.Delete(ctx, id); err != nil {
+	if err := p.projectsStore.Delete(ctx, id); err != nil {
 		return errors.Wrapf(err, "error removing project %q from store", id)
 	}
 	if err := p.scheduler.Delete(ctx, project); err != nil {

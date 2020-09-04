@@ -39,16 +39,19 @@ type systemRolesService struct {
 	authorize            authx.AuthorizeFn
 	usersStore           authx.UsersStore
 	serviceAccountsStore authx.ServiceAccountsStore
+	rolesStore           authx.RolesStore
 }
 
 func NewSystemRolesService(
 	usersStore authx.UsersStore,
 	serviceAccountsStore authx.ServiceAccountsStore,
+	rolesStore authx.RolesStore,
 ) SystemRolesService {
 	return &systemRolesService{
 		authorize:            authx.Authorize,
 		usersStore:           usersStore,
 		serviceAccountsStore: serviceAccountsStore,
+		rolesStore:           rolesStore,
 	}
 }
 
@@ -67,7 +70,7 @@ func (s *systemRolesService) GrantToUser(
 	}
 
 	// Give them the Role
-	return s.usersStore.GrantRole(
+	return s.rolesStore.GrantToUser(
 		ctx,
 		userID,
 		authx.Role{
@@ -93,7 +96,7 @@ func (s *systemRolesService) RevokeFromUser(
 	}
 
 	// Revoke the Role
-	return s.usersStore.RevokeRole(
+	return s.rolesStore.RevokeFromUser(
 		ctx,
 		userID,
 		authx.Role{
@@ -123,7 +126,7 @@ func (s *systemRolesService) GrantToServiceAccount(
 	}
 
 	// Give it the Role
-	return s.serviceAccountsStore.GrantRole(
+	return s.rolesStore.GrantToServiceAccount(
 		ctx,
 		serviceAccountID,
 		authx.Role{
@@ -153,7 +156,7 @@ func (s *systemRolesService) RevokeFromServiceAccount(
 	}
 
 	// Revoke the Role
-	return s.serviceAccountsStore.RevokeRole(
+	return s.rolesStore.RevokeFromServiceAccount(
 		ctx,
 		serviceAccountID,
 		authx.Role{
