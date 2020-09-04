@@ -56,20 +56,20 @@ type eventsService struct {
 	authorize     authx.AuthorizeFn
 	projectsStore ProjectsStore
 	eventsStore   EventsStore
-	scheduler     EventsScheduler
+	substrate     Substrate
 }
 
 // NewEventsService returns a specialized interface for managing Events.
 func NewEventsService(
 	projectsStore ProjectsStore,
 	eventsStore EventsStore,
-	scheduler EventsScheduler,
+	substrate Substrate,
 ) EventsService {
 	return &eventsService{
 		authorize:     authx.Authorize,
 		projectsStore: projectsStore,
 		eventsStore:   eventsStore,
-		scheduler:     scheduler,
+		substrate:     substrate,
 	}
 }
 
@@ -187,15 +187,16 @@ func (e *eventsService) Create(
 		HashedToken: crypto.ShortSHA("", token),
 	}
 
-	// Let the scheduler add scheduler-specific details before we persist.
-	if event, err = e.scheduler.PreCreate(ctx, project, event); err != nil {
+	// Amend the Event with substrate-specific details before we persist.
+	if event, err = e.substrate.PreCreateEvent(ctx, project, event); err != nil {
 		return events, errors.Wrapf(
 			err,
-			"error pre-creating event %q in scheduler",
+			"error pre-creating event %q on the substrate",
 			event.ID,
 		)
 	}
 
+	// Persist the Event
 	if err = e.eventsStore.Create(ctx, event); err != nil {
 		return events, errors.Wrapf(
 			err,
@@ -203,10 +204,21 @@ func (e *eventsService) Create(
 			event.ID,
 		)
 	}
-	if err = e.scheduler.Create(ctx, project, event); err != nil {
+
+	// Prepare the substrate for the Worker
+	if err = e.substrate.PreScheduleWorker(ctx, event); err != nil {
 		return events, errors.Wrapf(
 			err,
-			"error creating event %q in scheduler",
+			"error pre-scheduling event %q worker on the substrate",
+			event.ID,
+		)
+	}
+
+	// Schedule the Worker for async / eventual execution
+	if err = e.substrate.ScheduleWorker(ctx, event); err != nil {
+		return events, errors.Wrapf(
+			err,
+			"error scheduling event %q worker on the substrate",
 			event.ID,
 		)
 	}
@@ -288,20 +300,9 @@ func (e *eventsService) Cancel(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error canceling event %q in store", id)
 	}
 
-	go func() {
-		if err = e.scheduler.Delete(
-			context.Background(), // Deliberately not using request context
-			event,
-		); err != nil {
-			log.Println(
-				errors.Wrapf(
-					err,
-					"error deleting event %q from scheduler",
-					id,
-				),
-			)
-		}
-	}()
+	if err = e.substrate.DeleteWorkerAndJobs(ctx, event); err != nil {
+		return errors.Wrapf(err, "error deleting event %q worker and jobs from the substrate", id)
+	}
 
 	return nil
 }
@@ -357,14 +358,14 @@ func (e *eventsService) CancelMany(
 	// TODO: Can we find a quicker, more efficient way to do this?
 	go func() {
 		for _, event := range events.Items {
-			if err := e.scheduler.Delete(
+			if err := e.substrate.DeleteWorkerAndJobs(
 				context.Background(), // Deliberately not using request context
 				event,
 			); err != nil {
 				log.Println(
 					errors.Wrapf(
 						err,
-						"error deleting event %q from scheduler",
+						"error deleting event %q worker and jobs from the substrate",
 						event.ID,
 					),
 				)
@@ -392,20 +393,9 @@ func (e *eventsService) Delete(ctx context.Context, id string) error {
 		return errors.Wrapf(err, "error deleting event %q from store", id)
 	}
 
-	go func() {
-		if err = e.scheduler.Delete(
-			context.Background(), // Deliberately not using request context
-			event,
-		); err != nil {
-			log.Println(
-				errors.Wrapf(
-					err,
-					"error deleting event %q from scheduler",
-					id,
-				),
-			)
-		}
-	}()
+	if err = e.substrate.DeleteWorkerAndJobs(ctx, event); err != nil {
+		return errors.Wrapf(err, "error deleting event %q worker and jobs from the substrate", id)
+	}
 
 	return nil
 }
@@ -461,14 +451,14 @@ func (e *eventsService) DeleteMany(
 	// TODO: Can we find a quicker, more efficient way to do this?
 	go func() {
 		for _, event := range events.Items {
-			if err := e.scheduler.Delete(
+			if err := e.substrate.DeleteWorkerAndJobs(
 				context.Background(), // Deliberately not using request context
 				event,
 			); err != nil {
 				log.Println(
 					errors.Wrapf(
 						err,
-						"error deleting event %q from scheduler",
+						"error deleting event %q worker and jobs from the substrate",
 						event.ID,
 					),
 				)

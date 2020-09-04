@@ -75,19 +75,28 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 		return nil, err
 	}
 
+	substrateConfig, err := core.GetConfigFromEnvironment()
+	if err != nil {
+		return nil, err
+	}
+	queueWriterFactory, err := amqp.GetQueueWriterFactoryFromEnvironment()
+	if err != nil {
+		return nil, err
+	}
+
 	// Projects
 	projectsStore, err := coreMongodb.NewProjectsStore(database)
 	if err != nil {
 		return nil, err
 	}
 	secretsStore := coreKubernetes.NewSecretsStore(kubeClient)
-	projectsSubstrate := coreKubernetes.NewProjectsSubstrate(kubeClient)
+	substrate := coreKubernetes.NewSubstrate(substrateConfig, queueWriterFactory, kubeClient)
 	projectsService := core.NewProjectsService(
 		projectsStore,
 		usersStore,
 		serviceAccountsStore,
 		rolesStore,
-		projectsSubstrate,
+		substrate,
 	)
 	secretsService := core.NewSecretsService(projectsStore, secretsStore)
 	projectRolesService := core.NewProjectRolesService(
@@ -98,10 +107,6 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 	)
 
 	// Events-- depends on projects
-	queueWriterFactory, err := amqp.GetQueueWriterFactoryFromEnvironment()
-	if err != nil {
-		return nil, err
-	}
 	eventsStore, err := coreMongodb.NewEventsStore(database)
 	if err != nil {
 		return nil, err
@@ -114,22 +119,9 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	schedulerConfig, err := core.GetConfigFromEnvironment()
-	if err != nil {
-		return nil, err
-	}
-	scheduler := coreKubernetes.NewEventsScheduler(
-		schedulerConfig,
-		queueWriterFactory,
-		kubeClient,
-	)
-	eventsService := core.NewEventsService(
-		projectsStore,
-		eventsStore,
-		scheduler,
-	)
-	workersService := core.NewWorkersService(eventsStore, workersStore, scheduler)
-	jobsService := core.NewJobsService(eventsStore, jobsStore, scheduler)
+	eventsService := core.NewEventsService(projectsStore, eventsStore, substrate)
+	workersService := core.NewWorkersService(eventsStore, workersStore, substrate)
+	jobsService := core.NewJobsService(eventsStore, jobsStore, substrate)
 	logsService := core.NewLogsService(
 		eventsStore,
 		coreKubernetes.NewLogsStore(kubeClient),

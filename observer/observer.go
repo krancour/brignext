@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/krancour/brignext/v2/sdk/core/api"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -14,13 +15,13 @@ import (
 var (
 	workerPodsSelector = labels.Set(
 		map[string]string{
-			"brignext.io/component": "worker",
+			myk8s.LabelComponent: "worker",
 		},
 	).AsSelector().String()
 
 	jobPodsSelector = labels.Set(
 		map[string]string{
-			"brignext.io/component": "job",
+			myk8s.LabelComponent: "job",
 		},
 	).AsSelector().String()
 )

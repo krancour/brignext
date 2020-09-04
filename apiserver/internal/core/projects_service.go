@@ -37,7 +37,7 @@ type projectsService struct {
 	usersStore           authx.UsersStore
 	serviceAccountsStore authx.ServiceAccountsStore
 	rolesStore           authx.RolesStore
-	projectsSubstrate    ProjectsSubstrate
+	substrate            Substrate
 }
 
 // NewProjectsService returns a specialized interface for managing Projects.
@@ -46,7 +46,7 @@ func NewProjectsService(
 	usersStore authx.UsersStore,
 	serviceAccountsStore authx.ServiceAccountsStore,
 	rolesStore authx.RolesStore,
-	projectsSubstrate ProjectsSubstrate,
+	substrate Substrate,
 ) ProjectsService {
 	return &projectsService{
 		authorize:            authx.Authorize,
@@ -54,7 +54,7 @@ func NewProjectsService(
 		usersStore:           usersStore,
 		serviceAccountsStore: serviceAccountsStore,
 		rolesStore:           rolesStore,
-		projectsSubstrate:    projectsSubstrate,
+		substrate:            substrate,
 	}
 }
 
@@ -71,10 +71,10 @@ func (p *projectsService) Create(
 
 	// Add substrate-specific details before we persist.
 	var err error
-	if project, err = p.projectsSubstrate.PreCreate(ctx, project); err != nil {
+	if project, err = p.substrate.PreCreateProject(ctx, project); err != nil {
 		return project, errors.Wrapf(
 			err,
-			"error pre-creating project %q in the substrate",
+			"error pre-creating project %q on the substrate",
 			project.ID,
 		)
 	}
@@ -83,10 +83,10 @@ func (p *projectsService) Create(
 		return project,
 			errors.Wrapf(err, "error storing new project %q", project.ID)
 	}
-	if err = p.projectsSubstrate.Create(ctx, project); err != nil {
+	if err = p.substrate.CreateProject(ctx, project); err != nil {
 		return project, errors.Wrapf(
 			err,
-			"error creating project %q in the substrate",
+			"error creating project %q on the substrate",
 			project.ID,
 		)
 	}
@@ -189,10 +189,10 @@ func (p *projectsService) Update(
 	}
 
 	// Update substrate-specific details before we persist.
-	if updatedProject, err = p.projectsSubstrate.PreUpdate(ctx, oldProject, updatedProject); err != nil {
+	if updatedProject, err = p.substrate.PreUpdateProject(ctx, oldProject, updatedProject); err != nil {
 		return updatedProject, errors.Wrapf(
 			err,
-			"error pre-updating project %q in the substrate",
+			"error pre-updating project %q on the substrate",
 			updatedProject.ID,
 		)
 	}
@@ -204,10 +204,10 @@ func (p *projectsService) Update(
 			updatedProject.ID,
 		)
 	}
-	if err = p.projectsSubstrate.Update(ctx, updatedProject); err != nil {
+	if err = p.substrate.UpdateProject(ctx, oldProject, updatedProject); err != nil {
 		return updatedProject, errors.Wrapf(
 			err,
-			"error updating project %q in the substrate",
+			"error updating project %q on the substrate",
 			updatedProject.ID,
 		)
 	}
@@ -227,7 +227,7 @@ func (p *projectsService) Delete(ctx context.Context, id string) error {
 	if err := p.projectsStore.Delete(ctx, id); err != nil {
 		return errors.Wrapf(err, "error removing project %q from store", id)
 	}
-	if err := p.projectsSubstrate.Delete(ctx, project); err != nil {
+	if err := p.substrate.DeleteProject(ctx, project); err != nil {
 		return errors.Wrapf(
 			err,
 			"error deleting project %q from substrate",

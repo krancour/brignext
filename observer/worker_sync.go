@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/krancour/brignext/v2/sdk/core"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,7 +56,7 @@ func (o *observer) syncWorkerPod(obj interface{}) {
 	}
 
 	// Use the API to update worker phase so it corresponds to worker pod phase
-	eventID := workerPod.Labels["brignext.io/event"]
+	eventID := workerPod.Labels[myk8s.LabelEvent]
 
 	status := core.WorkerStatus{}
 	switch workerPod.Status.Phase {

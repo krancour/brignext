@@ -56,19 +56,19 @@ type jobsService struct {
 	authorize   authx.AuthorizeFn
 	eventsStore EventsStore
 	jobsStore   JobsStore
-	scheduler   EventsScheduler
+	substrate   Substrate
 }
 
 func NewJobsService(
 	eventsStore EventsStore,
 	jobsStore JobsStore,
-	scheduler EventsScheduler,
+	substrate Substrate,
 ) JobsService {
 	return &jobsService{
 		authorize:   authx.Authorize,
 		eventsStore: eventsStore,
 		jobsStore:   jobsStore,
-		scheduler:   scheduler,
+		substrate:   substrate,
 	}
 }
 
@@ -155,10 +155,19 @@ func (j *jobsService) Create(
 		)
 	}
 
-	if err = j.scheduler.CreateJob(ctx, event, jobName); err != nil {
+	if err = j.substrate.PreScheduleJob(ctx, event, jobName); err != nil {
 		return errors.Wrapf(
 			err,
-			"error scheduling event %q job %q",
+			"error pre-scheduling event %q job %q on the substrate",
+			event.ID,
+			jobName,
+		)
+	}
+
+	if err = j.substrate.ScheduleJob(ctx, event, jobName); err != nil {
+		return errors.Wrapf(
+			err,
+			"error scheduling event %q job %q on the substrate",
 			event.ID,
 			jobName,
 		)
@@ -200,7 +209,7 @@ func (j *jobsService) Start(
 		}
 	}
 
-	if err = j.scheduler.StartJob(ctx, event, jobName); err != nil {
+	if err = j.substrate.StartJob(ctx, event, jobName); err != nil {
 		return errors.Wrapf(
 			err,
 			"error starting event %q job %q",

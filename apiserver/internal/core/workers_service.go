@@ -39,19 +39,19 @@ type workersService struct {
 	authorize    authx.AuthorizeFn
 	eventsStore  EventsStore
 	workersStore WorkersStore
-	scheduler    EventsScheduler
+	substrate    Substrate
 }
 
 func NewWorkersService(
 	eventsStore EventsStore,
 	workersStore WorkersStore,
-	scheduler EventsScheduler,
+	substrate Substrate,
 ) WorkersService {
 	return &workersService{
 		authorize:    authx.Authorize,
 		eventsStore:  eventsStore,
 		workersStore: workersStore,
-		scheduler:    scheduler,
+		substrate:    substrate,
 	}
 }
 
@@ -65,18 +65,6 @@ func (w *workersService) Start(ctx context.Context, eventID string) error {
 		return errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
 
-	// spec := event.Worker.Spec
-	// TODO: This is probably a better place to apply worker default just before
-	// it is started INSTEAD OF setting defaults at event creation time or waiting
-	// all the way up until pod creation time.
-	// if err = w.store.UpdateWorkerSpec(ctx, eventID, spec); err != nil {
-	// 	return errors.Wrapf(
-	// 		err,
-	// 		"error updating worker's spec for event %q",
-	// 		event.ID,
-	// 	)
-	// }
-
 	if event.Worker.Status.Phase != WorkerPhasePending {
 		return &meta.ErrConflict{
 			Type: "Event",
@@ -88,7 +76,7 @@ func (w *workersService) Start(ctx context.Context, eventID string) error {
 		}
 	}
 
-	if err = w.scheduler.StartWorker(ctx, event); err != nil {
+	if err = w.substrate.StartWorker(ctx, event); err != nil {
 		return errors.Wrapf(err, "error starting worker for event %q", event.ID)
 	}
 	return nil

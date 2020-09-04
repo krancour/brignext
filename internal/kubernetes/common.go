@@ -1,9 +1,12 @@
 package kubernetes
 
-// TODO: I think these can move to the apiserver. I think they're exclusively
-// used there.
 const (
-	ComponentLabel = "brignext.io/component"
-	ProjectLabel   = "brignext.io/project"
-	EventLabel     = "brignext.io/event"
+	LabelComponent = "brigade.sh/component"
+	LabelProject   = "brigade.sh/project"
+	LabelEvent     = "brigade.sh/event"
+	LabelJob       = "brigade.sh/job"
+
+	SecretTypeProjectSecrets = "brigade.sh/project-secrets"
+	SecretTypeEvent          = "brigade.sh/event"
+	SecretTypeJobSecrets     = "brigade.sh/job-secrets"
 )

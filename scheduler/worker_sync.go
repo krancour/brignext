@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,7 +15,7 @@ import (
 
 var workerPodsSelector = labels.Set(
 	map[string]string{
-		"brignext.io/component": "worker",
+		myk8s.LabelComponent: "worker",
 	},
 ).AsSelector().String()
 

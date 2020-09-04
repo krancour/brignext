@@ -9,10 +9,12 @@ import (
 	"time"
 
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/crypto"
 	"github.com/krancour/brignext/v2/apiserver/internal/lib/queue"
 	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -20,42 +22,289 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-type eventsScheduler struct {
+type substrate struct {
 	config             core.Config
 	queueWriterFactory queue.WriterFactory
 	kubeClient         *kubernetes.Clientset
 }
 
-func NewEventsScheduler(
+func NewSubstrate(
 	config core.Config,
 	queueWriterFactory queue.WriterFactory,
 	kubeClient *kubernetes.Clientset,
-) core.EventsScheduler {
-	return &eventsScheduler{
+) core.Substrate {
+	return &substrate{
 		config:             config,
 		queueWriterFactory: queueWriterFactory,
 		kubeClient:         kubeClient,
 	}
 }
 
-func (e *eventsScheduler) PreCreate(
+func (s *substrate) PreCreateProject(
 	ctx context.Context,
-	proj core.Project,
+	project core.Project,
+) (core.Project, error) {
+	// Generate and assign a unique Kubernetes namespace name for the Project,
+	// but don't create it yet
+	project.Kubernetes = &core.KubernetesConfig{
+		Namespace: strings.ToLower(
+			fmt.Sprintf("brignext-%s-%s", project.ID, crypto.NewToken(10)),
+		),
+	}
+	return project, nil
+}
+
+func (s *substrate) CreateProject(
+	ctx context.Context,
+	project core.Project,
+) error {
+	// Create the Project's Kubernetes namespace
+	if _, err := s.kubeClient.CoreV1().Namespaces().Create(
+		ctx,
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: project.Kubernetes.Namespace,
+			},
+		},
+		metav1.CreateOptions{},
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating namespace %q for project %q",
+			project.Kubernetes.Namespace,
+			project.ID,
+		)
+	}
+
+	// Create an RBAC role for use by all the project's workers
+	if _, err := s.kubeClient.RbacV1().Roles(project.Kubernetes.Namespace).Create(
+		ctx,
+		&rbacv1.Role{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "workers",
+			},
+			Rules: []rbacv1.PolicyRule{},
+		},
+		metav1.CreateOptions{},
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating role \"workers\" in namespace %q",
+			project.Kubernetes.Namespace,
+		)
+	}
+
+	// Create a service account for use by all of the Project's Workers
+	if _, err := s.kubeClient.CoreV1().ServiceAccounts(
+		project.Kubernetes.Namespace,
+	).Create(
+		ctx,
+		&corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "workers",
+			},
+		},
+		metav1.CreateOptions{},
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating service account \"workers\" in namespace %q",
+			project.Kubernetes.Namespace,
+		)
+	}
+
+	// Create an RBAC role binding to associate the workers service account with
+	// the workers RBAC role
+	if _, err := s.kubeClient.RbacV1().RoleBindings(
+		project.Kubernetes.Namespace,
+	).Create(
+		ctx,
+		&rbacv1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "workers",
+			},
+			Subjects: []rbacv1.Subject{
+				{
+					Kind:      "ServiceAccount",
+					Name:      "workers",
+					Namespace: project.Kubernetes.Namespace,
+				},
+			},
+			RoleRef: rbacv1.RoleRef{
+				Kind: "Role",
+				Name: "workers",
+			},
+		},
+		metav1.CreateOptions{},
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating role binding \"workers\" in namespace %q",
+			project.Kubernetes.Namespace,
+		)
+	}
+
+	// Create an RBAC role for use by all of the Project's Jobs
+	if _, err := s.kubeClient.RbacV1().Roles(project.Kubernetes.Namespace).Create(
+		ctx,
+		&rbacv1.Role{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "jobs",
+			},
+			Rules: []rbacv1.PolicyRule{},
+		},
+		metav1.CreateOptions{},
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating role \"jobs\" in namespace %q",
+			project.Kubernetes.Namespace,
+		)
+	}
+
+	// Create a service account for use by all of the Project's Jobs
+	if _, err := s.kubeClient.CoreV1().ServiceAccounts(
+		project.Kubernetes.Namespace,
+	).Create(
+		ctx,
+		&corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "jobs",
+			},
+		},
+		metav1.CreateOptions{},
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating service account \"jobs\" in namespace %q",
+			project.Kubernetes.Namespace,
+		)
+	}
+
+	// Create an RBAC role binding to associate the jobs service account with the
+	// jobs RBAC role
+	if _, err := s.kubeClient.RbacV1().RoleBindings(
+		project.Kubernetes.Namespace,
+	).Create(
+		ctx,
+		&rbacv1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "jobs",
+			},
+			Subjects: []rbacv1.Subject{
+				{
+					Kind:      "ServiceAccount",
+					Name:      "jobs",
+					Namespace: project.Kubernetes.Namespace,
+				},
+			},
+			RoleRef: rbacv1.RoleRef{
+				Kind: "Role",
+				Name: "jobs",
+			},
+		},
+		metav1.CreateOptions{},
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating role binding \"jobs\" in namespace %q",
+			project.Kubernetes.Namespace,
+		)
+	}
+
+	// Create a Kubernetes secret to store the Project's Secrets. Note that the
+	// Kubernetes-based implementation of the SecretStore interface will assume
+	// this Kubernetes secret exists.
+	if _, err := s.kubeClient.CoreV1().Secrets(
+		project.Kubernetes.Namespace,
+	).Create(
+		ctx,
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "project-secrets",
+				Labels: map[string]string{
+					myk8s.LabelComponent: "project-secrets",
+					myk8s.LabelProject:   project.ID,
+				},
+			},
+			Type: myk8s.SecretTypeProjectSecrets,
+		},
+		metav1.CreateOptions{},
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error creating secret \"project-secrets\" in namespace %q",
+			project.Kubernetes.Namespace,
+		)
+	}
+
+	return nil
+}
+
+func (s *substrate) PreUpdateProject(
+	ctx context.Context,
+	oldProject core.Project,
+	newProject core.Project,
+) (core.Project, error) {
+	// This Kubernetes-specific configuration isn't specified by the end-user, so
+	// when an end-user is updating a Project, this information is missing. In
+	// order for it to not get completely clobbered, we copy it over from the
+	// Project's pre-update state.
+	newProject.Kubernetes = oldProject.Kubernetes
+	return newProject, nil
+}
+
+func (s *substrate) UpdateProject(
+	context.Context,
+	core.Project,
+	core.Project,
+) error {
+	// There's nothing to do here.
+	return nil
+}
+
+func (s *substrate) DeleteProject(
+	ctx context.Context,
+	project core.Project,
+) error {
+	// Just delete the Project's entire Kubernetes namespace and it should take
+	// all other Project resources along with it.
+	if err := s.kubeClient.CoreV1().Namespaces().Delete(
+		ctx,
+		project.Kubernetes.Namespace,
+		metav1.DeleteOptions{},
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error deleting namespace %q",
+			project.Kubernetes.Namespace,
+		)
+	}
+	return nil
+}
+
+func (s *substrate) PreCreateEvent(
+	ctx context.Context,
+	project core.Project,
 	event core.Event,
 ) (core.Event, error) {
-	// Fill in scheduler-specific details
-	event.Kubernetes = proj.Kubernetes
-	event.Worker.Spec.Kubernetes = proj.Spec.WorkerTemplate.Kubernetes
+	// Amend the Event with Kubernetes-specific details copied over from the
+	// Project
+	event.Kubernetes = project.Kubernetes
+	event.Worker.Spec.Kubernetes = project.Spec.WorkerTemplate.Kubernetes
 	return event, nil
 }
 
-func (e *eventsScheduler) Create(
+func (s *substrate) PreScheduleWorker(
 	ctx context.Context,
-	proj core.Project,
 	event core.Event,
 ) error {
-	// Get the project's secrets
-	projectSecretsSecret, err := e.kubeClient.CoreV1().Secrets(
+	// Create a Kubernetes secret containing relevant Event and Project details.
+	// This is created PRIOR to scheduling so that these details will reflect an
+	// accurate snapshot of Project configuration at the time the Event was
+	// created.
+
+	projectSecretsSecret, err := s.kubeClient.CoreV1().Secrets(
 		event.Kubernetes.Namespace,
 	).Get(ctx, "project-secrets", metav1.GetOptions{})
 	if err != nil {
@@ -108,7 +357,7 @@ func (e *eventsScheduler) Create(
 			LongTitle:  event.LongTitle,
 			Payload:    event.Payload,
 			Worker: worker{
-				APIAddress:           e.config.APIAddress,
+				APIAddress:           s.config.APIAddress,
 				APIToken:             event.Worker.Token,
 				LogLevel:             event.Worker.Spec.LogLevel,
 				ConfigFilesDirectory: event.Worker.Spec.ConfigFilesDirectory,
@@ -127,7 +376,7 @@ func (e *eventsScheduler) Create(
 	data["gitSSHKey"] = projectSecretsSecret.Data["gitSSHKey"]
 	data["gitSSHCert"] = projectSecretsSecret.Data["gitSSHCert"]
 
-	if _, err = e.kubeClient.CoreV1().Secrets(
+	if _, err = s.kubeClient.CoreV1().Secrets(
 		event.Kubernetes.Namespace,
 	).Create(
 		ctx,
@@ -135,12 +384,12 @@ func (e *eventsScheduler) Create(
 			ObjectMeta: metav1.ObjectMeta{
 				Name: fmt.Sprintf("event-%s", event.ID),
 				Labels: map[string]string{
-					myk8s.ComponentLabel: "event",
-					myk8s.ProjectLabel:   event.ProjectID,
-					myk8s.EventLabel:     event.ID,
+					myk8s.LabelComponent: "event",
+					myk8s.LabelProject:   event.ProjectID,
+					myk8s.LabelEvent:     event.ID,
 				},
 			},
-			Type: corev1.SecretType("brignext.io/event"),
+			Type: myk8s.SecretTypeEvent,
 			Data: data,
 		},
 		metav1.CreateOptions{},
@@ -153,8 +402,14 @@ func (e *eventsScheduler) Create(
 		)
 	}
 
-	// Schedule worker for asynchronous execution
-	queueWriter, err := e.queueWriterFactory.NewQueueWriter(
+	return nil
+}
+
+func (s *substrate) ScheduleWorker(
+	ctx context.Context,
+	event core.Event,
+) error {
+	queueWriter, err := s.queueWriterFactory.NewQueueWriter(
 		fmt.Sprintf("workers.%s", event.ProjectID),
 	)
 	if err != nil {
@@ -182,86 +437,9 @@ func (e *eventsScheduler) Create(
 	return nil
 }
 
-func (e *eventsScheduler) Delete(
-	ctx context.Context,
-	event core.Event,
-) error {
-	matchesEvent, _ := labels.NewRequirement(
-		myk8s.EventLabel,
-		selection.Equals,
-		[]string{event.ID},
-	)
-	labelSelector := labels.NewSelector()
-	labelSelector = labelSelector.Add(*matchesEvent)
-
-	// Delete all pods related to this event
-	if err := e.deletePodsByLabelSelector(
-		ctx,
-		event.Kubernetes.Namespace,
-		labelSelector,
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error deleting event %q pods in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
-		)
-	}
-
-	// Delete all persistent volume claims related to this event
-	if err := e.deletePersistentVolumeClaimsByLabelSelector(
-		ctx,
-		event.Kubernetes.Namespace,
-		labelSelector,
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error deleting event %q persistent volume claims in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
-		)
-	}
-
-	// Delete all config maps related to this event. BrigNext itself doesn't
-	// create any, but we're not discounting the possibility that a worker or job
-	// might create some. We are, of course, assuming that anything created by a
-	// worker or job is labeled appropriately.
-	if err := e.deleteConfigMapsByLabelSelector(
-		ctx,
-		event.Kubernetes.Namespace,
-		labelSelector,
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error deleting event %q config maps in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
-		)
-	}
-
-	// Delete all secrets related to this event
-	if err := e.deleteSecretsByLabelSelector(
-		ctx,
-		event.Kubernetes.Namespace,
-		labelSelector,
-	); err != nil {
-		return errors.Wrapf(
-			err,
-			"error deleting event %q secrets in namespace %q",
-			event.ID,
-			event.Kubernetes.Namespace,
-		)
-	}
-
-	return nil
-}
-
-func (e *eventsScheduler) StartWorker(
-	ctx context.Context,
-	event core.Event,
-) error {
+func (s *substrate) StartWorker(ctx context.Context, event core.Event) error {
 	if event.Worker.Spec.UseWorkspace {
-		if err := e.createWorkspacePVC(ctx, event); err != nil {
+		if err := s.createWorkspacePVC(ctx, event); err != nil {
 			return errors.Wrapf(
 				err,
 				"error creating workspace for event %q worker",
@@ -269,7 +447,7 @@ func (e *eventsScheduler) StartWorker(
 			)
 		}
 	}
-	if err := e.createWorkerPod(ctx, event); err != nil {
+	if err := s.createWorkerPod(ctx, event); err != nil {
 		return errors.Wrapf(
 			err,
 			"error creating pod for event %q worker",
@@ -279,13 +457,23 @@ func (e *eventsScheduler) StartWorker(
 	return nil
 }
 
-func (e *eventsScheduler) CreateJob(
+func (s *substrate) PreScheduleJob(
+	ctx context.Context,
+	event core.Event,
+	jobName string,
+) error {
+	// Nothing to do here. We'll create all resources needed for the Job at start
+	// time.
+	return nil
+}
+
+func (s *substrate) ScheduleJob(
 	ctx context.Context,
 	event core.Event,
 	jobName string,
 ) error {
 	// Schedule job for asynchronous execution
-	queueWriter, err := e.queueWriterFactory.NewQueueWriter(
+	queueWriter, err := s.queueWriterFactory.NewQueueWriter(
 		fmt.Sprintf("jobs.%s", event.ProjectID),
 	)
 	if err != nil {
@@ -316,13 +504,13 @@ func (e *eventsScheduler) CreateJob(
 	return nil
 }
 
-func (e *eventsScheduler) StartJob(
+func (s *substrate) StartJob(
 	ctx context.Context,
 	event core.Event,
 	jobName string,
 ) error {
 	jobSpec := event.Worker.Jobs[jobName].Spec
-	if err := e.createJobSecret(ctx, event, jobName, jobSpec); err != nil {
+	if err := s.createJobSecret(ctx, event, jobName, jobSpec); err != nil {
 		return errors.Wrapf(
 			err,
 			"error creating secret for event %q job %q",
@@ -330,7 +518,7 @@ func (e *eventsScheduler) StartJob(
 			jobName,
 		)
 	}
-	if err := e.createJobPod(ctx, event, jobName, jobSpec); err != nil {
+	if err := s.createJobPod(ctx, event, jobName, jobSpec); err != nil {
 		return errors.Wrapf(
 			err,
 			"error creating pod for event %q job %q",
@@ -341,65 +529,76 @@ func (e *eventsScheduler) StartJob(
 	return nil
 }
 
-func (e *eventsScheduler) deletePodsByLabelSelector(
+func (s *substrate) DeleteWorkerAndJobs(
 	ctx context.Context,
-	namespace string,
-	labelSelector labels.Selector,
+	event core.Event,
 ) error {
-	return e.kubeClient.CoreV1().Pods(namespace).DeleteCollection(
-		ctx,
-		metav1.DeleteOptions{},
-		metav1.ListOptions{
-			LabelSelector: labelSelector.String(),
-		},
+	matchesEvent, _ := labels.NewRequirement(
+		myk8s.LabelEvent,
+		selection.Equals,
+		[]string{event.ID},
 	)
-}
+	labelSelector := labels.NewSelector()
+	labelSelector = labelSelector.Add(*matchesEvent)
 
-func (e *eventsScheduler) deletePersistentVolumeClaimsByLabelSelector(
-	ctx context.Context,
-	namespace string,
-	labelSelector labels.Selector,
-) error {
-	return e.kubeClient.CoreV1().PersistentVolumeClaims(
-		namespace,
+	// Delete all pods related to this Event
+	if err := s.kubeClient.CoreV1().Pods(
+		event.Kubernetes.Namespace,
 	).DeleteCollection(
 		ctx,
 		metav1.DeleteOptions{},
 		metav1.ListOptions{
 			LabelSelector: labelSelector.String(),
 		},
-	)
-}
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error deleting event %q pods in namespace %q",
+			event.ID,
+			event.Kubernetes.Namespace,
+		)
+	}
 
-func (e *eventsScheduler) deleteConfigMapsByLabelSelector(
-	ctx context.Context,
-	namespace string,
-	labelSelector labels.Selector,
-) error {
-	return e.kubeClient.CoreV1().ConfigMaps(namespace).DeleteCollection(
+	// Delete all persistent volume claims related to this Event
+	if err := s.kubeClient.CoreV1().PersistentVolumeClaims(
+		event.Kubernetes.Namespace,
+	).DeleteCollection(
 		ctx,
 		metav1.DeleteOptions{},
 		metav1.ListOptions{
 			LabelSelector: labelSelector.String(),
 		},
-	)
-}
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error deleting event %q persistent volume claims in namespace %q",
+			event.ID,
+			event.Kubernetes.Namespace,
+		)
+	}
 
-func (e *eventsScheduler) deleteSecretsByLabelSelector(
-	ctx context.Context,
-	namespace string,
-	labelSelector labels.Selector,
-) error {
-	return e.kubeClient.CoreV1().Secrets(namespace).DeleteCollection(
+	// Delete all secrets related to this Event
+	if err := s.kubeClient.CoreV1().Secrets(
+		event.Kubernetes.Namespace,
+	).DeleteCollection(
 		ctx,
 		metav1.DeleteOptions{},
 		metav1.ListOptions{
 			LabelSelector: labelSelector.String(),
 		},
-	)
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error deleting event %q secrets in namespace %q",
+			event.ID,
+			event.Kubernetes.Namespace,
+		)
+	}
+
+	return nil
 }
 
-func (e *eventsScheduler) createWorkspacePVC(
+func (s *substrate) createWorkspacePVC(
 	ctx context.Context,
 	event core.Event,
 ) error {
@@ -422,13 +621,13 @@ func (e *eventsScheduler) createWorkspacePVC(
 			Name:      fmt.Sprintf("workspace-%s", event.ID),
 			Namespace: event.Kubernetes.Namespace,
 			Labels: map[string]string{
-				"brignext.io/component": "workspace",
-				"brignext.io/project":   event.ProjectID,
-				"brignext.io/event":     event.ID,
+				myk8s.LabelComponent: "workspace",
+				myk8s.LabelProject:   event.ProjectID,
+				myk8s.LabelEvent:     event.ID,
 			},
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
-			StorageClassName: &e.config.WorkspaceStorageClass,
+			StorageClassName: &s.config.WorkspaceStorageClass,
 			AccessModes: []corev1.PersistentVolumeAccessMode{
 				corev1.ReadWriteMany,
 			},
@@ -441,7 +640,7 @@ func (e *eventsScheduler) createWorkspacePVC(
 	}
 
 	pvcClient :=
-		e.kubeClient.CoreV1().PersistentVolumeClaims(event.Kubernetes.Namespace)
+		s.kubeClient.CoreV1().PersistentVolumeClaims(event.Kubernetes.Namespace)
 	if _, err := pvcClient.Create(
 		ctx,
 		&workspacePVC,
@@ -457,7 +656,7 @@ func (e *eventsScheduler) createWorkspacePVC(
 	return nil
 }
 
-func (e *eventsScheduler) createWorkerPod(
+func (s *substrate) createWorkerPod(
 	ctx context.Context,
 	event core.Event,
 ) error {
@@ -473,18 +672,16 @@ func (e *eventsScheduler) createWorkerPod(
 		}
 	}
 
-	// TODO: Decide on the right place to do this stuff. Probably it should be
-	// when (near future state), this scheduler uses the API to start the worker.
 	if event.Worker.Spec.Container == nil {
 		event.Worker.Spec.Container = &core.ContainerSpec{}
 	}
 	image := event.Worker.Spec.Container.Image
 	if image == "" {
-		image = e.config.DefaultWorkerImage
+		image = s.config.DefaultWorkerImage
 	}
 	imagePullPolicy := event.Worker.Spec.Container.ImagePullPolicy
 	if imagePullPolicy == "" {
-		imagePullPolicy = e.config.DefaultWorkerImagePullPolicy
+		imagePullPolicy = s.config.DefaultWorkerImagePullPolicy
 	}
 
 	volumes := []corev1.Volume{
@@ -621,9 +818,9 @@ func (e *eventsScheduler) createWorkerPod(
 			Name:      fmt.Sprintf("worker-%s", event.ID),
 			Namespace: event.Kubernetes.Namespace,
 			Labels: map[string]string{
-				"brignext.io/component": "worker",
-				"brignext.io/project":   event.ProjectID,
-				"brignext.io/event":     event.ID,
+				myk8s.LabelComponent: "worker",
+				myk8s.LabelProject:   event.ProjectID,
+				myk8s.LabelEvent:     event.ID,
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -646,7 +843,7 @@ func (e *eventsScheduler) createWorkerPod(
 		},
 	}
 
-	podClient := e.kubeClient.CoreV1().Pods(event.Kubernetes.Namespace)
+	podClient := s.kubeClient.CoreV1().Pods(event.Kubernetes.Namespace)
 	if _, err := podClient.Create(
 		ctx,
 		&workerPod,
@@ -662,7 +859,7 @@ func (e *eventsScheduler) createWorkerPod(
 	return nil
 }
 
-func (e *eventsScheduler) createJobSecret(
+func (s *substrate) createJobSecret(
 	ctx context.Context,
 	event core.Event,
 	jobName string,
@@ -674,13 +871,13 @@ func (e *eventsScheduler) createJobSecret(
 			Name:      fmt.Sprintf("job-%s-%s", event.ID, strings.ToLower(jobName)),
 			Namespace: event.Kubernetes.Namespace,
 			Labels: map[string]string{
-				"brignext.io/component": "job",
-				"brignext.io/project":   event.ProjectID,
-				"brignext.io/event":     event.ID,
-				"brignext.io/job":       jobName,
+				myk8s.LabelComponent: "job",
+				myk8s.LabelProject:   event.ProjectID,
+				myk8s.LabelEvent:     event.ID,
+				myk8s.LabelJob:       jobName,
 			},
 		},
-		Type:       "brignext.io/job",
+		Type:       myk8s.SecretTypeJobSecrets,
 		StringData: map[string]string{},
 	}
 
@@ -693,7 +890,7 @@ func (e *eventsScheduler) createJobSecret(
 		}
 	}
 
-	secretsClient := e.kubeClient.CoreV1().Secrets(event.Kubernetes.Namespace)
+	secretsClient := s.kubeClient.CoreV1().Secrets(event.Kubernetes.Namespace)
 	if _, err := secretsClient.Create(
 		ctx,
 		&jobSecret,
@@ -710,7 +907,7 @@ func (e *eventsScheduler) createJobSecret(
 	return nil
 }
 
-func (e *eventsScheduler) createJobPod(
+func (s *substrate) createJobPod(
 	ctx context.Context,
 	event core.Event,
 	jobName string,
@@ -987,10 +1184,10 @@ func (e *eventsScheduler) createJobPod(
 			Name:      fmt.Sprintf("job-%s-%s", event.ID, strings.ToLower(jobName)),
 			Namespace: event.Kubernetes.Namespace,
 			Labels: map[string]string{
-				"brignext.io/component": "job",
-				"brignext.io/project":   event.ProjectID,
-				"brignext.io/event":     event.ID,
-				"brignext.io/job":       jobName,
+				myk8s.LabelComponent: "job",
+				myk8s.LabelProject:   event.ProjectID,
+				myk8s.LabelEvent:     event.ID,
+				myk8s.LabelJob:       jobName,
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -1003,7 +1200,7 @@ func (e *eventsScheduler) createJobPod(
 		},
 	}
 
-	podClient := e.kubeClient.CoreV1().Pods(event.Kubernetes.Namespace)
+	podClient := s.kubeClient.CoreV1().Pods(event.Kubernetes.Namespace)
 	if _, err := podClient.Create(
 		ctx,
 		&jobPod,

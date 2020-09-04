@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
 	"github.com/krancour/brignext/v2/sdk/core"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,8 +57,8 @@ func (o *observer) syncJobPod(obj interface{}) {
 
 	// Use the API to update job phase so it corresponds to the status of the
 	// primary container
-	eventID := jobPod.Labels["brignext.io/event"]
-	jobName := jobPod.Labels["brignext.io/job"]
+	eventID := jobPod.Labels[myk8s.LabelEvent]
+	jobName := jobPod.Labels[myk8s.LabelJob]
 	status := core.JobStatus{
 		Phase: core.JobPhaseRunning,
 	}
