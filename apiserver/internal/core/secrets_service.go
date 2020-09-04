@@ -31,17 +31,17 @@ type SecretsService interface {
 type secretsService struct {
 	authorize     authx.AuthorizeFn
 	projectsStore ProjectsStore
-	scheduler     ProjectsScheduler
+	secretsStore  SecretsStore
 }
 
 func NewSecretsService(
 	projectsStore ProjectsStore,
-	scheduler ProjectsScheduler,
+	secretsStore SecretsStore,
 ) SecretsService {
 	return &secretsService{
 		authorize:     authx.Authorize,
 		projectsStore: projectsStore,
-		scheduler:     scheduler,
+		secretsStore:  secretsStore,
 	}
 }
 
@@ -67,10 +67,10 @@ func (s *secretsService) List(
 		opts.Limit = 20
 	}
 	if secrets, err =
-		s.scheduler.ListSecrets(ctx, project, opts); err != nil {
+		s.secretsStore.List(ctx, project, opts); err != nil {
 		return secrets, errors.Wrapf(
 			err,
-			"error getting worker secrets for project %q from scheduler",
+			"error getting worker secrets for project %q from store",
 			projectID,
 		)
 	}
@@ -94,11 +94,10 @@ func (p *secretsService) Set(
 			projectID,
 		)
 	}
-	// Secrets aren't stored in the database. We only pass them to the scheduler.
-	if err := p.scheduler.SetSecret(ctx, project, secret); err != nil {
+	if err := p.secretsStore.Set(ctx, project, secret); err != nil {
 		return errors.Wrapf(
 			err,
-			"error setting secret for project %q worker in scheduler",
+			"error setting secret for project %q worker in store",
 			projectID,
 		)
 	}
@@ -122,13 +121,11 @@ func (s *secretsService) Unset(
 			projectID,
 		)
 	}
-	// Secrets aren't stored in the database. We only have to remove them from the
-	// scheduler.
 	if err :=
-		s.scheduler.UnsetSecret(ctx, project, key); err != nil {
+		s.secretsStore.Unset(ctx, project, key); err != nil {
 		return errors.Wrapf(
 			err,
-			"error unsetting secrets for project %q worker in scheduler",
+			"error unsetting secrets for project %q worker in store",
 			projectID,
 		)
 	}
