@@ -11,15 +11,15 @@ import (
 
 type projectsRolesEndpoints struct {
 	*restmachinery.BaseEndpoints
-	service core.ProjectsService
+	service core.ProjectRolesService
 }
 
 func NewProjectsRolesEndpoints(
 	baseEndpoints *restmachinery.BaseEndpoints,
-	service core.ProjectsService,
+	service core.ProjectRolesService,
 ) restmachinery.Endpoints {
 	// nolint: lll
-	return &projectsEndpoints{
+	return &projectsRolesEndpoints{
 		BaseEndpoints: baseEndpoints,
 		service:       service,
 	}
@@ -60,7 +60,7 @@ func (p *projectsRolesEndpoints) grantToUser(w http.ResponseWriter, r *http.Requ
 			R:          r,
 			ReqBodyObj: &roleAssignment,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, p.service.GrantRoleToUser(
+				return nil, p.service.GrantToUser(
 					r.Context(),
 					mux.Vars(r)["projectID"],
 					roleAssignment.UserID,
@@ -83,7 +83,7 @@ func (p *projectsRolesEndpoints) revokeFromUser(w http.ResponseWriter, r *http.R
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, p.service.RevokeRoleFromUser(
+				return nil, p.service.RevokeFromUser(
 					r.Context(),
 					mux.Vars(r)["projectID"],
 					roleAssignment.UserID,
@@ -106,7 +106,7 @@ func (p *projectsRolesEndpoints) grantToServiceAccount(
 			R:          r,
 			ReqBodyObj: &roleAssignment,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, p.service.GrantRoleToServiceAccount(
+				return nil, p.service.GrantToServiceAccount(
 					r.Context(),
 					mux.Vars(r)["projectID"],
 					roleAssignment.ServiceAccountID,
@@ -132,7 +132,7 @@ func (p *projectsRolesEndpoints) revokeFromServiceAccount(
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, p.service.RevokeRoleFromServiceAccount(
+				return nil, p.service.RevokeFromServiceAccount(
 					r.Context(),
 					mux.Vars(r)["projectID"],
 					roleAssignment.ServiceAccountID,

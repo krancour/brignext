@@ -11,12 +11,12 @@ import (
 
 type systemRolesEndpoints struct {
 	*restmachinery.BaseEndpoints
-	service system.Service
+	service system.SystemRolesService
 }
 
 func NewSystemRolesEndpoints(
 	baseEndpoints *restmachinery.BaseEndpoints,
-	service system.Service,
+	service system.SystemRolesService,
 ) restmachinery.Endpoints {
 	// nolint: lll
 	return &systemRolesEndpoints{
@@ -60,7 +60,7 @@ func (s *systemRolesEndpoints) grantUserRole(w http.ResponseWriter, r *http.Requ
 			R:          r,
 			ReqBodyObj: &roleAssignment,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.GrantRoleToUser(
+				return nil, s.service.GrantToUser(
 					r.Context(),
 					roleAssignment.UserID,
 					roleAssignment.Role,
@@ -82,7 +82,7 @@ func (s *systemRolesEndpoints) revokeUserRole(w http.ResponseWriter, r *http.Req
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.RevokeRoleFromUser(
+				return nil, s.service.RevokeFromUser(
 					r.Context(),
 					roleAssignment.UserID,
 					roleAssignment.Role,
@@ -104,7 +104,7 @@ func (s *systemRolesEndpoints) grantServiceAccountRole(
 			R:          r,
 			ReqBodyObj: &roleAssignment,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.GrantRoleToServiceAccount(
+				return nil, s.service.GrantToServiceAccount(
 					r.Context(),
 					roleAssignment.ServiceAccountID,
 					roleAssignment.Role,
@@ -129,7 +129,7 @@ func (s *systemRolesEndpoints) revokeServiceAccountRole(
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.RevokeRoleFromServiceAccount(
+				return nil, s.service.RevokeFromServiceAccount(
 					r.Context(),
 					roleAssignment.ServiceAccountID,
 					roleAssignment.Role,

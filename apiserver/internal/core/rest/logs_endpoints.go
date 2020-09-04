@@ -16,12 +16,12 @@ import (
 
 type logsEndpoints struct {
 	*restmachinery.BaseEndpoints
-	service core.EventsService
+	service core.LogsService
 }
 
 func NewLogsEndpoints(
 	baseEndpoints *restmachinery.BaseEndpoints,
-	service core.EventsService,
+	service core.LogsService,
 ) restmachinery.Endpoints {
 	// nolint: lll
 	return &logsEndpoints{
@@ -54,7 +54,7 @@ func (l *logsEndpoints) stream(
 		Follow: follow,
 	}
 
-	logEntryCh, err := l.service.StreamLogs(r.Context(), id, selector, opts)
+	logEntryCh, err := l.service.Stream(r.Context(), id, selector, opts)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*meta.ErrNotFound); ok {
 			l.WriteAPIResponse(w, http.StatusNotFound, errors.Cause(err))

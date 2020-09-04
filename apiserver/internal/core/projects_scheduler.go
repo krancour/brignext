@@ -57,7 +57,7 @@ type projectsScheduler struct {
 	kubeClient *kubernetes.Clientset
 }
 
-func NewScheduler(kubeClient *kubernetes.Clientset) ProjectsScheduler {
+func NewProjectsScheduler(kubeClient *kubernetes.Clientset) ProjectsScheduler {
 	return &projectsScheduler{
 		kubeClient: kubeClient,
 	}

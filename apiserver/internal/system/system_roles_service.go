@@ -7,15 +7,15 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Service interface {
+type SystemRolesService interface {
 	// TODO: Implement this
 	// ListUsers(context.Context) (authx.UserList, error)
-	GrantRoleToUser(
+	GrantToUser(
 		ctx context.Context,
 		userID string,
 		roleName string,
 	) error
-	RevokeRoleFromUser(
+	RevokeFromUser(
 		ctx context.Context,
 		userID string,
 		roleName string,
@@ -23,36 +23,36 @@ type Service interface {
 
 	// TODO: Implement this
 	// ListServiceAccounts(context.Context) (authx.UserList, error)
-	GrantRoleToServiceAccount(
+	GrantToServiceAccount(
 		ctx context.Context,
 		serviceAccountID string,
 		roleName string,
 	) error
-	RevokeRoleFromServiceAccount(
+	RevokeFromServiceAccount(
 		ctx context.Context,
 		serviceAccountID string,
 		roleName string,
 	) error
 }
 
-type service struct {
+type systemRolesService struct {
 	authorize            authx.AuthorizeFn
 	usersStore           authx.UsersStore
 	serviceAccountsStore authx.ServiceAccountsStore
 }
 
-func NewService(
+func NewSystemRolesService(
 	usersStore authx.UsersStore,
 	serviceAccountsStore authx.ServiceAccountsStore,
-) Service {
-	return &service{
+) SystemRolesService {
+	return &systemRolesService{
 		authorize:            authx.Authorize,
 		usersStore:           usersStore,
 		serviceAccountsStore: serviceAccountsStore,
 	}
 }
 
-func (s *service) GrantRoleToUser(
+func (s *systemRolesService) GrantToUser(
 	ctx context.Context,
 	userID string,
 	roleName string,
@@ -78,7 +78,7 @@ func (s *service) GrantRoleToUser(
 	)
 }
 
-func (s *service) RevokeRoleFromUser(
+func (s *systemRolesService) RevokeFromUser(
 	ctx context.Context,
 	userID string,
 	roleName string,
@@ -104,7 +104,7 @@ func (s *service) RevokeRoleFromUser(
 	)
 }
 
-func (s *service) GrantRoleToServiceAccount(
+func (s *systemRolesService) GrantToServiceAccount(
 	ctx context.Context,
 	serviceAccountID string,
 	roleName string,
@@ -134,7 +134,7 @@ func (s *service) GrantRoleToServiceAccount(
 	)
 }
 
-func (s *service) RevokeRoleFromServiceAccount(
+func (s *systemRolesService) RevokeFromServiceAccount(
 	ctx context.Context,
 	serviceAccountID string,
 	roleName string,

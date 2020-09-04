@@ -18,12 +18,12 @@ import (
 type workersEndpoints struct {
 	*restmachinery.BaseEndpoints
 	workerStatusSchemaLoader gojsonschema.JSONLoader
-	service                  core.EventsService
+	service                  core.WorkersService
 }
 
 func NewWorkersEndpoints(
 	baseEndpoints *restmachinery.BaseEndpoints,
-	service core.EventsService,
+	service core.WorkersService,
 ) restmachinery.Endpoints {
 	// nolint: lll
 	return &workersEndpoints{
@@ -59,7 +59,7 @@ func (w *workersEndpoints) start(wr http.ResponseWriter, r *http.Request) {
 			W: wr,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, w.service.StartWorker(r.Context(), mux.Vars(r)["eventID"])
+				return nil, w.service.Start(r.Context(), mux.Vars(r)["eventID"])
 			},
 			SuccessCode: http.StatusOK,
 		},
@@ -80,7 +80,7 @@ func (w *workersEndpoints) getOrStreamStatus(
 				W: wr,
 				R: r,
 				EndpointLogic: func() (interface{}, error) {
-					return w.service.GetWorkerStatus(r.Context(), eventID)
+					return w.service.GetStatus(r.Context(), eventID)
 				},
 				SuccessCode: http.StatusOK,
 			},
@@ -88,7 +88,7 @@ func (w *workersEndpoints) getOrStreamStatus(
 		return
 	}
 
-	statusCh, err := w.service.WatchWorkerStatus(r.Context(), eventID)
+	statusCh, err := w.service.WatchStatus(r.Context(), eventID)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*meta.ErrNotFound); ok {
 			w.WriteAPIResponse(wr, http.StatusNotFound, errors.Cause(err))
@@ -130,7 +130,7 @@ func (w *workersEndpoints) updateStatus(wr http.ResponseWriter, r *http.Request)
 			ReqBodyObj:          &status,
 			EndpointLogic: func() (interface{}, error) {
 				return nil,
-					w.service.UpdateWorkerStatus(r.Context(), mux.Vars(r)["eventID"], status)
+					w.service.UpdateStatus(r.Context(), mux.Vars(r)["eventID"], status)
 			},
 			SuccessCode: http.StatusOK,
 		},

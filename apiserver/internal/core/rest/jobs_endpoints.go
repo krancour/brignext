@@ -19,12 +19,12 @@ type jobsEndpoints struct {
 	*restmachinery.BaseEndpoints
 	jobSpecSchemaLoader   gojsonschema.JSONLoader
 	jobStatusSchemaLoader gojsonschema.JSONLoader
-	service               core.EventsService
+	service               core.JobsService
 }
 
 func NewJobsEndpoints(
 	baseEndpoints *restmachinery.BaseEndpoints,
-	service core.EventsService,
+	service core.JobsService,
 ) restmachinery.Endpoints {
 	// nolint: lll
 	return &jobsEndpoints{
@@ -70,7 +70,7 @@ func (j *jobsEndpoints) create(w http.ResponseWriter, r *http.Request) {
 			ReqBodySchemaLoader: j.jobSpecSchemaLoader,
 			ReqBodyObj:          &jobSpec,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, j.service.CreateJob(
+				return nil, j.service.Create(
 					r.Context(),
 					mux.Vars(r)["eventID"],
 					mux.Vars(r)["jobName"],
@@ -88,7 +88,7 @@ func (j *jobsEndpoints) start(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, j.service.StartJob(
+				return nil, j.service.Start(
 					r.Context(),
 					mux.Vars(r)["eventID"],
 					mux.Vars(r)["jobName"],
@@ -114,7 +114,7 @@ func (j *jobsEndpoints) getOrStreamStatus(
 				W: w,
 				R: r,
 				EndpointLogic: func() (interface{}, error) {
-					return j.service.GetJobStatus(r.Context(), id, jobName)
+					return j.service.GetStatus(r.Context(), id, jobName)
 				},
 				SuccessCode: http.StatusOK,
 			},
@@ -122,7 +122,7 @@ func (j *jobsEndpoints) getOrStreamStatus(
 		return
 	}
 
-	statusCh, err := j.service.WatchJobStatus(r.Context(), id, jobName)
+	statusCh, err := j.service.WatchStatus(r.Context(), id, jobName)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*meta.ErrNotFound); ok {
 			j.WriteAPIResponse(w, http.StatusNotFound, errors.Cause(err))
@@ -167,7 +167,7 @@ func (j *jobsEndpoints) updateStatus(
 			ReqBodySchemaLoader: j.jobStatusSchemaLoader,
 			ReqBodyObj:          &status,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, j.service.UpdateJobStatus(
+				return nil, j.service.UpdateStatus(
 					r.Context(),
 					mux.Vars(r)["eventID"],
 					mux.Vars(r)["jobName"],

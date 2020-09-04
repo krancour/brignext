@@ -25,7 +25,7 @@ type server struct {
 	router         *mux.Router
 }
 
-// NewServer returns an API server
+// NewServer returns a REST API server
 func NewServer(
 	config Config,
 	baseEndpoints *BaseEndpoints,

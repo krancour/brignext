@@ -15,12 +15,12 @@ import (
 type secretsEndpoints struct {
 	*restmachinery.BaseEndpoints
 	secretSchemaLoader gojsonschema.JSONLoader
-	service            core.ProjectsService
+	service            core.SecretsService
 }
 
 func NewSecretsEndpoints(
 	baseEndpoints *restmachinery.BaseEndpoints,
-	service core.ProjectsService,
+	service core.SecretsService,
 ) restmachinery.Endpoints {
 	// nolint: lll
 	return &secretsEndpoints{
@@ -76,7 +76,7 @@ func (s *secretsEndpoints) list(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return s.service.ListSecrets(r.Context(), mux.Vars(r)["projectID"], opts)
+				return s.service.List(r.Context(), mux.Vars(r)["projectID"], opts)
 			},
 			SuccessCode: http.StatusOK,
 		},
@@ -99,7 +99,7 @@ func (s *secretsEndpoints) set(w http.ResponseWriter, r *http.Request) {
 							"match.",
 					}
 				}
-				return nil, s.service.SetSecret(
+				return nil, s.service.Set(
 					r.Context(),
 					mux.Vars(r)["projectID"],
 					secret,
@@ -117,7 +117,7 @@ func (s *secretsEndpoints) unset(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.UnsetSecret(
+				return nil, s.service.Unset(
 					r.Context(),
 					mux.Vars(r)["projectID"],
 					key,

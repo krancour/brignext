@@ -75,11 +75,18 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 	if err != nil {
 		return nil, err
 	}
+	projectsScheduler := core.NewProjectsScheduler(kubeClient)
 	projectsService := core.NewProjectsService(
 		projectsStore,
 		usersStore,
 		serviceAccountsStore,
-		core.NewScheduler(kubeClient),
+		projectsScheduler,
+	)
+	secretsService := core.NewSecretsService(projectsStore, projectsScheduler)
+	projectRolesService := core.NewProjectRolesService(
+		projectsStore,
+		usersStore,
+		serviceAccountsStore,
 	)
 
 	// Events-- depends on projects
@@ -103,12 +110,17 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 	eventsService := core.NewEventsService(
 		projectsStore,
 		eventsStore,
-		coreKubernetes.NewLogsStore(kubeClient),
-		coreMongodb.NewLogsStore(database),
 		scheduler,
 	)
+	workersService := core.NewWorkersService(eventsStore, scheduler)
+	jobsService := core.NewJobsService(eventsStore, scheduler)
+	logsService := core.NewLogsService(
+		eventsStore,
+		coreKubernetes.NewLogsStore(kubeClient),
+		coreMongodb.NewLogsStore(database),
+	)
 
-	systemService := system.NewService(usersStore, serviceAccountsStore)
+	systemRolesService := system.NewSystemRolesService(usersStore, serviceAccountsStore)
 
 	baseEndpoints := &restmachinery.BaseEndpoints{
 		TokenAuthFilter: authn.NewTokenAuthFilter(
@@ -130,13 +142,13 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 			authxREST.NewSessionsEndpoints(baseEndpoints, sessionsService),
 			authxREST.NewUsersEndpoints(baseEndpoints, usersService),
 			coreREST.NewEventsEndpoints(baseEndpoints, eventsService),
-			coreREST.NewWorkersEndpoints(baseEndpoints, eventsService),
-			coreREST.NewJobsEndpoints(baseEndpoints, eventsService),
-			coreREST.NewLogsEndpoints(baseEndpoints, eventsService),
+			coreREST.NewWorkersEndpoints(baseEndpoints, workersService),
+			coreREST.NewJobsEndpoints(baseEndpoints, jobsService),
+			coreREST.NewLogsEndpoints(baseEndpoints, logsService),
 			coreREST.NewProjectsEndpoints(baseEndpoints, projectsService),
-			coreREST.NewSecretsEndpoints(baseEndpoints, projectsService),
-			coreREST.NewProjectsRolesEndpoints(baseEndpoints, projectsService),
-			systemREST.NewSystemRolesEndpoints(baseEndpoints, systemService),
+			coreREST.NewSecretsEndpoints(baseEndpoints, secretsService),
+			coreREST.NewProjectsRolesEndpoints(baseEndpoints, projectRolesService),
+			systemREST.NewSystemRolesEndpoints(baseEndpoints, systemRolesService),
 		},
 	), nil
 }
