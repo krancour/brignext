@@ -1,4 +1,4 @@
-package api
+package rest
 
 import (
 	"fmt"
@@ -7,21 +7,21 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/xeipuuv/gojsonschema"
 )
 
 type secretsEndpoints struct {
-	*apimachinery.BaseEndpoints
+	*restmachinery.BaseEndpoints
 	secretSchemaLoader gojsonschema.JSONLoader
 	service            core.ProjectsService
 }
 
 func NewSecretsEndpoints(
-	baseEndpoints *apimachinery.BaseEndpoints,
+	baseEndpoints *restmachinery.BaseEndpoints,
 	service core.ProjectsService,
-) apimachinery.Endpoints {
+) restmachinery.Endpoints {
 	// nolint: lll
 	return &secretsEndpoints{
 		BaseEndpoints:      baseEndpoints,
@@ -72,7 +72,7 @@ func (s *secretsEndpoints) list(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -87,7 +87,7 @@ func (s *secretsEndpoints) set(w http.ResponseWriter, r *http.Request) {
 	key := mux.Vars(r)["key"]
 	secret := core.Secret{}
 	s.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
 			ReqBodySchemaLoader: s.secretSchemaLoader,
@@ -113,7 +113,7 @@ func (s *secretsEndpoints) set(w http.ResponseWriter, r *http.Request) {
 func (s *secretsEndpoints) unset(w http.ResponseWriter, r *http.Request) {
 	key := mux.Vars(r)["key"]
 	s.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {

@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"github.com/krancour/brignext/v2/sdk/core"
-	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
+	"github.com/krancour/brignext/v2/sdk/internal/restmachinery"
 )
 
 // WorkersClient is the specialized client for managing Event Worker with the
@@ -38,7 +38,7 @@ type WorkersClient interface {
 }
 
 type workersClient struct {
-	*apimachinery.BaseClient
+	*restmachinery.BaseClient
 	jobsClient JobsClient
 }
 
@@ -49,7 +49,7 @@ func NewWorkersClient(
 	allowInsecure bool,
 ) WorkersClient {
 	return &workersClient{
-		BaseClient: &apimachinery.BaseClient{
+		BaseClient: &restmachinery.BaseClient{
 			APIAddress: apiAddress,
 			APIToken:   apiToken,
 			HTTPClient: &http.Client{
@@ -66,7 +66,7 @@ func NewWorkersClient(
 
 func (w *workersClient) Start(ctx context.Context, eventID string) error {
 	return w.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/events/%s/worker/start", eventID),
 			AuthHeaders: w.BearerTokenAuthHeaders(),
@@ -81,7 +81,7 @@ func (w *workersClient) GetStatus(
 ) (core.WorkerStatus, error) {
 	status := core.WorkerStatus{}
 	return status, w.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
 			AuthHeaders: w.BearerTokenAuthHeaders(),
@@ -96,7 +96,7 @@ func (w *workersClient) WatchStatus(
 	eventID string,
 ) (<-chan core.WorkerStatus, <-chan error, error) {
 	resp, err := w.SubmitRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
 			AuthHeaders: w.BearerTokenAuthHeaders(),
@@ -124,7 +124,7 @@ func (w *workersClient) UpdateStatus(
 	status core.WorkerStatus,
 ) error {
 	return w.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
 			AuthHeaders: w.BearerTokenAuthHeaders(),

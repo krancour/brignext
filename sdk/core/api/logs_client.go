@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"github.com/krancour/brignext/v2/sdk/core"
-	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
+	"github.com/krancour/brignext/v2/sdk/internal/restmachinery"
 )
 
 // LogsClient is the specialized client for managing Event Logs with the
@@ -27,7 +27,7 @@ type LogsClient interface {
 }
 
 type logsClient struct {
-	*apimachinery.BaseClient
+	*restmachinery.BaseClient
 }
 
 // NewLogsClient returns a specialized client for managing Event Logs.
@@ -37,7 +37,7 @@ func NewLogsClient(
 	allowInsecure bool,
 ) LogsClient {
 	return &logsClient{
-		BaseClient: &apimachinery.BaseClient{
+		BaseClient: &restmachinery.BaseClient{
 			APIAddress: apiAddress,
 			APIToken:   apiToken,
 			HTTPClient: &http.Client{
@@ -69,7 +69,7 @@ func (l *logsClient) Stream(
 	}
 
 	resp, err := l.SubmitRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/events/%s/logs", eventID),
 			AuthHeaders: l.BearerTokenAuthHeaders(),

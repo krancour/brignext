@@ -1,4 +1,4 @@
-package api
+package rest
 
 import (
 	"fmt"
@@ -7,19 +7,19 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/authx"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 )
 
 type usersEndpoints struct {
-	*apimachinery.BaseEndpoints
+	*restmachinery.BaseEndpoints
 	service authx.UsersService
 }
 
 func NewUsersEndpoints(
-	baseEndpoints *apimachinery.BaseEndpoints,
+	baseEndpoints *restmachinery.BaseEndpoints,
 	service authx.UsersService,
-) apimachinery.Endpoints {
+) restmachinery.Endpoints {
 	return &usersEndpoints{
 		BaseEndpoints: baseEndpoints,
 		service:       service,
@@ -77,7 +77,7 @@ func (u *usersEndpoints) list(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	u.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -90,7 +90,7 @@ func (u *usersEndpoints) list(w http.ResponseWriter, r *http.Request) {
 
 func (u *usersEndpoints) get(w http.ResponseWriter, r *http.Request) {
 	u.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -103,7 +103,7 @@ func (u *usersEndpoints) get(w http.ResponseWriter, r *http.Request) {
 
 func (u *usersEndpoints) lock(w http.ResponseWriter, r *http.Request) {
 	u.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -116,7 +116,7 @@ func (u *usersEndpoints) lock(w http.ResponseWriter, r *http.Request) {
 
 func (u *usersEndpoints) unlock(w http.ResponseWriter, r *http.Request) {
 	u.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {

@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	authx "github.com/krancour/brignext/v2/sdk/authx/api"
-	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
+	"github.com/krancour/brignext/v2/sdk/internal/restmachinery"
 )
 
 // SystemRolesClient is the specialized client for managing System Roles with
@@ -36,7 +36,7 @@ type SystemRolesClient interface {
 }
 
 type systemRolesClient struct {
-	*apimachinery.BaseClient
+	*restmachinery.BaseClient
 }
 
 // NewSystemRolesClient returns a specialized client for managing System
@@ -47,7 +47,7 @@ func NewSystemRolesClient(
 	allowInsecure bool,
 ) SystemRolesClient {
 	return &systemRolesClient{
-		BaseClient: &apimachinery.BaseClient{
+		BaseClient: &restmachinery.BaseClient{
 			APIAddress: apiAddress,
 			APIToken:   apiToken,
 			HTTPClient: &http.Client{
@@ -67,7 +67,7 @@ func (s *systemRolesClient) GrantToUser(
 	roleName string,
 ) error {
 	return s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/system/user-role-assignments",
 			AuthHeaders: s.BearerTokenAuthHeaders(),
@@ -90,7 +90,7 @@ func (s *systemRolesClient) RevokeFromUser(
 		"role":   roleName,
 	}
 	return s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        "v2/system/user-role-assignments",
 			AuthHeaders: s.BearerTokenAuthHeaders(),
@@ -106,7 +106,7 @@ func (s *systemRolesClient) GrantToServiceAccount(
 	roleName string,
 ) error {
 	return s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/system/user-role-assignments",
 			AuthHeaders: s.BearerTokenAuthHeaders(),
@@ -129,7 +129,7 @@ func (s *systemRolesClient) RevokeFromServiceAccount(
 		"role":             roleName,
 	}
 	return s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        "v2/system/user-role-assignments",
 			AuthHeaders: s.BearerTokenAuthHeaders(),

@@ -1,4 +1,4 @@
-package api
+package rest
 
 import (
 	"fmt"
@@ -8,21 +8,21 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/xeipuuv/gojsonschema"
 )
 
 type eventsEndpoints struct {
-	*apimachinery.BaseEndpoints
+	*restmachinery.BaseEndpoints
 	eventSchemaLoader gojsonschema.JSONLoader
 	service           core.EventsService
 }
 
 func NewEventsEndpoints(
-	baseEndpoints *apimachinery.BaseEndpoints,
+	baseEndpoints *restmachinery.BaseEndpoints,
 	service core.EventsService,
-) apimachinery.Endpoints {
+) restmachinery.Endpoints {
 	// nolint: lll
 	return &eventsEndpoints{
 		BaseEndpoints:     baseEndpoints,
@@ -78,7 +78,7 @@ func (e *eventsEndpoints) Register(router *mux.Router) {
 func (e *eventsEndpoints) create(w http.ResponseWriter, r *http.Request) {
 	event := core.Event{}
 	e.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
 			ReqBodySchemaLoader: e.eventSchemaLoader,
@@ -125,7 +125,7 @@ func (e *eventsEndpoints) list(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	e.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -138,7 +138,7 @@ func (e *eventsEndpoints) list(w http.ResponseWriter, r *http.Request) {
 
 func (e *eventsEndpoints) get(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -151,7 +151,7 @@ func (e *eventsEndpoints) get(w http.ResponseWriter, r *http.Request) {
 
 func (e *eventsEndpoints) cancel(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -178,7 +178,7 @@ func (e *eventsEndpoints) cancelMany(
 		}
 	}
 	e.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -191,7 +191,7 @@ func (e *eventsEndpoints) cancelMany(
 
 func (e *eventsEndpoints) delete(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -215,7 +215,7 @@ func (e *eventsEndpoints) deleteMany(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	e.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {

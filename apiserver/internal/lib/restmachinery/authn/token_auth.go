@@ -10,8 +10,8 @@ import (
 
 	"github.com/krancour/brignext/v2/apiserver/internal/authx"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/lib/crypto"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/pkg/errors"
 )
@@ -48,7 +48,7 @@ func NewTokenAuthFilter(
 	rootUserEnabled bool,
 	hashedSchedulerToken string,
 	hashedObserverToken string,
-) apimachinery.Filter {
+) restmachinery.Filter {
 	return &tokenAuthFilter{
 		findSession:          findSession,
 		findEvent:            findEvent,

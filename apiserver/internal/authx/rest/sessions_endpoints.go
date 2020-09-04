@@ -1,4 +1,4 @@
-package api
+package rest
 
 import (
 	"net/http"
@@ -6,20 +6,20 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/authx"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/pkg/errors"
 )
 
 type sessionsEndpoints struct {
-	*apimachinery.BaseEndpoints
+	*restmachinery.BaseEndpoints
 	service authx.SessionsService
 }
 
 func NewSessionsEndpoints(
-	baseEndpoints *apimachinery.BaseEndpoints,
+	baseEndpoints *restmachinery.BaseEndpoints,
 	service authx.SessionsService,
-) apimachinery.Endpoints {
+) restmachinery.Endpoints {
 	return &sessionsEndpoints{
 		BaseEndpoints: baseEndpoints,
 		service:       service,
@@ -52,7 +52,7 @@ func (s *sessionsEndpoints) create(w http.ResponseWriter, r *http.Request) {
 
 	if rootSessionRequest {
 		s.ServeRequest(
-			apimachinery.InboundRequest{
+			restmachinery.InboundRequest{
 				W: w,
 				R: r,
 				EndpointLogic: func() (interface{}, error) {
@@ -72,7 +72,7 @@ func (s *sessionsEndpoints) create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -85,7 +85,7 @@ func (s *sessionsEndpoints) create(w http.ResponseWriter, r *http.Request) {
 
 func (s *sessionsEndpoints) delete(w http.ResponseWriter, r *http.Request) {
 	s.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -109,7 +109,7 @@ func (s *sessionsEndpoints) authenticate(w http.ResponseWriter, r *http.Request)
 	oauth2State := r.URL.Query().Get("state")
 	oidcCode := r.URL.Query().Get("code")
 
-	s.ServeHumanRequest(apimachinery.HumanRequest{
+	s.ServeHumanRequest(restmachinery.HumanRequest{
 		W: w,
 		EndpointLogic: func() (interface{}, error) {
 			if oauth2State == "" || oidcCode == "" {

@@ -3,26 +3,26 @@ package main
 // nolint: lll
 import (
 	"github.com/krancour/brignext/v2/apiserver/internal/authx"
-	authxAPI "github.com/krancour/brignext/v2/apiserver/internal/authx/api"
 	authxMongodb "github.com/krancour/brignext/v2/apiserver/internal/authx/mongodb"
+	authxREST "github.com/krancour/brignext/v2/apiserver/internal/authx/rest"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
-	coreAPI "github.com/krancour/brignext/v2/apiserver/internal/core/api"
 	coreKubernetes "github.com/krancour/brignext/v2/apiserver/internal/core/kubernetes"
 	coreMongodb "github.com/krancour/brignext/v2/apiserver/internal/core/mongodb"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery/authn"
+	coreREST "github.com/krancour/brignext/v2/apiserver/internal/core/rest"
 	"github.com/krancour/brignext/v2/apiserver/internal/lib/mongodb"
 	"github.com/krancour/brignext/v2/apiserver/internal/lib/oidc"
 	"github.com/krancour/brignext/v2/apiserver/internal/lib/queue/amqp"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery/authn"
 	"github.com/krancour/brignext/v2/apiserver/internal/system"
-	systemAPI "github.com/krancour/brignext/v2/apiserver/internal/system/api"
+	systemREST "github.com/krancour/brignext/v2/apiserver/internal/system/rest"
 	"github.com/krancour/brignext/v2/internal/kubernetes"
 )
 
-func getAPIServerFromEnvironment() (apimachinery.Server, error) {
+func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 
 	// API server config
-	apiConfig, err := apimachinery.GetConfigFromEnvironment()
+	apiConfig, err := restmachinery.GetConfigFromEnvironment()
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 
 	systemService := system.NewService(usersStore, serviceAccountsStore)
 
-	baseEndpoints := &apimachinery.BaseEndpoints{
+	baseEndpoints := &restmachinery.BaseEndpoints{
 		TokenAuthFilter: authn.NewTokenAuthFilter(
 			sessionsService.GetByToken,
 			eventsService.GetByWorkerToken,
@@ -122,21 +122,21 @@ func getAPIServerFromEnvironment() (apimachinery.Server, error) {
 		),
 	}
 
-	return apimachinery.NewServer(
+	return restmachinery.NewServer(
 		apiConfig,
 		baseEndpoints,
-		[]apimachinery.Endpoints{
-			authxAPI.NewServiceAccountEndpoints(baseEndpoints, serviceAccountsService),
-			authxAPI.NewSessionsEndpoints(baseEndpoints, sessionsService),
-			authxAPI.NewUsersEndpoints(baseEndpoints, usersService),
-			coreAPI.NewEventsEndpoints(baseEndpoints, eventsService),
-			coreAPI.NewWorkersEndpoints(baseEndpoints, eventsService),
-			coreAPI.NewJobsEndpoints(baseEndpoints, eventsService),
-			coreAPI.NewLogsEndpoints(baseEndpoints, eventsService),
-			coreAPI.NewProjectsEndpoints(baseEndpoints, projectsService),
-			coreAPI.NewSecretsEndpoints(baseEndpoints, projectsService),
-			coreAPI.NewProjectsRolesEndpoints(baseEndpoints, projectsService),
-			systemAPI.NewSystemRolesEndpoints(baseEndpoints, systemService),
+		[]restmachinery.Endpoints{
+			authxREST.NewServiceAccountEndpoints(baseEndpoints, serviceAccountsService),
+			authxREST.NewSessionsEndpoints(baseEndpoints, sessionsService),
+			authxREST.NewUsersEndpoints(baseEndpoints, usersService),
+			coreREST.NewEventsEndpoints(baseEndpoints, eventsService),
+			coreREST.NewWorkersEndpoints(baseEndpoints, eventsService),
+			coreREST.NewJobsEndpoints(baseEndpoints, eventsService),
+			coreREST.NewLogsEndpoints(baseEndpoints, eventsService),
+			coreREST.NewProjectsEndpoints(baseEndpoints, projectsService),
+			coreREST.NewSecretsEndpoints(baseEndpoints, projectsService),
+			coreREST.NewProjectsRolesEndpoints(baseEndpoints, projectsService),
+			systemREST.NewSystemRolesEndpoints(baseEndpoints, systemService),
 		},
 	), nil
 }

@@ -1,4 +1,4 @@
-package api
+package rest
 
 import (
 	"encoding/json"
@@ -9,22 +9,22 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
 
 type workersEndpoints struct {
-	*apimachinery.BaseEndpoints
+	*restmachinery.BaseEndpoints
 	workerStatusSchemaLoader gojsonschema.JSONLoader
 	service                  core.EventsService
 }
 
 func NewWorkersEndpoints(
-	baseEndpoints *apimachinery.BaseEndpoints,
+	baseEndpoints *restmachinery.BaseEndpoints,
 	service core.EventsService,
-) apimachinery.Endpoints {
+) restmachinery.Endpoints {
 	// nolint: lll
 	return &workersEndpoints{
 		BaseEndpoints:            baseEndpoints,
@@ -55,7 +55,7 @@ func (w *workersEndpoints) Register(router *mux.Router) {
 
 func (w *workersEndpoints) start(wr http.ResponseWriter, r *http.Request) {
 	w.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: wr,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -76,7 +76,7 @@ func (w *workersEndpoints) getOrStreamStatus(
 
 	if !watch {
 		w.ServeRequest(
-			apimachinery.InboundRequest{
+			restmachinery.InboundRequest{
 				W: wr,
 				R: r,
 				EndpointLogic: func() (interface{}, error) {
@@ -123,7 +123,7 @@ func (w *workersEndpoints) getOrStreamStatus(
 func (w *workersEndpoints) updateStatus(wr http.ResponseWriter, r *http.Request) {
 	status := core.WorkerStatus{}
 	w.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W:                   wr,
 			R:                   r,
 			ReqBodySchemaLoader: w.workerStatusSchemaLoader,

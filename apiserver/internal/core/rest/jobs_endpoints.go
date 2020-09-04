@@ -1,4 +1,4 @@
-package api
+package rest
 
 import (
 	"encoding/json"
@@ -9,23 +9,23 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
 
 type jobsEndpoints struct {
-	*apimachinery.BaseEndpoints
+	*restmachinery.BaseEndpoints
 	jobSpecSchemaLoader   gojsonschema.JSONLoader
 	jobStatusSchemaLoader gojsonschema.JSONLoader
 	service               core.EventsService
 }
 
 func NewJobsEndpoints(
-	baseEndpoints *apimachinery.BaseEndpoints,
+	baseEndpoints *restmachinery.BaseEndpoints,
 	service core.EventsService,
-) apimachinery.Endpoints {
+) restmachinery.Endpoints {
 	// nolint: lll
 	return &jobsEndpoints{
 		BaseEndpoints:         baseEndpoints,
@@ -64,7 +64,7 @@ func (j *jobsEndpoints) Register(router *mux.Router) {
 func (j *jobsEndpoints) create(w http.ResponseWriter, r *http.Request) {
 	jobSpec := core.JobSpec{}
 	j.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
 			ReqBodySchemaLoader: j.jobSpecSchemaLoader,
@@ -84,7 +84,7 @@ func (j *jobsEndpoints) create(w http.ResponseWriter, r *http.Request) {
 
 func (j *jobsEndpoints) start(w http.ResponseWriter, r *http.Request) {
 	j.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -110,7 +110,7 @@ func (j *jobsEndpoints) getOrStreamStatus(
 
 	if !watch {
 		j.ServeRequest(
-			apimachinery.InboundRequest{
+			restmachinery.InboundRequest{
 				W: w,
 				R: r,
 				EndpointLogic: func() (interface{}, error) {
@@ -161,7 +161,7 @@ func (j *jobsEndpoints) updateStatus(
 ) {
 	status := core.JobStatus{}
 	j.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
 			ReqBodySchemaLoader: j.jobStatusSchemaLoader,

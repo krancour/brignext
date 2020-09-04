@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	authx "github.com/krancour/brignext/v2/sdk/authx/api"
-	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
+	"github.com/krancour/brignext/v2/sdk/internal/restmachinery"
 )
 
 // ProjectRolesClient is the specialized client for managing Project Roles with
@@ -41,7 +41,7 @@ type ProjectRolesClient interface {
 }
 
 type projectRolesClient struct {
-	*apimachinery.BaseClient
+	*restmachinery.BaseClient
 }
 
 // NewProjectRolesClient returns a specialized client for managing Project
@@ -52,7 +52,7 @@ func NewProjectRolesClient(
 	allowInsecure bool,
 ) ProjectRolesClient {
 	return &projectRolesClient{
-		BaseClient: &apimachinery.BaseClient{
+		BaseClient: &restmachinery.BaseClient{
 			APIAddress: apiAddress,
 			APIToken:   apiToken,
 			HTTPClient: &http.Client{
@@ -73,7 +73,7 @@ func (p *projectRolesClient) GrantToUser(
 	roleName string,
 ) error {
 	return p.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method: http.MethodPost,
 			Path: fmt.Sprintf(
 				"v2/projects/%s/user-role-assignments",
@@ -100,7 +100,7 @@ func (p *projectRolesClient) RevokeFromUser(
 		"role":   roleName,
 	}
 	return p.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method: http.MethodDelete,
 			Path: fmt.Sprintf(
 				"v2/projects/%s/user-role-assignments",
@@ -120,7 +120,7 @@ func (p *projectRolesClient) GrantToServiceAccount(
 	roleName string,
 ) error {
 	return p.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method: http.MethodPost,
 			Path: fmt.Sprintf(
 				"v2/projects/%s/service-account-role-assignments",
@@ -147,7 +147,7 @@ func (p *projectRolesClient) RevokeFromServiceAccount(
 		"role":             roleName,
 	}
 	return p.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method: http.MethodDelete,
 			Path: fmt.Sprintf(
 				"v2/projects/%s/service-account-role-assignments",

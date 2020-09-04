@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"net/http"
 
-	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
+	"github.com/krancour/brignext/v2/sdk/internal/restmachinery"
 )
 
 // SessionsClient is the specialized client for managing BrigNext API Sessions.
@@ -19,7 +19,7 @@ type SessionsClient interface {
 }
 
 type sessionsClient struct {
-	*apimachinery.BaseClient
+	*restmachinery.BaseClient
 }
 
 // NewSessionsClient returns a specialized client for managing BrigNext API
@@ -30,7 +30,7 @@ func NewSessionsClient(
 	allowInsecure bool,
 ) SessionsClient {
 	return &sessionsClient{
-		BaseClient: &apimachinery.BaseClient{
+		BaseClient: &restmachinery.BaseClient{
 			APIAddress: apiAddress,
 			APIToken:   apiToken,
 			HTTPClient: &http.Client{
@@ -50,7 +50,7 @@ func (s *sessionsClient) CreateRootSession(
 ) (Token, error) {
 	token := Token{}
 	return token, s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/sessions",
 			AuthHeaders: s.BasicAuthHeaders("root", password),
@@ -68,7 +68,7 @@ func (s *sessionsClient) CreateUserSession(
 ) (UserSessionAuthDetails, error) {
 	userSessionAuthDetails := UserSessionAuthDetails{}
 	return userSessionAuthDetails, s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/sessions",
 			SuccessCode: http.StatusCreated,
@@ -79,7 +79,7 @@ func (s *sessionsClient) CreateUserSession(
 
 func (s *sessionsClient) Delete(context.Context) error {
 	return s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        "v2/session",
 			AuthHeaders: s.BearerTokenAuthHeaders(),

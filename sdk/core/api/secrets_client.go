@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/krancour/brignext/v2/sdk/core"
-	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
+	"github.com/krancour/brignext/v2/sdk/internal/restmachinery"
 	"github.com/krancour/brignext/v2/sdk/meta"
 )
 
@@ -30,7 +30,7 @@ type SecretsClient interface {
 }
 
 type secretsClient struct {
-	*apimachinery.BaseClient
+	*restmachinery.BaseClient
 }
 
 // NewSecretsClient returns a specialized client for managing
@@ -41,7 +41,7 @@ func NewSecretsClient(
 	allowInsecure bool,
 ) SecretsClient {
 	return &secretsClient{
-		BaseClient: &apimachinery.BaseClient{
+		BaseClient: &restmachinery.BaseClient{
 			APIAddress: apiAddress,
 			APIToken:   apiToken,
 			HTTPClient: &http.Client{
@@ -62,7 +62,7 @@ func (s *secretsClient) List(
 ) (SecretList, error) {
 	secrets := SecretList{}
 	return secrets, s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/projects/%s/secrets", projectID),
 			AuthHeaders: s.BearerTokenAuthHeaders(),
@@ -79,7 +79,7 @@ func (s *secretsClient) Set(
 	secret core.Secret,
 ) error {
 	return s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method: http.MethodPut,
 			Path: fmt.Sprintf(
 				"v2/projects/%s/secrets/%s",
@@ -99,7 +99,7 @@ func (s *secretsClient) Unset(
 	key string,
 ) error {
 	return s.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method: http.MethodDelete,
 			Path: fmt.Sprintf(
 				"v2/projects/%s/secrets/%s",

@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"github.com/krancour/brignext/v2/sdk/core"
-	"github.com/krancour/brignext/v2/sdk/internal/apimachinery"
+	"github.com/krancour/brignext/v2/sdk/internal/restmachinery"
 )
 
 // JobsClient is the specialized client for managing Event Jobs with the
@@ -55,7 +55,7 @@ type JobsClient interface {
 }
 
 type jobsClient struct {
-	*apimachinery.BaseClient
+	*restmachinery.BaseClient
 }
 
 // NewJobsClient returns a specialized client for managing Event Jobs.
@@ -65,7 +65,7 @@ func NewJobsClient(
 	allowInsecure bool,
 ) JobsClient {
 	return &jobsClient{
-		BaseClient: &apimachinery.BaseClient{
+		BaseClient: &restmachinery.BaseClient{
 			APIAddress: apiAddress,
 			APIToken:   apiToken,
 			HTTPClient: &http.Client{
@@ -86,7 +86,7 @@ func (j *jobsClient) Create(
 	jobSpec core.JobSpec,
 ) error {
 	return j.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method: http.MethodPut,
 			Path: fmt.Sprintf(
 				"v2/events/%s/worker/jobs/%s/spec",
@@ -106,7 +106,7 @@ func (j *jobsClient) Start(
 	jobName string,
 ) error {
 	return j.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method: http.MethodPut,
 			Path: fmt.Sprintf(
 				"v2/events/%s/worker/jobs/%s/start",
@@ -126,7 +126,7 @@ func (j *jobsClient) GetStatus(
 ) (core.JobStatus, error) {
 	status := core.JobStatus{}
 	return status, j.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method: http.MethodGet,
 			Path: fmt.Sprintf(
 				"v2/events/%s/worker/jobs/%s/status",
@@ -146,7 +146,7 @@ func (j *jobsClient) WatchStatus(
 	jobName string,
 ) (<-chan core.JobStatus, <-chan error, error) {
 	resp, err := j.SubmitRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method: http.MethodGet,
 			Path: fmt.Sprintf(
 				"v2/events/%s/worker/jobs/%s/status",
@@ -179,7 +179,7 @@ func (j *jobsClient) UpdateStatus(
 	status core.JobStatus,
 ) error {
 	return j.ExecuteRequest(
-		apimachinery.OutboundRequest{
+		restmachinery.OutboundRequest{
 			Method: http.MethodPut,
 			Path: fmt.Sprintf(
 				"v2/events/%s/worker/jobs/%s/status",

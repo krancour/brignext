@@ -1,4 +1,4 @@
-package api
+package rest
 
 import (
 	"fmt"
@@ -7,21 +7,21 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/core"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/xeipuuv/gojsonschema"
 )
 
 type projectsEndpoints struct {
-	*apimachinery.BaseEndpoints
+	*restmachinery.BaseEndpoints
 	projectSchemaLoader gojsonschema.JSONLoader
 	service             core.ProjectsService
 }
 
 func NewProjectsEndpoints(
-	baseEndpoints *apimachinery.BaseEndpoints,
+	baseEndpoints *restmachinery.BaseEndpoints,
 	service core.ProjectsService,
-) apimachinery.Endpoints {
+) restmachinery.Endpoints {
 	// nolint: lll
 	return &projectsEndpoints{
 		BaseEndpoints:       baseEndpoints,
@@ -65,7 +65,7 @@ func (p *projectsEndpoints) Register(router *mux.Router) {
 func (p *projectsEndpoints) create(w http.ResponseWriter, r *http.Request) {
 	project := core.Project{}
 	p.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
 			ReqBodySchemaLoader: p.projectSchemaLoader,
@@ -100,7 +100,7 @@ func (p *projectsEndpoints) list(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	p.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -113,7 +113,7 @@ func (p *projectsEndpoints) list(w http.ResponseWriter, r *http.Request) {
 
 func (p *projectsEndpoints) get(w http.ResponseWriter, r *http.Request) {
 	p.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -127,7 +127,7 @@ func (p *projectsEndpoints) get(w http.ResponseWriter, r *http.Request) {
 func (p *projectsEndpoints) update(w http.ResponseWriter, r *http.Request) {
 	project := core.Project{}
 	p.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
 			ReqBodySchemaLoader: p.projectSchemaLoader,
@@ -148,7 +148,7 @@ func (p *projectsEndpoints) update(w http.ResponseWriter, r *http.Request) {
 
 func (p *projectsEndpoints) delete(w http.ResponseWriter, r *http.Request) {
 	p.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {

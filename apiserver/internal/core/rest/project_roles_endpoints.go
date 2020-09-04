@@ -1,67 +1,68 @@
-package api
+package rest
 
 import (
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/authx"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery"
-	"github.com/krancour/brignext/v2/apiserver/internal/system"
+	"github.com/krancour/brignext/v2/apiserver/internal/core"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
 )
 
-type systemRolesEndpoints struct {
-	*apimachinery.BaseEndpoints
-	service system.Service
+type projectsRolesEndpoints struct {
+	*restmachinery.BaseEndpoints
+	service core.ProjectsService
 }
 
-func NewSystemRolesEndpoints(
-	baseEndpoints *apimachinery.BaseEndpoints,
-	service system.Service,
-) apimachinery.Endpoints {
+func NewProjectsRolesEndpoints(
+	baseEndpoints *restmachinery.BaseEndpoints,
+	service core.ProjectsService,
+) restmachinery.Endpoints {
 	// nolint: lll
-	return &systemRolesEndpoints{
+	return &projectsEndpoints{
 		BaseEndpoints: baseEndpoints,
 		service:       service,
 	}
 }
 
-func (s *systemRolesEndpoints) Register(router *mux.Router) {
+func (p *projectsRolesEndpoints) Register(router *mux.Router) {
 	// Grant role to User
 	router.HandleFunc(
-		"/v2/system/user-role-assignments",
-		s.TokenAuthFilter.Decorate(s.grantUserRole),
+		"/v2/projects/{projectID}/user-role-assignments",
+		p.TokenAuthFilter.Decorate(p.grantToUser),
 	).Methods(http.MethodPost)
 
 	// Revoke role from User
 	router.HandleFunc(
-		"/v2/system/user-role-assignments",
-		s.TokenAuthFilter.Decorate(s.revokeUserRole),
+		"/v2/projects/{projectID}/user-role-assignments",
+		p.TokenAuthFilter.Decorate(p.revokeFromUser),
 	).Methods(http.MethodDelete)
 
 	// Grant role to ServiceAccount
 	router.HandleFunc(
-		"/v2/system/service-account-role-assignments",
-		s.TokenAuthFilter.Decorate(s.grantServiceAccountRole),
+		"/v2/projects/{projectID}/service-account-role-assignments",
+		p.TokenAuthFilter.Decorate(p.grantToServiceAccount),
 	).Methods(http.MethodPost)
 
 	// Revoke role from ServiceAccount
 	router.HandleFunc(
-		"/v2/system/service-account-role-assignments",
-		s.TokenAuthFilter.Decorate(s.revokeServiceAccountRole),
+		"/v2/projects/{projectID}/service-account-role-assignments",
+		p.TokenAuthFilter.Decorate(p.revokeFromServiceAccount),
 	).Methods(http.MethodDelete)
 }
 
 // TODO: This still needs some validation
-func (s *systemRolesEndpoints) grantUserRole(w http.ResponseWriter, r *http.Request) {
+func (p *projectsRolesEndpoints) grantToUser(w http.ResponseWriter, r *http.Request) {
 	roleAssignment := authx.UserRoleAssignment{}
-	s.ServeRequest(
-		apimachinery.InboundRequest{
+	p.ServeRequest(
+		restmachinery.InboundRequest{
 			W:          w,
 			R:          r,
 			ReqBodyObj: &roleAssignment,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.GrantRoleToUser(
+				return nil, p.service.GrantRoleToUser(
 					r.Context(),
+					mux.Vars(r)["projectID"],
 					roleAssignment.UserID,
 					roleAssignment.Role,
 				)
@@ -72,18 +73,19 @@ func (s *systemRolesEndpoints) grantUserRole(w http.ResponseWriter, r *http.Requ
 }
 
 // TODO: This still needs some validation
-func (s *systemRolesEndpoints) revokeUserRole(w http.ResponseWriter, r *http.Request) {
+func (p *projectsRolesEndpoints) revokeFromUser(w http.ResponseWriter, r *http.Request) {
 	roleAssignment := authx.UserRoleAssignment{
 		Role:   r.URL.Query().Get("role"),
 		UserID: r.URL.Query().Get("userID"),
 	}
-	s.ServeRequest(
-		apimachinery.InboundRequest{
+	p.ServeRequest(
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.RevokeRoleFromUser(
+				return nil, p.service.RevokeRoleFromUser(
 					r.Context(),
+					mux.Vars(r)["projectID"],
 					roleAssignment.UserID,
 					roleAssignment.Role,
 				)
@@ -94,18 +96,19 @@ func (s *systemRolesEndpoints) revokeUserRole(w http.ResponseWriter, r *http.Req
 }
 
 // TODO: This still needs some validation
-func (s *systemRolesEndpoints) grantServiceAccountRole(
+func (p *projectsRolesEndpoints) grantToServiceAccount(
 	w http.ResponseWriter,
 	r *http.Request) {
 	roleAssignment := authx.ServiceAccountRoleAssignment{}
-	s.ServeRequest(
-		apimachinery.InboundRequest{
+	p.ServeRequest(
+		restmachinery.InboundRequest{
 			W:          w,
 			R:          r,
 			ReqBodyObj: &roleAssignment,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.GrantRoleToServiceAccount(
+				return nil, p.service.GrantRoleToServiceAccount(
 					r.Context(),
+					mux.Vars(r)["projectID"],
 					roleAssignment.ServiceAccountID,
 					roleAssignment.Role,
 				)
@@ -116,7 +119,7 @@ func (s *systemRolesEndpoints) grantServiceAccountRole(
 }
 
 // TODO: This still needs some validation
-func (s *systemRolesEndpoints) revokeServiceAccountRole(
+func (p *projectsRolesEndpoints) revokeFromServiceAccount(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -124,13 +127,14 @@ func (s *systemRolesEndpoints) revokeServiceAccountRole(
 		Role:             r.URL.Query().Get("role"),
 		ServiceAccountID: r.URL.Query().Get("serviceAccountID"),
 	}
-	s.ServeRequest(
-		apimachinery.InboundRequest{
+	p.ServeRequest(
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.RevokeRoleFromServiceAccount(
+				return nil, p.service.RevokeRoleFromServiceAccount(
 					r.Context(),
+					mux.Vars(r)["projectID"],
 					roleAssignment.ServiceAccountID,
 					roleAssignment.Role,
 				)

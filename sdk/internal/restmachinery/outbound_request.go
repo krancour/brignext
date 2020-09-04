@@ -1,4 +1,4 @@
-package apimachinery
+package restmachinery
 
 // OutboundRequest models of an outbound API call.
 type OutboundRequest struct {

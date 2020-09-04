@@ -1,4 +1,4 @@
-package api
+package rest
 
 import (
 	"fmt"
@@ -7,21 +7,21 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/krancour/brignext/v2/apiserver/internal/authx"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/apimachinery"
+	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
 	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/xeipuuv/gojsonschema"
 )
 
 type serviceAccountEndpoints struct {
-	*apimachinery.BaseEndpoints
+	*restmachinery.BaseEndpoints
 	serviceAccountSchemaLoader gojsonschema.JSONLoader
 	service                    authx.ServiceAccountsService
 }
 
 func NewServiceAccountEndpoints(
-	baseEndpoints *apimachinery.BaseEndpoints,
+	baseEndpoints *restmachinery.BaseEndpoints,
 	service authx.ServiceAccountsService,
-) apimachinery.Endpoints {
+) restmachinery.Endpoints {
 	// nolint: lll
 	return &serviceAccountEndpoints{
 		BaseEndpoints:              baseEndpoints,
@@ -68,7 +68,7 @@ func (s *serviceAccountEndpoints) create(
 ) {
 	serviceAccount := authx.ServiceAccount{}
 	s.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
 			ReqBodySchemaLoader: s.serviceAccountSchemaLoader,
@@ -103,7 +103,7 @@ func (s *serviceAccountEndpoints) list(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -120,7 +120,7 @@ func (s *serviceAccountEndpoints) list(w http.ResponseWriter, r *http.Request) {
 
 func (s *serviceAccountEndpoints) get(w http.ResponseWriter, r *http.Request) {
 	s.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -132,7 +132,7 @@ func (s *serviceAccountEndpoints) get(w http.ResponseWriter, r *http.Request) {
 
 func (s *serviceAccountEndpoints) lock(w http.ResponseWriter, r *http.Request) {
 	s.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
@@ -148,7 +148,7 @@ func (s *serviceAccountEndpoints) unlock(
 	r *http.Request,
 ) {
 	s.ServeRequest(
-		apimachinery.InboundRequest{
+		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {

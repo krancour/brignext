@@ -1,4 +1,4 @@
-package apimachinery
+package restmachinery
 
 import (
 	"encoding/json"
