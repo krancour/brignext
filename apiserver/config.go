@@ -81,7 +81,7 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 		return nil, err
 	}
 	secretsStore := coreKubernetes.NewSecretsStore(kubeClient)
-	projectsScheduler := core.NewProjectsScheduler(kubeClient)
+	projectsScheduler := coreKubernetes.NewProjectsScheduler(kubeClient)
 	projectsService := core.NewProjectsService(
 		projectsStore,
 		usersStore,
@@ -118,7 +118,7 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	scheduler := core.NewEventsScheduler(
+	scheduler := coreKubernetes.NewEventsScheduler(
 		schedulerConfig,
 		queueWriterFactory,
 		kubeClient,
