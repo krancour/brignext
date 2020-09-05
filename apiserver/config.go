@@ -2,21 +2,21 @@ package main
 
 // nolint: lll
 import (
-	"github.com/krancour/brignext/v2/apiserver/internal/authx"
-	authxMongodb "github.com/krancour/brignext/v2/apiserver/internal/authx/mongodb"
-	authxREST "github.com/krancour/brignext/v2/apiserver/internal/authx/rest"
-	"github.com/krancour/brignext/v2/apiserver/internal/core"
-	coreKubernetes "github.com/krancour/brignext/v2/apiserver/internal/core/kubernetes"
-	coreMongodb "github.com/krancour/brignext/v2/apiserver/internal/core/mongodb"
-	coreREST "github.com/krancour/brignext/v2/apiserver/internal/core/rest"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/mongodb"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/oidc"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/queue/amqp"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery/authn"
-	"github.com/krancour/brignext/v2/apiserver/internal/system"
-	systemREST "github.com/krancour/brignext/v2/apiserver/internal/system/rest"
-	"github.com/krancour/brignext/v2/internal/kubernetes"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/authx"
+	authxMongodb "github.com/brigadecore/brigade/v2/apiserver/internal/authx/mongodb"
+	authxREST "github.com/brigadecore/brigade/v2/apiserver/internal/authx/rest"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/core"
+	coreKubernetes "github.com/brigadecore/brigade/v2/apiserver/internal/core/kubernetes"
+	coreMongodb "github.com/brigadecore/brigade/v2/apiserver/internal/core/mongodb"
+	coreREST "github.com/brigadecore/brigade/v2/apiserver/internal/core/rest"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/lib/mongodb"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/lib/oidc"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/lib/queue/amqp"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/lib/restmachinery"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/lib/restmachinery/authn"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/system"
+	systemREST "github.com/brigadecore/brigade/v2/apiserver/internal/system/rest"
+	"github.com/brigadecore/brigade/v2/internal/kubernetes"
 )
 
 func getAPIServerFromEnvironment() (restmachinery.Server, error) {

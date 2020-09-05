@@ -3,10 +3,10 @@ package core
 import (
 	"encoding/json"
 
-	"github.com/krancour/brignext/v2/sdk/meta"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 )
 
-// Project is Brignext's fundamental management construct. Through a
+// Project is Brigade's fundamental management construct. Through a
 // ProjectSpec, it pairs EventSubscriptions with a template WorkerSpec.
 type Project struct {
 	// ObjectMeta contains Project metadata.
@@ -17,7 +17,7 @@ type Project struct {
 	// a WorkerTemplate.
 	Spec ProjectSpec `json:"spec"`
 	// Kubernetes contains Kubernetes-specific details of the Project's
-	// environment. These details are populated by BrigNext so that sufficiently
+	// environment. These details are populated by Brigade so that sufficiently
 	// authorized Kubernetes users may obtain the information needed to directly
 	// modify a Project's environment to facilitate certain advanced use cases.
 	// Clients MUST leave the value of this field nil when using the API to create

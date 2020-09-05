@@ -1,4 +1,4 @@
-apiVersion: github.com/krancour/brignext/v2
+apiVersion: brigade.sh/v2
 kind: Project
 metadata:
   id: logs-demo
@@ -6,10 +6,10 @@ description: A project that demonstrates outputting logs from a job
 spec:
   workerTemplate:
     defaultConfigFiles:
-      brignext.js: |-
+      brigade.js: |-
         const { events, Job } = require("brigadier");
 
-        events.on("github.com/krancour/brignext/cli:exec", (e) => {
+        events.on("github.com/brigadecore/brigade/cli:exec", (e) => {
           let job = new Job("foo", "debian:latest");
           job.primaryContainer.command = ["echo"];
           job.primaryContainer.arguments = ["foo"];

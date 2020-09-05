@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/brigadecore/brigade/v2/apiserver/internal/core"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/lib/restmachinery"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/meta"
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/core"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
-	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -25,7 +25,7 @@ func NewProjectsEndpoints(
 	// nolint: lll
 	return &projectsEndpoints{
 		BaseEndpoints:       baseEndpoints,
-		projectSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/project.json"),
+		projectSchemaLoader: gojsonschema.NewReferenceLoader("file:///brigade/schemas/project.json"),
 		service:             service,
 	}
 }

@@ -6,14 +6,14 @@ import (
 	"log"
 	"time"
 
-	"github.com/krancour/brignext/v2/apiserver/internal/authx"
-	"github.com/krancour/brignext/v2/apiserver/internal/meta"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/authx"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/meta"
 	"github.com/pkg/errors"
 )
 
 type JobsService interface {
 	// Create, given an Event identifier and JobSpec, creates a new Job and
-	// starts it on BrigNext's workload execution substrate.
+	// starts it on Brigade's workload execution substrate.
 	Create(
 		ctx context.Context,
 		eventID string,
@@ -21,7 +21,7 @@ type JobsService interface {
 		jobSpec JobSpec,
 	) error
 	// Start, given an Event identifier and Job name, starts that Job on
-	// BrigNext's workload execution substrate.
+	// Brigade's workload execution substrate.
 	Start(
 		ctx context.Context,
 		eventID string,

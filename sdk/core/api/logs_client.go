@@ -8,12 +8,12 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/krancour/brignext/v2/sdk/core"
-	"github.com/krancour/brignext/v2/sdk/internal/restmachinery"
+	"github.com/brigadecore/brigade/v2/sdk/core"
+	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
 )
 
 // LogsClient is the specialized client for managing Event Logs with the
-// BrigNext API.
+// Brigade API.
 type LogsClient interface {
 	// Stream returns a channel over which logs for an Event's Worker, or using
 	// the LogsSelector parameter, a Job spawned by that Worker (or a specific

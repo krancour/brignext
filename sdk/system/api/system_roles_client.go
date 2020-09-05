@@ -5,12 +5,12 @@ import (
 	"crypto/tls"
 	"net/http"
 
-	authx "github.com/krancour/brignext/v2/sdk/authx/api"
-	"github.com/krancour/brignext/v2/sdk/internal/restmachinery"
+	authx "github.com/brigadecore/brigade/v2/sdk/authx/api"
+	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
 )
 
 // SystemRolesClient is the specialized client for managing System Roles with
-// the BrigNext API.
+// the Brigade API.
 type SystemRolesClient interface {
 	GrantToUser(
 		ctx context.Context,

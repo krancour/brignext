@@ -6,13 +6,13 @@ import (
 	"log"
 	"time"
 
-	"github.com/krancour/brignext/v2/apiserver/internal/authx"
-	"github.com/krancour/brignext/v2/apiserver/internal/meta"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/authx"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/meta"
 	"github.com/pkg/errors"
 )
 
 type WorkersService interface {
-	// Start starts the indicated Event's Worker on BrigNext's workload
+	// Start starts the indicated Event's Worker on Brigade's workload
 	// execution substrate.
 	Start(ctx context.Context, eventID string) error
 	// GetStatus returns an Event's Worker's status.

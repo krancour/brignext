@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/krancour/brignext/v2/sdk/authx"
-	"github.com/krancour/brignext/v2/sdk/internal/restmachinery"
-	"github.com/krancour/brignext/v2/sdk/meta"
+	"github.com/brigadecore/brigade/v2/sdk/authx"
+	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 )
 
 // ServiceAccountsClient is the specialized client for managing ServiceAccounts
-// with the BrigNext API.
+// with the Brigade API.
 type ServiceAccountsClient interface {
 	// Create creates a new ServiceAccount.
 	Create(context.Context, authx.ServiceAccount) (Token, error)

@@ -51,7 +51,7 @@ type JobSpec struct {
 	PrimaryContainer JobContainerSpec `json:"primaryContainer" bson:"primaryContainer"`
 	// SidecarContainers specifies the details of supplemental, "sidecar"
 	// containers. Their completion and exit code do not directly impact Job
-	// status. BrigNext does not understand dependencies between a Job's multiple
+	// status. Brigade does not understand dependencies between a Job's multiple
 	// containers and cannot enforce any specific startup or shutdown order. When
 	// such dependencies exist (for instance, a primary container than cannot
 	// proceed with a suite of tests until a database is launched and READY in a
@@ -73,7 +73,7 @@ type JobSpec struct {
 type JobHost struct {
 	// OS specifies which "family" of operating system is required on a substrate
 	// node to host a Job. Valid values are "linux" and "windows". When empty,
-	// BrigNext assumes "linux".
+	// Brigade assumes "linux".
 	OS string `json:"os,omitempty" bson:"os,omitempty"`
 	// NodeSelector specifies labels that must be present on the substrate node to
 	// host a Job. This provides an opaque mechanism for communicating Job needs

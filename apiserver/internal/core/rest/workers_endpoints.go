@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/brigadecore/brigade/v2/apiserver/internal/core"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/lib/restmachinery"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/meta"
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/core"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
-	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )
@@ -28,7 +28,7 @@ func NewWorkersEndpoints(
 	// nolint: lll
 	return &workersEndpoints{
 		BaseEndpoints:            baseEndpoints,
-		workerStatusSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/worker-status.json"),
+		workerStatusSchemaLoader: gojsonschema.NewReferenceLoader("file:///brigade/schemas/worker-status.json"),
 		service:                  service,
 	}
 }

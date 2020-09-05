@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/krancour/brignext/v2/apiserver/internal/meta"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/meta"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 // Event represents an occurrence in some upstream system. Once accepted into
-// the system, BrigNext amends each Event with a plan for handling it in the
+// the system, Brigade amends each Event with a plan for handling it in the
 // form of a Worker. An Event's status is the status of its Worker.
 type Event struct {
 	// ObjectMeta contains Event metadata.

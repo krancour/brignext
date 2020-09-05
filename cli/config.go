@@ -6,7 +6,7 @@ import (
 	"os"
 	"path"
 
-	"github.com/krancour/brignext/v2/internal/file"
+	"github.com/brigadecore/brigade/v2/internal/file"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 )
@@ -17,25 +17,25 @@ type config struct {
 }
 
 func getConfig() (*config, error) {
-	brignextHome, err := getBrignextHome()
+	brigadeHome, err := getBrigadeHome()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error finding brignext home")
+		return nil, errors.Wrapf(err, "error finding brigade home")
 	}
-	brignextConfigFile := path.Join(brignextHome, "config")
-	if !file.Exists(brignextConfigFile) {
+	brigadeConfigFile := path.Join(brigadeHome, "config")
+	if !file.Exists(brigadeConfigFile) {
 		return nil, errors.Errorf(
-			"no brignext configuration was found at %s; please use "+
-				"`brignext login` to continue\n",
-			brignextConfigFile,
+			"no brigade configuration was found at %s; please use "+
+				"`brig login` to continue\n",
+			brigadeConfigFile,
 		)
 	}
 
-	configBytes, err := ioutil.ReadFile(brignextConfigFile)
+	configBytes, err := ioutil.ReadFile(brigadeConfigFile)
 	if err != nil {
 		return nil, errors.Wrapf(
 			err,
-			"error reading brignext config file at %s",
-			brignextConfigFile,
+			"error reading brigade config file at %s",
+			brigadeConfigFile,
 		)
 	}
 
@@ -43,8 +43,8 @@ func getConfig() (*config, error) {
 	if err := json.Unmarshal(configBytes, config); err != nil {
 		return nil, errors.Wrapf(
 			err,
-			"error parsing brignext config file at %s",
-			brignextConfigFile,
+			"error parsing brigade config file at %s",
+			brigadeConfigFile,
 		)
 	}
 
@@ -52,59 +52,59 @@ func getConfig() (*config, error) {
 }
 
 func saveConfig(config *config) error {
-	brignextHome, err := getBrignextHome()
+	brigadeHome, err := getBrigadeHome()
 	if err != nil {
-		return errors.Wrapf(err, "error finding brignext home")
+		return errors.Wrapf(err, "error finding brigade home")
 	}
-	if _, err = os.Stat(brignextHome); err != nil {
+	if _, err = os.Stat(brigadeHome); err != nil {
 		if !os.IsNotExist(err) {
 			return errors.Wrapf(
 				err,
-				"error checking for existence of brignext home at %s",
-				brignextHome,
+				"error checking for existence of brigade home at %s",
+				brigadeHome,
 			)
 		}
 		// The directory doesn't exist-- create it
-		if err = os.MkdirAll(brignextHome, 0755); err != nil {
+		if err = os.MkdirAll(brigadeHome, 0755); err != nil {
 			return errors.Wrapf(
 				err,
-				"error creating brignext home at %s",
-				brignextHome,
+				"error creating brigade home at %s",
+				brigadeHome,
 			)
 		}
 	}
-	brignextConfigFile := path.Join(brignextHome, "config")
+	brigadeConfigFile := path.Join(brigadeHome, "config")
 
 	configBytes, err := json.Marshal(config)
 	if err != nil {
 		return errors.Wrap(err, "error marshaling config")
 	}
 	if err :=
-		ioutil.WriteFile(brignextConfigFile, configBytes, 0644); err != nil {
-		return errors.Wrapf(err, "error writing to %s", brignextConfigFile)
+		ioutil.WriteFile(brigadeConfigFile, configBytes, 0644); err != nil {
+		return errors.Wrapf(err, "error writing to %s", brigadeConfigFile)
 	}
 	return nil
 }
 
 func deleteConfig() error {
-	brignextHome, err := getBrignextHome()
+	brigadeHome, err := getBrigadeHome()
 	if err != nil {
-		return errors.Wrapf(err, "error finding brignext home")
+		return errors.Wrapf(err, "error finding brigade home")
 	}
-	brignextConfigFile := path.Join(brignextHome, "config")
+	brigadeConfigFile := path.Join(brigadeHome, "config")
 
-	if err := os.Remove(brignextConfigFile); err != nil {
+	if err := os.Remove(brigadeConfigFile); err != nil {
 		return errors.Wrap(err, "error deleting configuration")
 	}
 
 	return nil
 }
 
-func getBrignextHome() (string, error) {
+func getBrigadeHome() (string, error) {
 	homeDir, err := homedir.Dir()
 	if err != nil {
 		return "", errors.Wrap(err, "error locating user's home directory")
 	}
 
-	return path.Join(homeDir, ".brignext"), nil
+	return path.Join(homeDir, ".brigade"), nil
 }

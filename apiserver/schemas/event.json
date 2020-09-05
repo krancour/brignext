@@ -32,8 +32,8 @@
 
 		"apiVersion": {
 			"type": "string",
-			"description": "The major version of the BrigNext API with which this object conforms",
-			"enum": ["github.com/krancour/brignext/v2"]
+			"description": "The major version of the Brigade API with which this object conforms",
+			"enum": ["brigade.sh/v2"]
 		},
 
 		"kind": {
@@ -117,7 +117,7 @@
 					"$ref": "#/definitions/label"
 				}
 			},
-			"description": "Labels to help BrigNext route the event to subscribed projects"
+			"description": "Labels to help Brigade route the event to subscribed projects"
 		},
 		"shortTitle": {
 			"type": "string",

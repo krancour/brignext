@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"net/http"
 
-	authx "github.com/krancour/brignext/v2/sdk/authx/api"
-	"github.com/krancour/brignext/v2/sdk/internal/restmachinery"
+	authx "github.com/brigadecore/brigade/v2/sdk/authx/api"
+	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
 )
 
 // ProjectRolesClient is the specialized client for managing Project Roles with
-// the BrigNext API.
+// the Brigade API.
 type ProjectRolesClient interface {
 	GrantToUser(
 		ctx context.Context,

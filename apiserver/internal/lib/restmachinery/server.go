@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/brigadecore/brigade/v2/internal/file"
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/internal/file"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )

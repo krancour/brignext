@@ -3,8 +3,8 @@ package meta
 import "time"
 
 // APIVersion represents the API and major version thereof with which this
-// version of the BrigNext API server is compatible.
-const APIVersion = "github.com/krancour/brignext/v2"
+// version of the Brigade API server is compatible.
+const APIVersion = "brigade.sh/v2"
 
 // TypeMeta represents metadata about a resource type to help clients and
 // servers mutually head off potential confusion over types (and versions of
@@ -12,7 +12,7 @@ const APIVersion = "github.com/krancour/brignext/v2"
 type TypeMeta struct {
 	// Kind specifies the type of a serialized resource.
 	Kind string `json:"kind,omitempty"`
-	// APIVersion specifiesthe major version of the BrigNext API with which the
+	// APIVersion specifiesthe major version of the Brigade API with which the
 	// client or server having serialized the resource is compatible.
 	APIVersion string `json:"apiVersion,omitempty"`
 }

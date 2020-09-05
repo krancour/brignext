@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/brigadecore/brigade/v2/sdk/authx"
+	"github.com/brigadecore/brigade/v2/sdk/authx/api"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
-	"github.com/krancour/brignext/v2/sdk/authx"
-	"github.com/krancour/brignext/v2/sdk/authx/api"
-	"github.com/krancour/brignext/v2/sdk/meta"
 	"golang.org/x/crypto/ssh/terminal"
 	"k8s.io/apimachinery/pkg/util/duration"
 
@@ -71,7 +71,7 @@ var serviceAccountCommand = &cli.Command{
 		},
 		{
 			Name:  "lock",
-			Usage: "Lock a service account out of BrigNext",
+			Usage: "Lock a service account out of Brigade",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     flagID,
@@ -84,7 +84,7 @@ var serviceAccountCommand = &cli.Command{
 		},
 		{
 			Name:  "unlock",
-			Usage: "Restore a service account's access to BrigNext",
+			Usage: "Restore a service account's access to Brigade",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     flagID,
@@ -104,7 +104,7 @@ func serviceAccountCreate(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	token, err := client.Authx().ServiceAccounts().Create(
@@ -139,7 +139,7 @@ func serviceAccountList(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	opts := meta.ListOptions{}
@@ -239,7 +239,7 @@ func serviceAccountGet(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	serviceAccount, err := client.Authx().ServiceAccounts().Get(c.Context, id)
@@ -292,7 +292,7 @@ func serviceAccountLock(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	if err := client.Authx().ServiceAccounts().Lock(c.Context, id); err != nil {
@@ -309,7 +309,7 @@ func serviceAccountUnlock(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	token, err := client.Authx().ServiceAccounts().Unlock(c.Context, id)

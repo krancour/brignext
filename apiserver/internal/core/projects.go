@@ -3,11 +3,11 @@ package core
 import (
 	"encoding/json"
 
-	"github.com/krancour/brignext/v2/apiserver/internal/meta"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/meta"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// Project is Brignext's fundamental management construct. Through a
+// Project is Brigade's fundamental management construct. Through a
 // ProjectSpec, it pairs EventSubscriptions with a template WorkerSpec.
 type Project struct {
 	// ObjectMeta contains Project metadata.

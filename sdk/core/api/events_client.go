@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/krancour/brignext/v2/sdk/core"
-	"github.com/krancour/brignext/v2/sdk/internal/restmachinery"
-	"github.com/krancour/brignext/v2/sdk/meta"
+	"github.com/brigadecore/brigade/v2/sdk/core"
+	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 )
 
-// EventsClient is the specialized client for managing Events with the BrigNext
+// EventsClient is the specialized client for managing Events with the Brigade
 // API.
 type EventsClient interface {
 	// Create creates a new Event.

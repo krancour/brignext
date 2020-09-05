@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/krancour/brignext/v2/sdk/meta"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 	"github.com/pkg/errors"
 )
 

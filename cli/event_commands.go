@@ -9,12 +9,12 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/brigadecore/brigade/v2/internal/file"
+	"github.com/brigadecore/brigade/v2/sdk/core"
+	"github.com/brigadecore/brigade/v2/sdk/core/api"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
-	"github.com/krancour/brignext/v2/internal/file"
-	"github.com/krancour/brignext/v2/sdk/core"
-	"github.com/krancour/brignext/v2/sdk/core/api"
-	"github.com/krancour/brignext/v2/sdk/meta"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh/terminal"
@@ -98,7 +98,7 @@ var eventCommand = &cli.Command{
 					Name:    flagSource,
 					Aliases: []string{"s"},
 					Usage:   "Override the default event source",
-					Value:   "github.com/krancour/brignext/cli",
+					Value:   "github.com/brigadecore/brigade/cli",
 				},
 				&cli.StringFlag{
 					Name:    flagType,
@@ -332,7 +332,7 @@ func eventCreate(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	events, err := client.Core().Events().Create(c.Context, event)
@@ -399,7 +399,7 @@ func eventList(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	selector := api.EventsSelector{
@@ -503,7 +503,7 @@ func eventGet(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	event, err := client.Core().Events().Get(c.Context, id)
@@ -591,7 +591,7 @@ func eventCancel(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	if err = client.Core().Events().Cancel(c.Context, id); err != nil {
@@ -616,7 +616,7 @@ func eventCancelMany(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	selector := api.EventsSelector{
@@ -649,7 +649,7 @@ func eventDelete(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	if err = client.Core().Events().Delete(c.Context, id); err != nil {
@@ -717,7 +717,7 @@ func eventDeleteMany(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	selector := api.EventsSelector{

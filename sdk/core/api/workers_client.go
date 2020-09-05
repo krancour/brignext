@@ -8,14 +8,14 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/krancour/brignext/v2/sdk/core"
-	"github.com/krancour/brignext/v2/sdk/internal/restmachinery"
+	"github.com/brigadecore/brigade/v2/sdk/core"
+	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
 )
 
 // WorkersClient is the specialized client for managing Event Worker with the
-// BrigNext API.
+// Brigade API.
 type WorkersClient interface {
-	// Start starts the indicated Event's Worker on BrigNext's workload execution
+	// Start starts the indicated Event's Worker on Brigade's workload execution
 	// substrate.
 	Start(ctx context.Context, eventID string) error
 	// Get returns an Event's Worker's status.

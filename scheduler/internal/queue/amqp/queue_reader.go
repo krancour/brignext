@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/Azure/go-amqp"
-	"github.com/krancour/brignext/v2/scheduler/internal/queue"
+	"github.com/brigadecore/brigade/v2/scheduler/internal/queue"
 	"github.com/pkg/errors"
 )
 

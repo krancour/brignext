@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/brigadecore/brigade/v2/apiserver/internal/core"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/lib/restmachinery"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/meta"
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/core"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
-	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -25,7 +25,7 @@ func NewSecretsEndpoints(
 	// nolint: lll
 	return &secretsEndpoints{
 		BaseEndpoints:      baseEndpoints,
-		secretSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/secret.json"),
+		secretSchemaLoader: gojsonschema.NewReferenceLoader("file:///brigade/schemas/secret.json"),
 		service:            service,
 	}
 }

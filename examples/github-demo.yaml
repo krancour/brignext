@@ -1,11 +1,11 @@
-apiVersion: github.com/krancour/brignext/v2
+apiVersion: brigade.sh/v2
 kind: Project
 metadata:
   id: github-demo
 description: A project that demonstrates integration with GitHub
 spec:
   eventSubscriptions:
-  - source: github.com/krancour/brignext-github-app
+  - source: github.com/brigadecore/brigade-github-app
     types:
     - pull_request:opened
     - pull_request:synchronize
@@ -15,4 +15,4 @@ spec:
       repo: krancour/brignext-demo
   workerTemplate:
     git:
-      cloneURL: https://github.com/krancour/brignext-demo.git
+      cloneURL: https://github.com/brigadecore/brigade-demo.git

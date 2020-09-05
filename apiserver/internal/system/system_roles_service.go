@@ -3,7 +3,7 @@ package system
 import (
 	"context"
 
-	"github.com/krancour/brignext/v2/apiserver/internal/authx"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/authx"
 	"github.com/pkg/errors"
 )
 

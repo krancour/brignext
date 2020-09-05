@@ -40,7 +40,7 @@ export class Job extends jobs.Job {
           Authorization: `Bearer ${currentEvent.worker.apiToken}`
         },
         data: {
-          apiVersion: "github.com/krancour/brignext/v2",
+          apiVersion: "brigade.sh/v2",
           kind: "JobSpec",
           primaryContainer: this.primaryContainer,
           sidecarContainers: this.sidecarContainers,

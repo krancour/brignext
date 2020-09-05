@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/krancour/brignext/v2/apiserver/internal/core"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/crypto"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/queue"
-	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/core"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/lib/crypto"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/lib/queue"
+	myk8s "github.com/brigadecore/brigade/v2/internal/kubernetes"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -48,7 +48,7 @@ func (s *substrate) PreCreateProject(
 	// but don't create it yet
 	project.Kubernetes = &core.KubernetesConfig{
 		Namespace: strings.ToLower(
-			fmt.Sprintf("brignext-%s-%s", project.ID, crypto.NewToken(10)),
+			fmt.Sprintf("brigade-%s-%s", project.ID, crypto.NewToken(10)),
 		),
 	}
 	return project, nil

@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/brigadecore/brigade/v2/apiserver/internal/authx"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/lib/restmachinery"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/meta"
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/authx"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
-	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -25,7 +25,7 @@ func NewServiceAccountEndpoints(
 	// nolint: lll
 	return &serviceAccountEndpoints{
 		BaseEndpoints:              baseEndpoints,
-		serviceAccountSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/service-account.json"),
+		serviceAccountSchemaLoader: gojsonschema.NewReferenceLoader("file:///brigade/schemas/service-account.json"),
 		service:                    service,
 	}
 }

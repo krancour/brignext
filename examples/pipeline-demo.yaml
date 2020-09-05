@@ -1,4 +1,4 @@
-apiVersion: github.com/krancour/brignext/v2
+apiVersion: brigade.sh/v2
 kind: Project
 metadata:
   id: pipeline-demo
@@ -6,10 +6,10 @@ description: A project that demonstrates a simple pipeline
 spec:
   workerTemplate:
     defaultConfigFiles:
-      brignext.js: |-
+      brigade.js: |-
         const { events, Job } = require("brigadier");
 
-        events.on("github.com/krancour/brignext/cli:exec", (e) => {
+        events.on("github.com/brigadecore/brigade/cli:exec", (e) => {
           let fooJob = new Job("foo", "debian:latest");
           fooJob.primaryContainer.command = ["echo"];
           fooJob.primaryContainer.arguments = ["foo"];

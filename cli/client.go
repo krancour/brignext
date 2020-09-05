@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/krancour/brignext/v2/sdk/api"
+	"github.com/brigadecore/brigade/v2/sdk/api"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )

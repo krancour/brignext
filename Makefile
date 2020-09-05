@@ -25,17 +25,17 @@ ifneq ($(SKIP_DOCKER),true)
 		-it \
 		--rm \
 		-e SKIP_DOCKER=true \
-		-e GOCACHE=/workspaces/brignext/.gocache \
-		-v $(PROJECT_ROOT):/workspaces/brignext \
-		-w /workspaces/brignext \
+		-e GOCACHE=/workspaces/brigade/.gocache \
+		-v $(PROJECT_ROOT):/workspaces/brigade \
+		-w /workspaces/brigade \
 		$(GO_DEV_IMAGE)
 
 	JS_DOCKER_CMD := docker run \
 		-it \
 		--rm \
 		-e SKIP_DOCKER=true \
-		-v $(PROJECT_ROOT):/workspaces/brignext \
-		-w /workspaces/brignext \
+		-v $(PROJECT_ROOT):/workspaces/brigade \
+		-w /workspaces/brigade \
 		$(JS_DEV_IMAGE)
 endif
 
@@ -118,54 +118,54 @@ build-images: build-apiserver build-observer build-scheduler build-worker build-
 build-apiserver:
 	docker build \
 		-f apiserver/Dockerfile \
-		-t $(DOCKER_IMAGE_PREFIX)brignext-apiserver:$(IMMUTABLE_DOCKER_TAG) \
+		-t $(DOCKER_IMAGE_PREFIX)brigade-apiserver:$(IMMUTABLE_DOCKER_TAG) \
 		--build-arg VERSION='$(VERSION)' \
 		--build-arg COMMIT='$(GIT_VERSION)' \
 		.
-	docker tag $(DOCKER_IMAGE_PREFIX)brignext-apiserver:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-apiserver:$(MUTABLE_DOCKER_TAG)
+	docker tag $(DOCKER_IMAGE_PREFIX)brigade-apiserver:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brigade-apiserver:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: build-observer
 build-observer:
 	docker build \
 		-f observer/Dockerfile \
-		-t $(DOCKER_IMAGE_PREFIX)brignext-observer:$(IMMUTABLE_DOCKER_TAG) \
+		-t $(DOCKER_IMAGE_PREFIX)brigade-observer:$(IMMUTABLE_DOCKER_TAG) \
 		--build-arg VERSION='$(VERSION)' \
 		--build-arg COMMIT='$(GIT_VERSION)' \
 		.
-	docker tag $(DOCKER_IMAGE_PREFIX)brignext-observer:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-observer:$(MUTABLE_DOCKER_TAG)
+	docker tag $(DOCKER_IMAGE_PREFIX)brigade-observer:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brigade-observer:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: build-scheduler
 build-scheduler:
 	docker build \
 		-f scheduler/Dockerfile \
-		-t $(DOCKER_IMAGE_PREFIX)brignext-scheduler:$(IMMUTABLE_DOCKER_TAG) \
+		-t $(DOCKER_IMAGE_PREFIX)brigade-scheduler:$(IMMUTABLE_DOCKER_TAG) \
 		--build-arg VERSION='$(VERSION)' \
 		--build-arg COMMIT='$(GIT_VERSION)' \
 		.
-	docker tag $(DOCKER_IMAGE_PREFIX)brignext-scheduler:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-scheduler:$(MUTABLE_DOCKER_TAG)
+	docker tag $(DOCKER_IMAGE_PREFIX)brigade-scheduler:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brigade-scheduler:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: build-worker
 build-worker:
 	docker build \
-		-t $(DOCKER_IMAGE_PREFIX)brignext-worker:$(IMMUTABLE_DOCKER_TAG) \
+		-t $(DOCKER_IMAGE_PREFIX)brigade-worker:$(IMMUTABLE_DOCKER_TAG) \
 		worker/
-	docker tag $(DOCKER_IMAGE_PREFIX)brignext-worker:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-worker:$(MUTABLE_DOCKER_TAG)
+	docker tag $(DOCKER_IMAGE_PREFIX)brigade-worker:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brigade-worker:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: build-logger-linux
 build-logger-linux:
 	docker build \
 		-f logger/Dockerfile.linux \
-		-t $(DOCKER_IMAGE_PREFIX)brignext-logger-linux:$(IMMUTABLE_DOCKER_TAG) \
+		-t $(DOCKER_IMAGE_PREFIX)brigade-logger-linux:$(IMMUTABLE_DOCKER_TAG) \
 		.
-	docker tag $(DOCKER_IMAGE_PREFIX)brignext-logger-linux:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-logger-linux:$(MUTABLE_DOCKER_TAG)
+	docker tag $(DOCKER_IMAGE_PREFIX)brigade-logger-linux:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brigade-logger-linux:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: build-logger-windows
 build-logger-windows:
 	docker build \
 		-f logger/Dockerfile.winserv-2019 \
-		-t $(DOCKER_IMAGE_PREFIX)brignext-logger-windows:$(IMMUTABLE_DOCKER_TAG) \
+		-t $(DOCKER_IMAGE_PREFIX)brigade-logger-windows:$(IMMUTABLE_DOCKER_TAG) \
 		.
-	docker tag $(DOCKER_IMAGE_PREFIX)brignext-logger-windows:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brignext-logger-windows:$(MUTABLE_DOCKER_TAG)
+	docker tag $(DOCKER_IMAGE_PREFIX)brigade-logger-windows:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brigade-logger-windows:$(MUTABLE_DOCKER_TAG)
 
 .PHONTY: build-cli
 build-cli:
@@ -180,33 +180,33 @@ push-images: push-apiserver push-observer push-scheduler push-worker push-logger
 
 .PHONY: push-apiserver
 push-apiserver: build-apiserver
-	docker push $(DOCKER_IMAGE_PREFIX)brignext-apiserver:$(IMMUTABLE_DOCKER_TAG)
-	docker push $(DOCKER_IMAGE_PREFIX)brignext-apiserver:$(MUTABLE_DOCKER_TAG)
+	docker push $(DOCKER_IMAGE_PREFIX)brigade-apiserver:$(IMMUTABLE_DOCKER_TAG)
+	docker push $(DOCKER_IMAGE_PREFIX)brigade-apiserver:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: push-observer
 push-observer: build-observer
-	docker push $(DOCKER_IMAGE_PREFIX)brignext-observer:$(IMMUTABLE_DOCKER_TAG)
-	docker push $(DOCKER_IMAGE_PREFIX)brignext-observer:$(MUTABLE_DOCKER_TAG)
+	docker push $(DOCKER_IMAGE_PREFIX)brigade-observer:$(IMMUTABLE_DOCKER_TAG)
+	docker push $(DOCKER_IMAGE_PREFIX)brigade-observer:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: push-scheduler
 push-scheduler: build-scheduler
-	docker push $(DOCKER_IMAGE_PREFIX)brignext-scheduler:$(IMMUTABLE_DOCKER_TAG)
-	docker push $(DOCKER_IMAGE_PREFIX)brignext-scheduler:$(MUTABLE_DOCKER_TAG)
+	docker push $(DOCKER_IMAGE_PREFIX)brigade-scheduler:$(IMMUTABLE_DOCKER_TAG)
+	docker push $(DOCKER_IMAGE_PREFIX)brigade-scheduler:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: push-worker
 push-worker: build-worker
-	docker push $(DOCKER_IMAGE_PREFIX)brignext-worker:$(IMMUTABLE_DOCKER_TAG)
-	docker push $(DOCKER_IMAGE_PREFIX)brignext-worker:$(MUTABLE_DOCKER_TAG)
+	docker push $(DOCKER_IMAGE_PREFIX)brigade-worker:$(IMMUTABLE_DOCKER_TAG)
+	docker push $(DOCKER_IMAGE_PREFIX)brigade-worker:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: push-logger-linux
 push-logger-linux: build-logger-linux
-	docker push $(DOCKER_IMAGE_PREFIX)brignext-logger-linux:$(IMMUTABLE_DOCKER_TAG)
-	docker push $(DOCKER_IMAGE_PREFIX)brignext-logger-linux:$(MUTABLE_DOCKER_TAG)
+	docker push $(DOCKER_IMAGE_PREFIX)brigade-logger-linux:$(IMMUTABLE_DOCKER_TAG)
+	docker push $(DOCKER_IMAGE_PREFIX)brigade-logger-linux:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: push-logger-windows
 push-logger-windows: build-logger-windows
-	docker push $(DOCKER_IMAGE_PREFIX)brignext-logger-windows:$(IMMUTABLE_DOCKER_TAG)
-	docker push $(DOCKER_IMAGE_PREFIX)brignext-logger-windows:$(MUTABLE_DOCKER_TAG)
+	docker push $(DOCKER_IMAGE_PREFIX)brigade-logger-windows:$(IMMUTABLE_DOCKER_TAG)
+	docker push $(DOCKER_IMAGE_PREFIX)brigade-logger-windows:$(MUTABLE_DOCKER_TAG)
 
 ################################################################################
 # Let's hack!!!                                                                #
@@ -225,39 +225,39 @@ hack-install-nfs:
 
 .PHONY: hack-namespace
 hack-namespace:
-	kubectl get namespace brignext || kubectl create namespace brignext
+	kubectl get namespace brigade || kubectl create namespace brigade
 
 .PHONY: hack
 hack: push-images build-cli hack-namespace
-	kubectl get namespace brignext || kubectl create namespace brignext
-	helm upgrade brignext charts/brignext \
+	kubectl get namespace brigade || kubectl create namespace brigade
+	helm upgrade brigade charts/brigade \
 		--install \
-		--namespace brignext \
-		--set apiserver.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-apiserver \
+		--namespace brigade \
+		--set apiserver.image.repository=$(DOCKER_IMAGE_PREFIX)brigade-apiserver \
 		--set apiserver.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set apiserver.image.pullPolicy=Always \
 		--set apiserver.service.type=NodePort \
 		--set apiserver.service.nodePort=31600 \
-		--set scheduler.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-scheduler \
+		--set scheduler.image.repository=$(DOCKER_IMAGE_PREFIX)brigade-scheduler \
 		--set scheduler.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set scheduler.image.pullPolicy=Always \
-		--set observer.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-observer \
+		--set observer.image.repository=$(DOCKER_IMAGE_PREFIX)brigade-observer \
 		--set observer.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set observer.image.pullPolicy=Always \
-		--set worker.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-worker \
+		--set worker.image.repository=$(DOCKER_IMAGE_PREFIX)brigade-worker \
 		--set worker.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set worker.image.pullPolicy=Always \
-		--set logger.linux.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-logger-linux \
+		--set logger.linux.image.repository=$(DOCKER_IMAGE_PREFIX)brigade-logger-linux \
 		--set logger.linux.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set logger.linux.image.pullPolicy=Always
 
 .PHONY: hack-apiserver
 hack-apiserver: push-apiserver hack-namespace
-	helm upgrade brignext charts/brignext \
+	helm upgrade brigade charts/brigade \
 		--install \
-		--namespace brignext \
+		--namespace brigade \
 		--reuse-values \
-		--set apiserver.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-apiserver \
+		--set apiserver.image.repository=$(DOCKER_IMAGE_PREFIX)brigade-apiserver \
 		--set apiserver.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set apiserver.image.pullPolicy=Always \
 		--set apiserver.service.type=NodePort \
@@ -265,40 +265,40 @@ hack-apiserver: push-apiserver hack-namespace
 
 .PHONY: hack-observer
 hack-observer: push-observer hack-namespace
-	helm upgrade brignext charts/brignext \
+	helm upgrade brigade charts/brigade \
 		--install \
-		--namespace brignext \
+		--namespace brigade \
 		--reuse-values \
-		--set observer.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-observer \
+		--set observer.image.repository=$(DOCKER_IMAGE_PREFIX)brigade-observer \
 		--set observer.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set observer.image.pullPolicy=Always
 
 .PHONY: hack-scheduler
 hack-scheduler: push-scheduler hack-namespace
-	helm upgrade brignext charts/brignext \
+	helm upgrade brigade charts/brigade \
 		--install \
-		--namespace brignext \
+		--namespace brigade \
 		--reuse-values \
-		--set scheduler.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-scheduler \
+		--set scheduler.image.repository=$(DOCKER_IMAGE_PREFIX)brigade-scheduler \
 		--set scheduler.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set scheduler.image.pullPolicy=Always
 
 .PHONY: hack-worker
 hack-worker: push-worker hack-namespace
-	helm upgrade brignext charts/brignext \
+	helm upgrade brigade charts/brigade \
 		--install \
-		--namespace brignext \
+		--namespace brigade \
 		--reuse-values \
-		--set worker.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-worker \
+		--set worker.image.repository=$(DOCKER_IMAGE_PREFIX)brigade-worker \
 		--set worker.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set worker.image.pullPolicy=Always
 
 .PHONY: hack-logger-linux
 hack-logger-linux: push-logger-linux hack-namespace
-	helm upgrade brignext charts/brignext \
+	helm upgrade brigade charts/brigade \
 		--install \
-		--namespace brignext \
+		--namespace brigade \
 		--reuse-values \
-		--set logger.linux.image.repository=$(DOCKER_IMAGE_PREFIX)brignext-logger-linux \
+		--set logger.linux.image.repository=$(DOCKER_IMAGE_PREFIX)brigade-logger-linux \
 		--set logger.linux.image.tag=$(IMMUTABLE_DOCKER_TAG) \
 		--set logger.linux.image.pullPolicy=Always

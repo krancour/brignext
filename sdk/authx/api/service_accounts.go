@@ -3,8 +3,8 @@ package api
 import (
 	"encoding/json"
 
-	"github.com/krancour/brignext/v2/sdk/authx"
-	"github.com/krancour/brignext/v2/sdk/meta"
+	"github.com/brigadecore/brigade/v2/sdk/authx"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 )
 
 // ServiceAccountsSelector represents useful filter criteria when selecting

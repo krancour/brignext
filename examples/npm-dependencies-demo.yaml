@@ -1,4 +1,4 @@
-apiVersion: github.com/krancour/brignext/v2
+apiVersion: brigade.sh/v2
 kind: Project
 metadata:
   id: npm-dependencies-demo
@@ -6,13 +6,13 @@ description: A project that demonstrates installing pre-requisite npm packages
 spec:
   workerTemplate:
     defaultConfigFiles:
-      brignext.json: |-
+      brigade.json: |-
         {
           "dependencies": {
               "unique-names-generator": "4.0.0"
           }
         }
-      brignext.js: |-
+      brigade.js: |-
         const { events } = require("brigadier");
         const { uniqueNamesGenerator, adjectives, animals } = require("unique-names-generator");
 
@@ -22,6 +22,6 @@ spec:
           separator: '-'
         });
 
-        events.on("github.com/krancour/brignext/cli:exec", (e) => {
+        events.on("github.com/brigadecore/brigade/cli:exec", (e) => {
           console.log(`Hello, ${randomName}!`);
         });

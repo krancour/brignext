@@ -1,4 +1,4 @@
-module github.com/krancour/brignext/v2
+module github.com/brigadecore/brigade/v2
 
 go 1.14
 

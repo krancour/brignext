@@ -7,8 +7,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/brigadecore/brigade/v2/apiserver/internal/meta"
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/pkg/errors"
 	"github.com/xeipuuv/gojsonschema"
 )

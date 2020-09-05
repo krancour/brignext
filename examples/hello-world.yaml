@@ -1,4 +1,4 @@
-apiVersion: github.com/krancour/brignext/v2
+apiVersion: brigade.sh/v2
 kind: Project
 metadata:
   id: hello-world
@@ -6,9 +6,9 @@ description: The simplest possible demonstration
 spec:
   workerTemplate:
     defaultConfigFiles:
-      brignext.js: |-
+      brigade.js: |-
         const { events } = require("brigadier");
 
-        events.on("github.com/krancour/brignext/cli:exec", (e) => {
+        events.on("github.com/brigadecore/brigade/cli:exec", (e) => {
           console.log("Hello, World!");
         });

@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/krancour/brignext/v2/scheduler/internal/queue"
-	core "github.com/krancour/brignext/v2/sdk/core/api"
+	"github.com/brigadecore/brigade/v2/scheduler/internal/queue"
+	core "github.com/brigadecore/brigade/v2/sdk/core/api"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"

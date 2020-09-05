@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/krancour/brignext/v2/internal/signals"
-	"github.com/krancour/brignext/v2/internal/version"
+	"github.com/brigadecore/brigade/v2/internal/signals"
+	"github.com/brigadecore/brigade/v2/internal/version"
 	"github.com/urfave/cli/v2"
 )
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "brignext"
-	app.Usage = "Is this what Brigade 2.0 looks like?"
+	app.Name = "Brigade"
+	app.Usage = "Event Driven Scripting for Kubernetes"
 	app.Version = fmt.Sprintf(
 		"%s -- commit %s",
 		version.Version(),

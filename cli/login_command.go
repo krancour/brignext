@@ -6,16 +6,16 @@ import (
 	"runtime"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/krancour/brignext/v2/sdk/authx/api"
+	"github.com/brigadecore/brigade/v2/sdk/authx/api"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
 
 var loginCommand = &cli.Command{
 	Name:  "login",
-	Usage: "Log in to BrigNext",
+	Usage: "Log in to Brigade",
 	Description: "By default, initiates authentication using OpenID " +
-		"Connect. This may not be supported by all BrigNext API servers.",
+		"Connect. This may not be supported by all Brigade API servers.",
 	Flags: []cli.Flag{
 		&cli.StringFlag{
 			Name:    flagServer,

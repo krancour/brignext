@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/krancour/brignext/v2/sdk/meta"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 )
 
 // JobPhase represents where a Job is within its lifecycle.
@@ -53,7 +53,7 @@ type JobSpec struct {
 	PrimaryContainer JobContainerSpec `json:"primaryContainer"`
 	// SidecarContainers specifies the details of supplemental, "sidecar"
 	// containers. Their completion and exit code do not directly impact Job
-	// status. BrigNext does not understand dependencies between a Job's multiple
+	// status. Brigade does not understand dependencies between a Job's multiple
 	// containers and cannot enforce any specific startup or shutdown order. When
 	// such dependencies exist (for instance, a primary container than cannot
 	// proceed with a suite of tests until a database is launched and READY in a

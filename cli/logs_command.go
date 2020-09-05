@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/krancour/brignext/v2/sdk/core/api"
+	"github.com/brigadecore/brigade/v2/sdk/core/api"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -53,7 +53,7 @@ func logs(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	logEntryCh, errCh, err :=

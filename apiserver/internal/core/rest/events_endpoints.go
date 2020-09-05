@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/brigadecore/brigade/v2/apiserver/internal/core"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/lib/restmachinery"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/meta"
 	"github.com/gorilla/mux"
-	"github.com/krancour/brignext/v2/apiserver/internal/core"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/restmachinery"
-	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/xeipuuv/gojsonschema"
 )
 
@@ -26,7 +26,7 @@ func NewEventsEndpoints(
 	// nolint: lll
 	return &eventsEndpoints{
 		BaseEndpoints:     baseEndpoints,
-		eventSchemaLoader: gojsonschema.NewReferenceLoader("file:///brignext/schemas/event.json"),
+		eventSchemaLoader: gojsonschema.NewReferenceLoader("file:///brigade/schemas/event.json"),
 		service:           service,
 	}
 }

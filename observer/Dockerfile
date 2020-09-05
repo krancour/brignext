@@ -11,10 +11,10 @@ COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go build \
   -o bin/observer \
-  -ldflags "-w -X github.com/krancour/brignext/v2/internal/version.version=$VERSION -X github.com/krancour/brignext/v2/internal/version.commit=$COMMIT" \
+  -ldflags "-w -X github.com/brigadecore/brigade/v2/internal/version.version=$VERSION -X github.com/brigadecore/brigade/v2/internal/version.commit=$COMMIT" \
   ./observer
 
 FROM scratch
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=0 /src/bin/ /brignext/bin/
-ENTRYPOINT ["/brignext/bin/observer"]
+COPY --from=0 /src/bin/ /brigade/bin/
+ENTRYPOINT ["/brigade/bin/observer"]

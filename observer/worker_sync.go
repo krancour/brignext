@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
-	"github.com/krancour/brignext/v2/sdk/core"
+	myk8s "github.com/brigadecore/brigade/v2/internal/kubernetes"
+	"github.com/brigadecore/brigade/v2/sdk/core"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -61,7 +61,7 @@ func (o *observer) syncWorkerPod(obj interface{}) {
 	status := core.WorkerStatus{}
 	switch workerPod.Status.Phase {
 	case corev1.PodPending:
-		// For BrigNext's purposes, this counts as running
+		// For Brigade's purposes, this counts as running
 		status.Phase = core.WorkerPhaseRunning
 	case corev1.PodRunning:
 		status.Phase = core.WorkerPhaseRunning

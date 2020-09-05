@@ -5,10 +5,10 @@ import (
 	"crypto/tls"
 	"net/http"
 
-	"github.com/krancour/brignext/v2/sdk/internal/restmachinery"
+	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
 )
 
-// SessionsClient is the specialized client for managing BrigNext API Sessions.
+// SessionsClient is the specialized client for managing Brigade API Sessions.
 type SessionsClient interface {
 	CreateRootSession(
 		ctx context.Context,
@@ -22,7 +22,7 @@ type sessionsClient struct {
 	*restmachinery.BaseClient
 }
 
-// NewSessionsClient returns a specialized client for managing BrigNext API
+// NewSessionsClient returns a specialized client for managing Brigade API
 // Sessions.
 func NewSessionsClient(
 	apiAddress string,

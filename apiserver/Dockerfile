@@ -10,11 +10,11 @@ COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go build \
   -o bin/apiserver \
-  -ldflags "-w -X github.com/krancour/brignext/v2/internal/version.version=$VERSION -X github.com/krancour/brignext/v2/internal/version.commit=$COMMIT" \
+  -ldflags "-w -X github.com/brigadecore/brigade/v2/internal/version.version=$VERSION -X github.com/brigadecore/brigade/v2/internal/version.commit=$COMMIT" \
   ./apiserver
 
 FROM scratch
 COPY --from=0 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
-COPY --from=0 /src/bin/ /brignext/bin/
-COPY apiserver/schemas/ /brignext/schemas/
-ENTRYPOINT ["/brignext/bin/apiserver"]
+COPY --from=0 /src/bin/ /brigade/bin/
+COPY apiserver/schemas/ /brigade/schemas/
+ENTRYPOINT ["/brigade/bin/apiserver"]

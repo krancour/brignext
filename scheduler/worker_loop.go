@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/krancour/brignext/v2/scheduler/internal/queue"
-	"github.com/krancour/brignext/v2/sdk/core"
+	"github.com/brigadecore/brigade/v2/scheduler/internal/queue"
+	"github.com/brigadecore/brigade/v2/sdk/core"
 )
 
 func (s *scheduler) runWorkerLoop(ctx context.Context, projectID string) {

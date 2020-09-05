@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/krancour/brignext/v2/sdk/core"
-	"github.com/krancour/brignext/v2/sdk/internal/restmachinery"
-	"github.com/krancour/brignext/v2/sdk/meta"
+	"github.com/brigadecore/brigade/v2/sdk/core"
+	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 )
 
 // ProjectsClient is the specialized client for managing Projects with the
-// BrigNext API.
+// Brigade API.
 type ProjectsClient interface {
 	// Create creates a new Project.
 	Create(context.Context, core.Project) (core.Project, error)

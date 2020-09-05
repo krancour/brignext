@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/krancour/brignext/v2/sdk/core/api"
-	"github.com/krancour/brignext/v2/sdk/meta"
+	"github.com/brigadecore/brigade/v2/sdk/core/api"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 )
 
 func (s *scheduler) manageProjectLoops(ctx context.Context) {

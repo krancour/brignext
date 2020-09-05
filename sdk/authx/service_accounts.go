@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/krancour/brignext/v2/sdk/meta"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 )
 
-// ServiceAccount represents a non-human BrigNext user, such as an Event
+// ServiceAccount represents a non-human Brigade user, such as an Event
 // gateway.
 type ServiceAccount struct {
 	// ObjectMeta encapsulates ServiceAccount metadata.

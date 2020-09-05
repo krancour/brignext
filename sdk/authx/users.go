@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/krancour/brignext/v2/sdk/meta"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 )
 
-// User represents a (human) BrigNext user.
+// User represents a (human) Brigade user.
 type User struct {
 	// ObjectMeta encapsulates User metadata.
 	meta.ObjectMeta `json:"metadata"`

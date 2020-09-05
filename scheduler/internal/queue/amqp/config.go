@@ -1,8 +1,8 @@
 package amqp
 
 import (
+	"github.com/brigadecore/brigade/v2/scheduler/internal/queue"
 	"github.com/kelseyhightower/envconfig"
-	"github.com/krancour/brignext/v2/scheduler/internal/queue"
 	"github.com/pkg/errors"
 )
 

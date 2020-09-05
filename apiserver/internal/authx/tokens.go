@@ -3,7 +3,7 @@ package authx
 import (
 	"encoding/json"
 
-	"github.com/krancour/brignext/v2/apiserver/internal/meta"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/meta"
 )
 
 type Token struct {

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	myk8s "github.com/krancour/brignext/v2/internal/kubernetes"
+	myk8s "github.com/brigadecore/brigade/v2/internal/kubernetes"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

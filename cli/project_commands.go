@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/brigadecore/brigade/v2/sdk/core"
+	"github.com/brigadecore/brigade/v2/sdk/core/api"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
-	"github.com/krancour/brignext/v2/sdk/core"
-	"github.com/krancour/brignext/v2/sdk/core/api"
-	"github.com/krancour/brignext/v2/sdk/meta"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh/terminal"
@@ -128,7 +128,7 @@ func projectCreate(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	if _, err :=
@@ -150,7 +150,7 @@ func projectList(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	opts := meta.ListOptions{}
@@ -248,7 +248,7 @@ func projectGet(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	project, err := client.Core().Projects().Get(c.Context, id)
@@ -330,7 +330,7 @@ func projectUpdate(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	if _, err = client.Core().Projects().UpdateFromBytes(
@@ -359,7 +359,7 @@ func projectDelete(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	if err := client.Core().Projects().Delete(c.Context, id); err != nil {

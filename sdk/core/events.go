@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/krancour/brignext/v2/sdk/meta"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 )
 
 // Event represents an occurrence in some upstream system. Once accepted into
-// the system, BrigNext amends each Event with a plan for handling it in the
+// the system, Brigade amends each Event with a plan for handling it in the
 // form of a Worker. An Event's status is the status of its Worker.
 type Event struct {
 	// ObjectMeta contains Event metadata.
@@ -51,7 +51,7 @@ type Event struct {
 	// Workers only.
 	Payload string `json:"payload,omitempty"`
 	// Kubernetes contains Kubernetes-specific details of the Event's Worker's
-	// environment. These details are populated by BrigNext. Clients MUST leave
+	// environment. These details are populated by Brigade. Clients MUST leave
 	// the value of this field nil when using the API to create an Event.
 	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty"`
 	// Worker contains details of the worker that will/is/has handle(d) the Event.

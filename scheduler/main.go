@@ -3,16 +3,16 @@ package main
 import (
 	"log"
 
-	"github.com/krancour/brignext/v2/internal/kubernetes"
-	"github.com/krancour/brignext/v2/internal/signals"
-	"github.com/krancour/brignext/v2/internal/version"
-	"github.com/krancour/brignext/v2/scheduler/internal/queue/amqp"
-	"github.com/krancour/brignext/v2/sdk/core/api"
+	"github.com/brigadecore/brigade/v2/internal/kubernetes"
+	"github.com/brigadecore/brigade/v2/internal/signals"
+	"github.com/brigadecore/brigade/v2/internal/version"
+	"github.com/brigadecore/brigade/v2/scheduler/internal/queue/amqp"
+	"github.com/brigadecore/brigade/v2/sdk/core/api"
 )
 
 func main() {
 	log.Printf(
-		"Starting BrigNext Scheduler -- version %s -- commit %s",
+		"Starting Brigade Scheduler -- version %s -- commit %s",
 		version.Version(),
 		version.Commit(),
 	)

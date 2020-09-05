@@ -3,8 +3,8 @@ package restmachinery
 import (
 	"errors"
 
+	"github.com/brigadecore/brigade/v2/apiserver/internal/lib/crypto"
 	"github.com/kelseyhightower/envconfig"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/crypto"
 )
 
 const envconfigPrefix = "API_SERVER"

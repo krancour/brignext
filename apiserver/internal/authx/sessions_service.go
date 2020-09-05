@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/brigadecore/brigade/v2/apiserver/internal/lib/crypto"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/meta"
 	"github.com/coreos/go-oidc"
-	"github.com/krancour/brignext/v2/apiserver/internal/lib/crypto"
-	"github.com/krancour/brignext/v2/apiserver/internal/meta"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 )

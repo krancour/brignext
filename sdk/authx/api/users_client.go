@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/krancour/brignext/v2/sdk/authx"
-	"github.com/krancour/brignext/v2/sdk/internal/restmachinery"
-	"github.com/krancour/brignext/v2/sdk/meta"
+	"github.com/brigadecore/brigade/v2/sdk/authx"
+	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 )
 
-// UsersClient is the specialized client for managing Users with the BrigNext
+// UsersClient is the specialized client for managing Users with the Brigade
 // API.
 type UsersClient interface {
 	// List returns a UserList.

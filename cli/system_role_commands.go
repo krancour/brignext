@@ -82,7 +82,7 @@ func systemRolesGrant(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	if userID != "" {
@@ -138,7 +138,7 @@ func systemRolesRevoke(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	if userID != "" {

@@ -6,11 +6,11 @@ const path = require('path');
 const event = require("/var/event/event.json");
 
 let deps;
-let configFilePath = path.join("/var/vcs", event.worker.configFilesDirectory, "brignext.json");
+let configFilePath = path.join("/var/vcs", event.worker.configFilesDirectory, "brigade.json");
 if (fs.existsSync(configFilePath)) {
   deps = require(configFilePath).dependencies || {};
 } else {
-  let configFileContents = event.worker.defaultConfigFiles["brignext.json"]
+  let configFileContents = event.worker.defaultConfigFiles["brigade.json"]
   if (configFileContents) {
     deps = JSON.parse(configFileContents).dependencies;
   }

@@ -7,10 +7,10 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/brigadecore/brigade/v2/sdk/authx/api"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
-	"github.com/krancour/brignext/v2/sdk/authx/api"
-	"github.com/krancour/brignext/v2/sdk/meta"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/crypto/ssh/terminal"
@@ -45,7 +45,7 @@ var userCommand = &cli.Command{
 		},
 		{
 			Name:  "lock",
-			Usage: "Lock a user out of BrigNext",
+			Usage: "Lock a user out of Brigade",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     flagID,
@@ -58,7 +58,7 @@ var userCommand = &cli.Command{
 		},
 		{
 			Name:  "unlock",
-			Usage: "Restore a user's access to BrigNext",
+			Usage: "Restore a user's access to Brigade",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     flagID,
@@ -81,7 +81,7 @@ func userList(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	opts := meta.ListOptions{}
@@ -179,7 +179,7 @@ func userGet(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	user, err := client.Authx().Users().Get(c.Context, id)
@@ -228,7 +228,7 @@ func userLock(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	if err := client.Authx().Users().Lock(c.Context, id); err != nil {
@@ -245,7 +245,7 @@ func userUnlock(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brignext client")
+		return errors.Wrap(err, "error getting brigade client")
 	}
 
 	if err := client.Authx().Users().Unlock(c.Context, id); err != nil {

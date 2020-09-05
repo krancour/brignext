@@ -40,8 +40,8 @@
 
 		"apiVersion": {
 			"type": "string",
-			"description": "The major version of the BrigNext API with which this object conforms",
-			"enum": ["github.com/krancour/brignext/v2"]
+			"description": "The major version of the Brigade API with which this object conforms",
+			"enum": ["brigade.sh/v2"]
 		},
 
 		"kind": {
@@ -251,7 +251,7 @@
 
 		"workerSpec": {
 			"type": "object",
-			"description": "Configuration for the Brignext worker",
+			"description": "Configuration for the Brigade worker",
 			"additionalProperties": false,
 			"properties": {
 				"container": {

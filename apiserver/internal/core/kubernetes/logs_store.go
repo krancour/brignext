@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/krancour/brignext/v2/apiserver/internal/core"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/core"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"

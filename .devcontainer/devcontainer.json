@@ -1,9 +1,9 @@
 {
-	"name": "BrigNext Development Environment",
+	"name": "Brigade 2.x Development Environment",
 	"image": "krancour/brignext-dev-env:v0.1.0",
 
 	"containerEnv": {
-		"GOCACHE": "/workspaces/brignext/.gocache",
+		"GOCACHE": "/workspaces/brigade/.gocache",
 		"SKIP_DOCKER": "true"
 	},
 

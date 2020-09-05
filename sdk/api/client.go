@@ -1,12 +1,12 @@
 package api
 
 import (
-	authx "github.com/krancour/brignext/v2/sdk/authx/api"
-	core "github.com/krancour/brignext/v2/sdk/core/api"
-	system "github.com/krancour/brignext/v2/sdk/system/api"
+	authx "github.com/brigadecore/brigade/v2/sdk/authx/api"
+	core "github.com/brigadecore/brigade/v2/sdk/core/api"
+	system "github.com/brigadecore/brigade/v2/sdk/system/api"
 )
 
-// Client is the general interface for the BrigNext API. It does little more
+// Client is the general interface for the Brigade API. It does little more
 // than expose functions for obtaining more specialized clients for different
 // areas of concern, like User management or Project management.
 type Client interface {
@@ -21,7 +21,7 @@ type client struct {
 	systemClient system.Client
 }
 
-// NewClient returns a BrigNext client.
+// NewClient returns a Brigade client.
 func NewClient(apiAddress, apiToken string, allowInsecure bool) Client {
 	return &client{
 		authxClient:  authx.NewClient(apiAddress, apiToken, allowInsecure),
