@@ -92,38 +92,38 @@ func (p *projectsService) Create(
 	}
 
 	// Assign roles to the principal who created the project...
+
 	principal := authx.PincipalFromContext(ctx)
-	roles := []authx.Role{
-		authx.RoleProjectAdmin(project.ID),
-		authx.RoleProjectDeveloper(project.ID),
-		authx.RoleProjectUser(project.ID),
-	}
+
+	var principalType authx.PrincipalType
+	var principalID string
 	if user, ok := principal.(*authx.User); ok {
-		if err := p.rolesStore.GrantToUser(
-			ctx,
-			user.ID,
-			roles...,
-		); err != nil {
-			return Project{}, errors.Wrapf(
-				err,
-				"error storing project %q roles for user %q",
-				project.ID,
-				user.ID,
-			)
-		}
+		principalType = authx.PrincipalTypeUser
+		principalID = user.ID
 	} else if serviceAccount, ok := principal.(*authx.ServiceAccount); ok {
-		if err := p.rolesStore.GrantToServiceAccount(
-			ctx,
-			serviceAccount.ID,
-			roles...,
-		); err != nil {
-			return Project{}, errors.Wrapf(
-				err,
-				"error storing project %q roles for service account %q",
-				project.ID,
-				serviceAccount.ID,
-			)
-		}
+		principalType = authx.PrincipalTypeServiceAccount
+		serviceAccount.ID = user.ID
+	} else {
+		return project, nil
+	}
+
+	if err := p.rolesStore.GrantRole(
+		ctx,
+		principalType,
+		principalID,
+		[]authx.Role{
+			authx.RoleProjectAdmin(project.ID),
+			authx.RoleProjectDeveloper(project.ID),
+			authx.RoleProjectUser(project.ID),
+		}...,
+	); err != nil {
+		return Project{}, errors.Wrapf(
+			err,
+			"error storing project %q roles for %s %q",
+			project.ID,
+			principalType,
+			principalID,
+		)
 	}
 
 	return project, nil

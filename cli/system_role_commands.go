@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/brigadecore/brigade/v2/sdk/authx"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -85,36 +86,31 @@ func systemRolesGrant(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brigade client")
 	}
 
-	if userID != "" {
-		if err := client.System().Roles().GrantToUser(
-			c.Context,
-			userID,
-			role,
-		); err != nil {
-			return err
-		}
-
-		fmt.Printf(
-			"Granted system role %q to user %q.\n\n",
-			role,
-			userID,
-		)
-
-		return nil
+	roleAssignment := authx.RoleAssignment{
+		Role: authx.RoleName(role),
 	}
 
-	if err := client.System().Roles().GrantToServiceAccount(
-		c.Context,
-		serviceAccountID,
-		role,
-	); err != nil {
+	var readablePrincipalType string
+	if userID != "" {
+		readablePrincipalType = "user"
+		roleAssignment.PrincipalType = authx.PrincipalTypeUser
+		roleAssignment.PrincipalID = userID
+	} else {
+		readablePrincipalType = "service account"
+		roleAssignment.PrincipalType = authx.PrincipalTypeServiceAccount
+		roleAssignment.PrincipalID = serviceAccountID
+	}
+
+	if err :=
+		client.System().Roles().GrantRole(c.Context, roleAssignment); err != nil {
 		return err
 	}
 
 	fmt.Printf(
-		"Granted system role %q to service account %q.\n\n",
+		"Granted system role %q to %s %q.\n\n",
 		role,
-		serviceAccountID,
+		readablePrincipalType,
+		userID,
 	)
 
 	return nil
@@ -141,36 +137,31 @@ func systemRolesRevoke(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brigade client")
 	}
 
-	if userID != "" {
-		if err := client.System().Roles().RevokeFromUser(
-			c.Context,
-			userID,
-			role,
-		); err != nil {
-			return err
-		}
-
-		fmt.Printf(
-			"Revoked system role %q from user %q.\n\n",
-			role,
-			userID,
-		)
-
-		return nil
+	roleAssignment := authx.RoleAssignment{
+		Role: authx.RoleName(role),
 	}
 
-	if err := client.System().Roles().RevokeFromServiceAccount(
-		c.Context,
-		serviceAccountID,
-		role,
-	); err != nil {
+	var readablePrincipalType string
+	if userID != "" {
+		readablePrincipalType = "user"
+		roleAssignment.PrincipalType = authx.PrincipalTypeUser
+		roleAssignment.PrincipalID = userID
+	} else {
+		readablePrincipalType = "service account"
+		roleAssignment.PrincipalType = authx.PrincipalTypeServiceAccount
+		roleAssignment.PrincipalID = serviceAccountID
+	}
+
+	if err :=
+		client.System().Roles().RevokeRole(c.Context, roleAssignment); err != nil {
 		return err
 	}
 
 	fmt.Printf(
-		"Revoked system role %q for from service account %q.\n\n",
+		"Revoked system role %q from %s %q.\n\n",
 		role,
-		serviceAccountID,
+		readablePrincipalType,
+		userID,
 	)
 
 	return nil

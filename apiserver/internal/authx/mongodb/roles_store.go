@@ -21,16 +21,25 @@ func NewRolesStore(database *mongo.Database) (authx.RolesStore, error) {
 	}, nil
 }
 
-func (r *rolesStore) GrantToUser(
+func (r *rolesStore) GrantRole(
 	ctx context.Context,
-	userID string,
+	principalType authx.PrincipalType,
+	principalID string,
 	roles ...authx.Role,
 ) error {
+	var collection *mongo.Collection
+	if principalType == authx.PrincipalTypeUser {
+		collection = r.usersCollection
+	} else if principalType == authx.PrincipalTypeServiceAccount {
+		collection = r.serviceAccountsCollection
+	} else {
+		return nil
+	}
 	for _, role := range roles {
-		if _, err := r.usersCollection.UpdateOne(
+		if _, err := collection.UpdateOne(
 			ctx,
 			bson.M{
-				"id": userID,
+				"id": principalID,
 				"roles": bson.M{
 					"$nin": []authx.Role{role},
 				},
@@ -48,83 +57,36 @@ func (r *rolesStore) GrantToUser(
 				},
 			},
 		); err != nil {
-			return errors.Wrapf(err, "error updating user %q", userID)
-		}
-	}
-	return nil
-}
-
-func (r *rolesStore) RevokeFromUser(
-	ctx context.Context,
-	userID string,
-	roles ...authx.Role,
-) error {
-	for _, role := range roles {
-		if _, err := r.usersCollection.UpdateOne(
-			ctx,
-			bson.M{
-				"id": userID,
-			},
-			bson.M{
-				"$pull": bson.M{
-					"roles": bson.M{
-						"$in": []authx.Role{role},
-					},
-				},
-			},
-		); err != nil {
-			return errors.Wrapf(err, "error updating user %q", userID)
-		}
-	}
-	return nil
-}
-
-func (r *rolesStore) GrantToServiceAccount(
-	ctx context.Context,
-	serviceAccountID string,
-	roles ...authx.Role,
-) error {
-	for _, role := range roles {
-		if _, err := r.serviceAccountsCollection.UpdateOne(
-			ctx,
-			bson.M{
-				"id": serviceAccountID,
-				"roles": bson.M{
-					"$nin": []authx.Role{role},
-				},
-			},
-			bson.M{
-				"$push": bson.M{
-					"roles": bson.M{
-						"$each": []authx.Role{role},
-						"$sort": bson.M{
-							"name":  1,
-							"scope": 1,
-						},
-					},
-				},
-			},
-		); err != nil {
 			return errors.Wrapf(
 				err,
-				"error updating service account %q",
-				serviceAccountID,
+				"error updating user %s %q",
+				principalType,
+				principalID,
 			)
 		}
 	}
 	return nil
 }
 
-func (r *rolesStore) RevokeFromServiceAccount(
+func (r *rolesStore) RevokeRole(
 	ctx context.Context,
-	serviceAccountID string,
+	principalType authx.PrincipalType,
+	principalID string,
 	roles ...authx.Role,
 ) error {
+	var collection *mongo.Collection
+	if principalType == authx.PrincipalTypeUser {
+		collection = r.usersCollection
+	} else if principalType == authx.PrincipalTypeServiceAccount {
+		collection = r.serviceAccountsCollection
+	} else {
+		return nil
+	}
 	for _, role := range roles {
-		if _, err := r.serviceAccountsCollection.UpdateOne(
+		if _, err := collection.UpdateOne(
 			ctx,
 			bson.M{
-				"id": serviceAccountID,
+				"id": principalID,
 			},
 			bson.M{
 				"$pull": bson.M{
@@ -136,8 +98,9 @@ func (r *rolesStore) RevokeFromServiceAccount(
 		); err != nil {
 			return errors.Wrapf(
 				err,
-				"error updating service account %q",
-				serviceAccountID,
+				"error updating user %s %q",
+				principalType,
+				principalID,
 			)
 		}
 	}

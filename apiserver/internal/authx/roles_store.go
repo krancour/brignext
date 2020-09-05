@@ -5,17 +5,16 @@ import (
 )
 
 type RolesStore interface {
-	GrantToUser(ctx context.Context, userID string, roles ...Role) error
-	RevokeFromUser(ctx context.Context, userID string, roles ...Role) error
-
-	GrantToServiceAccount(
+	GrantRole(
 		ctx context.Context,
-		serviceAccountID string,
+		principalType PrincipalType,
+		principalID string,
 		roles ...Role,
 	) error
-	RevokeFromServiceAccount(
+	RevokeRole(
 		ctx context.Context,
-		serviceAccountID string,
+		principalType PrincipalType,
+		principalID string,
 		roles ...Role,
 	) error
 }

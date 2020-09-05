@@ -10,32 +10,15 @@ import (
 type ProjectRolesService interface {
 	// TODO: Implement this
 	// ListUsers(context.Context) (authx.UserList, error)
-	GrantToUser(
+	GrantRole(
 		ctx context.Context,
 		projectID string,
-		userID string,
-		roleName string,
+		roleAssignment authx.RoleAssignment,
 	) error
-	RevokeFromUser(
+	RevokeRole(
 		ctx context.Context,
 		projectID string,
-		userID string,
-		roleName string,
-	) error
-
-	// TODO: Implement this
-	// ListServiceAccounts(context.Context) (authx.UserList, error)
-	GrantToServiceAccount(
-		ctx context.Context,
-		projectID string,
-		serviceAccountID string,
-		roleName string,
-	) error
-	RevokeFromServiceAccount(
-		ctx context.Context,
-		projectID string,
-		serviceAccountID string,
-		roleName string,
+		roleAssignment authx.RoleAssignment,
 	) error
 }
 
@@ -62,11 +45,10 @@ func NewProjectRolesService(
 	}
 }
 
-func (p *projectRolesService) GrantToUser(
+func (p *projectRolesService) GrantRole(
 	ctx context.Context,
 	projectID string,
-	userID string,
-	roleName string,
+	roleAssignment authx.RoleAssignment,
 ) error {
 	if err := p.authorize(ctx, authx.RoleProjectAdmin(projectID)); err != nil {
 		return err
@@ -82,27 +64,57 @@ func (p *projectRolesService) GrantToUser(
 		)
 	}
 
-	// Make sure the User exists
-	if _, err := p.usersStore.Get(ctx, userID); err != nil {
-		return errors.Wrapf(err, "error retrieving user %q from store", userID)
+	if roleAssignment.PrincipalType == authx.PrincipalTypeUser {
+		// Make sure the User exists
+		if _, err := p.usersStore.Get(ctx, roleAssignment.PrincipalID); err != nil {
+			return errors.Wrapf(
+				err,
+				"error retrieving user %q from store",
+				roleAssignment.PrincipalID,
+			)
+		}
+	} else if roleAssignment.PrincipalType == authx.PrincipalTypeServiceAccount {
+		// Make sure the ServiceAccount exists
+		if _, err :=
+			p.serviceAccountsStore.Get(ctx, roleAssignment.PrincipalID); err != nil {
+			return errors.Wrapf(
+				err,
+				"error retrieving service account %q from store",
+				roleAssignment.PrincipalID,
+			)
+		}
+	} else {
+		return nil
 	}
 
 	// Give them the Role
-	return p.rolesStore.GrantToUser(
+	if err := p.rolesStore.GrantRole(
 		ctx,
-		userID,
+		roleAssignment.PrincipalType,
+		roleAssignment.PrincipalID,
 		authx.Role{
 			Type:  "PROJECT",
-			Name:  roleName,
+			Name:  roleAssignment.Role,
 			Scope: projectID,
-		})
+		},
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error granting project %q role %q to %s %q in store",
+			projectID,
+			roleAssignment.Role,
+			roleAssignment.PrincipalType,
+			roleAssignment.PrincipalID,
+		)
+	}
+
+	return nil
 }
 
-func (p *projectRolesService) RevokeFromUser(
+func (p *projectRolesService) RevokeRole(
 	ctx context.Context,
 	projectID string,
-	userID string,
-	roleName string,
+	roleAssignment authx.RoleAssignment,
 ) error {
 	if err := p.authorize(ctx, authx.RoleProjectAdmin(projectID)); err != nil {
 		return err
@@ -118,100 +130,48 @@ func (p *projectRolesService) RevokeFromUser(
 		)
 	}
 
-	// Make sure the User exists
-	if _, err := p.usersStore.Get(ctx, userID); err != nil {
-		return errors.Wrapf(err, "error retrieving user %q from store", userID)
+	if roleAssignment.PrincipalType == authx.PrincipalTypeUser {
+		// Make sure the User exists
+		if _, err := p.usersStore.Get(ctx, roleAssignment.PrincipalID); err != nil {
+			return errors.Wrapf(
+				err,
+				"error retrieving user %q from store",
+				roleAssignment.PrincipalID,
+			)
+		}
+	} else if roleAssignment.PrincipalType == authx.PrincipalTypeServiceAccount {
+		// Make sure the ServiceAccount exists
+		if _, err :=
+			p.serviceAccountsStore.Get(ctx, roleAssignment.PrincipalID); err != nil {
+			return errors.Wrapf(
+				err,
+				"error retrieving service account %q from store",
+				roleAssignment.PrincipalID,
+			)
+		}
+	} else {
+		return nil
 	}
 
 	// Revoke the Role
-	return p.rolesStore.RevokeFromUser(
+	if err := p.rolesStore.RevokeRole(
 		ctx,
-		userID,
+		roleAssignment.PrincipalType,
+		roleAssignment.PrincipalID,
 		authx.Role{
 			Type:  "PROJECT",
-			Name:  roleName,
+			Name:  roleAssignment.Role,
 			Scope: projectID,
 		},
-	)
-}
-
-func (p *projectRolesService) GrantToServiceAccount(
-	ctx context.Context,
-	projectID string,
-	serviceAccountID string,
-	roleName string,
-) error {
-	if err := p.authorize(ctx, authx.RoleProjectAdmin(projectID)); err != nil {
-		return err
-	}
-
-	// Make sure the project exists
-	_, err := p.projectsStore.Get(ctx, projectID)
-	if err != nil {
+	); err != nil {
 		return errors.Wrapf(
 			err,
-			"error retrieving project %q from store",
+			"error revoking project %q role %q for %s %q in store",
 			projectID,
+			roleAssignment.Role,
+			roleAssignment.PrincipalType,
+			roleAssignment.PrincipalID,
 		)
 	}
-
-	// Make sure the ServiceAccount exists
-	if _, err := p.serviceAccountsStore.Get(ctx, serviceAccountID); err != nil {
-		return errors.Wrapf(
-			err,
-			"error retrieving service account %q from store",
-			serviceAccountID,
-		)
-	}
-
-	// Give it the Role
-	return p.rolesStore.GrantToServiceAccount(
-		ctx,
-		serviceAccountID,
-		authx.Role{
-			Type:  "PROJECT",
-			Name:  roleName,
-			Scope: projectID,
-		})
-}
-
-func (p *projectRolesService) RevokeFromServiceAccount(
-	ctx context.Context,
-	projectID string,
-	serviceAccountID string,
-	roleName string,
-) error {
-	if err := p.authorize(ctx, authx.RoleProjectAdmin(projectID)); err != nil {
-		return err
-	}
-
-	// Make sure the project exists
-	_, err := p.projectsStore.Get(ctx, projectID)
-	if err != nil {
-		return errors.Wrapf(
-			err,
-			"error retrieving project %q from store",
-			projectID,
-		)
-	}
-
-	// Make sure the ServiceAccount exists
-	if _, err := p.serviceAccountsStore.Get(ctx, serviceAccountID); err != nil {
-		return errors.Wrapf(
-			err,
-			"error retrieving service account %q from store",
-			serviceAccountID,
-		)
-	}
-
-	// Revoke the Role
-	return p.rolesStore.RevokeFromServiceAccount(
-		ctx,
-		serviceAccountID,
-		authx.Role{
-			Type:  "PROJECT",
-			Name:  roleName,
-			Scope: projectID,
-		},
-	)
+	return nil
 }

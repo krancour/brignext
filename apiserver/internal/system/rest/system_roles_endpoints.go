@@ -26,113 +26,59 @@ func NewSystemRolesEndpoints(
 }
 
 func (s *systemRolesEndpoints) Register(router *mux.Router) {
-	// Grant role to User
+	// Grant a system Role to a User or ServiceAccount
 	router.HandleFunc(
-		"/v2/system/user-role-assignments",
-		s.TokenAuthFilter.Decorate(s.grantUserRole),
+		"/v2/system/role-assignments",
+		s.TokenAuthFilter.Decorate(s.grantRole),
 	).Methods(http.MethodPost)
 
-	// Revoke role from User
+	// Revoke a system Role for a User or ServiceAccount
 	router.HandleFunc(
-		"/v2/system/user-role-assignments",
-		s.TokenAuthFilter.Decorate(s.revokeUserRole),
-	).Methods(http.MethodDelete)
-
-	// Grant role to ServiceAccount
-	router.HandleFunc(
-		"/v2/system/service-account-role-assignments",
-		s.TokenAuthFilter.Decorate(s.grantServiceAccountRole),
-	).Methods(http.MethodPost)
-
-	// Revoke role from ServiceAccount
-	router.HandleFunc(
-		"/v2/system/service-account-role-assignments",
-		s.TokenAuthFilter.Decorate(s.revokeServiceAccountRole),
+		"/v2/system/role-assignments",
+		s.TokenAuthFilter.Decorate(s.revokeRole),
 	).Methods(http.MethodDelete)
 }
 
 // TODO: This still needs some validation
-func (s *systemRolesEndpoints) grantUserRole(w http.ResponseWriter, r *http.Request) {
-	roleAssignment := authx.UserRoleAssignment{}
-	s.ServeRequest(
-		restmachinery.InboundRequest{
-			W:          w,
-			R:          r,
-			ReqBodyObj: &roleAssignment,
-			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.GrantToUser(
-					r.Context(),
-					roleAssignment.UserID,
-					roleAssignment.Role,
-				)
-			},
-			SuccessCode: http.StatusOK,
-		},
-	)
-}
-
-// TODO: This still needs some validation
-func (s *systemRolesEndpoints) revokeUserRole(w http.ResponseWriter, r *http.Request) {
-	roleAssignment := authx.UserRoleAssignment{
-		Role:   r.URL.Query().Get("role"),
-		UserID: r.URL.Query().Get("userID"),
-	}
-	s.ServeRequest(
-		restmachinery.InboundRequest{
-			W: w,
-			R: r,
-			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.RevokeFromUser(
-					r.Context(),
-					roleAssignment.UserID,
-					roleAssignment.Role,
-				)
-			},
-			SuccessCode: http.StatusOK,
-		},
-	)
-}
-
-// TODO: This still needs some validation
-func (s *systemRolesEndpoints) grantServiceAccountRole(
-	w http.ResponseWriter,
-	r *http.Request) {
-	roleAssignment := authx.ServiceAccountRoleAssignment{}
-	s.ServeRequest(
-		restmachinery.InboundRequest{
-			W:          w,
-			R:          r,
-			ReqBodyObj: &roleAssignment,
-			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.GrantToServiceAccount(
-					r.Context(),
-					roleAssignment.ServiceAccountID,
-					roleAssignment.Role,
-				)
-			},
-			SuccessCode: http.StatusOK,
-		},
-	)
-}
-
-// TODO: This still needs some validation
-func (s *systemRolesEndpoints) revokeServiceAccountRole(
+func (s *systemRolesEndpoints) grantRole(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	roleAssignment := authx.ServiceAccountRoleAssignment{
-		Role:             r.URL.Query().Get("role"),
-		ServiceAccountID: r.URL.Query().Get("serviceAccountID"),
+	roleAssignment := authx.RoleAssignment{}
+	s.ServeRequest(
+		restmachinery.InboundRequest{
+			W:          w,
+			R:          r,
+			ReqBodyObj: &roleAssignment,
+			EndpointLogic: func() (interface{}, error) {
+				return nil, s.service.GrantRole(
+					r.Context(),
+					roleAssignment,
+				)
+			},
+			SuccessCode: http.StatusOK,
+		},
+	)
+}
+
+// TODO: This still needs some validation
+func (s *systemRolesEndpoints) revokeRole(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	roleAssignment := authx.RoleAssignment{
+		Role:          authx.RoleName(r.URL.Query().Get("role")),
+		PrincipalType: authx.PrincipalType(r.URL.Query().Get("principalType")),
+		PrincipalID:   r.URL.Query().Get("principalID"),
 	}
 	s.ServeRequest(
 		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.RevokeFromServiceAccount(
+				return nil, s.service.RevokeRole(
 					r.Context(),
-					roleAssignment.ServiceAccountID,
-					roleAssignment.Role,
+					roleAssignment,
 				)
 			},
 			SuccessCode: http.StatusOK,

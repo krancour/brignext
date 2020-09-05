@@ -6,37 +6,22 @@ import (
 	"fmt"
 	"net/http"
 
-	authx "github.com/brigadecore/brigade/v2/sdk/authx/api"
+	"github.com/brigadecore/brigade/v2/sdk/authx"
 	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
 )
 
 // ProjectRolesClient is the specialized client for managing Project Roles with
 // the Brigade API.
 type ProjectRolesClient interface {
-	GrantToUser(
+	GrantRole(
 		ctx context.Context,
 		projectID string,
-		userID string,
-		roleName string,
+		roleAssignment authx.RoleAssignment,
 	) error
-	RevokeFromUser(
+	RevokeRole(
 		ctx context.Context,
 		projectID string,
-		userID string,
-		roleName string,
-	) error
-
-	GrantToServiceAccount(
-		ctx context.Context,
-		projectID string,
-		serviceAccountID string,
-		roleName string,
-	) error
-	RevokeFromServiceAccount(
-		ctx context.Context,
-		projectID string,
-		serviceAccountID string,
-		roleName string,
+		roleAssignment authx.RoleAssignment,
 	) error
 }
 
@@ -66,91 +51,40 @@ func NewProjectRolesClient(
 	}
 }
 
-func (p *projectRolesClient) GrantToUser(
+func (p *projectRolesClient) GrantRole(
 	ctx context.Context,
 	projectID string,
-	userID string,
-	roleName string,
+	roleAssignment authx.RoleAssignment,
 ) error {
 	return p.ExecuteRequest(
 		restmachinery.OutboundRequest{
 			Method: http.MethodPost,
 			Path: fmt.Sprintf(
-				"v2/projects/%s/user-role-assignments",
+				"v2/projects/%s/role-assignments",
 				projectID,
 			),
 			AuthHeaders: p.BearerTokenAuthHeaders(),
-			ReqBodyObj: authx.UserRoleAssignment{
-				UserID: userID,
-				Role:   roleName,
-			},
+			ReqBodyObj:  roleAssignment,
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (p *projectRolesClient) RevokeFromUser(
+func (p *projectRolesClient) RevokeRole(
 	ctx context.Context,
 	projectID string,
-	userID string,
-	roleName string,
+	roleAssignment authx.RoleAssignment,
 ) error {
 	queryParams := map[string]string{
-		"userID": userID,
-		"role":   roleName,
+		"role":          string(roleAssignment.Role),
+		"principalType": string(roleAssignment.PrincipalType),
+		"principalID":   roleAssignment.PrincipalID,
 	}
 	return p.ExecuteRequest(
 		restmachinery.OutboundRequest{
 			Method: http.MethodDelete,
 			Path: fmt.Sprintf(
-				"v2/projects/%s/user-role-assignments",
-				projectID,
-			),
-			AuthHeaders: p.BearerTokenAuthHeaders(),
-			QueryParams: queryParams,
-			SuccessCode: http.StatusOK,
-		},
-	)
-}
-
-func (p *projectRolesClient) GrantToServiceAccount(
-	ctx context.Context,
-	projectID string,
-	serviceAccountID string,
-	roleName string,
-) error {
-	return p.ExecuteRequest(
-		restmachinery.OutboundRequest{
-			Method: http.MethodPost,
-			Path: fmt.Sprintf(
-				"v2/projects/%s/service-account-role-assignments",
-				projectID,
-			),
-			AuthHeaders: p.BearerTokenAuthHeaders(),
-			ReqBodyObj: authx.ServiceAccountRoleAssignment{
-				ServiceAccountID: serviceAccountID,
-				Role:             roleName,
-			},
-			SuccessCode: http.StatusOK,
-		},
-	)
-}
-
-func (p *projectRolesClient) RevokeFromServiceAccount(
-	ctx context.Context,
-	projectID string,
-	serviceAccountID string,
-	roleName string,
-) error {
-	queryParams := map[string]string{
-		"serviceAccountID": serviceAccountID,
-		"role":             roleName,
-	}
-	return p.ExecuteRequest(
-		restmachinery.OutboundRequest{
-			Method: http.MethodDelete,
-			Path: fmt.Sprintf(
-				"v2/projects/%s/service-account-role-assignments",
+				"v2/projects/%s/role-assignments",
 				projectID,
 			),
 			AuthHeaders: p.BearerTokenAuthHeaders(),

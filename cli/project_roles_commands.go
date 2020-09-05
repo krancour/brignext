@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/brigadecore/brigade/v2/sdk/authx"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -98,40 +99,35 @@ func projectRolesGrant(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brigade client")
 	}
 
-	if userID != "" {
-		if err := client.Core().Projects().Roles().GrantToUser(
-			c.Context,
-			projectID,
-			userID,
-			role,
-		); err != nil {
-			return err
-		}
-
-		fmt.Printf(
-			"Granted role %q for project %q to user %q.\n\n",
-			role,
-			projectID,
-			userID,
-		)
-
-		return nil
+	roleAssignment := authx.RoleAssignment{
+		Role: authx.RoleName(role),
 	}
 
-	if err := client.Core().Projects().Roles().GrantToServiceAccount(
+	var readablePrincipalType string
+	if userID != "" {
+		readablePrincipalType = "user"
+		roleAssignment.PrincipalType = authx.PrincipalTypeUser
+		roleAssignment.PrincipalID = userID
+	} else {
+		readablePrincipalType = "service account"
+		roleAssignment.PrincipalType = authx.PrincipalTypeServiceAccount
+		roleAssignment.PrincipalID = serviceAccountID
+	}
+
+	if err := client.Core().Projects().Roles().GrantRole(
 		c.Context,
 		projectID,
-		serviceAccountID,
-		role,
+		roleAssignment,
 	); err != nil {
 		return err
 	}
 
 	fmt.Printf(
-		"Granted role %q for project %q to service account %q.\n\n",
+		"Granted role %q for project %q to %s %q.\n\n",
 		role,
 		projectID,
-		serviceAccountID,
+		readablePrincipalType,
+		roleAssignment.PrincipalID,
 	)
 
 	return nil
@@ -159,40 +155,35 @@ func projectRolesRevoke(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brigade client")
 	}
 
-	if userID != "" {
-		if err := client.Core().Projects().Roles().RevokeFromUser(
-			c.Context,
-			projectID,
-			userID,
-			role,
-		); err != nil {
-			return err
-		}
-
-		fmt.Printf(
-			"Revoked role %q for project %q from user %q.\n\n",
-			role,
-			projectID,
-			userID,
-		)
-
-		return nil
+	roleAssignment := authx.RoleAssignment{
+		Role: authx.RoleName(role),
 	}
 
-	if err := client.Core().Projects().Roles().RevokeFromServiceAccount(
+	var readablePrincipalType string
+	if userID != "" {
+		readablePrincipalType = "user"
+		roleAssignment.PrincipalType = authx.PrincipalTypeUser
+		roleAssignment.PrincipalID = userID
+	} else {
+		readablePrincipalType = "service account"
+		roleAssignment.PrincipalType = authx.PrincipalTypeServiceAccount
+		roleAssignment.PrincipalID = serviceAccountID
+	}
+
+	if err := client.Core().Projects().Roles().RevokeRole(
 		c.Context,
 		projectID,
-		serviceAccountID,
-		role,
+		roleAssignment,
 	); err != nil {
 		return err
 	}
 
 	fmt.Printf(
-		"Revoked role %q for project %q from service account %q.\n\n",
+		"Revoked role %q for project %q from %s %q.\n\n",
 		role,
 		projectID,
-		serviceAccountID,
+		readablePrincipalType,
+		roleAssignment.PrincipalID,
 	)
 
 	return nil

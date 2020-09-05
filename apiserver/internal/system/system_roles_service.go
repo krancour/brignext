@@ -10,28 +10,13 @@ import (
 type SystemRolesService interface {
 	// TODO: Implement this
 	// ListUsers(context.Context) (authx.UserList, error)
-	GrantToUser(
+	GrantRole(
 		ctx context.Context,
-		userID string,
-		roleName string,
+		roleAssignment authx.RoleAssignment,
 	) error
-	RevokeFromUser(
+	RevokeRole(
 		ctx context.Context,
-		userID string,
-		roleName string,
-	) error
-
-	// TODO: Implement this
-	// ListServiceAccounts(context.Context) (authx.UserList, error)
-	GrantToServiceAccount(
-		ctx context.Context,
-		serviceAccountID string,
-		roleName string,
-	) error
-	RevokeFromServiceAccount(
-		ctx context.Context,
-		serviceAccountID string,
-		roleName string,
+		roleAssignment authx.RoleAssignment,
 	) error
 }
 
@@ -55,114 +40,110 @@ func NewSystemRolesService(
 	}
 }
 
-func (s *systemRolesService) GrantToUser(
+func (s *systemRolesService) GrantRole(
 	ctx context.Context,
-	userID string,
-	roleName string,
+	roleAssignment authx.RoleAssignment,
 ) error {
 	if err := s.authorize(ctx, authx.RoleAdmin()); err != nil {
 		return err
 	}
 
-	// Make sure the User exists
-	if _, err := s.usersStore.Get(ctx, userID); err != nil {
-		return errors.Wrapf(err, "error retrieving user %q from store", userID)
+	if roleAssignment.PrincipalType == authx.PrincipalTypeUser {
+		// Make sure the User exists
+		if _, err := s.usersStore.Get(ctx, roleAssignment.PrincipalID); err != nil {
+			return errors.Wrapf(
+				err,
+				"error retrieving user %q from store",
+				roleAssignment.PrincipalID,
+			)
+		}
+	} else if roleAssignment.PrincipalType == authx.PrincipalTypeServiceAccount {
+		// Make sure the ServiceAccount exists
+		if _, err :=
+			s.serviceAccountsStore.Get(ctx, roleAssignment.PrincipalID); err != nil {
+			return errors.Wrapf(
+				err,
+				"error retrieving service account %q from store",
+				roleAssignment.PrincipalID,
+			)
+		}
+	} else {
+		return nil
 	}
 
 	// Give them the Role
-	return s.rolesStore.GrantToUser(
+	if err := s.rolesStore.GrantRole(
 		ctx,
-		userID,
+		roleAssignment.PrincipalType,
+		roleAssignment.PrincipalID,
 		authx.Role{
 			Type:  "SYSTEM",
-			Name:  roleName,
+			Name:  roleAssignment.Role,
 			Scope: authx.RoleScopeGlobal,
 		},
-	)
-}
-
-func (s *systemRolesService) RevokeFromUser(
-	ctx context.Context,
-	userID string,
-	roleName string,
-) error {
-	if err := s.authorize(ctx, authx.RoleAdmin()); err != nil {
-		return err
-	}
-
-	// Make sure the User exists
-	if _, err := s.usersStore.Get(ctx, userID); err != nil {
-		return errors.Wrapf(err, "error retrieving user %q from store", userID)
-	}
-
-	// Revoke the Role
-	return s.rolesStore.RevokeFromUser(
-		ctx,
-		userID,
-		authx.Role{
-			Type:  "SYSTEM",
-			Name:  roleName,
-			Scope: authx.RoleScopeGlobal,
-		},
-	)
-}
-
-func (s *systemRolesService) GrantToServiceAccount(
-	ctx context.Context,
-	serviceAccountID string,
-	roleName string,
-) error {
-	if err := s.authorize(ctx, authx.RoleAdmin()); err != nil {
-		return err
-	}
-
-	// Make sure the ServiceAccount exists
-	if _, err := s.serviceAccountsStore.Get(ctx, serviceAccountID); err != nil {
+	); err != nil {
 		return errors.Wrapf(
 			err,
-			"error retrieving service account %q from store",
-			serviceAccountID,
+			"error granting system role %q to %s %q in store",
+			roleAssignment.Role,
+			roleAssignment.PrincipalType,
+			roleAssignment.PrincipalID,
 		)
 	}
 
-	// Give it the Role
-	return s.rolesStore.GrantToServiceAccount(
-		ctx,
-		serviceAccountID,
-		authx.Role{
-			Type:  "SYSTEM",
-			Name:  roleName,
-			Scope: authx.RoleScopeGlobal,
-		},
-	)
+	return nil
 }
 
-func (s *systemRolesService) RevokeFromServiceAccount(
+func (s *systemRolesService) RevokeRole(
 	ctx context.Context,
-	serviceAccountID string,
-	roleName string,
+	roleAssignment authx.RoleAssignment,
 ) error {
 	if err := s.authorize(ctx, authx.RoleAdmin()); err != nil {
 		return err
 	}
 
-	// Make sure the ServiceAccount exists
-	if _, err := s.serviceAccountsStore.Get(ctx, serviceAccountID); err != nil {
-		return errors.Wrapf(
-			err,
-			"error retrieving service account %q from store",
-			serviceAccountID,
-		)
+	if roleAssignment.PrincipalType == authx.PrincipalTypeUser {
+		// Make sure the User exists
+		if _, err := s.usersStore.Get(ctx, roleAssignment.PrincipalID); err != nil {
+			return errors.Wrapf(
+				err,
+				"error retrieving user %q from store",
+				roleAssignment.PrincipalID,
+			)
+		}
+	} else if roleAssignment.PrincipalType == authx.PrincipalTypeServiceAccount {
+		// Make sure the ServiceAccount exists
+		if _, err :=
+			s.serviceAccountsStore.Get(ctx, roleAssignment.PrincipalID); err != nil {
+			return errors.Wrapf(
+				err,
+				"error retrieving service account %q from store",
+				roleAssignment.PrincipalID,
+			)
+		}
+	} else {
+		return nil
 	}
 
 	// Revoke the Role
-	return s.rolesStore.RevokeFromServiceAccount(
+	if err := s.rolesStore.RevokeRole(
 		ctx,
-		serviceAccountID,
+		roleAssignment.PrincipalType,
+		roleAssignment.PrincipalID,
 		authx.Role{
 			Type:  "SYSTEM",
-			Name:  roleName,
+			Name:  roleAssignment.Role,
 			Scope: authx.RoleScopeGlobal,
 		},
-	)
+	); err != nil {
+		return errors.Wrapf(
+			err,
+			"error revoking system role %q for %s %q in store",
+			roleAssignment.Role,
+			roleAssignment.PrincipalType,
+			roleAssignment.PrincipalID,
+		)
+	}
+
+	return nil
 }

@@ -1,28 +1,30 @@
 package authx
 
+type RoleName string
+
 const (
 	// RoleNameAdmin is the name of a Role that enables principals to manage
 	// Users, ServiceAccounts, and globally scoped permissions for Users and
 	// ServiceAccounts.
-	RoleNameAdmin = "ADMIN"
+	RoleNameAdmin RoleName = "ADMIN"
 	// RoleNameEventCreator is the name of a Role that enables principals to
 	// create Events.
-	RoleNameEventCreator = "EVENT_CREATOR"
+	RoleNameEventCreator RoleName = "EVENT_CREATOR"
 	// RoleNameProjectAdmin is the name of a Role that enables principals to
 	// manage all aspects of Projects.
-	RoleNameProjectAdmin = "PROJECT_ADMIN"
+	RoleNameProjectAdmin RoleName = "PROJECT_ADMIN"
 	// RoleNameProjectCreator is the name of a Role that enables principals to
 	// create new Projects.
-	RoleNameProjectCreator = "PROJECT_CREATOR"
+	RoleNameProjectCreator RoleName = "PROJECT_CREATOR"
 	// RoleNameProjectDeveloper is the name of a Role that enables principals to
 	// read and update Projects.
-	RoleNameProjectDeveloper = "PROJECT_DEVELOPER"
+	RoleNameProjectDeveloper RoleName = "PROJECT_DEVELOPER"
 	// RoleNameProjectUser is the name of a Role that enables principals to
 	// read, create, and manage Events for a Project.
-	RoleNameProjectUser = "PROJECT_USER"
+	RoleNameProjectUser RoleName = "PROJECT_USER"
 	// RoleNameReader is the name of a Role that enables principals to
 	// list and read Projects, Users, and Service Accounts.
-	RoleNameReader = "READER"
+	RoleNameReader RoleName = "READER"
 
 	// Special roles
 	//
@@ -33,15 +35,15 @@ const (
 	// Worker and Job status based on observation of the underlying workload
 	// execution substrate. This Role is exclusively for the use of the Observer
 	// component.
-	RoleNameObserver = "OBSERVER"
+	RoleNameObserver RoleName = "OBSERVER"
 	// RoleNameScheduler is the name of a Role that enables principals to initiate
 	// execution of a Worker or Job on the underlying workload execution
 	// substrate. This Role is execlusively for the use of the Scheduler
 	// component.
-	RoleNameScheduler = "SCHEDULER"
+	RoleNameScheduler RoleName = "SCHEDULER"
 	// RoleNameWorker is the name of a Role that enables principals to create new
 	// Jobs. This Role is exclusively for the use of Workers.
-	RoleNameWorker = "WORKER"
+	RoleNameWorker RoleName = "WORKER"
 )
 
 // RoleScopeGlobal represents an unbounded scope.
@@ -55,20 +57,16 @@ const RoleTypeProject = "PROJECT"
 type Role struct {
 	Type string `json:"type" bson:"type"`
 	// Name is the name of a Role and has domain-specific meaning.
-	Name string `json:"name" bson:"name"`
+	Name RoleName `json:"name" bson:"name"`
 	// Scope qualifies the scope of the Role. The value is opaque and has meaning
 	// only in relation to a specific RoleName.
 	Scope string `json:"scope" bson:"scope"`
 }
 
-type UserRoleAssignment struct {
-	Role   string `json:"role"`
-	UserID string `json:"userID"`
-}
-
-type ServiceAccountRoleAssignment struct {
-	Role             string `json:"role"`
-	ServiceAccountID string `json:"serviceAccountID"`
+type RoleAssignment struct {
+	Role          RoleName      `json:"role"`
+	PrincipalType PrincipalType `json:"principalType"`
+	PrincipalID   string        `json:"principalID"`
 }
 
 // RoleAdmin returns a Role that enables a principal to manage Users,
