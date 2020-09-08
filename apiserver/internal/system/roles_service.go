@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-type SystemRolesService interface {
+type RolesService interface {
 	// TODO: Implement this
 	// ListUsers(context.Context) (authx.UserList, error)
 	GrantRole(
@@ -20,19 +20,19 @@ type SystemRolesService interface {
 	) error
 }
 
-type systemRolesService struct {
+type rolesService struct {
 	authorize            authx.AuthorizeFn
 	usersStore           authx.UsersStore
 	serviceAccountsStore authx.ServiceAccountsStore
 	rolesStore           authx.RolesStore
 }
 
-func NewSystemRolesService(
+func NewRolesService(
 	usersStore authx.UsersStore,
 	serviceAccountsStore authx.ServiceAccountsStore,
 	rolesStore authx.RolesStore,
-) SystemRolesService {
-	return &systemRolesService{
+) RolesService {
+	return &rolesService{
 		authorize:            authx.Authorize,
 		usersStore:           usersStore,
 		serviceAccountsStore: serviceAccountsStore,
@@ -40,7 +40,7 @@ func NewSystemRolesService(
 	}
 }
 
-func (s *systemRolesService) GrantRole(
+func (s *rolesService) GrantRole(
 	ctx context.Context,
 	roleAssignment authx.RoleAssignment,
 ) error {
@@ -94,7 +94,7 @@ func (s *systemRolesService) GrantRole(
 	return nil
 }
 
-func (s *systemRolesService) RevokeRole(
+func (s *rolesService) RevokeRole(
 	ctx context.Context,
 	roleAssignment authx.RoleAssignment,
 ) error {

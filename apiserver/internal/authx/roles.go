@@ -1,5 +1,7 @@
 package authx
 
+import "context"
+
 type RoleName string
 
 const (
@@ -184,4 +186,19 @@ func RoleWorker(eventID string) Role {
 		Name:  RoleNameWorker,
 		Scope: eventID,
 	}
+}
+
+type RolesStore interface {
+	GrantRole(
+		ctx context.Context,
+		principalType PrincipalType,
+		principalID string,
+		roles ...Role,
+	) error
+	RevokeRole(
+		ctx context.Context,
+		principalType PrincipalType,
+		principalID string,
+		roles ...Role,
+	) error
 }

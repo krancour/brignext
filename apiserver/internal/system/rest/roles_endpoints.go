@@ -9,50 +9,50 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type systemRolesEndpoints struct {
+type rolesEndpoints struct {
 	*restmachinery.BaseEndpoints
-	service system.SystemRolesService
+	service system.RolesService
 }
 
-func NewSystemRolesEndpoints(
+func NewRolesEndpoints(
 	baseEndpoints *restmachinery.BaseEndpoints,
-	service system.SystemRolesService,
+	service system.RolesService,
 ) restmachinery.Endpoints {
 	// nolint: lll
-	return &systemRolesEndpoints{
+	return &rolesEndpoints{
 		BaseEndpoints: baseEndpoints,
 		service:       service,
 	}
 }
 
-func (s *systemRolesEndpoints) Register(router *mux.Router) {
+func (r *rolesEndpoints) Register(router *mux.Router) {
 	// Grant a system Role to a User or ServiceAccount
 	router.HandleFunc(
 		"/v2/system/role-assignments",
-		s.TokenAuthFilter.Decorate(s.grantRole),
+		r.TokenAuthFilter.Decorate(r.grantRole),
 	).Methods(http.MethodPost)
 
 	// Revoke a system Role for a User or ServiceAccount
 	router.HandleFunc(
 		"/v2/system/role-assignments",
-		s.TokenAuthFilter.Decorate(s.revokeRole),
+		r.TokenAuthFilter.Decorate(r.revokeRole),
 	).Methods(http.MethodDelete)
 }
 
 // TODO: This still needs some validation
-func (s *systemRolesEndpoints) grantRole(
+func (r *rolesEndpoints) grantRole(
 	w http.ResponseWriter,
-	r *http.Request,
+	req *http.Request,
 ) {
 	roleAssignment := authx.RoleAssignment{}
-	s.ServeRequest(
+	r.ServeRequest(
 		restmachinery.InboundRequest{
 			W:          w,
-			R:          r,
+			R:          req,
 			ReqBodyObj: &roleAssignment,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.GrantRole(
-					r.Context(),
+				return nil, r.service.GrantRole(
+					req.Context(),
 					roleAssignment,
 				)
 			},
@@ -62,22 +62,22 @@ func (s *systemRolesEndpoints) grantRole(
 }
 
 // TODO: This still needs some validation
-func (s *systemRolesEndpoints) revokeRole(
+func (r *rolesEndpoints) revokeRole(
 	w http.ResponseWriter,
-	r *http.Request,
+	req *http.Request,
 ) {
 	roleAssignment := authx.RoleAssignment{
-		Role:          authx.RoleName(r.URL.Query().Get("role")),
-		PrincipalType: authx.PrincipalType(r.URL.Query().Get("principalType")),
-		PrincipalID:   r.URL.Query().Get("principalID"),
+		Role:          authx.RoleName(req.URL.Query().Get("role")),
+		PrincipalType: authx.PrincipalType(req.URL.Query().Get("principalType")),
+		PrincipalID:   req.URL.Query().Get("principalID"),
 	}
-	s.ServeRequest(
+	r.ServeRequest(
 		restmachinery.InboundRequest{
 			W: w,
-			R: r,
+			R: req,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.RevokeRole(
-					r.Context(),
+				return nil, r.service.RevokeRole(
+					req.Context(),
 					roleAssignment,
 				)
 			},

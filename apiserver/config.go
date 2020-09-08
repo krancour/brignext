@@ -128,7 +128,7 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 		coreMongodb.NewLogsStore(database),
 	)
 
-	systemRolesService := system.NewSystemRolesService(
+	systemRolesService := system.NewRolesService(
 		usersStore,
 		serviceAccountsStore,
 		rolesStore,
@@ -160,7 +160,7 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 			coreREST.NewProjectsEndpoints(baseEndpoints, projectsService),
 			coreREST.NewSecretsEndpoints(baseEndpoints, secretsService),
 			coreREST.NewProjectsRolesEndpoints(baseEndpoints, projectRolesService),
-			systemREST.NewSystemRolesEndpoints(baseEndpoints, systemRolesService),
+			systemREST.NewRolesEndpoints(baseEndpoints, systemRolesService),
 		},
 	), nil
 }

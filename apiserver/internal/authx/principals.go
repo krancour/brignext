@@ -1,5 +1,7 @@
 package authx
 
+import "context"
+
 type PrincipalType string
 
 const (
@@ -61,4 +63,21 @@ func Worker(eventID string) Principal {
 	return &worker{
 		eventID: eventID,
 	}
+}
+
+type principalContextKey struct{}
+
+func ContextWithPrincipal(
+	ctx context.Context,
+	principal Principal,
+) context.Context {
+	return context.WithValue(
+		ctx,
+		principalContextKey{},
+		principal,
+	)
+}
+
+func PincipalFromContext(ctx context.Context) Principal {
+	return ctx.Value(principalContextKey{}).(Principal)
 }
