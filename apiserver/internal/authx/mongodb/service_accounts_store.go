@@ -17,7 +17,9 @@ type serviceAccountsStore struct {
 	collection *mongo.Collection
 }
 
-func NewServiceAccountsStore(database *mongo.Database) (authx.ServiceAccountsStore, error) {
+func NewServiceAccountsStore(
+	database *mongo.Database,
+) (authx.ServiceAccountsStore, error) {
 	ctx, cancel :=
 		context.WithTimeout(context.Background(), createIndexTimeout)
 	defer cancel()

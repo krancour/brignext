@@ -135,16 +135,16 @@ func (s *secretsService) List(
 	return secrets, nil
 }
 
-func (p *secretsService) Set(
+func (s *secretsService) Set(
 	ctx context.Context,
 	projectID string,
 	secret Secret,
 ) error {
-	if err := p.authorize(ctx, authx.RoleProjectAdmin(projectID)); err != nil {
+	if err := s.authorize(ctx, authx.RoleProjectAdmin(projectID)); err != nil {
 		return err
 	}
 
-	project, err := p.projectsStore.Get(ctx, projectID)
+	project, err := s.projectsStore.Get(ctx, projectID)
 	if err != nil {
 		return errors.Wrapf(
 			err,
@@ -152,7 +152,7 @@ func (p *secretsService) Set(
 			projectID,
 		)
 	}
-	if err := p.secretsStore.Set(ctx, project, secret); err != nil {
+	if err := s.secretsStore.Set(ctx, project, secret); err != nil {
 		return errors.Wrapf(
 			err,
 			"error setting secret for project %q worker in store",

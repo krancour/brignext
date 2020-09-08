@@ -42,7 +42,8 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 	if err != nil {
 		return nil, err
 	}
-	serviceAccountsService := authx.NewServiceAccountsService(serviceAccountsStore)
+	serviceAccountsService :=
+		authx.NewServiceAccountsService(serviceAccountsStore)
 
 	// Users
 	usersStore, err := authxMongodb.NewUsersStore(database)
@@ -90,7 +91,8 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 		return nil, err
 	}
 	secretsStore := coreKubernetes.NewSecretsStore(kubeClient)
-	substrate := coreKubernetes.NewSubstrate(substrateConfig, queueWriterFactory, kubeClient)
+	substrate :=
+		coreKubernetes.NewSubstrate(substrateConfig, queueWriterFactory, kubeClient)
 	projectsService := core.NewProjectsService(
 		projectsStore,
 		usersStore,
@@ -150,7 +152,10 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 		apiConfig,
 		baseEndpoints,
 		[]restmachinery.Endpoints{
-			authxREST.NewServiceAccountEndpoints(baseEndpoints, serviceAccountsService),
+			authxREST.NewServiceAccountEndpoints(
+				baseEndpoints,
+				serviceAccountsService,
+			),
 			authxREST.NewSessionsEndpoints(baseEndpoints, sessionsService),
 			authxREST.NewUsersEndpoints(baseEndpoints, usersService),
 			coreREST.NewEventsEndpoints(baseEndpoints, eventsService),

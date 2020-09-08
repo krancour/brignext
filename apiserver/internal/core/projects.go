@@ -132,10 +132,10 @@ func (p ProjectList) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// ProjectsService is the specialized interface for managing Projects. It's decoupled
-// from underlying technology choices (e.g. data store, message bus, etc.) to
-// keep business logic reusable and consistent while the underlying tech stack
-// remains free to change.
+// ProjectsService is the specialized interface for managing Projects. It's
+// decoupled from underlying technology choices (e.g. data store, message bus,
+// etc.) to keep business logic reusable and consistent while the underlying
+// tech stack remains free to change.
 type ProjectsService interface {
 	// Create creates a new Project.
 	Create(context.Context, Project) (Project, error)
@@ -312,7 +312,8 @@ func (p *projectsService) Update(
 	}
 
 	// Update substrate-specific details before we persist.
-	if updatedProject, err = p.substrate.PreUpdateProject(ctx, oldProject, updatedProject); err != nil {
+	if updatedProject, err =
+		p.substrate.PreUpdateProject(ctx, oldProject, updatedProject); err != nil {
 		return updatedProject, errors.Wrapf(
 			err,
 			"error pre-updating project %q on the substrate",
@@ -327,7 +328,8 @@ func (p *projectsService) Update(
 			updatedProject.ID,
 		)
 	}
-	if err = p.substrate.UpdateProject(ctx, oldProject, updatedProject); err != nil {
+	if err =
+		p.substrate.UpdateProject(ctx, oldProject, updatedProject); err != nil {
 		return updatedProject, errors.Wrapf(
 			err,
 			"error updating project %q on the substrate",

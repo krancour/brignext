@@ -236,7 +236,8 @@ func (s *sessionsService) Authenticate(
 			}
 
 			// User 0 gets a bunch of roles automatically
-			count, err := s.usersStore.Count(ctx)
+			var count int64
+			count, err = s.usersStore.Count(ctx)
 			if err != nil {
 				return errors.Wrap(err, "error counting users in store")
 			}

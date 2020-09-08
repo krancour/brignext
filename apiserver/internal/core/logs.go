@@ -102,7 +102,7 @@ func (l *logsService) Stream(
 			errors.Wrapf(err, "error retrieving event %q from store", eventID)
 	}
 
-	if err := l.authorize(
+	if err = l.authorize(
 		ctx,
 		authx.RoleProjectUser(event.ProjectID),
 	); err != nil {

@@ -103,7 +103,10 @@ func (s *sessionsEndpoints) delete(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (s *sessionsEndpoints) authenticate(w http.ResponseWriter, r *http.Request) {
+func (s *sessionsEndpoints) authenticate(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
 	defer r.Body.Close() // nolint: errcheck
 
 	oauth2State := r.URL.Query().Get("state")

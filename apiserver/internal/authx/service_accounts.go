@@ -67,10 +67,10 @@ func (s ServiceAccountList) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// ServiceAccountsService is the specialized interface for managing ServiceAccounts. It's
-// decoupled from underlying technology choices (e.g. data store) to keep
-// business logic reusable and consistent while the underlying tech stack
-// remains free to change.
+// ServiceAccountsService is the specialized interface for managing
+// ServiceAccounts. It's decoupled from underlying technology choices (e.g. data
+// store) to keep business logic reusable and consistent while the underlying
+// tech stack remains free to change.
 type ServiceAccountsService interface {
 	// Create creates a new ServiceAccount.
 	Create(context.Context, ServiceAccount) (Token, error)
@@ -99,8 +99,11 @@ type serviceAccountsService struct {
 	serviceAccountsStore ServiceAccountsStore
 }
 
-// NewServiceAccountsService returns a specialized interface for managing ServiceAccounts.
-func NewServiceAccountsService(serviceAccountsStore ServiceAccountsStore) ServiceAccountsService {
+// NewServiceAccountsService returns a specialized interface for managing
+// ServiceAccounts.
+func NewServiceAccountsService(
+	serviceAccountsStore ServiceAccountsStore,
+) ServiceAccountsService {
 	return &serviceAccountsService{
 		authorize:            Authorize,
 		serviceAccountsStore: serviceAccountsStore,

@@ -182,10 +182,10 @@ func (d DeleteManyEventsResult) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// EventsService is the specialized interface for managing Events. It's decoupled from
-// underlying technology choices (e.g. data store, message bus, etc.) to keep
-// business logic reusable and consistent while the underlying tech stack
-// remains free to change.
+// EventsService is the specialized interface for managing Events. It's
+// decoupled from underlying technology choices (e.g. data store, message bus,
+// etc.) to keep business logic reusable and consistent while the underlying
+// tech stack remains free to change.
 type EventsService interface {
 	// Create creates a new Event.
 	Create(context.Context, Event) (
@@ -471,7 +471,11 @@ func (e *eventsService) Cancel(ctx context.Context, id string) error {
 	}
 
 	if err = e.substrate.DeleteWorkerAndJobs(ctx, event); err != nil {
-		return errors.Wrapf(err, "error deleting event %q worker and jobs from the substrate", id)
+		return errors.Wrapf(
+			err,
+			"error deleting event %q worker and jobs from the substrate",
+			id,
+		)
 	}
 
 	return nil
@@ -564,7 +568,11 @@ func (e *eventsService) Delete(ctx context.Context, id string) error {
 	}
 
 	if err = e.substrate.DeleteWorkerAndJobs(ctx, event); err != nil {
-		return errors.Wrapf(err, "error deleting event %q worker and jobs from the substrate", id)
+		return errors.Wrapf(
+			err,
+			"error deleting event %q worker and jobs from the substrate",
+			id,
+		)
 	}
 
 	return nil

@@ -65,8 +65,8 @@ func (u UserList) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// UsersService is the specialized interface for managing Users. It's decoupled from
-// underlying technology choices (e.g. data store) to keep business logic
+// UsersService is the specialized interface for managing Users. It's decoupled
+// from underlying technology choices (e.g. data store) to keep business logic
 // reusable and consistent while the underlying tech stack remains free to
 // change.
 type UsersService interface {

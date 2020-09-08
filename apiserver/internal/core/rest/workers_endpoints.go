@@ -120,7 +120,10 @@ func (w *workersEndpoints) getOrStreamStatus(
 	}
 }
 
-func (w *workersEndpoints) updateStatus(wr http.ResponseWriter, r *http.Request) {
+func (w *workersEndpoints) updateStatus(
+	wr http.ResponseWriter,
+	r *http.Request,
+) {
 	status := core.WorkerStatus{}
 	w.ServeRequest(
 		restmachinery.InboundRequest{
