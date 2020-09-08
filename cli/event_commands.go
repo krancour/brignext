@@ -623,7 +623,8 @@ func eventCancelMany(c *cli.Context) error {
 		WorkerPhases: []core.WorkerPhase{core.WorkerPhasePending},
 	}
 	if cancelRunning {
-		selector.WorkerPhases = append(selector.WorkerPhases, core.WorkerPhaseRunning)
+		selector.WorkerPhases =
+			append(selector.WorkerPhases, core.WorkerPhaseRunning)
 	}
 
 	events, err := client.Core().Events().CancelMany(c.Context, selector)

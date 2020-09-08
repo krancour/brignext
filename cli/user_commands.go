@@ -87,7 +87,8 @@ func userList(c *cli.Context) error {
 	opts := meta.ListOptions{}
 
 	for {
-		users, err := client.Authx().Users().List(c.Context, authx.UsersSelector{}, opts)
+		users, err :=
+			client.Authx().Users().List(c.Context, authx.UsersSelector{}, opts)
 		if err != nil {
 			return err
 		}

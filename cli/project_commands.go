@@ -130,8 +130,10 @@ func projectCreate(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brigade client")
 	}
 
-	if _, err :=
-		client.Core().Projects().CreateFromBytes(c.Context, projectBytes); err != nil {
+	if _, err := client.Core().Projects().CreateFromBytes(
+		c.Context,
+		projectBytes,
+	); err != nil {
 		return err
 	}
 

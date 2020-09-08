@@ -144,8 +144,11 @@ func serviceAccountList(c *cli.Context) error {
 	opts := meta.ListOptions{}
 
 	for {
-		serviceAccounts, err :=
-			client.Authx().ServiceAccounts().List(c.Context, authx.ServiceAccountsSelector{}, opts)
+		serviceAccounts, err := client.Authx().ServiceAccounts().List(
+			c.Context,
+			authx.ServiceAccountsSelector{},
+			opts,
+		)
 		if err != nil {
 			return err
 		}
