@@ -1,4 +1,4 @@
-package api
+package authx
 
 import (
 	"context"
@@ -7,6 +7,12 @@ import (
 
 	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
 )
+
+type UserSessionAuthDetails struct {
+	OAuth2State string `json:"oauth2State,omitempty"`
+	AuthURL     string `json:"authURL,omitempty"`
+	Token       string `json:"token,omitempty"`
+}
 
 // SessionsClient is the specialized client for managing Brigade API Sessions.
 type SessionsClient interface {

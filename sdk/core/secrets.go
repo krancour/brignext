@@ -1,15 +1,49 @@
-package api
+package core
 
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
-	"github.com/brigadecore/brigade/v2/sdk/core"
 	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
 	"github.com/brigadecore/brigade/v2/sdk/meta"
 )
+
+// SecretList is an ordered and pageable list of Secrets.
+type SecretList struct {
+	// ListMeta contains list metadata.
+	meta.ListMeta `json:"metadata"`
+	// Items is a slice of Secrets.
+	Items []Secret `json:"items,omitempty"`
+}
+
+// MarshalJSON amends SecretList instances with type metadata so that clients do
+// not need to be concerned with the tedium of doing so.
+func (s SecretList) MarshalJSON() ([]byte, error) {
+	type Alias SecretList
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "SecretList",
+			},
+			Alias: (Alias)(s),
+		},
+	)
+}
+
+// Secret represents Project-level sensitive information.
+type Secret struct {
+	// Key is a key by which the secret can referred.
+	Key string `json:"key,omitempty"`
+	// Value is the sensitive information. This is a write-only field.
+	Value string `json:"value,omitempty"`
+}
 
 // SecretsClient is the specialized client for managing Secrets with the
 // Brigade API.
@@ -24,7 +58,7 @@ type SecretsClient interface {
 	) (SecretList, error)
 	// Set sets the value of a new Secret or updates the value of an existing
 	// Secret.
-	Set(ctx context.Context, projectID string, secret core.Secret) error
+	Set(ctx context.Context, projectID string, secret Secret) error
 	// Unset clears the value of an existing Secret.
 	Unset(ctx context.Context, projectID string, key string) error
 }
@@ -76,7 +110,7 @@ func (s *secretsClient) List(
 func (s *secretsClient) Set(
 	ctx context.Context,
 	projectID string,
-	secret core.Secret,
+	secret Secret,
 ) error {
 	return s.ExecuteRequest(
 		restmachinery.OutboundRequest{

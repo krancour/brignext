@@ -6,7 +6,7 @@ import (
 	"runtime"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/brigadecore/brigade/v2/sdk/authx/api"
+	"github.com/brigadecore/brigade/v2/sdk/authx"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -51,7 +51,7 @@ func login(c *cli.Context) error {
 	password := c.String(flagPassword)
 	rootLogin := c.Bool(flagRoot)
 
-	client := api.NewSessionsClient(
+	client := authx.NewSessionsClient(
 		address,
 		"",
 		c.Bool(flagInsecure),

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/brigadecore/brigade/v2/sdk/authx/api"
+	"github.com/brigadecore/brigade/v2/sdk/authx"
 	"github.com/brigadecore/brigade/v2/sdk/meta"
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
@@ -87,7 +87,7 @@ func userList(c *cli.Context) error {
 	opts := meta.ListOptions{}
 
 	for {
-		users, err := client.Authx().Users().List(c.Context, api.UsersSelector{}, opts)
+		users, err := client.Authx().Users().List(c.Context, authx.UsersSelector{}, opts)
 		if err != nil {
 			return err
 		}

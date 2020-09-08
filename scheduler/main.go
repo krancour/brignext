@@ -7,7 +7,7 @@ import (
 	"github.com/brigadecore/brigade/v2/internal/signals"
 	"github.com/brigadecore/brigade/v2/internal/version"
 	"github.com/brigadecore/brigade/v2/scheduler/internal/queue/amqp"
-	"github.com/brigadecore/brigade/v2/sdk/core/api"
+	"github.com/brigadecore/brigade/v2/sdk/core"
 )
 
 func main() {
@@ -21,7 +21,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	apiClient := api.NewClient(
+	apiClient := core.NewAPIClient(
 		config.APIAddress,
 		config.APIToken,
 		config.IgnoreAPICertWarnings,

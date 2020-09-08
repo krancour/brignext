@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/brigadecore/brigade/v2/scheduler/internal/queue"
-	core "github.com/brigadecore/brigade/v2/sdk/core/api"
+	"github.com/brigadecore/brigade/v2/sdk/core"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -18,7 +18,7 @@ type Scheduler interface {
 
 type scheduler struct {
 	schedulerConfig Config
-	coreClient      core.Client
+	coreClient      core.APIClient
 	// TODO: This should be closed somewhere
 	queueReaderFactory   queue.ReaderFactory
 	kubeClient           *kubernetes.Clientset
@@ -33,7 +33,7 @@ type scheduler struct {
 
 func NewScheduler(
 	schedulerConfig Config,
-	coreClient core.Client,
+	coreClient core.APIClient,
 	queueReaderFactory queue.ReaderFactory,
 	kubeClient *kubernetes.Clientset,
 ) Scheduler {

@@ -1,4 +1,4 @@
-package api
+package core
 
 import (
 	"context"
@@ -7,10 +7,33 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
-	"github.com/brigadecore/brigade/v2/sdk/core"
 	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
 )
+
+// TODO: Document this
+type LogsSelector struct {
+	// Job specifies, by name, a Job spawned by the Worker. If this field is
+	// left blank, it is presumed logs are desired for the Worker itself.
+	Job string
+	// Container specifies, by name, a container belonging to the Worker or Job
+	// whose logs are being retrieved. If left blank, a container with the same
+	// name as the Worker or Job is assumed.
+	Container string
+}
+
+type LogStreamOptions struct {
+	Follow bool `json:"follow"`
+}
+
+// LogEntry represents one line of output from an OCI container.
+type LogEntry struct {
+	// Time is the time the line was written.
+	Time *time.Time `json:"time,omitempty"`
+	// Message is a single line of log output from an OCI container.
+	Message string `json:"message,omitempty"`
+}
 
 // LogsClient is the specialized client for managing Event Logs with the
 // Brigade API.
@@ -23,7 +46,7 @@ type LogsClient interface {
 		eventID string,
 		selector LogsSelector,
 		opts LogStreamOptions,
-	) (<-chan core.LogEntry, <-chan error, error)
+	) (<-chan LogEntry, <-chan error, error)
 }
 
 type logsClient struct {
@@ -56,7 +79,7 @@ func (l *logsClient) Stream(
 	eventID string,
 	selector LogsSelector,
 	opts LogStreamOptions,
-) (<-chan core.LogEntry, <-chan error, error) {
+) (<-chan LogEntry, <-chan error, error) {
 	queryParams := map[string]string{}
 	if selector.Job != "" {
 		queryParams["job"] = selector.Job
@@ -81,7 +104,7 @@ func (l *logsClient) Stream(
 		return nil, nil, err
 	}
 
-	logCh := make(chan core.LogEntry)
+	logCh := make(chan LogEntry)
 	errCh := make(chan error)
 
 	go l.receiveStream(ctx, resp.Body, logCh, errCh)
@@ -94,7 +117,7 @@ func (l *logsClient) Stream(
 func (l *logsClient) receiveStream(
 	ctx context.Context,
 	reader io.ReadCloser,
-	logEntryCh chan<- core.LogEntry,
+	logEntryCh chan<- LogEntry,
 	errCh chan<- error,
 ) {
 	defer close(logEntryCh)
@@ -102,7 +125,7 @@ func (l *logsClient) receiveStream(
 	defer reader.Close()
 	decoder := json.NewDecoder(reader)
 	for {
-		logEntry := core.LogEntry{}
+		logEntry := LogEntry{}
 		if err := decoder.Decode(&logEntry); err != nil {
 			if err == io.EOF {
 				return

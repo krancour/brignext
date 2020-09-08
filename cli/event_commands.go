@@ -11,7 +11,6 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/brigadecore/brigade/v2/internal/file"
 	"github.com/brigadecore/brigade/v2/sdk/core"
-	"github.com/brigadecore/brigade/v2/sdk/core/api"
 	"github.com/brigadecore/brigade/v2/sdk/meta"
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
@@ -402,7 +401,7 @@ func eventList(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brigade client")
 	}
 
-	selector := api.EventsSelector{
+	selector := core.EventsSelector{
 		ProjectID:    projectID,
 		WorkerPhases: workerPhases,
 	}
@@ -619,7 +618,7 @@ func eventCancelMany(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brigade client")
 	}
 
-	selector := api.EventsSelector{
+	selector := core.EventsSelector{
 		ProjectID:    projectID,
 		WorkerPhases: []core.WorkerPhase{core.WorkerPhasePending},
 	}
@@ -720,7 +719,7 @@ func eventDeleteMany(c *cli.Context) error {
 		return errors.Wrap(err, "error getting brigade client")
 	}
 
-	selector := api.EventsSelector{
+	selector := core.EventsSelector{
 		ProjectID:    projectID,
 		WorkerPhases: workerPhases,
 	}

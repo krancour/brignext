@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/brigadecore/brigade/v2/sdk/core/api"
+	"github.com/brigadecore/brigade/v2/sdk/core"
 	"github.com/brigadecore/brigade/v2/sdk/meta"
 )
 
@@ -20,7 +20,7 @@ func (s *scheduler) manageProjectLoops(ctx context.Context) {
 	for {
 		projects, err := s.coreClient.Projects().List(
 			ctx,
-			api.ProjectsSelector{},
+			core.ProjectsSelector{},
 			meta.ListOptions{},
 		)
 		if err != nil {

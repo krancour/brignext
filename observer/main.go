@@ -6,7 +6,7 @@ import (
 	"github.com/brigadecore/brigade/v2/internal/kubernetes"
 	"github.com/brigadecore/brigade/v2/internal/signals"
 	"github.com/brigadecore/brigade/v2/internal/version"
-	"github.com/brigadecore/brigade/v2/sdk/core/api"
+	"github.com/brigadecore/brigade/v2/sdk/core"
 )
 
 // TODO: Observer needs functionality for timing out workers and jobs
@@ -21,7 +21,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	workersClient := api.NewWorkersClient(
+	workersClient := core.NewWorkersClient(
 		config.APIAddress,
 		config.APIToken,
 		config.IgnoreAPICertWarnings,

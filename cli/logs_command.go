@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/brigadecore/brigade/v2/sdk/core/api"
+	"github.com/brigadecore/brigade/v2/sdk/core"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -43,11 +43,11 @@ func logs(c *cli.Context) error {
 	eventID := c.String(flagEvent)
 	follow := c.Bool(flagFollow)
 
-	selector := api.LogsSelector{
+	selector := core.LogsSelector{
 		Job:       c.String(flagJob),
 		Container: c.String(flagContainer),
 	}
-	opts := api.LogStreamOptions{
+	opts := core.LogStreamOptions{
 		Follow: follow,
 	}
 

@@ -1,6 +1,6 @@
-package api
+package authx
 
-type Client interface {
+type APIClient interface {
 	// ServiceAccounts returns a specialized client for ServiceAccount management.
 	ServiceAccounts() ServiceAccountsClient
 	// Sessions returns a specialized client for Session management.
@@ -9,7 +9,7 @@ type Client interface {
 	Users() UsersClient
 }
 
-type client struct {
+type apiClient struct {
 	// serviceAccountsClient is a specialized client for ServiceAccount
 	// management.
 	serviceAccountsClient ServiceAccountsClient
@@ -19,12 +19,12 @@ type client struct {
 	usersClient UsersClient
 }
 
-func NewClient(
+func NewAPIClient(
 	apiAddress,
 	apiToken string,
 	allowInsecure bool,
-) Client {
-	return &client{
+) APIClient {
+	return &apiClient{
 		serviceAccountsClient: NewServiceAccountsClient(
 			apiAddress,
 			apiToken,
@@ -35,14 +35,14 @@ func NewClient(
 	}
 }
 
-func (c *client) ServiceAccounts() ServiceAccountsClient {
-	return c.serviceAccountsClient
+func (a *apiClient) ServiceAccounts() ServiceAccountsClient {
+	return a.serviceAccountsClient
 }
 
-func (c *client) Sessions() SessionsClient {
-	return c.sessionsClient
+func (a *apiClient) Sessions() SessionsClient {
+	return a.sessionsClient
 }
 
-func (c *client) Users() UsersClient {
-	return c.usersClient
+func (a *apiClient) Users() UsersClient {
+	return a.usersClient
 }

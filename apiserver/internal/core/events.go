@@ -223,29 +223,3 @@ func (l LogEntry) MarshalJSON() ([]byte, error) {
 		},
 	)
 }
-
-// LogEntryList is an ordered list of LogEntries.
-type LogEntryList struct {
-	// ListMeta contains list metadata.
-	meta.ListMeta `json:"metadata"`
-	// Items is a slice of LogEntries.
-	Items []LogEntry `json:"items"`
-}
-
-// MarshalJSON amends LogEntryList instances with type metadata so that clients
-// do not need to be concerned with the tedium of doing so.
-func (l LogEntryList) MarshalJSON() ([]byte, error) {
-	type Alias LogEntryList
-	return json.Marshal(
-		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
-		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
-				Kind:       "LogEntryList",
-			},
-			Alias: (Alias)(l),
-		},
-	)
-}

@@ -9,7 +9,6 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/brigadecore/brigade/v2/sdk/authx"
-	"github.com/brigadecore/brigade/v2/sdk/authx/api"
 	"github.com/brigadecore/brigade/v2/sdk/meta"
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
@@ -146,7 +145,7 @@ func serviceAccountList(c *cli.Context) error {
 
 	for {
 		serviceAccounts, err :=
-			client.Authx().ServiceAccounts().List(c.Context, api.ServiceAccountsSelector{}, opts)
+			client.Authx().ServiceAccounts().List(c.Context, authx.ServiceAccountsSelector{}, opts)
 		if err != nil {
 			return err
 		}

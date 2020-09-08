@@ -6,7 +6,7 @@ import (
 	"time"
 
 	myk8s "github.com/brigadecore/brigade/v2/internal/kubernetes"
-	"github.com/brigadecore/brigade/v2/sdk/core/api"
+	"github.com/brigadecore/brigade/v2/sdk/core"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -32,7 +32,7 @@ type Observer interface {
 
 type observer struct {
 	observerConfig  Config
-	workersClient   api.WorkersClient
+	workersClient   core.WorkersClient
 	kubeClient      *kubernetes.Clientset
 	podsClient      corev1.PodInterface
 	deletingPodsSet map[string]struct{}
@@ -43,7 +43,7 @@ type observer struct {
 
 func NewObserver(
 	observerConfig Config,
-	workersClient api.WorkersClient,
+	workersClient core.WorkersClient,
 	kubeClient *kubernetes.Clientset,
 ) Observer {
 	podsClient := kubeClient.CoreV1().Pods("")

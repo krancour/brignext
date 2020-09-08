@@ -1,30 +1,30 @@
-package api
+package core
 
-type Client interface {
+type APIClient interface {
 	// Events returns a specialized client for Event management.
 	Events() EventsClient
 	// Projects returns a specialized client for Project management.
 	Projects() ProjectsClient
 }
 
-type client struct {
+type apiClient struct {
 	// eventsClient is a specialized client for Event management.
 	eventsClient EventsClient
 	// projectsClient is a specialized client for Project management.
 	projectsClient ProjectsClient
 }
 
-func NewClient(apiAddress, apiToken string, allowInsecure bool) Client {
-	return &client{
+func NewAPIClient(apiAddress, apiToken string, allowInsecure bool) APIClient {
+	return &apiClient{
 		eventsClient:   NewEventsClient(apiAddress, apiToken, allowInsecure),
 		projectsClient: NewProjectsClient(apiAddress, apiToken, allowInsecure),
 	}
 }
 
-func (c *client) Events() EventsClient {
-	return c.eventsClient
+func (a *apiClient) Events() EventsClient {
+	return a.eventsClient
 }
 
-func (c *client) Projects() ProjectsClient {
-	return c.projectsClient
+func (a *apiClient) Projects() ProjectsClient {
+	return a.projectsClient
 }
