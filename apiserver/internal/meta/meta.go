@@ -24,21 +24,6 @@ type ObjectMeta struct {
 	ID string `json:"id,omitempty" bson:"id,omitempty"`
 	// Created indicates the time at which a resource was created.
 	Created *time.Time `json:"created,omitempty" bson:"created,omitempty"`
-	// CreatedBy indicates who or what created the resource.
-	CreatedBy *PrincipalReference `json:"createdBy,omitempty" bson:"createdBy,omitempty"` // nolint: lll
-	// LastUpdated indicates the time at which a resource was last updated.
-	LastUpdated *time.Time `json:"lastUpdated,omitempty" bson:"lastUpdated,omitempty"` // nolint: lll
-	// LastUpdatedBy indicates who or what last updated the resource.
-	LastUpdatedBy *PrincipalReference `json:"lastUpdatedBy,omitempty" bson:"lastUpdatedBy,omitempty"` // nolint: lll
-}
-
-// PrincipalReference is a reference to a user of the system-- either a human
-// user or service account.
-type PrincipalReference struct {
-	// User references a human User by their ID.
-	User string `json:"user,omitempty" bson:"user,omitempty"`
-	// ServiceAccount references a ServiceAccount by its ID.
-	ServiceAccount string `json:"serviceAcount,omitempty" bson:"serviceAcount,omitempty"` // nolint: lll
 }
 
 // ListMeta is metadata for ordered collections of resources.

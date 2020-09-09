@@ -57,7 +57,7 @@ func (e *ErrNotFound) Error() string {
 }
 
 // ErrConflict represents an error wherein a request cannot be completed because
-// it would violate some constrain of the system, for instance creating a new
+// it would violate some constraint of the system, for instance creating a new
 // resource with an identifier already used by another resource of the same
 // type.
 type ErrConflict struct {

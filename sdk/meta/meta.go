@@ -26,27 +26,6 @@ type ObjectMeta struct {
 	// recorded by the system. Clients must leave the value of this field set to
 	// nil when using the API to create or update resources.
 	Created *time.Time `json:"created,omitempty"`
-	// CreatedBy indicates who or what created the resource. This is recorded by
-	// the system. Clients must leave the value of this field set to nil when
-	// using the API to create or update resources.
-	CreatedBy *PrincipalReference `json:"createdBy,omitempty"`
-	// LastUpdated indicates the time at which a resource was last updated. This
-	// is recorded by the system. Clients must leave the value of this field set
-	// to nil when using the API to create or update resources.
-	LastUpdated *time.Time `json:"lastUpdated,omitempty"`
-	// LastUpdatedBy indicates who or what last updated the resource. This is
-	// recorded by the system. Clients must leave the value of this field set to
-	// nil when using the API to create or update resources.
-	LastUpdatedBy *PrincipalReference `json:"lastUpdatedBy,omitempty"`
-}
-
-// PrincipalReference is a reference to a user of the system-- either a human
-// user or service account.
-type PrincipalReference struct {
-	// User references a human User by their ID.
-	User string `json:"user,omitempty"`
-	// ServiceAccount references a ServiceAccount by its ID.
-	ServiceAccount string `json:"serviceAcount,omitempty"`
 }
 
 // ListMeta is metadata for ordered collections of resources.
