@@ -183,6 +183,7 @@ func (j *jobsClient) Create(
 	jobSpec JobSpec,
 ) error {
 	return j.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method: http.MethodPut,
 			Path: fmt.Sprintf(
@@ -203,6 +204,7 @@ func (j *jobsClient) Start(
 	jobName string,
 ) error {
 	return j.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method: http.MethodPut,
 			Path: fmt.Sprintf(
@@ -223,6 +225,7 @@ func (j *jobsClient) GetStatus(
 ) (JobStatus, error) {
 	status := JobStatus{}
 	return status, j.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method: http.MethodGet,
 			Path: fmt.Sprintf(
@@ -243,6 +246,7 @@ func (j *jobsClient) WatchStatus(
 	jobName string,
 ) (<-chan JobStatus, <-chan error, error) {
 	resp, err := j.SubmitRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method: http.MethodGet,
 			Path: fmt.Sprintf(
@@ -270,12 +274,13 @@ func (j *jobsClient) WatchStatus(
 }
 
 func (j *jobsClient) UpdateStatus(
-	_ context.Context,
+	ctx context.Context,
 	eventID string,
 	jobName string,
 	status JobStatus,
 ) error {
 	return j.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method: http.MethodPut,
 			Path: fmt.Sprintf(

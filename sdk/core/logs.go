@@ -92,6 +92,7 @@ func (l *logsClient) Stream(
 	}
 
 	resp, err := l.SubmitRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/events/%s/logs", eventID),

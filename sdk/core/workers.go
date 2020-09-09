@@ -280,6 +280,7 @@ func NewWorkersClient(
 
 func (w *workersClient) Start(ctx context.Context, eventID string) error {
 	return w.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/events/%s/worker/start", eventID),
@@ -295,6 +296,7 @@ func (w *workersClient) GetStatus(
 ) (WorkerStatus, error) {
 	status := WorkerStatus{}
 	return status, w.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
@@ -310,6 +312,7 @@ func (w *workersClient) WatchStatus(
 	eventID string,
 ) (<-chan WorkerStatus, <-chan error, error) {
 	resp, err := w.SubmitRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),
@@ -333,11 +336,12 @@ func (w *workersClient) WatchStatus(
 }
 
 func (w *workersClient) UpdateStatus(
-	_ context.Context,
+	ctx context.Context,
 	eventID string,
 	status WorkerStatus,
 ) error {
 	return w.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/events/%s/worker/status", eventID),

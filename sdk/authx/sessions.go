@@ -3,15 +3,35 @@ package authx
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"net/http"
 
 	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
+	"github.com/brigadecore/brigade/v2/sdk/meta"
 )
 
 type UserSessionAuthDetails struct {
 	OAuth2State string `json:"oauth2State,omitempty"`
 	AuthURL     string `json:"authURL,omitempty"`
 	Token       string `json:"token,omitempty"`
+}
+
+// MarshalJSON amends UserSessionAuthDetails instances with type metadata so
+// that clients do not need to be concerned with the tedium of doing so.
+func (u UserSessionAuthDetails) MarshalJSON() ([]byte, error) {
+	type Alias UserSessionAuthDetails
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "UserSessionAuthDetails",
+			},
+			Alias: (Alias)(u),
+		},
+	)
 }
 
 // SessionsClient is the specialized client for managing Brigade API Sessions.
@@ -51,11 +71,12 @@ func NewSessionsClient(
 }
 
 func (s *sessionsClient) CreateRootSession(
-	_ context.Context,
+	ctx context.Context,
 	password string,
 ) (Token, error) {
 	token := Token{}
 	return token, s.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/sessions",
@@ -70,10 +91,11 @@ func (s *sessionsClient) CreateRootSession(
 }
 
 func (s *sessionsClient) CreateUserSession(
-	context.Context,
+	ctx context.Context,
 ) (UserSessionAuthDetails, error) {
 	userSessionAuthDetails := UserSessionAuthDetails{}
 	return userSessionAuthDetails, s.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/sessions",
@@ -83,8 +105,9 @@ func (s *sessionsClient) CreateUserSession(
 	)
 }
 
-func (s *sessionsClient) Delete(context.Context) error {
+func (s *sessionsClient) Delete(ctx context.Context) error {
 	return s.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        "v2/session",

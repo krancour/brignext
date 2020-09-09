@@ -2,6 +2,7 @@ package restmachinery
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -72,8 +73,11 @@ func (b *BaseClient) AppendListQueryParams(
 // information, this function prepares and executes an HTTP request, interprets
 // the HTTP response code and decodes the response body into a user-supplied
 // type.
-func (b *BaseClient) ExecuteRequest(req OutboundRequest) error {
-	resp, err := b.SubmitRequest(req)
+func (b *BaseClient) ExecuteRequest(
+	ctx context.Context,
+	req OutboundRequest,
+) error {
+	resp, err := b.SubmitRequest(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -97,6 +101,7 @@ func (b *BaseClient) ExecuteRequest(req OutboundRequest) error {
 // It is used by executeRequest(), but is also suitable for uses in cases where
 // specialized response handling is required.
 func (b *BaseClient) SubmitRequest(
+	ctx context.Context,
 	req OutboundRequest,
 ) (*http.Response, error) {
 	var reqBodyReader io.Reader
@@ -126,6 +131,7 @@ func (b *BaseClient) SubmitRequest(
 			req.Path,
 		)
 	}
+	r = r.WithContext(ctx)
 	if len(req.QueryParams) > 0 {
 		q := r.URL.Query()
 		for k, v := range req.QueryParams {

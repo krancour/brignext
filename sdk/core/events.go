@@ -196,11 +196,12 @@ func NewEventsClient(
 }
 
 func (e *eventsClient) Create(
-	_ context.Context,
+	ctx context.Context,
 	event Event,
 ) (EventList, error) {
 	events := EventList{}
 	return events, e.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/events",
@@ -213,7 +214,7 @@ func (e *eventsClient) Create(
 }
 
 func (e *eventsClient) List(
-	_ context.Context,
+	ctx context.Context,
 	selector EventsSelector,
 	opts meta.ListOptions,
 ) (EventList, error) {
@@ -230,6 +231,7 @@ func (e *eventsClient) List(
 	}
 	events := EventList{}
 	return events, e.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        "v2/events",
@@ -242,11 +244,12 @@ func (e *eventsClient) List(
 }
 
 func (e *eventsClient) Get(
-	_ context.Context,
+	ctx context.Context,
 	id string,
 ) (Event, error) {
 	event := Event{}
 	return event, e.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/events/%s", id),
@@ -257,8 +260,9 @@ func (e *eventsClient) Get(
 	)
 }
 
-func (e *eventsClient) Cancel(_ context.Context, id string) error {
+func (e *eventsClient) Cancel(ctx context.Context, id string) error {
 	return e.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/events/%s/cancellation", id),
@@ -269,7 +273,7 @@ func (e *eventsClient) Cancel(_ context.Context, id string) error {
 }
 
 func (e *eventsClient) CancelMany(
-	_ context.Context,
+	ctx context.Context,
 	opts EventsSelector,
 ) (CancelManyEventsResult, error) {
 	queryParams := map[string]string{}
@@ -285,6 +289,7 @@ func (e *eventsClient) CancelMany(
 	}
 	result := CancelManyEventsResult{}
 	return result, e.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/events/cancellations",
@@ -296,8 +301,9 @@ func (e *eventsClient) CancelMany(
 	)
 }
 
-func (e *eventsClient) Delete(_ context.Context, id string) error {
+func (e *eventsClient) Delete(ctx context.Context, id string) error {
 	return e.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        fmt.Sprintf("v2/events/%s", id),
@@ -308,7 +314,7 @@ func (e *eventsClient) Delete(_ context.Context, id string) error {
 }
 
 func (e *eventsClient) DeleteMany(
-	_ context.Context,
+	ctx context.Context,
 	selector EventsSelector,
 ) (DeleteManyEventsResult, error) {
 	queryParams := map[string]string{}
@@ -324,6 +330,7 @@ func (e *eventsClient) DeleteMany(
 	}
 	result := DeleteManyEventsResult{}
 	return result, e.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        "v2/events",

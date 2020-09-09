@@ -96,6 +96,7 @@ func (s *secretsClient) List(
 ) (SecretList, error) {
 	secrets := SecretList{}
 	return secrets, s.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/projects/%s/secrets", projectID),
@@ -113,6 +114,7 @@ func (s *secretsClient) Set(
 	secret Secret,
 ) error {
 	return s.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method: http.MethodPut,
 			Path: fmt.Sprintf(
@@ -133,6 +135,7 @@ func (s *secretsClient) Unset(
 	key string,
 ) error {
 	return s.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method: http.MethodDelete,
 			Path: fmt.Sprintf(

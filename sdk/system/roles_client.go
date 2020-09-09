@@ -47,6 +47,7 @@ func (r *rolesClient) GrantRole(
 	roleAssignment authx.RoleAssignment,
 ) error {
 	return r.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/system/role-assignments",
@@ -67,6 +68,7 @@ func (r *rolesClient) RevokeRole(
 		"principalID":   roleAssignment.PrincipalID,
 	}
 	return r.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        "v2/system/role-assignments",

@@ -125,11 +125,12 @@ func NewServiceAccountsClient(
 }
 
 func (s *serviceAccountsClient) Create(
-	_ context.Context,
+	ctx context.Context,
 	serviceAccount ServiceAccount,
 ) (Token, error) {
 	token := Token{}
 	return token, s.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/service-accounts",
@@ -142,12 +143,13 @@ func (s *serviceAccountsClient) Create(
 }
 
 func (s *serviceAccountsClient) List(
-	_ context.Context,
+	ctx context.Context,
 	_ ServiceAccountsSelector,
 	opts meta.ListOptions,
 ) (ServiceAccountList, error) {
 	serviceAccounts := ServiceAccountList{}
 	return serviceAccounts, s.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        "v2/service-accounts",
@@ -160,11 +162,12 @@ func (s *serviceAccountsClient) List(
 }
 
 func (s *serviceAccountsClient) Get(
-	_ context.Context,
+	ctx context.Context,
 	id string,
 ) (ServiceAccount, error) {
 	serviceAccount := ServiceAccount{}
 	return serviceAccount, s.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/service-accounts/%s", id),
@@ -175,8 +178,9 @@ func (s *serviceAccountsClient) Get(
 	)
 }
 
-func (s *serviceAccountsClient) Lock(_ context.Context, id string) error {
+func (s *serviceAccountsClient) Lock(ctx context.Context, id string) error {
 	return s.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/service-accounts/%s/lock", id),
@@ -187,11 +191,12 @@ func (s *serviceAccountsClient) Lock(_ context.Context, id string) error {
 }
 
 func (s *serviceAccountsClient) Unlock(
-	_ context.Context,
+	ctx context.Context,
 	id string,
 ) (Token, error) {
 	token := Token{}
 	return token, s.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        fmt.Sprintf("v2/service-accounts/%s/lock", id),

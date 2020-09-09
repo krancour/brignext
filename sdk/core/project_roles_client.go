@@ -57,6 +57,7 @@ func (p *projectRolesClient) GrantRole(
 	roleAssignment authx.RoleAssignment,
 ) error {
 	return p.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method: http.MethodPost,
 			Path: fmt.Sprintf(
@@ -81,6 +82,7 @@ func (p *projectRolesClient) RevokeRole(
 		"principalID":   roleAssignment.PrincipalID,
 	}
 	return p.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method: http.MethodDelete,
 			Path: fmt.Sprintf(

@@ -207,11 +207,12 @@ func NewProjectsClient(
 }
 
 func (p *projectsClient) Create(
-	_ context.Context,
+	ctx context.Context,
 	project Project,
 ) (Project, error) {
 	createdProject := Project{}
 	return createdProject, p.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/projects",
@@ -224,11 +225,12 @@ func (p *projectsClient) Create(
 }
 
 func (p *projectsClient) CreateFromBytes(
-	_ context.Context,
+	ctx context.Context,
 	projectBytes []byte,
 ) (Project, error) {
 	createdProject := Project{}
 	return createdProject, p.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodPost,
 			Path:        "v2/projects",
@@ -241,12 +243,13 @@ func (p *projectsClient) CreateFromBytes(
 }
 
 func (p *projectsClient) List(
-	_ context.Context,
+	ctx context.Context,
 	_ ProjectsSelector,
 	opts meta.ListOptions,
 ) (ProjectList, error) {
 	projects := ProjectList{}
 	return projects, p.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        "v2/projects",
@@ -259,11 +262,12 @@ func (p *projectsClient) List(
 }
 
 func (p *projectsClient) Get(
-	_ context.Context,
+	ctx context.Context,
 	id string,
 ) (Project, error) {
 	project := Project{}
 	return project, p.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/projects/%s", id),
@@ -275,11 +279,12 @@ func (p *projectsClient) Get(
 }
 
 func (p *projectsClient) Update(
-	_ context.Context,
+	ctx context.Context,
 	project Project,
 ) (Project, error) {
 	updatedProject := Project{}
 	return updatedProject, p.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/projects/%s", project.ID),
@@ -292,12 +297,13 @@ func (p *projectsClient) Update(
 }
 
 func (p *projectsClient) UpdateFromBytes(
-	_ context.Context,
+	ctx context.Context,
 	projectID string,
 	projectBytes []byte,
 ) (Project, error) {
 	updatedProject := Project{}
 	return updatedProject, p.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/projects/%s", projectID),
@@ -309,8 +315,9 @@ func (p *projectsClient) UpdateFromBytes(
 	)
 }
 
-func (p *projectsClient) Delete(_ context.Context, id string) error {
+func (p *projectsClient) Delete(ctx context.Context, id string) error {
 	return p.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        fmt.Sprintf("v2/projects/%s", id),

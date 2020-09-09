@@ -116,12 +116,13 @@ func NewUsersClient(
 }
 
 func (u *usersClient) List(
-	_ context.Context,
+	ctx context.Context,
 	_ UsersSelector,
 	opts meta.ListOptions,
 ) (UserList, error) {
 	users := UserList{}
 	return users, u.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        "v2/users",
@@ -133,9 +134,10 @@ func (u *usersClient) List(
 	)
 }
 
-func (u *usersClient) Get(_ context.Context, id string) (User, error) {
+func (u *usersClient) Get(ctx context.Context, id string) (User, error) {
 	user := User{}
 	return user, u.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodGet,
 			Path:        fmt.Sprintf("v2/users/%s", id),
@@ -146,8 +148,9 @@ func (u *usersClient) Get(_ context.Context, id string) (User, error) {
 	)
 }
 
-func (u *usersClient) Lock(_ context.Context, id string) error {
+func (u *usersClient) Lock(ctx context.Context, id string) error {
 	return u.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodPut,
 			Path:        fmt.Sprintf("v2/users/%s/lock", id),
@@ -157,8 +160,9 @@ func (u *usersClient) Lock(_ context.Context, id string) error {
 	)
 }
 
-func (u *usersClient) Unlock(_ context.Context, id string) error {
+func (u *usersClient) Unlock(ctx context.Context, id string) error {
 	return u.ExecuteRequest(
+		ctx,
 		restmachinery.OutboundRequest{
 			Method:      http.MethodDelete,
 			Path:        fmt.Sprintf("v2/users/%s/lock", id),
