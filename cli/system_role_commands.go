@@ -102,7 +102,7 @@ func systemRolesGrant(c *cli.Context) error {
 	}
 
 	if err :=
-		client.System().Roles().GrantRole(c.Context, roleAssignment); err != nil {
+		client.System().Roles().Grant(c.Context, roleAssignment); err != nil {
 		return err
 	}
 
@@ -153,7 +153,7 @@ func systemRolesRevoke(c *cli.Context) error {
 	}
 
 	if err :=
-		client.System().Roles().RevokeRole(c.Context, roleAssignment); err != nil {
+		client.System().Roles().Revoke(c.Context, roleAssignment); err != nil {
 		return err
 	}
 

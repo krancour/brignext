@@ -12,8 +12,8 @@ import (
 // RolesClient is the specialized client for managing System Roles with
 // the Brigade API.
 type RolesClient interface {
-	GrantRole(context.Context, authx.RoleAssignment) error
-	RevokeRole(context.Context, authx.RoleAssignment) error
+	Grant(context.Context, authx.RoleAssignment) error
+	Revoke(context.Context, authx.RoleAssignment) error
 }
 
 type rolesClient struct {
@@ -42,7 +42,7 @@ func NewRolesClient(
 	}
 }
 
-func (r *rolesClient) GrantRole(
+func (r *rolesClient) Grant(
 	ctx context.Context,
 	roleAssignment authx.RoleAssignment,
 ) error {
@@ -58,7 +58,7 @@ func (r *rolesClient) GrantRole(
 	)
 }
 
-func (r *rolesClient) RevokeRole(
+func (r *rolesClient) Revoke(
 	ctx context.Context,
 	roleAssignment authx.RoleAssignment,
 ) error {

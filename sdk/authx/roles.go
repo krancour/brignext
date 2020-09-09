@@ -38,6 +38,7 @@ type Role struct {
 	Scope string `json:"scope"`
 }
 
+// TODO: This needs marshaling stuff
 type RoleAssignment struct {
 	Role          RoleName      `json:"role"`
 	PrincipalType PrincipalType `json:"principalType"`

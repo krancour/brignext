@@ -1,21 +1,21 @@
 package system
 
 type APIClient interface {
-	// Roles returns a specialized client for Project Role management.
+	// Roles returns a specialized client for system Role management.
 	Roles() RolesClient
 }
 
 type apiClient struct {
-	// systemRolesClient is a specialized client for Event management.
-	systemRolesClient RolesClient
+	// rolesClient is a specialized client for system Role management.
+	rolesClient RolesClient
 }
 
 func NewAPIClient(apiAddress, apiToken string, allowInsecure bool) APIClient {
 	return &apiClient{
-		systemRolesClient: NewRolesClient(apiAddress, apiToken, allowInsecure),
+		rolesClient: NewRolesClient(apiAddress, apiToken, allowInsecure),
 	}
 }
 
 func (a *apiClient) Roles() RolesClient {
-	return a.systemRolesClient
+	return a.rolesClient
 }
