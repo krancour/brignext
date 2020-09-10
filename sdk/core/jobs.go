@@ -72,6 +72,24 @@ type JobSpec struct {
 	Host *JobHost `json:"host,omitempty"`
 }
 
+// MarshalJSON amends JobSpec instances with type metadata so that clients do
+// not need to be concerned with the tedium of doing so.
+func (j JobSpec) MarshalJSON() ([]byte, error) {
+	type Alias JobSpec
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "JobSpec",
+			},
+			Alias: (Alias)(j),
+		},
+	)
+}
+
 // TODO: Document this
 type JobHost struct {
 	// TODO: Document this

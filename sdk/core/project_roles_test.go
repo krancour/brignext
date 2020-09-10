@@ -1,8 +1,9 @@
-package system
+package core
 
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -18,27 +19,32 @@ const (
 	testPrincipalType = authx.PrincipalTypeUser
 )
 
-func TestNewRolesClient(t *testing.T) {
-	client := NewRolesClient(
+func TestNewProjectRolesClient(t *testing.T) {
+	client := NewProjectRolesClient(
 		testAPIAddress,
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	require.IsType(t, &rolesClient{}, client)
-	requireBaseClient(t, client.(*rolesClient).BaseClient)
+	require.IsType(t, &projectRolesClient{}, client)
+	requireBaseClient(t, client.(*projectRolesClient).BaseClient)
 }
 
-func TestRolesClientGrant(t *testing.T) {
+func TestProjectRolesClientGrant(t *testing.T) {
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				defer r.Body.Close()
 				require.Equal(t, http.MethodPost, r.Method)
-				require.Equal(t, "/v2/system/role-assignments", r.URL.Path)
+				require.Equal(
+					t,
+					fmt.Sprintf("/v2/projects/%s/role-assignments", testProjectID),
+					r.URL.Path,
+				)
 				bodyBytes, err := ioutil.ReadAll(r.Body)
 				require.NoError(t, err)
 				roleAssignment := authx.RoleAssignment{}
 				err = json.Unmarshal(bodyBytes, &roleAssignment)
+				require.NoError(t, err)
 				require.Equal(t, testRole, roleAssignment.Role)
 				require.Equal(t, testPrincipalType, roleAssignment.PrincipalType)
 				require.Equal(t, testUserID, roleAssignment.PrincipalID)
@@ -47,13 +53,14 @@ func TestRolesClientGrant(t *testing.T) {
 		),
 	)
 	defer server.Close()
-	client := NewRolesClient(
+	client := NewProjectRolesClient(
 		server.URL,
 		testAPIToken,
 		testClientAllowInsecure,
 	)
 	err := client.Grant(
 		context.Background(),
+		testProjectID,
 		authx.RoleAssignment{
 			Role:          testRole,
 			PrincipalType: testPrincipalType,
@@ -63,12 +70,16 @@ func TestRolesClientGrant(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestRolesClientRevoke(t *testing.T) {
+func TestProjectRolesClientRevoke(t *testing.T) {
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				require.Equal(t, http.MethodDelete, r.Method)
-				require.Equal(t, "/v2/system/role-assignments", r.URL.Path)
+				require.Equal(
+					t,
+					fmt.Sprintf("/v2/projects/%s/role-assignments", testProjectID),
+					r.URL.Path,
+				)
 				require.Equal(t, testRole, authx.RoleName(r.URL.Query().Get("role")))
 				require.Equal(
 					t,
@@ -81,13 +92,14 @@ func TestRolesClientRevoke(t *testing.T) {
 		),
 	)
 	defer server.Close()
-	client := NewRolesClient(
+	client := NewProjectRolesClient(
 		server.URL,
 		testAPIToken,
 		testClientAllowInsecure,
 	)
 	err := client.Revoke(
 		context.Background(),
+		testProjectID,
 		authx.RoleAssignment{
 			Role:          testRole,
 			PrincipalType: testPrincipalType,

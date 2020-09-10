@@ -45,6 +45,7 @@ func TestServiceAccountsClientCreate(t *testing.T) {
 				require.NoError(t, err)
 				serviceAccount := ServiceAccount{}
 				err = json.Unmarshal(bodyBytes, &serviceAccount)
+				require.NoError(t, err)
 				require.Equal(t, testServiceAccountID, serviceAccount.ID)
 				w.WriteHeader(http.StatusCreated)
 				fmt.Fprintf(w, `{"value":%q}`, testServiceAccountToken)
@@ -69,7 +70,7 @@ func TestServiceAccountsClientCreate(t *testing.T) {
 	require.Equal(t, testServiceAccountToken, token.Value)
 }
 
-func TestServiceAccountsList(t *testing.T) {
+func TestServiceAccountsClientList(t *testing.T) {
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {

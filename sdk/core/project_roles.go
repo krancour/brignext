@@ -13,12 +13,12 @@ import (
 // ProjectRolesClient is the specialized client for managing Project Roles with
 // the Brigade API.
 type ProjectRolesClient interface {
-	GrantRole(
+	Grant(
 		ctx context.Context,
 		projectID string,
 		roleAssignment authx.RoleAssignment,
 	) error
-	RevokeRole(
+	Revoke(
 		ctx context.Context,
 		projectID string,
 		roleAssignment authx.RoleAssignment,
@@ -51,7 +51,7 @@ func NewProjectRolesClient(
 	}
 }
 
-func (p *projectRolesClient) GrantRole(
+func (p *projectRolesClient) Grant(
 	ctx context.Context,
 	projectID string,
 	roleAssignment authx.RoleAssignment,
@@ -71,7 +71,7 @@ func (p *projectRolesClient) GrantRole(
 	)
 }
 
-func (p *projectRolesClient) RevokeRole(
+func (p *projectRolesClient) Revoke(
 	ctx context.Context,
 	projectID string,
 	roleAssignment authx.RoleAssignment,

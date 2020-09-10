@@ -45,6 +45,24 @@ type Secret struct {
 	Value string `json:"value,omitempty"`
 }
 
+// MarshalJSON amends Secret instances with type metadata so that clients do not
+// need to be concerned with the tedium of doing so.
+func (s Secret) MarshalJSON() ([]byte, error) {
+	type Alias Secret
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "Secret",
+			},
+			Alias: (Alias)(s),
+		},
+	)
+}
+
 // SecretsClient is the specialized client for managing Secrets with the
 // Brigade API.
 type SecretsClient interface {

@@ -114,7 +114,7 @@ func projectRolesGrant(c *cli.Context) error {
 		roleAssignment.PrincipalID = serviceAccountID
 	}
 
-	if err := client.Core().Projects().Roles().GrantRole(
+	if err := client.Core().Projects().Roles().Grant(
 		c.Context,
 		projectID,
 		roleAssignment,
@@ -170,7 +170,7 @@ func projectRolesRevoke(c *cli.Context) error {
 		roleAssignment.PrincipalID = serviceAccountID
 	}
 
-	if err := client.Core().Projects().Roles().RevokeRole(
+	if err := client.Core().Projects().Roles().Revoke(
 		c.Context,
 		projectID,
 		roleAssignment,
