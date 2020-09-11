@@ -70,38 +70,29 @@ IMMUTABLE_DOCKER_TAG := $(VERSION)
 # Utility targets                                                              #
 ################################################################################
 
-.PHONY: resolve-go-dependencies
-resolve-go-dependencies:
-	$(GO_DOCKER_CMD) sh -c 'go mod tidy && go mod vendor'
-
 .PHONY: resolve-js-dependencies
 resolve-js-dependencies:
-	$(JS_DOCKER_CMD) sh -c 'cd worker && yarn install'
+	$(JS_DOCKER_CMD) sh -c 'cd v2/worker && yarn install'
 
 ################################################################################
 # Tests                                                                        #
 ################################################################################
 
-.PHONY: verify-vendored-go-code
-verify-vendored-go-code:
-	$(GO_DOCKER_CMD) go mod verify
-
 .PHONY: lint-go
 lint-go:
-	$(GO_DOCKER_CMD) golangci-lint run --config ./golangci.yaml ./...
+	$(GO_DOCKER_CMD) sh -c 'cd v2 && golangci-lint run --config ../golangci.yaml ./... && cd sdk && golangci-lint run --config ../../golangci.yaml'
 
 .PHONY: test-unit-go
 test-unit-go:
-	$(GO_DOCKER_CMD) go test -v \
-		./apiserver/... ./observer/... ./scheduler/... ./internal/... ./sdk/...
+	$(GO_DOCKER_CMD) sh -c 'cd v2/sdk && go test -v -timeout=30s -race -coverprofile=coverage.txt -covermode=atomic ./... && cd .. && go test -v -timeout=30s -race -coverprofile=coverage.txt -covermode=atomic ./...'
 
 .PHONY: verify-vendored-js-code
 verify-vendored-js-code:
-	$(JS_DOCKER_CMD) sh -c "cd worker && yarn check --integrity && yarn check --verify-tree"
+	$(JS_DOCKER_CMD) sh -c "cd v2/worker && yarn check --integrity && yarn check --verify-tree"
 
 .PHONY: test-unit-js
 test-unit-js:
-	$(JS_DOCKER_CMD) sh -c "cd worker && yarn build && yarn test"
+	$(JS_DOCKER_CMD) sh -c "cd v2/worker && yarn build && yarn test"
 
 ################################################################################
 # Build / Publish                                                              #
@@ -116,31 +107,31 @@ build-images: build-apiserver build-observer build-scheduler build-worker build-
 .PHONY: build-apiserver
 build-apiserver:
 	docker build \
-		-f apiserver/Dockerfile \
+		-f v2/apiserver/Dockerfile \
 		-t $(DOCKER_IMAGE_PREFIX)brigade-apiserver:$(IMMUTABLE_DOCKER_TAG) \
 		--build-arg VERSION='$(VERSION)' \
 		--build-arg COMMIT='$(GIT_VERSION)' \
-		.
+		v2/
 	docker tag $(DOCKER_IMAGE_PREFIX)brigade-apiserver:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brigade-apiserver:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: build-observer
 build-observer:
 	docker build \
-		-f observer/Dockerfile \
+		-f v2/observer/Dockerfile \
 		-t $(DOCKER_IMAGE_PREFIX)brigade-observer:$(IMMUTABLE_DOCKER_TAG) \
 		--build-arg VERSION='$(VERSION)' \
 		--build-arg COMMIT='$(GIT_VERSION)' \
-		.
+		v2/
 	docker tag $(DOCKER_IMAGE_PREFIX)brigade-observer:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brigade-observer:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: build-scheduler
 build-scheduler:
 	docker build \
-		-f scheduler/Dockerfile \
+		-f v2/scheduler/Dockerfile \
 		-t $(DOCKER_IMAGE_PREFIX)brigade-scheduler:$(IMMUTABLE_DOCKER_TAG) \
 		--build-arg VERSION='$(VERSION)' \
 		--build-arg COMMIT='$(GIT_VERSION)' \
-		.
+		v2/
 	docker tag $(DOCKER_IMAGE_PREFIX)brigade-scheduler:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brigade-scheduler:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: build-worker
@@ -155,7 +146,7 @@ build-logger-linux:
 	docker build \
 		-f logger/Dockerfile.linux \
 		-t $(DOCKER_IMAGE_PREFIX)brigade-logger-linux:$(IMMUTABLE_DOCKER_TAG) \
-		.
+		v2/
 	docker tag $(DOCKER_IMAGE_PREFIX)brigade-logger-linux:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brigade-logger-linux:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: build-logger-windows
@@ -163,16 +154,16 @@ build-logger-windows:
 	docker build \
 		-f logger/Dockerfile.winserv-2019 \
 		-t $(DOCKER_IMAGE_PREFIX)brigade-logger-windows:$(IMMUTABLE_DOCKER_TAG) \
-		.
+		v2/
 	docker tag $(DOCKER_IMAGE_PREFIX)brigade-logger-windows:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brigade-logger-windows:$(MUTABLE_DOCKER_TAG)
 
 .PHONTY: build-cli
 build-cli:
-	$(GO_DOCKER_CMD) bash -c "OSES=$(shell go env GOOS) ARCHS=$(shell go env GOARCH) VERSION=\"$(VERSION)\" COMMIT=\"$(GIT_VERSION)\" scripts/build-cli.sh"
+	$(GO_DOCKER_CMD) bash -c "cd v2 && OSES=$(shell go env GOOS) ARCHS=$(shell go env GOARCH) VERSION=\"$(VERSION)\" COMMIT=\"$(GIT_VERSION)\" scripts/build-cli.sh"
 
 .PHONTY: xbuild-cli
 xbuild-cli:
-	$(GO_DOCKER_CMD) bash -c "VERSION=\"$(VERSION)\" COMMIT=\"$(GIT_VERSION)\" scripts/build-cli.sh"
+	$(GO_DOCKER_CMD) bash -c "cd v2 && VERSION=\"$(VERSION)\" COMMIT=\"$(GIT_VERSION)\" scripts/build-cli.sh"
 
 .PHONY: push-images
 push-images: push-apiserver push-observer push-scheduler push-worker push-logger-linux
@@ -229,7 +220,7 @@ hack-namespace:
 .PHONY: hack
 hack: push-images build-cli hack-namespace
 	kubectl get namespace brigade || kubectl create namespace brigade
-	helm upgrade brigade charts/brigade \
+	helm upgrade brigade v2/charts/brigade \
 		--install \
 		--namespace brigade \
 		--set apiserver.image.repository=$(DOCKER_IMAGE_PREFIX)brigade-apiserver \
@@ -252,7 +243,7 @@ hack: push-images build-cli hack-namespace
 
 .PHONY: hack-apiserver
 hack-apiserver: push-apiserver hack-namespace
-	helm upgrade brigade charts/brigade \
+	helm upgrade brigade v2/charts/brigade \
 		--install \
 		--namespace brigade \
 		--reuse-values \
@@ -264,7 +255,7 @@ hack-apiserver: push-apiserver hack-namespace
 
 .PHONY: hack-observer
 hack-observer: push-observer hack-namespace
-	helm upgrade brigade charts/brigade \
+	helm upgrade brigade v2/charts/brigade \
 		--install \
 		--namespace brigade \
 		--reuse-values \
@@ -274,7 +265,7 @@ hack-observer: push-observer hack-namespace
 
 .PHONY: hack-scheduler
 hack-scheduler: push-scheduler hack-namespace
-	helm upgrade brigade charts/brigade \
+	helm upgrade brigade v2/charts/brigade \
 		--install \
 		--namespace brigade \
 		--reuse-values \
@@ -284,7 +275,7 @@ hack-scheduler: push-scheduler hack-namespace
 
 .PHONY: hack-worker
 hack-worker: push-worker hack-namespace
-	helm upgrade brigade charts/brigade \
+	helm upgrade brigade v2/charts/brigade \
 		--install \
 		--namespace brigade \
 		--reuse-values \
@@ -294,7 +285,7 @@ hack-worker: push-worker hack-namespace
 
 .PHONY: hack-logger-linux
 hack-logger-linux: push-logger-linux hack-namespace
-	helm upgrade brigade charts/brigade \
+	helm upgrade brigade v2/charts/brigade \
 		--install \
 		--namespace brigade \
 		--reuse-values \
