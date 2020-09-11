@@ -67,6 +67,7 @@ type Role struct {
 
 type RoleAssignment struct {
 	Role          RoleName      `json:"role"`
+	Scope         string        `json:"scope"`
 	PrincipalType PrincipalType `json:"principalType"`
 	PrincipalID   string        `json:"principalID"`
 }
@@ -76,9 +77,8 @@ type RoleAssignment struct {
 // ServiceAccounts.
 func RoleAdmin() Role {
 	return Role{
-		Type:  RoleTypeSystem,
-		Name:  RoleNameAdmin,
-		Scope: RoleScopeGlobal,
+		Type: RoleTypeSystem,
+		Name: RoleNameAdmin,
 	}
 }
 
@@ -109,9 +109,8 @@ func RoleProjectAdmin(projectID string) Role {
 // Projects.
 func RoleProjectCreator() Role {
 	return Role{
-		Type:  RoleTypeSystem,
-		Name:  RoleNameProjectCreator,
-		Scope: RoleScopeGlobal,
+		Type: RoleTypeSystem,
+		Name: RoleNameProjectCreator,
 	}
 }
 
@@ -144,9 +143,8 @@ func RoleProjectUser(projectID string) Role {
 // Events, Users, and Service Accounts.
 func RoleReader() Role {
 	return Role{
-		Type:  RoleTypeSystem,
-		Name:  RoleNameReader,
-		Scope: RoleScopeGlobal,
+		Type: RoleTypeSystem,
+		Name: RoleNameReader,
 	}
 }
 
@@ -160,9 +158,8 @@ func RoleReader() Role {
 // substrate. This Role is exclusively for the use of the Observer component.
 func RoleObserver() Role {
 	return Role{
-		Type:  RoleTypeSystem,
-		Name:  RoleNameObserver,
-		Scope: RoleScopeGlobal,
+		Type: RoleTypeSystem,
+		Name: RoleNameObserver,
 	}
 }
 
@@ -171,9 +168,8 @@ func RoleObserver() Role {
 // is exclusively for the use of the Scheduler component.
 func RoleScheduler() Role {
 	return Role{
-		Type:  RoleTypeSystem,
-		Name:  RoleNameScheduler,
-		Scope: RoleScopeGlobal,
+		Type: RoleTypeSystem,
+		Name: RoleNameScheduler,
 	}
 }
 

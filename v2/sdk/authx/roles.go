@@ -46,6 +46,7 @@ type Role struct {
 
 type RoleAssignment struct {
 	Role          RoleName      `json:"role"`
+	Scope         string        `json:"scope"`
 	PrincipalType PrincipalType `json:"principalType"`
 	PrincipalID   string        `json:"principalID"`
 }

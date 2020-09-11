@@ -77,15 +77,16 @@ func (s *rolesService) GrantRole(
 		roleAssignment.PrincipalType,
 		roleAssignment.PrincipalID,
 		authx.Role{
-			Type:  "SYSTEM",
+			Type:  authx.RoleTypeSystem,
 			Name:  roleAssignment.Role,
-			Scope: authx.RoleScopeGlobal,
+			Scope: roleAssignment.Scope,
 		},
 	); err != nil {
 		return errors.Wrapf(
 			err,
-			"error granting system role %q to %s %q in store",
+			"error granting system role %q with scope %q to %s %q in store",
 			roleAssignment.Role,
+			roleAssignment.Scope,
 			roleAssignment.PrincipalType,
 			roleAssignment.PrincipalID,
 		)
@@ -131,15 +132,16 @@ func (s *rolesService) RevokeRole(
 		roleAssignment.PrincipalType,
 		roleAssignment.PrincipalID,
 		authx.Role{
-			Type:  "SYSTEM",
+			Type:  authx.RoleTypeSystem,
 			Name:  roleAssignment.Role,
-			Scope: authx.RoleScopeGlobal,
+			Scope: roleAssignment.Scope,
 		},
 	); err != nil {
 		return errors.Wrapf(
 			err,
-			"error revoking system role %q for %s %q in store",
+			"error revoking system role %q with scope %q for %s %q in store",
 			roleAssignment.Role,
+			roleAssignment.Scope,
 			roleAssignment.PrincipalType,
 			roleAssignment.PrincipalID,
 		)

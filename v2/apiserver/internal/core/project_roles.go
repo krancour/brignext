@@ -93,7 +93,7 @@ func (p *projectRolesService) GrantRole(
 		roleAssignment.PrincipalType,
 		roleAssignment.PrincipalID,
 		authx.Role{
-			Type:  "PROJECT",
+			Type:  authx.RoleTypeProject,
 			Name:  roleAssignment.Role,
 			Scope: projectID,
 		},
@@ -159,7 +159,7 @@ func (p *projectRolesService) RevokeRole(
 		roleAssignment.PrincipalType,
 		roleAssignment.PrincipalID,
 		authx.Role{
-			Type:  "PROJECT",
+			Type:  authx.RoleTypeProject,
 			Name:  roleAssignment.Role,
 			Scope: projectID,
 		},
