@@ -11,10 +11,10 @@ for os in $OSES; do
     GOOS=$os GOARCH=$arch CGO_ENABLED=0 \
       go build \
       -ldflags "-w -X github.com/brigadecore/brigade/v2/internal/version.version=$VERSION -X github.com/brigadecore/brigade/v2/internal/version.commit=$COMMIT" \
-      -o ./bin/brig-$os-$arch \
+      -o ../bin/brig-$os-$arch \
       ./cli
   done
   if [ $os = 'windows' ]; then
-    mv ./bin/brig-$os-$arch ./bin/brig-$os-$arch.exe
+    mv ../bin/brig-$os-$arch ../bin/brig-$os-$arch.exe
   fi
 done

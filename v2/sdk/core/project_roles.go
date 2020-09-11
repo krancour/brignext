@@ -13,6 +13,7 @@ import (
 // ProjectRolesClient is the specialized client for managing Project Roles with
 // the Brigade API.
 type ProjectRolesClient interface {
+	// TODO: This needs a function for listing role assignments by project
 	Grant(
 		ctx context.Context,
 		projectID string,

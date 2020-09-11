@@ -12,6 +12,7 @@ import (
 // RolesClient is the specialized client for managing System Roles with
 // the Brigade API.
 type RolesClient interface {
+	// TODO: This needs a function for listing system role assignments
 	Grant(context.Context, authx.RoleAssignment) error
 	Revoke(context.Context, authx.RoleAssignment) error
 }

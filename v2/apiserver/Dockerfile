@@ -5,6 +5,7 @@ ENV CGO_ENABLED=0
 WORKDIR /src
 COPY apiserver/ apiserver/
 COPY internal/ internal/
+COPY sdk/ sdk/
 COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go build \

@@ -138,13 +138,13 @@ build-scheduler:
 build-worker:
 	docker build \
 		-t $(DOCKER_IMAGE_PREFIX)brigade-worker:$(IMMUTABLE_DOCKER_TAG) \
-		worker/
+		v2/worker/
 	docker tag $(DOCKER_IMAGE_PREFIX)brigade-worker:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brigade-worker:$(MUTABLE_DOCKER_TAG)
 
 .PHONY: build-logger-linux
 build-logger-linux:
 	docker build \
-		-f logger/Dockerfile.linux \
+		-f v2/logger/Dockerfile.linux \
 		-t $(DOCKER_IMAGE_PREFIX)brigade-logger-linux:$(IMMUTABLE_DOCKER_TAG) \
 		v2/
 	docker tag $(DOCKER_IMAGE_PREFIX)brigade-logger-linux:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brigade-logger-linux:$(MUTABLE_DOCKER_TAG)
@@ -152,7 +152,7 @@ build-logger-linux:
 .PHONY: build-logger-windows
 build-logger-windows:
 	docker build \
-		-f logger/Dockerfile.winserv-2019 \
+		-f v2/logger/Dockerfile.winserv-2019 \
 		-t $(DOCKER_IMAGE_PREFIX)brigade-logger-windows:$(IMMUTABLE_DOCKER_TAG) \
 		v2/
 	docker tag $(DOCKER_IMAGE_PREFIX)brigade-logger-windows:$(IMMUTABLE_DOCKER_TAG) $(DOCKER_IMAGE_PREFIX)brigade-logger-windows:$(MUTABLE_DOCKER_TAG)
