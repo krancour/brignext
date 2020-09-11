@@ -13,8 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testSecretKey = "theooze"
-
 func TestSecretListMarshalJSON(t *testing.T) {
 	requireAPIVersionAndType(t, SecretList{}, "SecretList")
 }
@@ -34,7 +32,19 @@ func TestNewSecretsClient(t *testing.T) {
 }
 
 func TestSecretsClientList(t *testing.T) {
-	const testWorkerPhase = WorkerPhaseRunning
+	const testProjectID = "bluebook"
+	testSecrets := SecretList{
+		Items: []Secret{
+			{
+				Key:   "soylentgreen",
+				Value: "people",
+			},
+			{
+				Key:   "whodidit",
+				Value: "thebutler",
+			},
+		},
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -44,8 +54,10 @@ func TestSecretsClientList(t *testing.T) {
 					fmt.Sprintf("/v2/projects/%s/secrets", testProjectID),
 					r.URL.Path,
 				)
+				bodyBytes, err := json.Marshal(testSecrets)
+				require.NoError(t, err)
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintln(w, "{}")
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -55,12 +67,17 @@ func TestSecretsClientList(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, err := client.List(context.Background(), testProjectID, meta.ListOptions{})
+	secrets, err := client.List(context.Background(), testProjectID, meta.ListOptions{})
 	require.NoError(t, err)
+	require.Equal(t, testSecrets, secrets)
 }
 
 func TestSecretsClientSet(t *testing.T) {
-	const testWorkerPhase = WorkerPhaseRunning
+	const testProjectID = "bluebook"
+	testSecret := Secret{
+		Key:   "soylentgreen",
+		Value: "people",
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +88,7 @@ func TestSecretsClientSet(t *testing.T) {
 					fmt.Sprintf(
 						"/v2/projects/%s/secrets/%s",
 						testProjectID,
-						testSecretKey,
+						testSecret.Key,
 					),
 					r.URL.Path,
 				)
@@ -80,7 +97,7 @@ func TestSecretsClientSet(t *testing.T) {
 				secret := Secret{}
 				err = json.Unmarshal(bodyBytes, &secret)
 				require.NoError(t, err)
-				require.Equal(t, testSecretKey, secret.Key)
+				require.Equal(t, testSecret, secret)
 				w.WriteHeader(http.StatusOK)
 			},
 		),
@@ -91,18 +108,13 @@ func TestSecretsClientSet(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	err := client.Set(
-		context.Background(),
-		testProjectID,
-		Secret{
-			Key: testSecretKey,
-		},
-	)
+	err := client.Set(context.Background(), testProjectID, testSecret)
 	require.NoError(t, err)
 }
 
 func TestSecretsClientUnset(t *testing.T) {
-	const testWorkerPhase = WorkerPhaseRunning
+	const testProjectID = "bluebook"
+	const testSecretKey = "soylentgreen"
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {

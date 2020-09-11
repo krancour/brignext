@@ -6,19 +6,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	testType        = "User"
-	testUserID      = "tony@starkindustries.com"
-	testErrorReason = "i don't have to answer to you"
-)
-
-var testErrorDetails = []string{"the", "devil", "is", "in", "the", "details"}
-
 func TestErrAuthentication(t *testing.T) {
 	err := &ErrAuthentication{
-		Reason: testErrorReason,
+		Reason: "i don't have to answer to you",
 	}
-	require.Contains(t, err.Error(), testErrorReason)
+	require.Contains(t, err.Error(), err.Reason)
 }
 
 func TestErrAuthorization(t *testing.T) {
@@ -35,10 +27,10 @@ func TestErrBadRequest(t *testing.T) {
 		{
 			name: "without details",
 			err: &ErrBadRequest{
-				Reason: testErrorReason,
+				Reason: "i don't have to answer to you",
 			},
 			assertions: func(t *testing.T, err *ErrBadRequest) {
-				require.Contains(t, err.Error(), testErrorReason)
+				require.Contains(t, err.Error(), err.Reason)
 				for _, detail := range err.Details {
 					require.NotContains(t, err.Error(), detail)
 				}
@@ -47,11 +39,11 @@ func TestErrBadRequest(t *testing.T) {
 		{
 			name: "with details",
 			err: &ErrBadRequest{
-				Reason:  testErrorReason,
-				Details: testErrorDetails,
+				Reason:  "i don't have to answer to you",
+				Details: []string{"the", "devil", "is", "in", "the", "details"},
 			},
 			assertions: func(t *testing.T, err *ErrBadRequest) {
-				require.Contains(t, err.Error(), testErrorReason)
+				require.Contains(t, err.Error(), err.Reason)
 				for _, detail := range err.Details {
 					require.Contains(t, err.Error(), detail)
 				}
@@ -67,21 +59,21 @@ func TestErrBadRequest(t *testing.T) {
 
 func TestErrNotFound(t *testing.T) {
 	err := &ErrNotFound{
-		Type: testType,
-		ID:   testUserID,
+		Type: "User",
+		ID:   "tony@starkindustries.com",
 	}
 	require.Contains(t, err.Error(), "not found")
-	require.Contains(t, err.Error(), testType)
-	require.Contains(t, err.Error(), testUserID)
+	require.Contains(t, err.Error(), err.Type)
+	require.Contains(t, err.Error(), err.ID)
 }
 
 func TestErrConflict(t *testing.T) {
 	err := &ErrConflict{
-		Type:   testType,
-		ID:     testUserID,
-		Reason: testErrorReason,
+		Type:   "User",
+		ID:     "tony@starkindustries.com",
+		Reason: "i don't have to answer to you",
 	}
-	require.Contains(t, err.Error(), testErrorReason)
+	require.Contains(t, err.Error(), err.Reason)
 }
 
 func TestErrInternalServer(t *testing.T) {
@@ -91,7 +83,7 @@ func TestErrInternalServer(t *testing.T) {
 
 func TestErrNotSupported(t *testing.T) {
 	err := &ErrNotSupported{
-		Details: testErrorReason,
+		Details: "i don't have to answer to you",
 	}
-	require.Contains(t, err.Error(), testErrorReason)
+	require.Contains(t, err.Error(), err.Details)
 }

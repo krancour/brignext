@@ -13,8 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testProjectID = "bluebook"
-
 func TestProjectListMarshalJSON(t *testing.T) {
 	requireAPIVersionAndType(t, ProjectList{}, "ProjectList")
 }
@@ -38,6 +36,11 @@ func TestNewProjectsClient(t *testing.T) {
 }
 
 func TestProjectsClientCreate(t *testing.T) {
+	testProject := Project{
+		ObjectMeta: meta.ObjectMeta{
+			ID: "bluebook",
+		},
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -49,9 +52,9 @@ func TestProjectsClientCreate(t *testing.T) {
 				project := Project{}
 				err = json.Unmarshal(bodyBytes, &project)
 				require.NoError(t, err)
-				require.Equal(t, testProjectID, project.ID)
+				require.Equal(t, testProject, project)
 				w.WriteHeader(http.StatusCreated)
-				fmt.Fprintln(w, "{}")
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -61,18 +64,22 @@ func TestProjectsClientCreate(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, err := client.Create(
+	project, err := client.Create(
 		context.Background(),
-		Project{
-			ObjectMeta: meta.ObjectMeta{
-				ID: testProjectID,
-			},
-		},
+		testProject,
 	)
 	require.NoError(t, err)
+	require.Equal(t, testProject, project)
 }
 
 func TestProjectsClientCreateFromBytes(t *testing.T) {
+	testProject := Project{
+		ObjectMeta: meta.ObjectMeta{
+			ID: "bluebook",
+		},
+	}
+	testProjectBytes, err := json.Marshal(testProject)
+	require.NoError(t, err)
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -81,12 +88,9 @@ func TestProjectsClientCreateFromBytes(t *testing.T) {
 				require.Equal(t, "/v2/projects", r.URL.Path)
 				bodyBytes, err := ioutil.ReadAll(r.Body)
 				require.NoError(t, err)
-				project := Project{}
-				err = json.Unmarshal(bodyBytes, &project)
-				require.NoError(t, err)
-				require.Equal(t, testProjectID, project.ID)
+				require.Equal(t, testProjectBytes, bodyBytes)
 				w.WriteHeader(http.StatusCreated)
-				fmt.Fprintln(w, "{}")
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -96,21 +100,30 @@ func TestProjectsClientCreateFromBytes(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, err := client.CreateFromBytes(
-		context.Background(),
-		[]byte(fmt.Sprintf(`{"metadata":{"id":%q}}`, testProjectID)),
-	)
+	project, err := client.CreateFromBytes(context.Background(), testProjectBytes)
 	require.NoError(t, err)
+	require.Equal(t, testProject, project)
 }
 
 func TestProjectsClientList(t *testing.T) {
+	testProjects := ProjectList{
+		Items: []Project{
+			{
+				ObjectMeta: meta.ObjectMeta{
+					ID: "bluebook",
+				},
+			},
+		},
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				require.Equal(t, http.MethodGet, r.Method)
 				require.Equal(t, "/v2/projects", r.URL.Path)
+				bodyBytes, err := json.Marshal(testProjects)
+				require.NoError(t, err)
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintln(w, "{}")
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -120,26 +133,34 @@ func TestProjectsClientList(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, err := client.List(
+	projects, err := client.List(
 		context.Background(),
 		ProjectsSelector{},
 		meta.ListOptions{},
 	)
 	require.NoError(t, err)
+	require.Equal(t, testProjects, projects)
 }
 
 func TestProjectsClientGet(t *testing.T) {
+	testProject := Project{
+		ObjectMeta: meta.ObjectMeta{
+			ID: "bluebook",
+		},
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				require.Equal(t, http.MethodGet, r.Method)
 				require.Equal(
 					t,
-					fmt.Sprintf("/v2/projects/%s", testProjectID),
+					fmt.Sprintf("/v2/projects/%s", testProject.ID),
 					r.URL.Path,
 				)
+				bodyBytes, err := json.Marshal(testProject)
+				require.NoError(t, err)
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintln(w, "{}")
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -149,11 +170,17 @@ func TestProjectsClientGet(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, err := client.Get(context.Background(), testProjectID)
+	project, err := client.Get(context.Background(), testProject.ID)
 	require.NoError(t, err)
+	require.Equal(t, testProject, project)
 }
 
 func TestProjectsClientUpdate(t *testing.T) {
+	testProject := Project{
+		ObjectMeta: meta.ObjectMeta{
+			ID: "bluebook",
+		},
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -161,7 +188,7 @@ func TestProjectsClientUpdate(t *testing.T) {
 				require.Equal(t, http.MethodPut, r.Method)
 				require.Equal(
 					t,
-					fmt.Sprintf("/v2/projects/%s", testProjectID),
+					fmt.Sprintf("/v2/projects/%s", testProject.ID),
 					r.URL.Path,
 				)
 				bodyBytes, err := ioutil.ReadAll(r.Body)
@@ -169,9 +196,9 @@ func TestProjectsClientUpdate(t *testing.T) {
 				project := Project{}
 				err = json.Unmarshal(bodyBytes, &project)
 				require.NoError(t, err)
-				require.Equal(t, testProjectID, project.ID)
+				require.Equal(t, testProject, project)
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintln(w, "{}")
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -181,18 +208,19 @@ func TestProjectsClientUpdate(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, err := client.Update(
-		context.Background(),
-		Project{
-			ObjectMeta: meta.ObjectMeta{
-				ID: testProjectID,
-			},
-		},
-	)
+	project, err := client.Update(context.Background(), testProject)
 	require.NoError(t, err)
+	require.Equal(t, testProject, project)
 }
 
 func TestProjectsClientUpdateFromBytes(t *testing.T) {
+	testProject := Project{
+		ObjectMeta: meta.ObjectMeta{
+			ID: "bluebook",
+		},
+	}
+	testProjectBytes, err := json.Marshal(testProject)
+	require.NoError(t, err)
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -200,17 +228,14 @@ func TestProjectsClientUpdateFromBytes(t *testing.T) {
 				require.Equal(t, http.MethodPut, r.Method)
 				require.Equal(
 					t,
-					fmt.Sprintf("/v2/projects/%s", testProjectID),
+					fmt.Sprintf("/v2/projects/%s", testProject.ID),
 					r.URL.Path,
 				)
 				bodyBytes, err := ioutil.ReadAll(r.Body)
 				require.NoError(t, err)
-				project := Project{}
-				err = json.Unmarshal(bodyBytes, &project)
-				require.NoError(t, err)
-				require.Equal(t, testProjectID, project.ID)
+				require.Equal(t, testProjectBytes, bodyBytes)
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintln(w, "{}")
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -220,15 +245,17 @@ func TestProjectsClientUpdateFromBytes(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, err := client.UpdateFromBytes(
+	project, err := client.UpdateFromBytes(
 		context.Background(),
-		testProjectID,
-		[]byte(fmt.Sprintf(`{"metadata":{"id":%q}}`, testProjectID)),
+		testProject.ID,
+		testProjectBytes,
 	)
 	require.NoError(t, err)
+	require.Equal(t, testProject, project)
 }
 
 func TestProjectsClientDelete(t *testing.T) {
+	const testProjectID = "bluebook"
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {

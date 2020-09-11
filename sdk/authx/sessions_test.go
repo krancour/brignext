@@ -2,6 +2,7 @@ package authx
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -9,10 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 )
-
-const testRootPassword = "foobar"
-const testRootToken = "prettypleasewithsugarontop"
-const testUserToken = "littlepiglittlepigletmecomein"
 
 func TestUserSessionAuthDetailsMarshalJSON(t *testing.T) {
 	requireAPIVersionAndType(t, UserSessionAuthDetails{}, "UserSessionAuthDetails")
@@ -29,14 +26,20 @@ func TestNewSessionsClient(t *testing.T) {
 }
 
 func TestSessionsClientCreateRootSession(t *testing.T) {
+	const testRootPassword = "foobar"
+	testSessionToken := Token{
+		Value: "opensesame",
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				require.Equal(t, http.MethodPost, r.Method)
 				require.Equal(t, "/v2/sessions", r.URL.Path)
 				require.Contains(t, r.Header.Get("Authorization"), "Basic")
+				bodyBytes, err := json.Marshal(testSessionToken)
+				require.NoError(t, err)
 				w.WriteHeader(http.StatusCreated)
-				fmt.Fprintf(w, `{"value":%q}`, testRootToken)
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -48,18 +51,23 @@ func TestSessionsClientCreateRootSession(t *testing.T) {
 	)
 	token, err := client.CreateRootSession(context.Background(), testRootPassword)
 	require.NoError(t, err)
-	require.Equal(t, testRootToken, token.Value)
+	require.Equal(t, testSessionToken, token)
 }
 
 func TestSessionsClientCreateUserSession(t *testing.T) {
+	testUserSessionAuthDetails := UserSessionAuthDetails{
+		Token: "opensesame",
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				require.Equal(t, http.MethodPost, r.Method)
 				require.Equal(t, "/v2/sessions", r.URL.Path)
 				require.Empty(t, r.Header.Get("Authorization"))
+				bodyBytes, err := json.Marshal(testUserSessionAuthDetails)
+				require.NoError(t, err)
 				w.WriteHeader(http.StatusCreated)
-				fmt.Fprintf(w, `{"token":%q}`, testUserToken)
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -71,7 +79,7 @@ func TestSessionsClientCreateUserSession(t *testing.T) {
 	)
 	userSessionAuthDetails, err := client.CreateUserSession(context.Background())
 	require.NoError(t, err)
-	require.Equal(t, testUserToken, userSessionAuthDetails.Token)
+	require.Equal(t, testUserSessionAuthDetails, userSessionAuthDetails)
 }
 
 func TestSessionsClientDelete(t *testing.T) {

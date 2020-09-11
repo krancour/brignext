@@ -8,11 +8,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
-
-const testJobName = "Italian"
 
 func TestJobSpecMarshalJSON(t *testing.T) {
 	requireAPIVersionAndType(t, JobSpec{}, "JobSpec")
@@ -22,7 +21,58 @@ func TestJobStatusMarshalJSON(t *testing.T) {
 	requireAPIVersionAndType(t, JobStatus{}, "JobStatus")
 }
 
+func TestJobsClientCreate(t *testing.T) {
+	const testEventID = "12345"
+	const testJobName = "Italian"
+	testJobSpec := JobSpec{
+		PrimaryContainer: JobContainerSpec{
+			ContainerSpec: ContainerSpec{
+				Image: "debian:latest",
+			},
+		},
+	}
+	server := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				defer r.Body.Close()
+				require.Equal(t, http.MethodPut, r.Method)
+				require.Equal(
+					t,
+					fmt.Sprintf(
+						"/v2/events/%s/worker/jobs/%s/spec",
+						testEventID,
+						testJobName,
+					),
+					r.URL.Path,
+				)
+				bodyBytes, err := ioutil.ReadAll(r.Body)
+				require.NoError(t, err)
+				jobSpec := JobSpec{}
+				err = json.Unmarshal(bodyBytes, &jobSpec)
+				require.NoError(t, err)
+				require.Equal(t, testJobSpec, jobSpec)
+				w.WriteHeader(http.StatusCreated)
+			},
+		),
+	)
+	defer server.Close()
+	client := NewJobsClient(
+		server.URL,
+		testAPIToken,
+		testClientAllowInsecure,
+	)
+	err := client.Create(
+		context.Background(),
+		testEventID,
+		testJobName,
+		testJobSpec,
+	)
+	require.NoError(t, err)
+}
+
 func TestJobsClientStart(t *testing.T) {
+	const testEventID = "12345"
+	const testJobName = "Italian"
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -51,6 +101,11 @@ func TestJobsClientStart(t *testing.T) {
 }
 
 func TestJobsClientGetStatus(t *testing.T) {
+	const testEventID = "12345"
+	const testJobName = "Italian"
+	testJobStatus := JobStatus{
+		Phase: JobPhaseRunning,
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -60,8 +115,10 @@ func TestJobsClientGetStatus(t *testing.T) {
 					fmt.Sprintf("/v2/events/%s/worker/jobs/%s/status", testEventID, testJobName),
 					r.URL.Path,
 				)
+				bodyBytes, err := json.Marshal(testJobStatus)
+				require.NoError(t, err)
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintln(w, "{}")
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -71,11 +128,17 @@ func TestJobsClientGetStatus(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, err := client.GetStatus(context.Background(), testEventID, testJobName)
+	jobStatus, err := client.GetStatus(context.Background(), testEventID, testJobName)
 	require.NoError(t, err)
+	require.Equal(t, testJobStatus, jobStatus)
 }
 
 func TestJobsClientWatchStatus(t *testing.T) {
+	const testEventID = "12345"
+	const testJobName = "Italian"
+	testStatus := JobStatus{
+		Phase: JobPhaseRunning,
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -90,8 +153,12 @@ func TestJobsClientWatchStatus(t *testing.T) {
 					"true",
 					r.URL.Query().Get("watch"),
 				)
-				w.WriteHeader(http.StatusOK)
-				fmt.Fprintln(w, "{}")
+				bodyBytes, err := json.Marshal(testStatus)
+				require.NoError(t, err)
+				w.Header().Set("Content-Type", "text/event-stream")
+				w.(http.Flusher).Flush()
+				fmt.Fprintln(w, string(bodyBytes))
+				w.(http.Flusher).Flush()
 			},
 		),
 	)
@@ -101,16 +168,26 @@ func TestJobsClientWatchStatus(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, _, err := client.WatchStatus(
+	statusCh, _, err := client.WatchStatus(
 		context.Background(),
 		testEventID,
 		testJobName,
 	)
 	require.NoError(t, err)
+	select {
+	case status := <-statusCh:
+		require.Equal(t, testStatus, status)
+	case <-time.After(3 * time.Second):
+		require.Fail(t, "timed out waiting for status")
+	}
 }
 
 func TestJobClientUpdateStatus(t *testing.T) {
-	const testPhase = JobPhaseRunning
+	const testEventID = "12345"
+	const testJobName = "Italian"
+	testJobStatus := JobStatus{
+		Phase: JobPhaseRunning,
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -126,7 +203,7 @@ func TestJobClientUpdateStatus(t *testing.T) {
 				jobStatus := JobStatus{}
 				err = json.Unmarshal(bodyBytes, &jobStatus)
 				require.NoError(t, err)
-				require.Equal(t, testPhase, jobStatus.Phase)
+				require.Equal(t, testJobStatus, jobStatus)
 				w.WriteHeader(http.StatusOK)
 				fmt.Fprintln(w, "{}")
 			},
@@ -142,9 +219,7 @@ func TestJobClientUpdateStatus(t *testing.T) {
 		context.Background(),
 		testEventID,
 		testJobName,
-		JobStatus{
-			Phase: testPhase,
-		},
+		testJobStatus,
 	)
 	require.NoError(t, err)
 }

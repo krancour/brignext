@@ -12,12 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	testRole          = authx.RoleName("ceo")
-	testUserID        = "tony@starkindustries.com"
-	testPrincipalType = authx.PrincipalTypeUser
-)
-
 func TestNewRolesClient(t *testing.T) {
 	client := NewRolesClient(
 		testAPIAddress,
@@ -29,6 +23,11 @@ func TestNewRolesClient(t *testing.T) {
 }
 
 func TestRolesClientGrant(t *testing.T) {
+	testRoleAssignment := authx.RoleAssignment{
+		Role:          authx.RoleName("ceo"),
+		PrincipalType: authx.PrincipalTypeUser,
+		PrincipalID:   "tony@starkindustries.com",
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -40,9 +39,7 @@ func TestRolesClientGrant(t *testing.T) {
 				roleAssignment := authx.RoleAssignment{}
 				err = json.Unmarshal(bodyBytes, &roleAssignment)
 				require.NoError(t, err)
-				require.Equal(t, testRole, roleAssignment.Role)
-				require.Equal(t, testPrincipalType, roleAssignment.PrincipalType)
-				require.Equal(t, testUserID, roleAssignment.PrincipalID)
+				require.Equal(t, testRoleAssignment, roleAssignment)
 				w.WriteHeader(http.StatusOK)
 			},
 		),
@@ -53,30 +50,36 @@ func TestRolesClientGrant(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	err := client.Grant(
-		context.Background(),
-		authx.RoleAssignment{
-			Role:          testRole,
-			PrincipalType: testPrincipalType,
-			PrincipalID:   testUserID,
-		},
-	)
+	err := client.Grant(context.Background(), testRoleAssignment)
 	require.NoError(t, err)
 }
 
 func TestRolesClientRevoke(t *testing.T) {
+	testRoleAssignment := authx.RoleAssignment{
+		Role:          authx.RoleName("ceo"),
+		PrincipalType: authx.PrincipalTypeUser,
+		PrincipalID:   "tony@starkindustries.com",
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				require.Equal(t, http.MethodDelete, r.Method)
 				require.Equal(t, "/v2/system/role-assignments", r.URL.Path)
-				require.Equal(t, testRole, authx.RoleName(r.URL.Query().Get("role")))
 				require.Equal(
 					t,
-					testPrincipalType,
+					testRoleAssignment.Role,
+					authx.RoleName(r.URL.Query().Get("role")),
+				)
+				require.Equal(
+					t,
+					testRoleAssignment.PrincipalType,
 					authx.PrincipalType(r.URL.Query().Get("principalType")),
 				)
-				require.Equal(t, testUserID, r.URL.Query().Get("principalID"))
+				require.Equal(
+					t,
+					testRoleAssignment.PrincipalID,
+					r.URL.Query().Get("principalID"),
+				)
 				w.WriteHeader(http.StatusOK)
 			},
 		),
@@ -87,13 +90,6 @@ func TestRolesClientRevoke(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	err := client.Revoke(
-		context.Background(),
-		authx.RoleAssignment{
-			Role:          testRole,
-			PrincipalType: testPrincipalType,
-			PrincipalID:   testUserID,
-		},
-	)
+	err := client.Revoke(context.Background(), testRoleAssignment)
 	require.NoError(t, err)
 }

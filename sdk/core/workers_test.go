@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -29,6 +30,7 @@ func TestNewWorkersClient(t *testing.T) {
 }
 
 func TestWorkersClientStart(t *testing.T) {
+	const testEventID = "12345"
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -53,6 +55,10 @@ func TestWorkersClientStart(t *testing.T) {
 }
 
 func TestWorkersClientGetStatus(t *testing.T) {
+	const testEventID = "12345"
+	testWorkerStatus := WorkerStatus{
+		Phase: WorkerPhaseRunning,
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -62,8 +68,10 @@ func TestWorkersClientGetStatus(t *testing.T) {
 					fmt.Sprintf("/v2/events/%s/worker/status", testEventID),
 					r.URL.Path,
 				)
+				bodyBytes, err := json.Marshal(testWorkerStatus)
+				require.NoError(t, err)
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintln(w, "{}")
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -73,11 +81,16 @@ func TestWorkersClientGetStatus(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, err := client.GetStatus(context.Background(), testEventID)
+	workerStatus, err := client.GetStatus(context.Background(), testEventID)
 	require.NoError(t, err)
+	require.Equal(t, testWorkerStatus, workerStatus)
 }
 
 func TestWorkersClientWatchStatus(t *testing.T) {
+	const testEventID = "12345"
+	testStatus := WorkerStatus{
+		Phase: WorkerPhaseRunning,
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -92,8 +105,12 @@ func TestWorkersClientWatchStatus(t *testing.T) {
 					"true",
 					r.URL.Query().Get("watch"),
 				)
-				w.WriteHeader(http.StatusOK)
-				fmt.Fprintln(w, "{}")
+				bodyBytes, err := json.Marshal(testStatus)
+				require.NoError(t, err)
+				w.Header().Set("Content-Type", "text/event-stream")
+				w.(http.Flusher).Flush()
+				fmt.Fprintln(w, string(bodyBytes))
+				w.(http.Flusher).Flush()
 			},
 		),
 	)
@@ -103,12 +120,21 @@ func TestWorkersClientWatchStatus(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, _, err := client.WatchStatus(context.Background(), testEventID)
+	statusCh, _, err := client.WatchStatus(context.Background(), testEventID)
 	require.NoError(t, err)
+	select {
+	case status := <-statusCh:
+		require.Equal(t, testStatus, status)
+	case <-time.After(3 * time.Second):
+		require.Fail(t, "timed out waiting for status")
+	}
 }
 
 func TestWorkersClientUpdateStatus(t *testing.T) {
-	const testPhase = WorkerPhaseRunning
+	const testEventID = "12345"
+	testWorkerStatus := WorkerStatus{
+		Phase: WorkerPhaseRunning,
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -124,7 +150,7 @@ func TestWorkersClientUpdateStatus(t *testing.T) {
 				workerStatus := WorkerStatus{}
 				err = json.Unmarshal(bodyBytes, &workerStatus)
 				require.NoError(t, err)
-				require.Equal(t, testPhase, workerStatus.Phase)
+				require.Equal(t, testWorkerStatus, workerStatus)
 				w.WriteHeader(http.StatusOK)
 				fmt.Fprintln(w, "{}")
 			},
@@ -139,9 +165,7 @@ func TestWorkersClientUpdateStatus(t *testing.T) {
 	err := client.UpdateStatus(
 		context.Background(),
 		testEventID,
-		WorkerStatus{
-			Phase: testPhase,
-		},
+		testWorkerStatus,
 	)
 	require.NoError(t, err)
 }

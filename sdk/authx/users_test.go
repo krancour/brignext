@@ -2,6 +2,7 @@ package authx
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,8 +11,6 @@ import (
 	"github.com/brigadecore/brigade/v2/sdk/meta"
 	"github.com/stretchr/testify/require"
 )
-
-const testUserID = "tony@starkindustries.com"
 
 func TestUserListMarshalJSON(t *testing.T) {
 	requireAPIVersionAndType(t, UserList{}, "UserList")
@@ -32,13 +31,29 @@ func TestNewUsersClient(t *testing.T) {
 }
 
 func TestUsersClientList(t *testing.T) {
+	testUsers := UserList{
+		Items: []User{
+			{
+				ObjectMeta: meta.ObjectMeta{
+					ID: "tony@starkindustries.com",
+				},
+			},
+			{
+				ObjectMeta: meta.ObjectMeta{
+					ID: "pepper@starkindustries.com",
+				},
+			},
+		},
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				require.Equal(t, http.MethodGet, r.Method)
 				require.Equal(t, "/v2/users", r.URL.Path)
+				bodyBytes, err := json.Marshal(testUsers)
+				require.NoError(t, err)
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintln(w, "{}")
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -48,26 +63,34 @@ func TestUsersClientList(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, err := client.List(
+	users, err := client.List(
 		context.Background(),
 		UsersSelector{},
 		meta.ListOptions{},
 	)
 	require.NoError(t, err)
+	require.Equal(t, testUsers, users)
 }
 
 func TestUsersClientGet(t *testing.T) {
+	testUser := User{
+		ObjectMeta: meta.ObjectMeta{
+			ID: "tony@starkindustries.com",
+		},
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				require.Equal(t, http.MethodGet, r.Method)
 				require.Equal(
 					t,
-					fmt.Sprintf("/v2/users/%s", testUserID),
+					fmt.Sprintf("/v2/users/%s", testUser.ID),
 					r.URL.Path,
 				)
+				bodyBytes, err := json.Marshal(testUser)
+				require.NoError(t, err)
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintln(w, "{}")
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -77,11 +100,13 @@ func TestUsersClientGet(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, err := client.Get(context.Background(), testUserID)
+	user, err := client.Get(context.Background(), testUser.ID)
 	require.NoError(t, err)
+	require.Equal(t, testUser, user)
 }
 
 func TestUsersClientLock(t *testing.T) {
+	const testUserID = "tony@starkindustries.com"
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -106,6 +131,7 @@ func TestUsersClientLock(t *testing.T) {
 }
 
 func TestUsersClientUnlock(t *testing.T) {
+	const testUserID = "tony@starkindustries.com"
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {

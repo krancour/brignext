@@ -13,11 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	testEventID      = "1234567890"
-	testEventPayload = "a Tesla roadster"
-)
-
 func TestEventListMarshalJSON(t *testing.T) {
 	requireAPIVersionAndType(t, EventList{}, "EventList")
 }
@@ -41,6 +36,23 @@ func TestNewEventsClient(t *testing.T) {
 }
 
 func TestEventsClientCreate(t *testing.T) {
+	testEvent := Event{
+		Payload: "a Tesla roadster",
+	}
+	testEvents := EventList{
+		Items: []Event{
+			{
+				ObjectMeta: meta.ObjectMeta{
+					ID: "12345",
+				},
+			},
+			{
+				ObjectMeta: meta.ObjectMeta{
+					ID: "abcde",
+				},
+			},
+		},
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -52,9 +64,11 @@ func TestEventsClientCreate(t *testing.T) {
 				event := Event{}
 				err = json.Unmarshal(bodyBytes, &event)
 				require.NoError(t, err)
-				require.Equal(t, testEventPayload, event.Payload)
+				require.Equal(t, testEvent, event)
+				bodyBytes, err = json.Marshal(testEvents)
+				require.NoError(t, err)
 				w.WriteHeader(http.StatusCreated)
-				fmt.Fprintln(w, "{}")
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -64,17 +78,31 @@ func TestEventsClientCreate(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, err := client.Create(
+	events, err := client.Create(
 		context.Background(),
-		Event{
-			Payload: testEventPayload,
-		},
+		testEvent,
 	)
 	require.NoError(t, err)
+	require.Equal(t, testEvents, events)
 }
 
 func TestEventsClientList(t *testing.T) {
+	const testProjectID = "bluebook"
 	const testWorkerPhase = WorkerPhaseRunning
+	testEvents := EventList{
+		Items: []Event{
+			{
+				ObjectMeta: meta.ObjectMeta{
+					ID: "12345",
+				},
+			},
+			{
+				ObjectMeta: meta.ObjectMeta{
+					ID: "abcde",
+				},
+			},
+		},
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -86,8 +114,10 @@ func TestEventsClientList(t *testing.T) {
 					testWorkerPhase,
 					WorkerPhase(r.URL.Query().Get("workerPhases")),
 				)
+				bodyBytes, err := json.Marshal(testEvents)
+				require.NoError(t, err)
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintln(w, "{}")
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -97,7 +127,7 @@ func TestEventsClientList(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, err := client.List(
+	events, err := client.List(
 		context.Background(),
 		EventsSelector{
 			ProjectID:    testProjectID,
@@ -106,21 +136,28 @@ func TestEventsClientList(t *testing.T) {
 		meta.ListOptions{},
 	)
 	require.NoError(t, err)
+	require.Equal(t, testEvents, events)
 }
 
 func TestEventsClientGet(t *testing.T) {
-	const testWorkerPhase = WorkerPhaseRunning
+	testEvent := Event{
+		ObjectMeta: meta.ObjectMeta{
+			ID: "12345",
+		},
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
 				require.Equal(t, http.MethodGet, r.Method)
 				require.Equal(
 					t,
-					fmt.Sprintf("/v2/events/%s", testEventID),
+					fmt.Sprintf("/v2/events/%s", testEvent.ID),
 					r.URL.Path,
 				)
+				bodyBytes, err := json.Marshal(testEvent)
+				require.NoError(t, err)
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintln(w, "{}")
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -130,11 +167,13 @@ func TestEventsClientGet(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, err := client.Get(context.Background(), testEventID)
+	event, err := client.Get(context.Background(), testEvent.ID)
 	require.NoError(t, err)
+	require.Equal(t, testEvent, event)
 }
 
 func TestEventsClientCancel(t *testing.T) {
+	const testEventID = "12345"
 	const testWorkerPhase = WorkerPhaseRunning
 	server := httptest.NewServer(
 		http.HandlerFunc(
@@ -160,7 +199,11 @@ func TestEventsClientCancel(t *testing.T) {
 }
 
 func TestEventsClientCancelMany(t *testing.T) {
+	const testProjectID = "bluebook"
 	const testWorkerPhase = WorkerPhaseRunning
+	testResult := CancelManyEventsResult{
+		Count: 42,
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -172,8 +215,10 @@ func TestEventsClientCancelMany(t *testing.T) {
 					testWorkerPhase,
 					WorkerPhase(r.URL.Query().Get("workerPhases")),
 				)
+				bodyBytes, err := json.Marshal(testResult)
+				require.NoError(t, err)
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintln(w, "{}")
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -183,7 +228,7 @@ func TestEventsClientCancelMany(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, err := client.CancelMany(
+	result, err := client.CancelMany(
 		context.Background(),
 		EventsSelector{
 			ProjectID:    testProjectID,
@@ -191,9 +236,11 @@ func TestEventsClientCancelMany(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
+	require.Equal(t, testResult, result)
 }
 
 func TestEventsClientDelete(t *testing.T) {
+	const testEventID = "12345"
 	const testWorkerPhase = WorkerPhaseRunning
 	server := httptest.NewServer(
 		http.HandlerFunc(
@@ -219,7 +266,11 @@ func TestEventsClientDelete(t *testing.T) {
 }
 
 func TestEventsClientDeleteMany(t *testing.T) {
+	const testProjectID = "bluebook"
 	const testWorkerPhase = WorkerPhaseRunning
+	testResult := DeleteManyEventsResult{
+		Count: 42,
+	}
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -231,8 +282,10 @@ func TestEventsClientDeleteMany(t *testing.T) {
 					testWorkerPhase,
 					WorkerPhase(r.URL.Query().Get("workerPhases")),
 				)
+				bodyBytes, err := json.Marshal(testResult)
+				require.NoError(t, err)
 				w.WriteHeader(http.StatusOK)
-				fmt.Fprintln(w, "{}")
+				fmt.Fprintln(w, string(bodyBytes))
 			},
 		),
 	)
@@ -242,7 +295,7 @@ func TestEventsClientDeleteMany(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	_, err := client.DeleteMany(
+	result, err := client.DeleteMany(
 		context.Background(),
 		EventsSelector{
 			ProjectID:    testProjectID,
@@ -250,4 +303,5 @@ func TestEventsClientDeleteMany(t *testing.T) {
 		},
 	)
 	require.NoError(t, err)
+	require.Equal(t, testResult, result)
 }
