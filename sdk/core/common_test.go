@@ -11,8 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TODO: Move these-- they're common to several tests
-
 const (
 	testAPIAddress          = "localhost:8080"
 	testAPIToken            = "11235813213455"
