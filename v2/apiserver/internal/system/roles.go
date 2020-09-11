@@ -8,13 +8,13 @@ import (
 )
 
 type RolesService interface {
-	// TODO: Implement this
-	// ListUsers(context.Context) (authx.UserList, error)
-	GrantRole(
+	// TODO: This needs a function for listing available system roles
+	// TODO: This needs a function for listing system role assignments
+	Grant(
 		ctx context.Context,
 		roleAssignment authx.RoleAssignment,
 	) error
-	RevokeRole(
+	Revoke(
 		ctx context.Context,
 		roleAssignment authx.RoleAssignment,
 	) error
@@ -40,7 +40,7 @@ func NewRolesService(
 	}
 }
 
-func (s *rolesService) GrantRole(
+func (s *rolesService) Grant(
 	ctx context.Context,
 	roleAssignment authx.RoleAssignment,
 ) error {
@@ -72,7 +72,7 @@ func (s *rolesService) GrantRole(
 	}
 
 	// Give them the Role
-	if err := s.rolesStore.GrantRole(
+	if err := s.rolesStore.Grant(
 		ctx,
 		roleAssignment.PrincipalType,
 		roleAssignment.PrincipalID,
@@ -95,7 +95,7 @@ func (s *rolesService) GrantRole(
 	return nil
 }
 
-func (s *rolesService) RevokeRole(
+func (s *rolesService) Revoke(
 	ctx context.Context,
 	roleAssignment authx.RoleAssignment,
 ) error {
@@ -127,7 +127,7 @@ func (s *rolesService) RevokeRole(
 	}
 
 	// Revoke the Role
-	if err := s.rolesStore.RevokeRole(
+	if err := s.rolesStore.Revoke(
 		ctx,
 		roleAssignment.PrincipalType,
 		roleAssignment.PrincipalID,

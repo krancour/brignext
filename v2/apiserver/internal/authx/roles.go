@@ -185,13 +185,13 @@ func RoleWorker(eventID string) Role {
 }
 
 type RolesStore interface {
-	GrantRole(
+	Grant(
 		ctx context.Context,
 		principalType PrincipalType,
 		principalID string,
 		roles ...Role,
 	) error
-	RevokeRole(
+	Revoke(
 		ctx context.Context,
 		principalType PrincipalType,
 		principalID string,

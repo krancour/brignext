@@ -230,7 +230,7 @@ func (p *projectsService) Create(
 		return project, nil
 	}
 
-	if err := p.rolesStore.GrantRole(
+	if err := p.rolesStore.Grant(
 		ctx,
 		principalType,
 		principalID,

@@ -29,18 +29,18 @@ func (r *rolesEndpoints) Register(router *mux.Router) {
 	// Grant a system Role to a User or ServiceAccount
 	router.HandleFunc(
 		"/v2/system/role-assignments",
-		r.TokenAuthFilter.Decorate(r.grantRole),
+		r.TokenAuthFilter.Decorate(r.grant),
 	).Methods(http.MethodPost)
 
 	// Revoke a system Role for a User or ServiceAccount
 	router.HandleFunc(
 		"/v2/system/role-assignments",
-		r.TokenAuthFilter.Decorate(r.revokeRole),
+		r.TokenAuthFilter.Decorate(r.revoke),
 	).Methods(http.MethodDelete)
 }
 
-// TODO: This still needs some validation
-func (r *rolesEndpoints) grantRole(
+// TODO: This still needs some validation via JSON schema
+func (r *rolesEndpoints) grant(
 	w http.ResponseWriter,
 	req *http.Request,
 ) {
@@ -51,7 +51,7 @@ func (r *rolesEndpoints) grantRole(
 			R:          req,
 			ReqBodyObj: &roleAssignment,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, r.service.GrantRole(
+				return nil, r.service.Grant(
 					req.Context(),
 					roleAssignment,
 				)
@@ -61,8 +61,8 @@ func (r *rolesEndpoints) grantRole(
 	)
 }
 
-// TODO: This still needs some validation
-func (r *rolesEndpoints) revokeRole(
+// TODO: This still needs some validation via JSON schema
+func (r *rolesEndpoints) revoke(
 	w http.ResponseWriter,
 	req *http.Request,
 ) {
@@ -76,7 +76,7 @@ func (r *rolesEndpoints) revokeRole(
 			W: w,
 			R: req,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, r.service.RevokeRole(
+				return nil, r.service.Revoke(
 					req.Context(),
 					roleAssignment,
 				)

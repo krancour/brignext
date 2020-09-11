@@ -21,7 +21,7 @@ func NewRolesStore(database *mongo.Database) (authx.RolesStore, error) {
 	}, nil
 }
 
-func (r *rolesStore) GrantRole(
+func (r *rolesStore) Grant(
 	ctx context.Context,
 	principalType authx.PrincipalType,
 	principalID string,
@@ -68,7 +68,7 @@ func (r *rolesStore) GrantRole(
 	return nil
 }
 
-func (r *rolesStore) RevokeRole(
+func (r *rolesStore) Revoke(
 	ctx context.Context,
 	principalType authx.PrincipalType,
 	principalID string,

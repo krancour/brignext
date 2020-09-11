@@ -29,18 +29,18 @@ func (p *projectsRolesEndpoints) Register(router *mux.Router) {
 	// Grant a Project Role to a User or Service Account
 	router.HandleFunc(
 		"/v2/projects/{projectID}/role-assignments",
-		p.TokenAuthFilter.Decorate(p.grantRole),
+		p.TokenAuthFilter.Decorate(p.grant),
 	).Methods(http.MethodPost)
 
 	// Revoke a Project Role for a User or Service Account
 	router.HandleFunc(
 		"/v2/projects/{projectID}/role-assignments",
-		p.TokenAuthFilter.Decorate(p.revokeRole),
+		p.TokenAuthFilter.Decorate(p.revoke),
 	).Methods(http.MethodDelete)
 }
 
-// TODO: This still needs some validation
-func (p *projectsRolesEndpoints) grantRole(
+// TODO: This still needs some validation via JSON schema
+func (p *projectsRolesEndpoints) grant(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -51,7 +51,7 @@ func (p *projectsRolesEndpoints) grantRole(
 			R:          r,
 			ReqBodyObj: &roleAssignment,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, p.service.GrantRole(
+				return nil, p.service.Grant(
 					r.Context(),
 					mux.Vars(r)["projectID"],
 					roleAssignment,
@@ -62,8 +62,8 @@ func (p *projectsRolesEndpoints) grantRole(
 	)
 }
 
-// TODO: This still needs some validation
-func (p *projectsRolesEndpoints) revokeRole(
+// TODO: This still needs some validation via JSON schema
+func (p *projectsRolesEndpoints) revoke(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -77,7 +77,7 @@ func (p *projectsRolesEndpoints) revokeRole(
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, p.service.RevokeRole(
+				return nil, p.service.Revoke(
 					r.Context(),
 					mux.Vars(r)["projectID"],
 					roleAssignment,

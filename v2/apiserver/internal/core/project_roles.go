@@ -8,14 +8,14 @@ import (
 )
 
 type ProjectRolesService interface {
-	// TODO: Implement this
-	// ListUsers(context.Context) (authx.UserList, error)
-	GrantRole(
+	// TODO: This needs a function for listing available project roles
+	// TODO: This needs a function for listing role assignments by project
+	Grant(
 		ctx context.Context,
 		projectID string,
 		roleAssignment authx.RoleAssignment,
 	) error
-	RevokeRole(
+	Revoke(
 		ctx context.Context,
 		projectID string,
 		roleAssignment authx.RoleAssignment,
@@ -45,7 +45,7 @@ func NewProjectRolesService(
 	}
 }
 
-func (p *projectRolesService) GrantRole(
+func (p *projectRolesService) Grant(
 	ctx context.Context,
 	projectID string,
 	roleAssignment authx.RoleAssignment,
@@ -88,7 +88,7 @@ func (p *projectRolesService) GrantRole(
 	}
 
 	// Give them the Role
-	if err := p.rolesStore.GrantRole(
+	if err := p.rolesStore.Grant(
 		ctx,
 		roleAssignment.PrincipalType,
 		roleAssignment.PrincipalID,
@@ -111,7 +111,7 @@ func (p *projectRolesService) GrantRole(
 	return nil
 }
 
-func (p *projectRolesService) RevokeRole(
+func (p *projectRolesService) Revoke(
 	ctx context.Context,
 	projectID string,
 	roleAssignment authx.RoleAssignment,
@@ -154,7 +154,7 @@ func (p *projectRolesService) RevokeRole(
 	}
 
 	// Revoke the Role
-	if err := p.rolesStore.RevokeRole(
+	if err := p.rolesStore.Revoke(
 		ctx,
 		roleAssignment.PrincipalType,
 		roleAssignment.PrincipalID,
