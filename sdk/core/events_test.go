@@ -174,7 +174,6 @@ func TestEventsClientGet(t *testing.T) {
 
 func TestEventsClientCancel(t *testing.T) {
 	const testEventID = "12345"
-	const testWorkerPhase = WorkerPhaseRunning
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
@@ -241,7 +240,6 @@ func TestEventsClientCancelMany(t *testing.T) {
 
 func TestEventsClientDelete(t *testing.T) {
 	const testEventID = "12345"
-	const testWorkerPhase = WorkerPhaseRunning
 	server := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {

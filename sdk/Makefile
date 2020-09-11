@@ -16,7 +16,7 @@ ifneq ($(SKIP_DOCKER),true)
 		-it \
 		--rm \
 		-e SKIP_DOCKER=true \
-		-e GOCACHE=/workspaces/brigade-sdg-for-go/.gocache \
+		-e GOCACHE=/workspaces/brigade-sdk-for-go/.gocache \
 		-v $(PROJECT_ROOT):/workspaces/brigade-sdk-for-go \
 		-w /workspaces/brigade-sdk-for-go \
 		$(DEV_IMAGE)
@@ -32,5 +32,10 @@ lint:
 
 .PHONY: test-unit
 test-unit:
-	$(DOCKER_CMD) go test -v \
+	$(DOCKER_CMD) go test \
+		-v \
+		-timeout=30s \
+		-race \
+		-coverprofile=coverage.txt \
+		-covermode=atomic \
 		./...

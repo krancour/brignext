@@ -86,7 +86,8 @@ func TestProjectsClientCreateFromBytes(t *testing.T) {
 				defer r.Body.Close()
 				require.Equal(t, http.MethodPost, r.Method)
 				require.Equal(t, "/v2/projects", r.URL.Path)
-				bodyBytes, err := ioutil.ReadAll(r.Body)
+				var bodyBytes []byte
+				bodyBytes, err = ioutil.ReadAll(r.Body)
 				require.NoError(t, err)
 				require.Equal(t, testProjectBytes, bodyBytes)
 				w.WriteHeader(http.StatusCreated)
@@ -231,7 +232,8 @@ func TestProjectsClientUpdateFromBytes(t *testing.T) {
 					fmt.Sprintf("/v2/projects/%s", testProject.ID),
 					r.URL.Path,
 				)
-				bodyBytes, err := ioutil.ReadAll(r.Body)
+				var bodyBytes []byte
+				bodyBytes, err = ioutil.ReadAll(r.Body)
 				require.NoError(t, err)
 				require.Equal(t, testProjectBytes, bodyBytes)
 				w.WriteHeader(http.StatusOK)

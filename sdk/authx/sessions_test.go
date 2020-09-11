@@ -12,7 +12,11 @@ import (
 )
 
 func TestUserSessionAuthDetailsMarshalJSON(t *testing.T) {
-	requireAPIVersionAndType(t, UserSessionAuthDetails{}, "UserSessionAuthDetails")
+	requireAPIVersionAndType(
+		t,
+		UserSessionAuthDetails{},
+		"UserSessionAuthDetails",
+	)
 }
 
 func TestNewSessionsClient(t *testing.T) {

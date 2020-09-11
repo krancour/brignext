@@ -112,7 +112,11 @@ func TestJobsClientGetStatus(t *testing.T) {
 				require.Equal(t, http.MethodGet, r.Method)
 				require.Equal(
 					t,
-					fmt.Sprintf("/v2/events/%s/worker/jobs/%s/status", testEventID, testJobName),
+					fmt.Sprintf(
+						"/v2/events/%s/worker/jobs/%s/status",
+						testEventID,
+						testJobName,
+					),
 					r.URL.Path,
 				)
 				bodyBytes, err := json.Marshal(testJobStatus)
@@ -128,7 +132,8 @@ func TestJobsClientGetStatus(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	jobStatus, err := client.GetStatus(context.Background(), testEventID, testJobName)
+	jobStatus, err :=
+		client.GetStatus(context.Background(), testEventID, testJobName)
 	require.NoError(t, err)
 	require.Equal(t, testJobStatus, jobStatus)
 }
@@ -145,7 +150,11 @@ func TestJobsClientWatchStatus(t *testing.T) {
 				require.Equal(t, http.MethodGet, r.Method)
 				require.Equal(
 					t,
-					fmt.Sprintf("/v2/events/%s/worker/jobs/%s/status", testEventID, testJobName),
+					fmt.Sprintf(
+						"/v2/events/%s/worker/jobs/%s/status",
+						testEventID,
+						testJobName,
+					),
 					r.URL.Path,
 				)
 				require.Equal(
@@ -195,7 +204,11 @@ func TestJobClientUpdateStatus(t *testing.T) {
 				require.Equal(t, http.MethodPut, r.Method)
 				require.Equal(
 					t,
-					fmt.Sprintf("/v2/events/%s/worker/jobs/%s/status", testEventID, testJobName),
+					fmt.Sprintf(
+						"/v2/events/%s/worker/jobs/%s/status",
+						testEventID,
+						testJobName,
+					),
 					r.URL.Path,
 				)
 				bodyBytes, err := ioutil.ReadAll(r.Body)

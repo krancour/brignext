@@ -67,7 +67,8 @@ func TestSecretsClientList(t *testing.T) {
 		testAPIToken,
 		testClientAllowInsecure,
 	)
-	secrets, err := client.List(context.Background(), testProjectID, meta.ListOptions{})
+	secrets, err :=
+		client.List(context.Background(), testProjectID, meta.ListOptions{})
 	require.NoError(t, err)
 	require.Equal(t, testSecrets, secrets)
 }
