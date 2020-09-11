@@ -1,5 +1,11 @@
 package authx
 
+import (
+	"encoding/json"
+
+	"github.com/brigadecore/brigade/v2/sdk/meta"
+)
+
 type RoleName string
 
 const (
@@ -38,9 +44,26 @@ type Role struct {
 	Scope string `json:"scope"`
 }
 
-// TODO: This needs marshaling stuff
 type RoleAssignment struct {
 	Role          RoleName      `json:"role"`
 	PrincipalType PrincipalType `json:"principalType"`
 	PrincipalID   string        `json:"principalID"`
+}
+
+// MarshalJSON amends ServiceAccountList instances with type metadata so that
+// clients do not need to be concerned with the tedium of doing so.
+func (r RoleAssignment) MarshalJSON() ([]byte, error) {
+	type Alias RoleAssignment
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "RoleAssignment",
+			},
+			Alias: (Alias)(r),
+		},
+	)
 }

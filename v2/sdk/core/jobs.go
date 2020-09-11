@@ -66,10 +66,8 @@ type JobSpec struct {
 	// sidecar container), then logic within those containers must account for
 	// these constraints.
 	SidecarContainers map[string]JobContainerSpec `json:"sidecarContainers,omitempty"` // nolint: lll
-	// TODO: Document this
-	TimeoutSeconds int64 `json:"timeoutSeconds,omitempty"`
-	// TODO: Document this
-	Host *JobHost `json:"host,omitempty"`
+	TimeoutSeconds    int64                       `json:"timeoutSeconds,omitempty"`
+	Host              *JobHost                    `json:"host,omitempty"`
 }
 
 // MarshalJSON amends JobSpec instances with type metadata so that clients do
@@ -90,11 +88,8 @@ func (j JobSpec) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// TODO: Document this
 type JobHost struct {
-	// TODO: Document this
-	OS string `json:"os,omitempty"`
-	// TODO: Document this
+	OS           string            `json:"os,omitempty"`
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 }
 

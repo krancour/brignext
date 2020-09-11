@@ -12,7 +12,6 @@ import (
 	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
 )
 
-// TODO: Document this
 type LogsSelector struct {
 	// Job specifies, by name, a Job spawned by the Worker. If this field is
 	// left blank, it is presumed logs are desired for the Worker itself.

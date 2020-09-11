@@ -1,3 +1,0 @@
-mode: atomic
-github.com/brigadecore/brigade/v2/internal/version/version.go:12.23,14.2 1 1
-github.com/brigadecore/brigade/v2/internal/version/version.go:17.22,19.2 1 1

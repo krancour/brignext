@@ -9,13 +9,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// TODO: This isn't very DRY. It would be nice to figure out how to reuse these
+// bits across a few different packages. The only way I (krancour) know of
+// is to move these into their own package and NOT have them in files suffixed
+// by _test.go. But were we to do that, Go would not recognize the functions as
+// code used exclusively for testing and would therefore end up dinging us on
+// coverage... for not testing the tests. :sigh:
+
 const (
 	testAPIAddress          = "localhost:8080"
 	testAPIToken            = "11235813213455"
 	testClientAllowInsecure = true
 )
 
-// TODO: Move this-- it's common to several tests
 func requireBaseClient(t *testing.T, baseClient *restmachinery.BaseClient) {
 	require.Equal(t, testAPIAddress, baseClient.APIAddress)
 	require.Equal(t, testAPIToken, baseClient.APIToken)
