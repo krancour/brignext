@@ -25,8 +25,8 @@ type BaseClient struct {
 	HTTPClient *http.Client
 }
 
-// BasicAuthHeaders, given a username and password, returns a map[string]string
-// populated with a Basic Auth header.
+// BasicAuthHeaders returns a map[string]string populated with a Basic Auth
+// header based on the provided username and password.
 func (b *BaseClient) BasicAuthHeaders(
 	username string,
 	password string,
