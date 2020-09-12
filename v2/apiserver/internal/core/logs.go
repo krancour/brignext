@@ -60,7 +60,8 @@ func (l LogEntry) MarshalJSON() ([]byte, error) {
 
 // TODO: We probably don't need this interface. The idea is to have a single
 // implementation of the service's logic, with only underlying components being
-// pluggable.
+// pluggable. BUT, STRONGLY CONSIDER THAT WE MAY NEED THIS TO MOCK OUT THE
+// SERVICE WHEN TESTING THE CORRESPONDING ENDPOINTS.
 type LogsService interface {
 	// Stream returns a channel over which logs for an Event's Worker, or
 	// using the LogsSelector parameter, a Job spawned by that Worker (or specific
