@@ -14,6 +14,8 @@ type rolesEndpoints struct {
 	service system.RolesService
 }
 
+// TODO: There probably isn't any good reason to actually have this
+// constructor-like function here. Let's consider removing it.
 func NewRolesEndpoints(
 	baseEndpoints *restmachinery.BaseEndpoints,
 	service system.RolesService,

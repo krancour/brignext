@@ -16,6 +16,8 @@ type sessionsEndpoints struct {
 	service authx.SessionsService
 }
 
+// TODO: There probably isn't any good reason to actually have this
+// constructor-like function here. Let's consider removing it.
 func NewSessionsEndpoints(
 	baseEndpoints *restmachinery.BaseEndpoints,
 	service authx.SessionsService,

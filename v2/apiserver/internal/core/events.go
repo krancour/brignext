@@ -186,6 +186,10 @@ func (d DeleteManyEventsResult) MarshalJSON() ([]byte, error) {
 // decoupled from underlying technology choices (e.g. data store, message bus,
 // etc.) to keep business logic reusable and consistent while the underlying
 // tech stack remains free to change.
+//
+// TODO: We probably don't need this interface. The idea is to have a single
+// implementation of the service's logic, with only underlying components being
+// pluggable.
 type EventsService interface {
 	// Create creates a new Event.
 	Create(context.Context, Event) (
@@ -230,6 +234,9 @@ type eventsService struct {
 }
 
 // NewEventsService returns a specialized interface for managing Events.
+//
+// TODO: There probably isn't any good reason to actually have this
+// constructor-like function here. Let's consider removing it.
 func NewEventsService(
 	projectsStore ProjectsStore,
 	eventsStore EventsStore,

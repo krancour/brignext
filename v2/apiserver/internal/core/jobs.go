@@ -99,9 +99,14 @@ type JobStatus struct {
 	Phase JobPhase `json:"phase,omitempty" bson:"phase,omitempty"`
 }
 
+// TODO: We probably don't need this interface. The idea is to have a single
+// implementation of the service's logic, with only underlying components being
+// pluggable.
 type JobsService interface {
 	// Create, given an Event identifier and JobSpec, creates a new Job and
 	// starts it on Brigade's workload execution substrate.
+	// TODO: Make this take a Job instead of a JobSpec. That makes the behavior
+	// just a little bit more consistent with that of other resources.
 	Create(
 		ctx context.Context,
 		eventID string,
@@ -147,6 +152,8 @@ type jobsService struct {
 	substrate   Substrate
 }
 
+// TODO: There probably isn't any good reason to actually have this
+// constructor-like function here. Let's consider removing it.
 func NewJobsService(
 	eventsStore EventsStore,
 	jobsStore JobsStore,

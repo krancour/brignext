@@ -18,6 +18,8 @@ type serviceAccountEndpoints struct {
 	service                    authx.ServiceAccountsService
 }
 
+// TODO: There probably isn't any good reason to actually have this
+// constructor-like function here. Let's consider removing it.
 func NewServiceAccountEndpoints(
 	baseEndpoints *restmachinery.BaseEndpoints,
 	service authx.ServiceAccountsService,

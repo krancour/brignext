@@ -136,6 +136,10 @@ func (p ProjectList) MarshalJSON() ([]byte, error) {
 // decoupled from underlying technology choices (e.g. data store, message bus,
 // etc.) to keep business logic reusable and consistent while the underlying
 // tech stack remains free to change.
+//
+// TODO: We probably don't need this interface. The idea is to have a single
+// implementation of the service's logic, with only underlying components being
+// pluggable.
 type ProjectsService interface {
 	// Create creates a new Project.
 	Create(context.Context, Project) (Project, error)
@@ -164,6 +168,9 @@ type projectsService struct {
 }
 
 // NewProjectsService returns a specialized interface for managing Projects.
+//
+// TODO: There probably isn't any good reason to actually have this
+// constructor-like function here. Let's consider removing it.
 func NewProjectsService(
 	projectsStore ProjectsStore,
 	usersStore authx.UsersStore,

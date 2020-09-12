@@ -19,6 +19,8 @@ import (
 	"github.com/brigadecore/brigade/v2/internal/kubernetes"
 )
 
+// TODO: This is the code that wires everything together and it's a little bit
+// of a mess. Let's make a point of straightening this out.
 func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 
 	// API server config

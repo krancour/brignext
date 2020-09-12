@@ -7,6 +7,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// TODO: We probably don't need this interface. The idea is to have a single
+// implementation of the service's logic, with only underlying components being
+// pluggable.
 type RolesService interface {
 	// TODO: This needs a function for listing available system roles
 	// TODO: This needs a function for listing system role assignments
@@ -27,6 +30,8 @@ type rolesService struct {
 	rolesStore           authx.RolesStore
 }
 
+// TODO: There probably isn't any good reason to actually have this
+// constructor-like function here. Let's consider removing it.
 func NewRolesService(
 	usersStore authx.UsersStore,
 	serviceAccountsStore authx.ServiceAccountsStore,

@@ -71,6 +71,10 @@ func (s ServiceAccountList) MarshalJSON() ([]byte, error) {
 // ServiceAccounts. It's decoupled from underlying technology choices (e.g. data
 // store) to keep business logic reusable and consistent while the underlying
 // tech stack remains free to change.
+//
+// TODO: We probably don't need this interface. The idea is to have a single
+// implementation of the service's logic, with only underlying components being
+// pluggable.
 type ServiceAccountsService interface {
 	// Create creates a new ServiceAccount.
 	Create(context.Context, ServiceAccount) (Token, error)
@@ -101,6 +105,9 @@ type serviceAccountsService struct {
 
 // NewServiceAccountsService returns a specialized interface for managing
 // ServiceAccounts.
+//
+// TODO: There probably isn't any good reason to actually have this
+// constructor-like function here. Let's consider removing it.
 func NewServiceAccountsService(
 	serviceAccountsStore ServiceAccountsStore,
 ) ServiceAccountsService {

@@ -19,6 +19,8 @@ type logsEndpoints struct {
 	service core.LogsService
 }
 
+// TODO: There probably isn't any good reason to actually have this
+// constructor-like function here. Let's consider removing it.
 func NewLogsEndpoints(
 	baseEndpoints *restmachinery.BaseEndpoints,
 	service core.LogsService,

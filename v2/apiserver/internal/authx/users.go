@@ -69,6 +69,10 @@ func (u UserList) MarshalJSON() ([]byte, error) {
 // from underlying technology choices (e.g. data store) to keep business logic
 // reusable and consistent while the underlying tech stack remains free to
 // change.
+//
+// TODO: We probably don't need this interface. The idea is to have a single
+// implementation of the service's logic, with only underlying components being
+// pluggable.
 type UsersService interface {
 	// List returns a UserList.
 	List(
@@ -93,6 +97,9 @@ type usersService struct {
 }
 
 // NewUsersService returns a specialized interface for managing Users.
+//
+// TODO: There probably isn't any good reason to actually have this
+// constructor-like function here. Let's consider removing it.
 func NewUsersService(usersStore UsersStore) UsersService {
 	return &usersService{
 		authorize:  Authorize,

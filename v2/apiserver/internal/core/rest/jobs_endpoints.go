@@ -22,6 +22,8 @@ type jobsEndpoints struct {
 	service               core.JobsService
 }
 
+// TODO: There probably isn't any good reason to actually have this
+// constructor-like function here. Let's consider removing it.
 func NewJobsEndpoints(
 	baseEndpoints *restmachinery.BaseEndpoints,
 	service core.JobsService,

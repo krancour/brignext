@@ -16,6 +16,8 @@ type usersEndpoints struct {
 	service authx.UsersService
 }
 
+// TODO: There probably isn't any good reason to actually have this
+// constructor-like function here. Let's consider removing it.
 func NewUsersEndpoints(
 	baseEndpoints *restmachinery.BaseEndpoints,
 	service authx.UsersService,

@@ -127,6 +127,8 @@ func (j JobStatus) MarshalJSON() ([]byte, error) {
 type JobsClient interface {
 	// Create, given an Event identifier and JobSpec, creates a new pending Job
 	// and schedules it for execution.
+	// TODO: Make this take a Job instead of a JobSpec. That makes the behavior
+	// just a little bit more consistent with that of other resources.
 	Create(
 		ctx context.Context,
 		eventID string,
