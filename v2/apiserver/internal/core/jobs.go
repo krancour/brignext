@@ -333,7 +333,8 @@ func (j *jobsService) GetStatus(
 	return job.Status, nil
 }
 
-// TODO: Should we put some kind of timeout on this function?
+// TODO: Should we put some kind of timeout on this function so forgetful
+// clients cannot watch forever?
 func (j *jobsService) WatchStatus(
 	ctx context.Context,
 	eventID string,
@@ -414,7 +415,6 @@ type JobsStore interface {
 		jobName string,
 		jobSpec JobSpec,
 	) error
-	// TODO: Add get status, watch status, etc.
 	UpdateStatus(
 		ctx context.Context,
 		eventID string,

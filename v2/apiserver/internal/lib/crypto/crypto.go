@@ -17,8 +17,9 @@ func ShortSHA(salt, input string) string {
 	return fmt.Sprintf("%x", sum)[0:54]
 }
 
-// TODO: These aren't guaranteed unique, although a collision would be
-// extraordinary. Do something more secure!
+// TODO: These aren't technically guaranteed unique, although a collision would
+// be extraordinary. There's probably a reliable way of generating tokens that
+// are guaranteed unique. We should identify that and transition.
 func NewToken(tokenLength int) string {
 	const (
 		tokenChars = "abcdefghijklmnopqrstuvwxyz" +

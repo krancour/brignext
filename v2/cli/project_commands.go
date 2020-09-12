@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/brigadecore/brigade/v2/sdk/core"
 	"github.com/brigadecore/brigade/v2/sdk/meta"
 	"github.com/ghodss/yaml"
@@ -127,7 +126,7 @@ func projectCreate(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	if _, err := client.Core().Projects().CreateFromBytes(
@@ -151,7 +150,7 @@ func projectList(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	opts := meta.ListOptions{}
@@ -211,25 +210,10 @@ func projectList(c *cli.Context) error {
 			break
 		}
 
-		// TODO: DRY this up
-		var shouldContinue bool
-		fmt.Println()
-		if err := survey.AskOne(
-			&survey.Confirm{
-				Message: fmt.Sprintf(
-					"%d results remain. Fetch more?",
-					projects.RemainingItemCount,
-				),
-			},
-			&shouldContinue,
-		); err != nil {
-			return errors.Wrap(
-				err,
-				"error confirming if user wishes to continue",
-			)
-		}
-		fmt.Println()
-		if !shouldContinue {
+		if shouldContinue, err :=
+			shouldContinue(projects.RemainingItemCount); err != nil {
+			return err
+		} else if !shouldContinue {
 			break
 		}
 
@@ -249,7 +233,7 @@ func projectGet(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	project, err := client.Core().Projects().Get(c.Context, id)
@@ -331,7 +315,7 @@ func projectUpdate(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	if _, err = client.Core().Projects().UpdateFromBytes(
@@ -360,7 +344,7 @@ func projectDelete(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	if err := client.Core().Projects().Delete(c.Context, id); err != nil {

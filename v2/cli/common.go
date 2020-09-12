@@ -24,3 +24,23 @@ func confirmed(c *cli.Context) (bool, error) {
 	fmt.Println()
 	return confirmed, nil
 }
+
+func shouldContinue(remainingItemCount int64) (bool, error) {
+	var shouldContinue bool
+	fmt.Println()
+	if err := survey.AskOne(
+		&survey.Confirm{
+			Message: fmt.Sprintf(
+				"%d results remain. Fetch more?",
+				remainingItemCount,
+			),
+		},
+		&shouldContinue,
+	); err != nil {
+		return false, errors.Wrap(
+			err,
+			"error confirming if user wishes to continue",
+		)
+	}
+	return shouldContinue, nil
+}

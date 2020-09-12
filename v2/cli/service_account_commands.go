@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/brigadecore/brigade/v2/sdk/authx"
 	"github.com/brigadecore/brigade/v2/sdk/meta"
 	"github.com/ghodss/yaml"
@@ -103,7 +102,7 @@ func serviceAccountCreate(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	token, err := client.Authx().ServiceAccounts().Create(
@@ -138,7 +137,7 @@ func serviceAccountList(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	opts := meta.ListOptions{}
@@ -203,25 +202,10 @@ func serviceAccountList(c *cli.Context) error {
 			break
 		}
 
-		// TODO: DRY this up
-		var shouldContinue bool
-		fmt.Println()
-		if err := survey.AskOne(
-			&survey.Confirm{
-				Message: fmt.Sprintf(
-					"%d results remain. Fetch more?",
-					serviceAccounts.RemainingItemCount,
-				),
-			},
-			&shouldContinue,
-		); err != nil {
-			return errors.Wrap(
-				err,
-				"error confirming if user wishes to continue",
-			)
-		}
-		fmt.Println()
-		if !shouldContinue {
+		if shouldContinue, err :=
+			shouldContinue(serviceAccounts.RemainingItemCount); err != nil {
+			return err
+		} else if !shouldContinue {
 			break
 		}
 
@@ -241,7 +225,7 @@ func serviceAccountGet(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	serviceAccount, err := client.Authx().ServiceAccounts().Get(c.Context, id)
@@ -294,7 +278,7 @@ func serviceAccountLock(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	if err := client.Authx().ServiceAccounts().Lock(c.Context, id); err != nil {
@@ -311,7 +295,7 @@ func serviceAccountUnlock(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	token, err := client.Authx().ServiceAccounts().Unlock(c.Context, id)

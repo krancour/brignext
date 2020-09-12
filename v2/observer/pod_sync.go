@@ -22,23 +22,5 @@ func (o *observer) syncDeletedPod(obj interface{}) {
 // is torpedoed.
 func (o *observer) deletePod(_ corev1.Pod) {
 	<-time.After(60 * time.Second)
-	// Can't use the podsClient that is stored as an observer attribute. We
-	// need to grab a namespaced one.
-	//
-	// TODO: Uncomment this. This is just to help me hack without things getting
-	// deleted from underneath my feet.
-	//
-	// podsClient := o.kubeClient.CoreV1().Pods(pod.Namespace)
-	// namespacedPodName := namespacedPodName(pod.Namespace, pod.Name)
-	// log.Printf("finally deleting pod %s", namespacedPodName)
-	// if err :=
-	// 	podsClient.Delete(pod.Name, &metav1.DeleteOptions{}); err != nil {
-	// 	log.Printf("error deleting pod %s: %s", namespacedPodName, err)
-	// }
-	//
-	// TODO: Also need to delete workspace (PVC)
-	// TODO: Also need to delete worker and job configmaps and secrets
-	// TODO: When do the event configmap and event secret get deleted???
-	// TODO: Maybe we should actually let the API handle all of that! When the
-	// worker or job status is updated, delete whatever isn't needed anymore.
+	// TODO: Also delete any others k8s resources used by this pod.
 }

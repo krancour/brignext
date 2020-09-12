@@ -16,7 +16,8 @@ import (
 type queueReaderFactory struct {
 	address  string
 	dialOpts []amqp.ConnOption
-	// TODO: Replace this with some kind of options doohickey
+	// TODO: Replace this field with some kind of options struct to allow for
+	// future expansion
 	isAzureServiceBus bool
 	amqpClient        *amqp.Client
 	amqpClientMu      *sync.Mutex

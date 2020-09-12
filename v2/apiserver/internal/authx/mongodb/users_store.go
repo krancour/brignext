@@ -150,7 +150,8 @@ func (u *usersStore) Lock(ctx context.Context, id string) error {
 	}
 
 	// Now delete all the user's sessions.
-	// TODO: Make the service do this
+	// TODO: Make the service do this instead of counting on the store to
+	// coordinate across different resource types.
 	if _, err = u.sessionsCollection.DeleteMany(
 		ctx,
 		bson.M{

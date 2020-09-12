@@ -217,8 +217,9 @@ func (p *projectsStore) Delete(ctx context.Context, id string) error {
 		}
 	}
 
-	// TODO: The service should worry about cascading deletes
 	// Cascade the delete to the project's events
+	// TODO: Make the service do this instead of counting on the store to
+	// coordinate across different resource types.
 	if _, err := p.eventsCollection.DeleteMany(
 		ctx,
 		bson.M{

@@ -10,7 +10,10 @@ import (
 func getClient(c *cli.Context) (sdk.APIClient, error) {
 	config, err := getConfig()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error retrieving configuration")
+		return nil, errors.Wrapf(
+			err,
+			"error getting brigade client: error retrieving configuration",
+		)
 	}
 	return sdk.NewAPIClient(
 		config.APIAddress,

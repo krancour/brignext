@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/brigadecore/brigade/v2/sdk/core"
-	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
 
@@ -53,7 +52,7 @@ func logs(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	logEntryCh, errCh, err :=

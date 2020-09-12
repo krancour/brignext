@@ -243,8 +243,7 @@ func NewEventsService(
 	}
 }
 
-// TODO: There's a lot of stuff that happens in this function that maybe we
-// should defer until later-- like when the worker pod actually gets created.
+// TODO: Review whether defaults are being applies in the most sensible places.
 func (e *eventsService) Create(
 	ctx context.Context,
 	event Event,
@@ -319,7 +318,6 @@ func (e *eventsService) Create(
 			workerSpec.Git = &WorkerGitConfig{}
 		}
 		// VCS details from the event override project-level details
-		// TODO: Might need some nil checks below
 		if event.Git.CloneURL != "" {
 			workerSpec.Git.CloneURL = event.Git.CloneURL
 		}
@@ -529,7 +527,9 @@ func (e *eventsService) CancelMany(
 
 	result.Count = int64(len(events.Items))
 
-	// TODO: Can we find a quicker, more efficient way to do this?
+	// TODO: This could take a while, so we don't do it synchronously. But what if
+	// the process dies while this is in-progress? Can we find a quicker, more
+	// efficient way to do this?
 	go func() {
 		for _, event := range events.Items {
 			if err := e.substrate.DeleteWorkerAndJobs(
@@ -626,7 +626,9 @@ func (e *eventsService) DeleteMany(
 
 	result.Count = int64(len(events.Items))
 
-	// TODO: Can we find a quicker, more efficient way to do this?
+	// TODO: This could take a while, so we don't do it synchronously. But what if
+	// the process dies while this is in-progress? Can we find a quicker, more
+	// efficient way to do this?
 	go func() {
 		for _, event := range events.Items {
 			if err := e.substrate.DeleteWorkerAndJobs(

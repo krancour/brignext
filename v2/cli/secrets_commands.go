@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/brigadecore/brigade/v2/sdk/core"
 	"github.com/brigadecore/brigade/v2/sdk/meta"
 	"github.com/ghodss/yaml"
@@ -87,7 +86,7 @@ func secretsList(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	opts := meta.ListOptions{}
@@ -138,25 +137,10 @@ func secretsList(c *cli.Context) error {
 			break
 		}
 
-		// TODO: DRY this up
-		var shouldContinue bool
-		fmt.Println()
-		if err := survey.AskOne(
-			&survey.Confirm{
-				Message: fmt.Sprintf(
-					"%d results remain. Fetch more?",
-					secrets.RemainingItemCount,
-				),
-			},
-			&shouldContinue,
-		); err != nil {
-			return errors.Wrap(
-				err,
-				"error confirming if user wishes to continue",
-			)
-		}
-		fmt.Println()
-		if !shouldContinue {
+		if shouldContinue, err :=
+			shouldContinue(secrets.RemainingItemCount); err != nil {
+			return err
+		} else if !shouldContinue {
 			break
 		}
 
@@ -185,7 +169,7 @@ func secretsSet(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	// Note: The pattern for setting multiple secrets RESTfully in one shot isn't
@@ -217,7 +201,7 @@ func secretsUnset(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	// Note: The pattern for deleting multiple secrets RESTfully in one shot isn't

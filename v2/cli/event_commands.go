@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/brigadecore/brigade/v2/internal/file"
 	"github.com/brigadecore/brigade/v2/sdk/core"
 	"github.com/brigadecore/brigade/v2/sdk/meta"
@@ -45,8 +44,6 @@ var eventCommand = &cli.Command{
 			},
 			Action: eventCancel,
 		},
-		// TODO: This should error locally (without making a roundtrip) if no states
-		// were specified.
 		{
 			Name:    "cancel-many",
 			Aliases: []string{"cm"},
@@ -129,8 +126,6 @@ var eventCommand = &cli.Command{
 			},
 			Action: eventDelete,
 		},
-		// TODO: This should error locally (without making a roundtrip) if no states
-		// were specified.
 		{
 			Name:    "delete-many",
 			Aliases: []string{"dm"},
@@ -331,7 +326,7 @@ func eventCreate(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	events, err := client.Core().Events().Create(c.Context, event)
@@ -398,7 +393,7 @@ func eventList(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	selector := core.EventsSelector{
@@ -464,25 +459,10 @@ func eventList(c *cli.Context) error {
 			break
 		}
 
-		// TODO: DRY this up
-		var shouldContinue bool
-		fmt.Println()
-		if err := survey.AskOne(
-			&survey.Confirm{
-				Message: fmt.Sprintf(
-					"%d results remain. Fetch more?",
-					events.RemainingItemCount,
-				),
-			},
-			&shouldContinue,
-		); err != nil {
-			return errors.Wrap(
-				err,
-				"error confirming if user wishes to continue",
-			)
-		}
-		fmt.Println()
-		if !shouldContinue {
+		if shouldContinue, err :=
+			shouldContinue(events.RemainingItemCount); err != nil {
+			return err
+		} else if !shouldContinue {
 			break
 		}
 
@@ -502,7 +482,7 @@ func eventGet(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	event, err := client.Core().Events().Get(c.Context, id)
@@ -590,7 +570,7 @@ func eventCancel(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	if err = client.Core().Events().Cancel(c.Context, id); err != nil {
@@ -615,7 +595,7 @@ func eventCancelMany(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	selector := core.EventsSelector{
@@ -649,7 +629,7 @@ func eventDelete(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	if err = client.Core().Events().Delete(c.Context, id); err != nil {
@@ -707,6 +687,9 @@ func eventDeleteMany(c *cli.Context) error {
 		workerPhases = core.WorkerPhasesTerminal()
 	}
 
+	// TODO: This should error locally (without making a roundtrip) if no phases
+	// were specified.
+
 	confirmed, err := confirmed(c)
 	if err != nil {
 		return err
@@ -717,7 +700,7 @@ func eventDeleteMany(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	selector := core.EventsSelector{

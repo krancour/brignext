@@ -96,7 +96,7 @@ func projectRolesGrant(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	roleAssignment := authx.RoleAssignment{
@@ -152,7 +152,7 @@ func projectRolesRevoke(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	roleAssignment := authx.RoleAssignment{

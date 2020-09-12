@@ -748,7 +748,11 @@ func (s *substrate) createWorkerPod(
 		initContainers = append(
 			initContainers,
 			corev1.Container{
-				Name:            "vcs",
+				Name: "vcs",
+				// TODO: For now, we're using the Brigade 1.x git init image, but for
+				// the sake of consistency and to lower the bar for creating additional
+				// VCS integrations, we should develop a new/improved image that gets
+				// input from a chunk of JSON, just like the actual worker image does.
 				Image:           "brigadecore/git-sidecar:v1.4.0",
 				ImagePullPolicy: corev1.PullAlways,
 				VolumeMounts: []corev1.VolumeMount{

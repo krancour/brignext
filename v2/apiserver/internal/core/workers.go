@@ -269,7 +269,8 @@ func (w *workersService) GetStatus(
 	return event.Worker.Status, nil
 }
 
-// TODO: Should we put some kind of timeout on this function?
+// TODO: Should we put some kind of timeout on this function so forgetful
+// clients cannot watch forever?
 func (w *workersService) WatchStatus(
 	ctx context.Context,
 	eventID string,
@@ -338,7 +339,6 @@ type WorkersStore interface {
 		eventID string,
 		spec WorkerSpec,
 	) error
-	// TODO: Add get status, watch status, etc.
 	UpdateStatus(
 		ctx context.Context,
 		eventID string,

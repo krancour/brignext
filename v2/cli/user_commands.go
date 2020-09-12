@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/brigadecore/brigade/v2/sdk/authx"
 	"github.com/brigadecore/brigade/v2/sdk/meta"
 	"github.com/ghodss/yaml"
@@ -81,7 +80,7 @@ func userList(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	opts := meta.ListOptions{}
@@ -142,25 +141,10 @@ func userList(c *cli.Context) error {
 			break
 		}
 
-		// TODO: DRY this up
-		var shouldContinue bool
-		fmt.Println()
-		if err := survey.AskOne(
-			&survey.Confirm{
-				Message: fmt.Sprintf(
-					"%d results remain. Fetch more?",
-					users.RemainingItemCount,
-				),
-			},
-			&shouldContinue,
-		); err != nil {
-			return errors.Wrap(
-				err,
-				"error confirming if user wishes to continue",
-			)
-		}
-		fmt.Println()
-		if !shouldContinue {
+		if shouldContinue, err :=
+			shouldContinue(users.RemainingItemCount); err != nil {
+			return err
+		} else if !shouldContinue {
 			break
 		}
 
@@ -180,7 +164,7 @@ func userGet(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	user, err := client.Authx().Users().Get(c.Context, id)
@@ -229,7 +213,7 @@ func userLock(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	if err := client.Authx().Users().Lock(c.Context, id); err != nil {
@@ -246,7 +230,7 @@ func userUnlock(c *cli.Context) error {
 
 	client, err := getClient(c)
 	if err != nil {
-		return errors.Wrap(err, "error getting brigade client")
+		return err
 	}
 
 	if err := client.Authx().Users().Unlock(c.Context, id); err != nil {
