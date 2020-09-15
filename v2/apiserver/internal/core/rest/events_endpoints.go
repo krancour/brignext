@@ -13,27 +13,13 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-type eventsEndpoints struct {
+type EventsEndpoints struct {
 	*restmachinery.BaseEndpoints
-	eventSchemaLoader gojsonschema.JSONLoader
-	service           core.EventsService
+	EventSchemaLoader gojsonschema.JSONLoader
+	Service           core.EventsService
 }
 
-// TODO: There probably isn't any good reason to actually have this
-// constructor-like function here. Let's consider removing it.
-func NewEventsEndpoints(
-	baseEndpoints *restmachinery.BaseEndpoints,
-	service core.EventsService,
-) restmachinery.Endpoints {
-	// nolint: lll
-	return &eventsEndpoints{
-		BaseEndpoints:     baseEndpoints,
-		eventSchemaLoader: gojsonschema.NewReferenceLoader("file:///brigade/schemas/event.json"),
-		service:           service,
-	}
-}
-
-func (e *eventsEndpoints) Register(router *mux.Router) {
+func (e *EventsEndpoints) Register(router *mux.Router) {
 	// Create event
 	router.HandleFunc(
 		"/v2/events",
@@ -77,23 +63,23 @@ func (e *eventsEndpoints) Register(router *mux.Router) {
 	).Methods(http.MethodDelete)
 }
 
-func (e *eventsEndpoints) create(w http.ResponseWriter, r *http.Request) {
+func (e *EventsEndpoints) create(w http.ResponseWriter, r *http.Request) {
 	event := core.Event{}
 	e.ServeRequest(
 		restmachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
-			ReqBodySchemaLoader: e.eventSchemaLoader,
+			ReqBodySchemaLoader: e.EventSchemaLoader,
 			ReqBodyObj:          &event,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.Create(r.Context(), event)
+				return e.Service.Create(r.Context(), event)
 			},
 			SuccessCode: http.StatusCreated,
 		},
 	)
 }
 
-func (e *eventsEndpoints) list(w http.ResponseWriter, r *http.Request) {
+func (e *EventsEndpoints) list(w http.ResponseWriter, r *http.Request) {
 	selector := core.EventsSelector{
 		ProjectID: r.URL.Query().Get("projectID"),
 	}
@@ -131,40 +117,40 @@ func (e *eventsEndpoints) list(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.List(r.Context(), selector, opts)
+				return e.Service.List(r.Context(), selector, opts)
 			},
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (e *eventsEndpoints) get(w http.ResponseWriter, r *http.Request) {
+func (e *EventsEndpoints) get(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
 		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.Get(r.Context(), mux.Vars(r)["id"])
+				return e.Service.Get(r.Context(), mux.Vars(r)["id"])
 			},
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (e *eventsEndpoints) cancel(w http.ResponseWriter, r *http.Request) {
+func (e *EventsEndpoints) cancel(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
 		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, e.service.Cancel(r.Context(), mux.Vars(r)["id"])
+				return nil, e.Service.Cancel(r.Context(), mux.Vars(r)["id"])
 			},
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (e *eventsEndpoints) cancelMany(
+func (e *EventsEndpoints) cancelMany(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -184,27 +170,27 @@ func (e *eventsEndpoints) cancelMany(
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.CancelMany(r.Context(), selector)
+				return e.Service.CancelMany(r.Context(), selector)
 			},
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (e *eventsEndpoints) delete(w http.ResponseWriter, r *http.Request) {
+func (e *EventsEndpoints) delete(w http.ResponseWriter, r *http.Request) {
 	e.ServeRequest(
 		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, e.service.Delete(r.Context(), mux.Vars(r)["id"])
+				return nil, e.Service.Delete(r.Context(), mux.Vars(r)["id"])
 			},
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (e *eventsEndpoints) deleteMany(w http.ResponseWriter, r *http.Request) {
+func (e *EventsEndpoints) deleteMany(w http.ResponseWriter, r *http.Request) {
 	selector := core.EventsSelector{
 		ProjectID: r.URL.Query().Get("projectID"),
 	}
@@ -221,7 +207,7 @@ func (e *eventsEndpoints) deleteMany(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return e.service.DeleteMany(r.Context(), selector)
+				return e.Service.DeleteMany(r.Context(), selector)
 			},
 			SuccessCode: http.StatusOK,
 		},

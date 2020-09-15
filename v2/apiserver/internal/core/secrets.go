@@ -66,10 +66,6 @@ func (s SecretList) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// TODO: We probably don't need this interface. The idea is to have a single
-// implementation of the service's logic, with only underlying components being
-// pluggable. BUT, STRONGLY CONSIDER THAT WE MAY NEED THIS TO MOCK OUT THE
-// SERVICE WHEN TESTING THE CORRESPONDING ENDPOINTS.
 type SecretsService interface {
 	// List returns a SecretList who Items (Secrets) contain Keys only and
 	// not Values (all Value fields are empty). i.e. Once a secret is set, end
@@ -96,8 +92,6 @@ type secretsService struct {
 	secretsStore  SecretsStore
 }
 
-// TODO: There probably isn't any good reason to actually have this
-// constructor-like function here. Let's consider removing it.
 func NewSecretsService(
 	projectsStore ProjectsStore,
 	secretsStore SecretsStore,

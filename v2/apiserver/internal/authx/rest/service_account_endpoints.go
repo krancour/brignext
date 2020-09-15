@@ -12,27 +12,13 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-type serviceAccountEndpoints struct {
+type ServiceAccountEndpoints struct {
 	*restmachinery.BaseEndpoints
-	serviceAccountSchemaLoader gojsonschema.JSONLoader
-	service                    authx.ServiceAccountsService
+	ServiceAccountSchemaLoader gojsonschema.JSONLoader
+	Service                    authx.ServiceAccountsService
 }
 
-// TODO: There probably isn't any good reason to actually have this
-// constructor-like function here. Let's consider removing it.
-func NewServiceAccountEndpoints(
-	baseEndpoints *restmachinery.BaseEndpoints,
-	service authx.ServiceAccountsService,
-) restmachinery.Endpoints {
-	// nolint: lll
-	return &serviceAccountEndpoints{
-		BaseEndpoints:              baseEndpoints,
-		serviceAccountSchemaLoader: gojsonschema.NewReferenceLoader("file:///brigade/schemas/service-account.json"),
-		service:                    service,
-	}
-}
-
-func (s *serviceAccountEndpoints) Register(router *mux.Router) {
+func (s *ServiceAccountEndpoints) Register(router *mux.Router) {
 	// Create service account
 	router.HandleFunc(
 		"/v2/service-accounts",
@@ -64,7 +50,7 @@ func (s *serviceAccountEndpoints) Register(router *mux.Router) {
 	).Methods(http.MethodDelete)
 }
 
-func (s *serviceAccountEndpoints) create(
+func (s *ServiceAccountEndpoints) create(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -73,17 +59,17 @@ func (s *serviceAccountEndpoints) create(
 		restmachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
-			ReqBodySchemaLoader: s.serviceAccountSchemaLoader,
+			ReqBodySchemaLoader: s.ServiceAccountSchemaLoader,
 			ReqBodyObj:          &serviceAccount,
 			EndpointLogic: func() (interface{}, error) {
-				return s.service.Create(r.Context(), serviceAccount)
+				return s.Service.Create(r.Context(), serviceAccount)
 			},
 			SuccessCode: http.StatusCreated,
 		},
 	)
 }
 
-func (s *serviceAccountEndpoints) list(w http.ResponseWriter, r *http.Request) {
+func (s *ServiceAccountEndpoints) list(w http.ResponseWriter, r *http.Request) {
 	opts := meta.ListOptions{
 		Continue: r.URL.Query().Get("continue"),
 	}
@@ -109,7 +95,7 @@ func (s *serviceAccountEndpoints) list(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return s.service.List(
+				return s.Service.List(
 					r.Context(),
 					authx.ServiceAccountsSelector{},
 					opts,
@@ -120,32 +106,32 @@ func (s *serviceAccountEndpoints) list(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (s *serviceAccountEndpoints) get(w http.ResponseWriter, r *http.Request) {
+func (s *ServiceAccountEndpoints) get(w http.ResponseWriter, r *http.Request) {
 	s.ServeRequest(
 		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return s.service.Get(r.Context(), mux.Vars(r)["id"])
+				return s.Service.Get(r.Context(), mux.Vars(r)["id"])
 			},
 			SuccessCode: http.StatusOK,
 		})
 }
 
-func (s *serviceAccountEndpoints) lock(w http.ResponseWriter, r *http.Request) {
+func (s *ServiceAccountEndpoints) lock(w http.ResponseWriter, r *http.Request) {
 	s.ServeRequest(
 		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.Lock(r.Context(), mux.Vars(r)["id"])
+				return nil, s.Service.Lock(r.Context(), mux.Vars(r)["id"])
 			},
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (s *serviceAccountEndpoints) unlock(
+func (s *ServiceAccountEndpoints) unlock(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -154,7 +140,7 @@ func (s *serviceAccountEndpoints) unlock(
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return s.service.Unlock(r.Context(), mux.Vars(r)["id"])
+				return s.Service.Unlock(r.Context(), mux.Vars(r)["id"])
 			},
 			SuccessCode: http.StatusOK,
 		},

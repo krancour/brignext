@@ -11,24 +11,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-type sessionsEndpoints struct {
+type SessionsEndpoints struct {
 	*restmachinery.BaseEndpoints
-	service authx.SessionsService
+	Service authx.SessionsService
 }
 
-// TODO: There probably isn't any good reason to actually have this
-// constructor-like function here. Let's consider removing it.
-func NewSessionsEndpoints(
-	baseEndpoints *restmachinery.BaseEndpoints,
-	service authx.SessionsService,
-) restmachinery.Endpoints {
-	return &sessionsEndpoints{
-		BaseEndpoints: baseEndpoints,
-		service:       service,
-	}
-}
-
-func (s *sessionsEndpoints) Register(router *mux.Router) {
+func (s *SessionsEndpoints) Register(router *mux.Router) {
 	// Create session
 	router.HandleFunc(
 		"/v2/sessions",
@@ -48,7 +36,7 @@ func (s *sessionsEndpoints) Register(router *mux.Router) {
 	).Methods(http.MethodGet)
 }
 
-func (s *sessionsEndpoints) create(w http.ResponseWriter, r *http.Request) {
+func (s *SessionsEndpoints) create(w http.ResponseWriter, r *http.Request) {
 	// nolint: errcheck
 	rootSessionRequest, _ := strconv.ParseBool(r.URL.Query().Get("root"))
 
@@ -65,7 +53,7 @@ func (s *sessionsEndpoints) create(w http.ResponseWriter, r *http.Request) {
 								"include a valid basic auth header.",
 						}
 					}
-					return s.service.CreateRootSession(r.Context(), username, password)
+					return s.Service.CreateRootSession(r.Context(), username, password)
 				},
 				SuccessCode: http.StatusCreated,
 			},
@@ -78,14 +66,14 @@ func (s *sessionsEndpoints) create(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return s.service.CreateUserSession(r.Context())
+				return s.Service.CreateUserSession(r.Context())
 			},
 			SuccessCode: http.StatusCreated,
 		},
 	)
 }
 
-func (s *sessionsEndpoints) delete(w http.ResponseWriter, r *http.Request) {
+func (s *SessionsEndpoints) delete(w http.ResponseWriter, r *http.Request) {
 	s.ServeRequest(
 		restmachinery.InboundRequest{
 			W: w,
@@ -98,14 +86,14 @@ func (s *sessionsEndpoints) delete(w http.ResponseWriter, r *http.Request) {
 							"found in request context",
 					)
 				}
-				return nil, s.service.Delete(r.Context(), sessionID)
+				return nil, s.Service.Delete(r.Context(), sessionID)
 			},
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (s *sessionsEndpoints) authenticate(
+func (s *SessionsEndpoints) authenticate(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -124,7 +112,7 @@ func (s *sessionsEndpoints) authenticate(
 						`query parameters.`,
 				}
 			}
-			if err := s.service.Authenticate(
+			if err := s.Service.Authenticate(
 				r.Context(),
 				oauth2State,
 				oidcCode,

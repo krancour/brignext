@@ -14,25 +14,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-type logsEndpoints struct {
+type LogsEndpoints struct {
 	*restmachinery.BaseEndpoints
-	service core.LogsService
+	Service core.LogsService
 }
 
-// TODO: There probably isn't any good reason to actually have this
-// constructor-like function here. Let's consider removing it.
-func NewLogsEndpoints(
-	baseEndpoints *restmachinery.BaseEndpoints,
-	service core.LogsService,
-) restmachinery.Endpoints {
-	// nolint: lll
-	return &logsEndpoints{
-		BaseEndpoints: baseEndpoints,
-		service:       service,
-	}
-}
-
-func (l *logsEndpoints) Register(router *mux.Router) {
+func (l *LogsEndpoints) Register(router *mux.Router) {
 	// Stream logs
 	router.HandleFunc(
 		"/v2/events/{id}/logs",
@@ -40,7 +27,7 @@ func (l *logsEndpoints) Register(router *mux.Router) {
 	).Methods(http.MethodGet)
 }
 
-func (l *logsEndpoints) stream(
+func (l *LogsEndpoints) stream(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -56,7 +43,7 @@ func (l *logsEndpoints) stream(
 		Follow: follow,
 	}
 
-	logEntryCh, err := l.service.Stream(r.Context(), id, selector, opts)
+	logEntryCh, err := l.Service.Stream(r.Context(), id, selector, opts)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*meta.ErrNotFound); ok {
 			l.WriteAPIResponse(w, http.StatusNotFound, errors.Cause(err))

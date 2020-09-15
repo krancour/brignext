@@ -12,27 +12,13 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-type projectsEndpoints struct {
+type ProjectsEndpoints struct {
 	*restmachinery.BaseEndpoints
-	projectSchemaLoader gojsonschema.JSONLoader
-	service             core.ProjectsService
+	ProjectSchemaLoader gojsonschema.JSONLoader
+	Service             core.ProjectsService
 }
 
-// TODO: There probably isn't any good reason to actually have this
-// constructor-like function here. Let's consider removing it.
-func NewProjectsEndpoints(
-	baseEndpoints *restmachinery.BaseEndpoints,
-	service core.ProjectsService,
-) restmachinery.Endpoints {
-	// nolint: lll
-	return &projectsEndpoints{
-		BaseEndpoints:       baseEndpoints,
-		projectSchemaLoader: gojsonschema.NewReferenceLoader("file:///brigade/schemas/project.json"),
-		service:             service,
-	}
-}
-
-func (p *projectsEndpoints) Register(router *mux.Router) {
+func (p *ProjectsEndpoints) Register(router *mux.Router) {
 	// Create Project
 	router.HandleFunc(
 		"/v2/projects",
@@ -64,23 +50,23 @@ func (p *projectsEndpoints) Register(router *mux.Router) {
 	).Methods(http.MethodDelete)
 }
 
-func (p *projectsEndpoints) create(w http.ResponseWriter, r *http.Request) {
+func (p *ProjectsEndpoints) create(w http.ResponseWriter, r *http.Request) {
 	project := core.Project{}
 	p.ServeRequest(
 		restmachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
-			ReqBodySchemaLoader: p.projectSchemaLoader,
+			ReqBodySchemaLoader: p.ProjectSchemaLoader,
 			ReqBodyObj:          &project,
 			EndpointLogic: func() (interface{}, error) {
-				return p.service.Create(r.Context(), project)
+				return p.Service.Create(r.Context(), project)
 			},
 			SuccessCode: http.StatusCreated,
 		},
 	)
 }
 
-func (p *projectsEndpoints) list(w http.ResponseWriter, r *http.Request) {
+func (p *ProjectsEndpoints) list(w http.ResponseWriter, r *http.Request) {
 	opts := meta.ListOptions{
 		Continue: r.URL.Query().Get("continue"),
 	}
@@ -106,33 +92,33 @@ func (p *projectsEndpoints) list(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return p.service.List(r.Context(), core.ProjectsSelector{}, opts)
+				return p.Service.List(r.Context(), core.ProjectsSelector{}, opts)
 			},
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (p *projectsEndpoints) get(w http.ResponseWriter, r *http.Request) {
+func (p *ProjectsEndpoints) get(w http.ResponseWriter, r *http.Request) {
 	p.ServeRequest(
 		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return p.service.Get(r.Context(), mux.Vars(r)["id"])
+				return p.Service.Get(r.Context(), mux.Vars(r)["id"])
 			},
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (p *projectsEndpoints) update(w http.ResponseWriter, r *http.Request) {
+func (p *ProjectsEndpoints) update(w http.ResponseWriter, r *http.Request) {
 	project := core.Project{}
 	p.ServeRequest(
 		restmachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
-			ReqBodySchemaLoader: p.projectSchemaLoader,
+			ReqBodySchemaLoader: p.ProjectSchemaLoader,
 			ReqBodyObj:          &project,
 			EndpointLogic: func() (interface{}, error) {
 				if mux.Vars(r)["id"] != project.ID {
@@ -141,20 +127,20 @@ func (p *projectsEndpoints) update(w http.ResponseWriter, r *http.Request) {
 							"not match.",
 					}
 				}
-				return p.service.Update(r.Context(), project)
+				return p.Service.Update(r.Context(), project)
 			},
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (p *projectsEndpoints) delete(w http.ResponseWriter, r *http.Request) {
+func (p *ProjectsEndpoints) delete(w http.ResponseWriter, r *http.Request) {
 	p.ServeRequest(
 		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, p.service.Delete(r.Context(), mux.Vars(r)["id"])
+				return nil, p.Service.Delete(r.Context(), mux.Vars(r)["id"])
 			},
 			SuccessCode: http.StatusOK,
 		},

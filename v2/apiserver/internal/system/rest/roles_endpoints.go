@@ -9,25 +9,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type rolesEndpoints struct {
+type RolesEndpoints struct {
 	*restmachinery.BaseEndpoints
-	service system.RolesService
+	Service system.RolesService
 }
 
-// TODO: There probably isn't any good reason to actually have this
-// constructor-like function here. Let's consider removing it.
-func NewRolesEndpoints(
-	baseEndpoints *restmachinery.BaseEndpoints,
-	service system.RolesService,
-) restmachinery.Endpoints {
-	// nolint: lll
-	return &rolesEndpoints{
-		BaseEndpoints: baseEndpoints,
-		service:       service,
-	}
-}
-
-func (r *rolesEndpoints) Register(router *mux.Router) {
+func (r *RolesEndpoints) Register(router *mux.Router) {
 	// Grant a system Role to a User or ServiceAccount
 	router.HandleFunc(
 		"/v2/system/role-assignments",
@@ -42,7 +29,7 @@ func (r *rolesEndpoints) Register(router *mux.Router) {
 }
 
 // TODO: This still needs some validation via JSON schema
-func (r *rolesEndpoints) grant(
+func (r *RolesEndpoints) grant(
 	w http.ResponseWriter,
 	req *http.Request,
 ) {
@@ -53,7 +40,7 @@ func (r *rolesEndpoints) grant(
 			R:          req,
 			ReqBodyObj: &roleAssignment,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, r.service.Grant(
+				return nil, r.Service.Grant(
 					req.Context(),
 					roleAssignment,
 				)
@@ -64,7 +51,7 @@ func (r *rolesEndpoints) grant(
 }
 
 // TODO: This still needs some validation via JSON schema
-func (r *rolesEndpoints) revoke(
+func (r *RolesEndpoints) revoke(
 	w http.ResponseWriter,
 	req *http.Request,
 ) {
@@ -78,7 +65,7 @@ func (r *rolesEndpoints) revoke(
 			W: w,
 			R: req,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, r.service.Revoke(
+				return nil, r.Service.Revoke(
 					req.Context(),
 					roleAssignment,
 				)

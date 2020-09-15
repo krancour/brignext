@@ -15,27 +15,13 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-type workersEndpoints struct {
+type WorkersEndpoints struct {
 	*restmachinery.BaseEndpoints
-	workerStatusSchemaLoader gojsonschema.JSONLoader
-	service                  core.WorkersService
+	WorkerStatusSchemaLoader gojsonschema.JSONLoader
+	Service                  core.WorkersService
 }
 
-// TODO: There probably isn't any good reason to actually have this
-// constructor-like function here. Let's consider removing it.
-func NewWorkersEndpoints(
-	baseEndpoints *restmachinery.BaseEndpoints,
-	service core.WorkersService,
-) restmachinery.Endpoints {
-	// nolint: lll
-	return &workersEndpoints{
-		BaseEndpoints:            baseEndpoints,
-		workerStatusSchemaLoader: gojsonschema.NewReferenceLoader("file:///brigade/schemas/worker-status.json"),
-		service:                  service,
-	}
-}
-
-func (w *workersEndpoints) Register(router *mux.Router) {
+func (w *WorkersEndpoints) Register(router *mux.Router) {
 	// Start worker
 	router.HandleFunc(
 		"/v2/events/{eventID}/worker/start",
@@ -55,20 +41,20 @@ func (w *workersEndpoints) Register(router *mux.Router) {
 	).Methods(http.MethodPut)
 }
 
-func (w *workersEndpoints) start(wr http.ResponseWriter, r *http.Request) {
+func (w *WorkersEndpoints) start(wr http.ResponseWriter, r *http.Request) {
 	w.ServeRequest(
 		restmachinery.InboundRequest{
 			W: wr,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, w.service.Start(r.Context(), mux.Vars(r)["eventID"])
+				return nil, w.Service.Start(r.Context(), mux.Vars(r)["eventID"])
 			},
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (w *workersEndpoints) getOrStreamStatus(
+func (w *WorkersEndpoints) getOrStreamStatus(
 	wr http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -82,7 +68,7 @@ func (w *workersEndpoints) getOrStreamStatus(
 				W: wr,
 				R: r,
 				EndpointLogic: func() (interface{}, error) {
-					return w.service.GetStatus(r.Context(), eventID)
+					return w.Service.GetStatus(r.Context(), eventID)
 				},
 				SuccessCode: http.StatusOK,
 			},
@@ -90,7 +76,7 @@ func (w *workersEndpoints) getOrStreamStatus(
 		return
 	}
 
-	statusCh, err := w.service.WatchStatus(r.Context(), eventID)
+	statusCh, err := w.Service.WatchStatus(r.Context(), eventID)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*meta.ErrNotFound); ok {
 			w.WriteAPIResponse(wr, http.StatusNotFound, errors.Cause(err))
@@ -122,7 +108,7 @@ func (w *workersEndpoints) getOrStreamStatus(
 	}
 }
 
-func (w *workersEndpoints) updateStatus(
+func (w *WorkersEndpoints) updateStatus(
 	wr http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -131,11 +117,11 @@ func (w *workersEndpoints) updateStatus(
 		restmachinery.InboundRequest{
 			W:                   wr,
 			R:                   r,
-			ReqBodySchemaLoader: w.workerStatusSchemaLoader,
+			ReqBodySchemaLoader: w.WorkerStatusSchemaLoader,
 			ReqBodyObj:          &status,
 			EndpointLogic: func() (interface{}, error) {
 				return nil,
-					w.service.UpdateStatus(r.Context(), mux.Vars(r)["eventID"], status)
+					w.Service.UpdateStatus(r.Context(), mux.Vars(r)["eventID"], status)
 			},
 			SuccessCode: http.StatusOK,
 		},

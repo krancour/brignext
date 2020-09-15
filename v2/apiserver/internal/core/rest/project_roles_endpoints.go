@@ -9,25 +9,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type projectsRolesEndpoints struct {
+type ProjectsRolesEndpoints struct {
 	*restmachinery.BaseEndpoints
-	service core.ProjectRolesService
+	Service core.ProjectRolesService
 }
 
-// TODO: There probably isn't any good reason to actually have this
-// constructor-like function here. Let's consider removing it.
-func NewProjectsRolesEndpoints(
-	baseEndpoints *restmachinery.BaseEndpoints,
-	service core.ProjectRolesService,
-) restmachinery.Endpoints {
-	// nolint: lll
-	return &projectsRolesEndpoints{
-		BaseEndpoints: baseEndpoints,
-		service:       service,
-	}
-}
-
-func (p *projectsRolesEndpoints) Register(router *mux.Router) {
+func (p *ProjectsRolesEndpoints) Register(router *mux.Router) {
 	// Grant a Project Role to a User or Service Account
 	router.HandleFunc(
 		"/v2/projects/{projectID}/role-assignments",
@@ -42,7 +29,7 @@ func (p *projectsRolesEndpoints) Register(router *mux.Router) {
 }
 
 // TODO: This still needs some validation via JSON schema
-func (p *projectsRolesEndpoints) grant(
+func (p *ProjectsRolesEndpoints) grant(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -53,7 +40,7 @@ func (p *projectsRolesEndpoints) grant(
 			R:          r,
 			ReqBodyObj: &roleAssignment,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, p.service.Grant(
+				return nil, p.Service.Grant(
 					r.Context(),
 					mux.Vars(r)["projectID"],
 					roleAssignment,
@@ -65,7 +52,7 @@ func (p *projectsRolesEndpoints) grant(
 }
 
 // TODO: This still needs some validation via JSON schema
-func (p *projectsRolesEndpoints) revoke(
+func (p *ProjectsRolesEndpoints) revoke(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -79,7 +66,7 @@ func (p *projectsRolesEndpoints) revoke(
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, p.service.Revoke(
+				return nil, p.Service.Revoke(
 					r.Context(),
 					mux.Vars(r)["projectID"],
 					roleAssignment,

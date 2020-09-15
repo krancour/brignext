@@ -17,6 +17,7 @@ import (
 	"github.com/brigadecore/brigade/v2/apiserver/internal/system"
 	systemREST "github.com/brigadecore/brigade/v2/apiserver/internal/system/rest"
 	"github.com/brigadecore/brigade/v2/internal/kubernetes"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 // TODO: This is the code that wires everything together and it's a little bit
@@ -154,20 +155,71 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 		apiConfig,
 		baseEndpoints,
 		[]restmachinery.Endpoints{
-			authxREST.NewServiceAccountEndpoints(
-				baseEndpoints,
-				serviceAccountsService,
-			),
-			authxREST.NewSessionsEndpoints(baseEndpoints, sessionsService),
-			authxREST.NewUsersEndpoints(baseEndpoints, usersService),
-			coreREST.NewEventsEndpoints(baseEndpoints, eventsService),
-			coreREST.NewWorkersEndpoints(baseEndpoints, workersService),
-			coreREST.NewJobsEndpoints(baseEndpoints, jobsService),
-			coreREST.NewLogsEndpoints(baseEndpoints, logsService),
-			coreREST.NewProjectsEndpoints(baseEndpoints, projectsService),
-			coreREST.NewSecretsEndpoints(baseEndpoints, secretsService),
-			coreREST.NewProjectsRolesEndpoints(baseEndpoints, projectRolesService),
-			systemREST.NewRolesEndpoints(baseEndpoints, systemRolesService),
+			&authxREST.ServiceAccountEndpoints{
+				BaseEndpoints: baseEndpoints,
+				ServiceAccountSchemaLoader: gojsonschema.NewReferenceLoader(
+					"file:///brigade/schemas/service-account.json",
+				),
+				Service: serviceAccountsService,
+			},
+			&authxREST.SessionsEndpoints{
+				BaseEndpoints: baseEndpoints,
+				Service:       sessionsService,
+			},
+			&authxREST.UsersEndpoints{
+				BaseEndpoints: baseEndpoints,
+				Service:       usersService,
+			},
+			&coreREST.EventsEndpoints{
+				BaseEndpoints: baseEndpoints,
+				EventSchemaLoader: gojsonschema.NewReferenceLoader(
+					"file:///brigade/schemas/event.json",
+				),
+				Service: eventsService,
+			},
+			&coreREST.WorkersEndpoints{
+				BaseEndpoints: baseEndpoints,
+				WorkerStatusSchemaLoader: gojsonschema.NewReferenceLoader(
+					"file:///brigade/schemas/worker-status.json",
+				),
+				Service: workersService,
+			},
+			&coreREST.JobsEndpoints{
+				BaseEndpoints: baseEndpoints,
+				JobSpecSchemaLoader: gojsonschema.NewReferenceLoader(
+					"file:///brigade/schemas/job-spec.json",
+				),
+				JobStatusSchemaLoader: gojsonschema.NewReferenceLoader(
+					"file:///brigade/schemas/job-status.json",
+				),
+				Service: jobsService,
+			},
+			&coreREST.LogsEndpoints{
+				BaseEndpoints: baseEndpoints,
+				Service:       logsService,
+			},
+			&coreREST.ProjectsEndpoints{
+				BaseEndpoints: baseEndpoints,
+				ProjectSchemaLoader: gojsonschema.NewReferenceLoader(
+					"file:///brigade/schemas/project.json",
+				),
+				Service: projectsService,
+			},
+			&coreREST.SecretsEndpoints{
+				BaseEndpoints: baseEndpoints,
+				SecretSchemaLoader: gojsonschema.NewReferenceLoader(
+					"file:///brigade/schemas/secret.json",
+				),
+				Service: secretsService,
+			},
+			&coreREST.ProjectsRolesEndpoints{
+				BaseEndpoints: baseEndpoints,
+				Service:       projectRolesService,
+			},
+			&systemREST.RolesEndpoints{
+				BaseEndpoints: baseEndpoints,
+				Service:       systemRolesService,
+			},
 		},
 	), nil
 }

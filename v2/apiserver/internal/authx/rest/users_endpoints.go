@@ -11,24 +11,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type usersEndpoints struct {
+type UsersEndpoints struct {
 	*restmachinery.BaseEndpoints
-	service authx.UsersService
+	Service authx.UsersService
 }
 
-// TODO: There probably isn't any good reason to actually have this
-// constructor-like function here. Let's consider removing it.
-func NewUsersEndpoints(
-	baseEndpoints *restmachinery.BaseEndpoints,
-	service authx.UsersService,
-) restmachinery.Endpoints {
-	return &usersEndpoints{
-		BaseEndpoints: baseEndpoints,
-		service:       service,
-	}
-}
-
-func (u *usersEndpoints) Register(router *mux.Router) {
+func (u *UsersEndpoints) Register(router *mux.Router) {
 	// List users
 	router.HandleFunc(
 		"/v2/users",
@@ -54,7 +42,7 @@ func (u *usersEndpoints) Register(router *mux.Router) {
 	).Methods(http.MethodDelete)
 }
 
-func (u *usersEndpoints) list(w http.ResponseWriter, r *http.Request) {
+func (u *UsersEndpoints) list(w http.ResponseWriter, r *http.Request) {
 	opts := meta.ListOptions{
 		Continue: r.URL.Query().Get("continue"),
 	}
@@ -83,46 +71,46 @@ func (u *usersEndpoints) list(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return u.service.List(r.Context(), authx.UsersSelector{}, opts)
+				return u.Service.List(r.Context(), authx.UsersSelector{}, opts)
 			},
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (u *usersEndpoints) get(w http.ResponseWriter, r *http.Request) {
+func (u *UsersEndpoints) get(w http.ResponseWriter, r *http.Request) {
 	u.ServeRequest(
 		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return u.service.Get(r.Context(), mux.Vars(r)["id"])
+				return u.Service.Get(r.Context(), mux.Vars(r)["id"])
 			},
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (u *usersEndpoints) lock(w http.ResponseWriter, r *http.Request) {
+func (u *UsersEndpoints) lock(w http.ResponseWriter, r *http.Request) {
 	u.ServeRequest(
 		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, u.service.Lock(r.Context(), mux.Vars(r)["id"])
+				return nil, u.Service.Lock(r.Context(), mux.Vars(r)["id"])
 			},
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (u *usersEndpoints) unlock(w http.ResponseWriter, r *http.Request) {
+func (u *UsersEndpoints) unlock(w http.ResponseWriter, r *http.Request) {
 	u.ServeRequest(
 		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, u.service.Unlock(r.Context(), mux.Vars(r)["id"])
+				return nil, u.Service.Unlock(r.Context(), mux.Vars(r)["id"])
 			},
 			SuccessCode: http.StatusOK,
 		},

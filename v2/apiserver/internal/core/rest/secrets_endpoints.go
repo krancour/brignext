@@ -12,27 +12,13 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-type secretsEndpoints struct {
+type SecretsEndpoints struct {
 	*restmachinery.BaseEndpoints
-	secretSchemaLoader gojsonschema.JSONLoader
-	service            core.SecretsService
+	SecretSchemaLoader gojsonschema.JSONLoader
+	Service            core.SecretsService
 }
 
-// TODO: There probably isn't any good reason to actually have this
-// constructor-like function here. Let's consider removing it.
-func NewSecretsEndpoints(
-	baseEndpoints *restmachinery.BaseEndpoints,
-	service core.SecretsService,
-) restmachinery.Endpoints {
-	// nolint: lll
-	return &secretsEndpoints{
-		BaseEndpoints:      baseEndpoints,
-		secretSchemaLoader: gojsonschema.NewReferenceLoader("file:///brigade/schemas/secret.json"),
-		service:            service,
-	}
-}
-
-func (s *secretsEndpoints) Register(router *mux.Router) {
+func (s *SecretsEndpoints) Register(router *mux.Router) {
 	// List Secrets
 	router.HandleFunc(
 		"/v2/projects/{projectID}/secrets",
@@ -52,7 +38,7 @@ func (s *secretsEndpoints) Register(router *mux.Router) {
 	).Methods(http.MethodDelete)
 }
 
-func (s *secretsEndpoints) list(w http.ResponseWriter, r *http.Request) {
+func (s *SecretsEndpoints) list(w http.ResponseWriter, r *http.Request) {
 	opts := meta.ListOptions{
 		Continue: r.URL.Query().Get("continue"),
 	}
@@ -78,21 +64,21 @@ func (s *secretsEndpoints) list(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return s.service.List(r.Context(), mux.Vars(r)["projectID"], opts)
+				return s.Service.List(r.Context(), mux.Vars(r)["projectID"], opts)
 			},
 			SuccessCode: http.StatusOK,
 		},
 	)
 }
 
-func (s *secretsEndpoints) set(w http.ResponseWriter, r *http.Request) {
+func (s *SecretsEndpoints) set(w http.ResponseWriter, r *http.Request) {
 	key := mux.Vars(r)["key"]
 	secret := core.Secret{}
 	s.ServeRequest(
 		restmachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
-			ReqBodySchemaLoader: s.secretSchemaLoader,
+			ReqBodySchemaLoader: s.SecretSchemaLoader,
 			ReqBodyObj:          &secret,
 			EndpointLogic: func() (interface{}, error) {
 				if key != secret.Key {
@@ -101,7 +87,7 @@ func (s *secretsEndpoints) set(w http.ResponseWriter, r *http.Request) {
 							"match.",
 					}
 				}
-				return nil, s.service.Set(
+				return nil, s.Service.Set(
 					r.Context(),
 					mux.Vars(r)["projectID"],
 					secret,
@@ -112,14 +98,14 @@ func (s *secretsEndpoints) set(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (s *secretsEndpoints) unset(w http.ResponseWriter, r *http.Request) {
+func (s *SecretsEndpoints) unset(w http.ResponseWriter, r *http.Request) {
 	key := mux.Vars(r)["key"]
 	s.ServeRequest(
 		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, s.service.Unset(
+				return nil, s.Service.Unset(
 					r.Context(),
 					mux.Vars(r)["projectID"],
 					key,

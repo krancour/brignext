@@ -72,10 +72,6 @@ func SessionIDFromContext(ctx context.Context) string {
 	return token.(string)
 }
 
-// TODO: We probably don't need this interface. The idea is to have a single
-// implementation of the service's logic, with only underlying components being
-// pluggable. BUT, STRONGLY CONSIDER THAT WE MAY NEED THIS TO MOCK OUT THE
-// SERVICE WHEN TESTING THE CORRESPONDING ENDPOINTS.
 type SessionsService interface {
 	CreateRootSession(
 		ctx context.Context,
@@ -102,8 +98,6 @@ type sessionsService struct {
 	oidcTokenVerifier      *oidc.IDTokenVerifier
 }
 
-// TODO: There probably isn't any good reason to actually have this
-// constructor-like function here. Let's consider removing it.
 func NewSessionsService(
 	sessionsStore SessionsStore,
 	usersStore UsersStore,

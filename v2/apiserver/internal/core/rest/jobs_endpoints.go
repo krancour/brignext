@@ -15,29 +15,14 @@ import (
 	"github.com/xeipuuv/gojsonschema"
 )
 
-type jobsEndpoints struct {
+type JobsEndpoints struct {
 	*restmachinery.BaseEndpoints
-	jobSpecSchemaLoader   gojsonschema.JSONLoader
-	jobStatusSchemaLoader gojsonschema.JSONLoader
-	service               core.JobsService
+	JobSpecSchemaLoader   gojsonschema.JSONLoader
+	JobStatusSchemaLoader gojsonschema.JSONLoader
+	Service               core.JobsService
 }
 
-// TODO: There probably isn't any good reason to actually have this
-// constructor-like function here. Let's consider removing it.
-func NewJobsEndpoints(
-	baseEndpoints *restmachinery.BaseEndpoints,
-	service core.JobsService,
-) restmachinery.Endpoints {
-	// nolint: lll
-	return &jobsEndpoints{
-		BaseEndpoints:         baseEndpoints,
-		jobSpecSchemaLoader:   gojsonschema.NewReferenceLoader("file:///brigade/schemas/job-spec.json"),
-		jobStatusSchemaLoader: gojsonschema.NewReferenceLoader("file:///brigade/schemas/job-status.json"),
-		service:               service,
-	}
-}
-
-func (j *jobsEndpoints) Register(router *mux.Router) {
+func (j *JobsEndpoints) Register(router *mux.Router) {
 	// Create job
 	router.HandleFunc(
 		"/v2/events/{eventID}/worker/jobs/{jobName}/spec",
@@ -63,16 +48,16 @@ func (j *jobsEndpoints) Register(router *mux.Router) {
 	).Methods(http.MethodPut)
 }
 
-func (j *jobsEndpoints) create(w http.ResponseWriter, r *http.Request) {
+func (j *JobsEndpoints) create(w http.ResponseWriter, r *http.Request) {
 	jobSpec := core.JobSpec{}
 	j.ServeRequest(
 		restmachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
-			ReqBodySchemaLoader: j.jobSpecSchemaLoader,
+			ReqBodySchemaLoader: j.JobSpecSchemaLoader,
 			ReqBodyObj:          &jobSpec,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, j.service.Create(
+				return nil, j.Service.Create(
 					r.Context(),
 					mux.Vars(r)["eventID"],
 					mux.Vars(r)["jobName"],
@@ -84,13 +69,13 @@ func (j *jobsEndpoints) create(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (j *jobsEndpoints) start(w http.ResponseWriter, r *http.Request) {
+func (j *JobsEndpoints) start(w http.ResponseWriter, r *http.Request) {
 	j.ServeRequest(
 		restmachinery.InboundRequest{
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, j.service.Start(
+				return nil, j.Service.Start(
 					r.Context(),
 					mux.Vars(r)["eventID"],
 					mux.Vars(r)["jobName"],
@@ -101,7 +86,7 @@ func (j *jobsEndpoints) start(w http.ResponseWriter, r *http.Request) {
 	)
 }
 
-func (j *jobsEndpoints) getOrStreamStatus(
+func (j *JobsEndpoints) getOrStreamStatus(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -116,7 +101,7 @@ func (j *jobsEndpoints) getOrStreamStatus(
 				W: w,
 				R: r,
 				EndpointLogic: func() (interface{}, error) {
-					return j.service.GetStatus(r.Context(), id, jobName)
+					return j.Service.GetStatus(r.Context(), id, jobName)
 				},
 				SuccessCode: http.StatusOK,
 			},
@@ -124,7 +109,7 @@ func (j *jobsEndpoints) getOrStreamStatus(
 		return
 	}
 
-	statusCh, err := j.service.WatchStatus(r.Context(), id, jobName)
+	statusCh, err := j.Service.WatchStatus(r.Context(), id, jobName)
 	if err != nil {
 		if _, ok := errors.Cause(err).(*meta.ErrNotFound); ok {
 			j.WriteAPIResponse(w, http.StatusNotFound, errors.Cause(err))
@@ -157,7 +142,7 @@ func (j *jobsEndpoints) getOrStreamStatus(
 	}
 }
 
-func (j *jobsEndpoints) updateStatus(
+func (j *JobsEndpoints) updateStatus(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
@@ -166,10 +151,10 @@ func (j *jobsEndpoints) updateStatus(
 		restmachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
-			ReqBodySchemaLoader: j.jobStatusSchemaLoader,
+			ReqBodySchemaLoader: j.JobStatusSchemaLoader,
 			ReqBodyObj:          &status,
 			EndpointLogic: func() (interface{}, error) {
-				return nil, j.service.UpdateStatus(
+				return nil, j.Service.UpdateStatus(
 					r.Context(),
 					mux.Vars(r)["eventID"],
 					mux.Vars(r)["jobName"],
