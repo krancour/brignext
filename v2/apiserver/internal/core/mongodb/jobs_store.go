@@ -25,17 +25,14 @@ func (j *jobsStore) Create(
 	ctx context.Context,
 	eventID string,
 	jobName string,
-	jobSpec core.JobSpec,
+	job core.Job,
 ) error {
 	res, err := j.eventsCollection.UpdateOne(
 		ctx,
 		bson.M{"id": eventID},
 		bson.M{
 			"$set": bson.M{
-				fmt.Sprintf("worker.jobs.%s.spec", jobName): jobSpec,
-				fmt.Sprintf("worker.jobs.%s.status", jobName): core.JobStatus{
-					Phase: core.JobPhasePending,
-				},
+				fmt.Sprintf("worker.jobs.%s", jobName): job,
 			},
 		},
 	)
@@ -62,9 +59,6 @@ func (j *jobsStore) UpdateStatus(
 	jobName string,
 	status core.JobStatus,
 ) error {
-	job := core.Job{
-		Status: status,
-	}
 	res, err := j.eventsCollection.UpdateOne(
 		ctx,
 		bson.M{
@@ -72,7 +66,7 @@ func (j *jobsStore) UpdateStatus(
 		},
 		bson.M{
 			"$set": bson.M{
-				fmt.Sprintf("worker.jobs.%s", jobName): job,
+				fmt.Sprintf("worker.jobs.%s.status", jobName): status,
 			},
 		},
 	)

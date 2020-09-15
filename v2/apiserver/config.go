@@ -186,8 +186,8 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 			},
 			&coreREST.JobsEndpoints{
 				BaseEndpoints: baseEndpoints,
-				JobSpecSchemaLoader: gojsonschema.NewReferenceLoader(
-					"file:///brigade/schemas/job-spec.json",
+				JobSchemaLoader: gojsonschema.NewReferenceLoader(
+					"file:///brigade/schemas/job.json",
 				),
 				JobStatusSchemaLoader: gojsonschema.NewReferenceLoader(
 					"file:///brigade/schemas/job-status.json",

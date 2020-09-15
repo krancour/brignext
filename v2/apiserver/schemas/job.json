@@ -13,7 +13,7 @@
 		"kind": {
 			"type": "string",
 			"description": "The type of object represented by the document",
-			"enum": ["JobSpec"]
+			"enum": ["Job"]
 		},
 
 		"containerSpec": {
@@ -107,13 +107,44 @@
 					}
 				}
 			}
+		},
+
+		"jobSpec": {
+			"type": "object",
+			"description": "The job's specification",
+			"required": ["primaryContainer"],
+			"additionalProperties": false,
+			"properties": {
+				"primaryContainer": {
+					"allOf": [
+						{
+							"$ref": "#/definitions/containerSpec"
+						}
+					],
+					"description": "Specification for the job's primary container"
+				},
+				"sidecarContainers": {
+					"type": "object",
+					"description": "Specification for the job's sidecar containers, if any",
+					"additionalProperties": {
+						"$ref": "#/definitions/containerSpec"
+					}
+				},
+				"timeoutSeconds": {
+					"type": "integer",
+					"description": "Job timeout in seconds"
+				},
+				"host": {
+					"$ref": "#/definitions/host"
+				}
+			}
 		}
 
 	},
 
-	"title": "JobSpec",
+	"title": "Job",
 	"type": "object",
-	"required": ["apiVersion", "kind", "primaryContainer"],
+	"required": ["apiVersion", "kind", "spec"],
 	"additionalProperties": false,
 	"properties": {
 		"apiVersion": {
@@ -122,27 +153,9 @@
 		"kind": {
 			"$ref": "#/definitions/kind"
 		},
-		"primaryContainer": {
-			"allOf": [
-				{
-					"$ref": "#/definitions/containerSpec"
-				}
-			],
-			"description": "Specification for the job's primary container"
-		},
-		"sidecarContainers": {
-			"type": "object",
-			"description": "Specification for the job's sidecar containers, if any",
-			"additionalProperties": {
-				"$ref": "#/definitions/containerSpec"
-			}
-		},
-		"timeoutSeconds": {
-			"type": "integer",
-			"description": "Job timeout in seconds"
-		},
-		"host": {
-			"$ref": "#/definitions/host"
+		"spec": {
+			"$ref": "#/definitions/jobSpec"
 		}
 	}
+
 }

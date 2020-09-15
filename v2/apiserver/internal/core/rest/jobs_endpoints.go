@@ -17,7 +17,7 @@ import (
 
 type JobsEndpoints struct {
 	*restmachinery.BaseEndpoints
-	JobSpecSchemaLoader   gojsonschema.JSONLoader
+	JobSchemaLoader       gojsonschema.JSONLoader
 	JobStatusSchemaLoader gojsonschema.JSONLoader
 	Service               core.JobsService
 }
@@ -25,7 +25,7 @@ type JobsEndpoints struct {
 func (j *JobsEndpoints) Register(router *mux.Router) {
 	// Create job
 	router.HandleFunc(
-		"/v2/events/{eventID}/worker/jobs/{jobName}/spec",
+		"/v2/events/{eventID}/worker/jobs/{jobName}",
 		j.TokenAuthFilter.Decorate(j.create),
 	).Methods(http.MethodPut)
 
@@ -49,19 +49,19 @@ func (j *JobsEndpoints) Register(router *mux.Router) {
 }
 
 func (j *JobsEndpoints) create(w http.ResponseWriter, r *http.Request) {
-	jobSpec := core.JobSpec{}
+	job := core.Job{}
 	j.ServeRequest(
 		restmachinery.InboundRequest{
 			W:                   w,
 			R:                   r,
-			ReqBodySchemaLoader: j.JobSpecSchemaLoader,
-			ReqBodyObj:          &jobSpec,
+			ReqBodySchemaLoader: j.JobSchemaLoader,
+			ReqBodyObj:          &job,
 			EndpointLogic: func() (interface{}, error) {
 				return nil, j.Service.Create(
 					r.Context(),
 					mux.Vars(r)["eventID"],
 					mux.Vars(r)["jobName"],
-					jobSpec,
+					job,
 				)
 			},
 			SuccessCode: http.StatusCreated,

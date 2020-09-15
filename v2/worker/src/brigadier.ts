@@ -35,20 +35,23 @@ export class Job extends jobs.Job {
     try {
       let response = await axios({
         method: "put",
-        url: `${currentEvent.worker.apiAddress}/v2/events/${currentEvent.id}/worker/jobs/${this.name}/spec`,
+        url: `${currentEvent.worker.apiAddress}/v2/events/${currentEvent.id}/worker/jobs/${this.name}`,
         headers: {
           Authorization: `Bearer ${currentEvent.worker.apiToken}`
         },
         data: {
           apiVersion: "brigade.sh/v2",
-          kind: "JobSpec",
-          primaryContainer: this.primaryContainer,
-          sidecarContainers: this.sidecarContainers,
-          timeoutSeconds: this.timeout,
-          host: this.host
+          kind: "Job",
+          spec: {
+            primaryContainer: this.primaryContainer,
+            sidecarContainers: this.sidecarContainers,
+            timeoutSeconds: this.timeout,
+            host: this.host
+          }
         },
       })
       if (response.status != 201) {
+        console.log(response.data)
         throw new Error(response.data)
       }
     }

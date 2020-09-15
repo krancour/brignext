@@ -48,7 +48,7 @@ type Job struct {
 	// Spec is the technical blueprint for the Job.
 	Spec JobSpec `json:"spec"`
 	// Status contains details of the Job's current state.
-	Status JobStatus `json:"status"`
+	Status *JobStatus `json:"status"`
 }
 
 // JobSpec is the technical blueprint for a Job.
@@ -127,13 +127,11 @@ func (j JobStatus) MarshalJSON() ([]byte, error) {
 type JobsClient interface {
 	// Create, given an Event identifier and JobSpec, creates a new pending Job
 	// and schedules it for execution.
-	// TODO: Make this take a Job instead of a JobSpec. That makes the behavior
-	// just a little bit more consistent with that of other resources.
 	Create(
 		ctx context.Context,
 		eventID string,
 		jobName string,
-		jobSpec JobSpec,
+		job Job,
 	) error
 	// Start initiates execution of a pending Job.
 	Start(
@@ -195,19 +193,15 @@ func (j *jobsClient) Create(
 	ctx context.Context,
 	eventID string,
 	jobName string,
-	jobSpec JobSpec,
+	job Job,
 ) error {
 	return j.ExecuteRequest(
 		ctx,
 		restmachinery.OutboundRequest{
-			Method: http.MethodPut,
-			Path: fmt.Sprintf(
-				"v2/events/%s/worker/jobs/%s/spec",
-				eventID,
-				jobName,
-			),
+			Method:      http.MethodPut,
+			Path:        fmt.Sprintf("v2/events/%s/worker/jobs/%s", eventID, jobName),
 			AuthHeaders: j.BearerTokenAuthHeaders(),
-			ReqBodyObj:  jobSpec,
+			ReqBodyObj:  job,
 			SuccessCode: http.StatusCreated,
 		},
 	)

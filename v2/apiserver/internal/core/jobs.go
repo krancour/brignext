@@ -46,7 +46,7 @@ type Job struct {
 	// Spec is the technical blueprint for the Job.
 	Spec JobSpec `json:"spec" bson:"spec"`
 	// Status contains details of the Job's current state.
-	Status JobStatus `json:"status" bson:"status"`
+	Status *JobStatus `json:"status" bson:"status"`
 }
 
 // JobSpec is the technical blueprint for a Job.
@@ -102,13 +102,11 @@ type JobStatus struct {
 type JobsService interface {
 	// Create, given an Event identifier and JobSpec, creates a new Job and
 	// starts it on Brigade's workload execution substrate.
-	// TODO: Make this take a Job instead of a JobSpec. That makes the behavior
-	// just a little bit more consistent with that of other resources.
 	Create(
 		ctx context.Context,
 		eventID string,
 		jobName string,
-		jobSpec JobSpec,
+		job Job,
 	) error
 	// Start, given an Event identifier and Job name, starts that Job on
 	// Brigade's workload execution substrate.
@@ -166,7 +164,7 @@ func (j *jobsService) Create(
 	ctx context.Context,
 	eventID string,
 	jobName string,
-	jobSpec JobSpec,
+	job Job,
 ) error {
 	if err := j.authorize(ctx, authx.RoleWorker(eventID)); err != nil {
 		return err
@@ -194,10 +192,10 @@ func (j *jobsService) Create(
 	//   1. Use shared workspace
 	//   2. Run in privileged mode
 	//   3. Mount the host's Docker socket
-	var useWorkspace = jobSpec.PrimaryContainer.UseWorkspace
-	var usePrivileged = jobSpec.PrimaryContainer.Privileged
-	var useDockerSocket = jobSpec.PrimaryContainer.UseHostDockerSocket
-	for _, sidecarContainer := range jobSpec.SidecarContainers {
+	var useWorkspace = job.Spec.PrimaryContainer.UseWorkspace
+	var usePrivileged = job.Spec.PrimaryContainer.Privileged
+	var useDockerSocket = job.Spec.PrimaryContainer.UseHostDockerSocket
+	for _, sidecarContainer := range job.Spec.SidecarContainers {
 		if sidecarContainer.UseWorkspace {
 			useWorkspace = true
 		}
@@ -237,7 +235,12 @@ func (j *jobsService) Create(
 		}
 	}
 
-	if err = j.jobsStore.Create(ctx, eventID, jobName, jobSpec); err != nil {
+	// Set the initial status
+	job.Status = &JobStatus{
+		Phase: JobPhasePending,
+	}
+
+	if err = j.jobsStore.Create(ctx, eventID, jobName, job); err != nil {
 		return errors.Wrapf(
 			err, "error saving event %q job %q in store",
 			eventID,
@@ -332,7 +335,7 @@ func (j *jobsService) GetStatus(
 			ID:   jobName,
 		}
 	}
-	return job.Status, nil
+	return *job.Status, nil
 }
 
 // TODO: Should we put some kind of timeout on this function so forgetful
@@ -375,7 +378,7 @@ func (j *jobsService) WatchStatus(
 				return
 			}
 			select {
-			case statusCh <- event.Worker.Jobs[jobName].Status:
+			case statusCh <- *event.Worker.Jobs[jobName].Status:
 			case <-ctx.Done():
 				return
 			}
@@ -415,7 +418,7 @@ type JobsStore interface {
 		ctx context.Context,
 		eventID string,
 		jobName string,
-		jobSpec JobSpec,
+		job Job,
 	) error
 	UpdateStatus(
 		ctx context.Context,

@@ -24,10 +24,12 @@ func TestJobStatusMarshalJSON(t *testing.T) {
 func TestJobsClientCreate(t *testing.T) {
 	const testEventID = "12345"
 	const testJobName = "Italian"
-	testJobSpec := JobSpec{
-		PrimaryContainer: JobContainerSpec{
-			ContainerSpec: ContainerSpec{
-				Image: "debian:latest",
+	testJob := Job{
+		Spec: JobSpec{
+			PrimaryContainer: JobContainerSpec{
+				ContainerSpec: ContainerSpec{
+					Image: "debian:latest",
+				},
 			},
 		},
 	}
@@ -39,7 +41,7 @@ func TestJobsClientCreate(t *testing.T) {
 				require.Equal(
 					t,
 					fmt.Sprintf(
-						"/v2/events/%s/worker/jobs/%s/spec",
+						"/v2/events/%s/worker/jobs/%s",
 						testEventID,
 						testJobName,
 					),
@@ -47,10 +49,10 @@ func TestJobsClientCreate(t *testing.T) {
 				)
 				bodyBytes, err := ioutil.ReadAll(r.Body)
 				require.NoError(t, err)
-				jobSpec := JobSpec{}
-				err = json.Unmarshal(bodyBytes, &jobSpec)
+				job := Job{}
+				err = json.Unmarshal(bodyBytes, &job)
 				require.NoError(t, err)
-				require.Equal(t, testJobSpec, jobSpec)
+				require.Equal(t, testJob, job)
 				w.WriteHeader(http.StatusCreated)
 			},
 		),
@@ -65,7 +67,7 @@ func TestJobsClientCreate(t *testing.T) {
 		context.Background(),
 		testEventID,
 		testJobName,
-		testJobSpec,
+		testJob,
 	)
 	require.NoError(t, err)
 }
