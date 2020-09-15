@@ -36,19 +36,19 @@ const (
 // Role represents a set of permissions, with domain-specific meaning, held by a
 // principal, such as a User or ServiceAccount.
 type Role struct {
-	Type string `json:"type"`
+	Type string `json:"type,omitempty"`
 	// Name is the name of a Role and has domain-specific meaning.
-	Name RoleName `json:"name"`
+	Name RoleName `json:"name,omitempty"`
 	// Scope qualifies the scope of the Role. The value is opaque and has meaning
 	// only in relation to a specific RoleName.
-	Scope string `json:"scope"`
+	Scope string `json:"scope,omitempty"`
 }
 
 type RoleAssignment struct {
-	Role          RoleName      `json:"role"`
-	Scope         string        `json:"scope"`
-	PrincipalType PrincipalType `json:"principalType"`
-	PrincipalID   string        `json:"principalID"`
+	Role          RoleName      `json:"role,omitempty"`
+	Scope         string        `json:"scope,omitempty"`
+	PrincipalType PrincipalType `json:"principalType,omitempty"`
+	PrincipalID   string        `json:"principalID,omitempty"`
 }
 
 // MarshalJSON amends ServiceAccountList instances with type metadata so that

@@ -21,16 +21,16 @@
   "json.schemas": [
     {
       "fileMatch": [
-        "/examples/*.json"
+        "/v2//examples/*.json"
       ],
-      "url": "./apiserver/schemas/project.json"
+      "url": "./v2/apiserver/schemas/project.json"
     }
   ],
 
   "yaml.schemas": {
-    "./apiserver/schemas/project.json": [
-      "/examples/*.yaml",
-      "/examples/*.yml"
+    "./v2/apiserver/schemas/project.json": [
+      "/v2/examples/*.yaml",
+      "/v2/examples/*.yml"
     ]
   }
 }

@@ -21,7 +21,7 @@ import (
 )
 
 // TODO: This is the code that wires everything together and it's a little bit
-// of a mess. Let's make a point of straightening this out.
+// clumsy. Let's make a point of straightening this out.
 func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 
 	// API server config
@@ -214,11 +214,17 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 			},
 			&coreREST.ProjectsRolesEndpoints{
 				BaseEndpoints: baseEndpoints,
-				Service:       projectRolesService,
+				ProjectRoleAssignmentSchemaLoader: gojsonschema.NewReferenceLoader(
+					"file:///brigade/schemas/project-role-assignment.json",
+				),
+				Service: projectRolesService,
 			},
 			&systemREST.RolesEndpoints{
 				BaseEndpoints: baseEndpoints,
-				Service:       systemRolesService,
+				SystemRoleAssignmentSchemaLoader: gojsonschema.NewReferenceLoader(
+					"file:///brigade/schemas/system-role-assignment.json",
+				),
+				Service: systemRolesService,
 			},
 		},
 	), nil

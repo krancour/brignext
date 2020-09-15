@@ -110,7 +110,7 @@ func systemRolesGrant(c *cli.Context) error {
 		"Granted system role %q to %s %q.\n\n",
 		role,
 		readablePrincipalType,
-		userID,
+		roleAssignment.PrincipalID,
 	)
 
 	return nil

@@ -7,11 +7,13 @@ import (
 	"github.com/brigadecore/brigade/v2/apiserver/internal/lib/restmachinery"
 	"github.com/brigadecore/brigade/v2/apiserver/internal/system"
 	"github.com/gorilla/mux"
+	"github.com/xeipuuv/gojsonschema"
 )
 
 type RolesEndpoints struct {
 	*restmachinery.BaseEndpoints
-	Service system.RolesService
+	SystemRoleAssignmentSchemaLoader gojsonschema.JSONLoader
+	Service                          system.RolesService
 }
 
 func (r *RolesEndpoints) Register(router *mux.Router) {
@@ -28,7 +30,6 @@ func (r *RolesEndpoints) Register(router *mux.Router) {
 	).Methods(http.MethodDelete)
 }
 
-// TODO: This still needs some validation via JSON schema
 func (r *RolesEndpoints) grant(
 	w http.ResponseWriter,
 	req *http.Request,
@@ -36,9 +37,10 @@ func (r *RolesEndpoints) grant(
 	roleAssignment := authx.RoleAssignment{}
 	r.ServeRequest(
 		restmachinery.InboundRequest{
-			W:          w,
-			R:          req,
-			ReqBodyObj: &roleAssignment,
+			W:                   w,
+			R:                   req,
+			ReqBodySchemaLoader: r.SystemRoleAssignmentSchemaLoader,
+			ReqBodyObj:          &roleAssignment,
 			EndpointLogic: func() (interface{}, error) {
 				return nil, r.Service.Grant(
 					req.Context(),
@@ -50,7 +52,6 @@ func (r *RolesEndpoints) grant(
 	)
 }
 
-// TODO: This still needs some validation via JSON schema
 func (r *RolesEndpoints) revoke(
 	w http.ResponseWriter,
 	req *http.Request,
