@@ -27,7 +27,7 @@ var eventCommand = &cli.Command{
 			Name:  "cancel",
 			Usage: "Cancel a single event without deleting it",
 			Description: "Unconditionally cancels (and aborts if applicable) a " +
-				"single event in a non-terminal state",
+				"single event whose worker is in a non-terminal phase",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:    flagID,
@@ -49,7 +49,7 @@ var eventCommand = &cli.Command{
 			Aliases: []string{"cm"},
 			Usage:   "Cancel multiple events without deleting them",
 			Description: "By default, only cancels events for the specified " +
-				"project with their worker in a PENDING state",
+				"project with their worker in a PENDING phase",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     flagProject,
@@ -61,7 +61,7 @@ var eventCommand = &cli.Command{
 					Name:    flagRunning,
 					Aliases: []string{"r"},
 					Usage: "If set, will additionally abort and cancel events with " +
-						"their worker in a RUNNING state",
+						"their worker in a RUNNING phase",
 				},
 				&cli.BoolFlag{
 					Name:    flagYes,
@@ -109,7 +109,7 @@ var eventCommand = &cli.Command{
 			Name:  "delete",
 			Usage: "Delete a single event",
 			Description: "Unconditionally deletes (and aborts if applicable) a " +
-				"single event in any state",
+				"single event whose worker is in any phase",
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:    flagID,
@@ -131,32 +131,32 @@ var eventCommand = &cli.Command{
 			Aliases: []string{"dm"},
 			Usage:   "Delete multiple events",
 			Description: "Deletes (and aborts if applicable) events for the " +
-				"specified project with their workers in the specified state(s)",
+				"specified project with their workers in the specified phase(s)",
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name: flagAborted,
 					Usage: "If set, will delete events with their worker in an ABORTED " +
-						"state; mutually exclusive with --any-state and --terminal",
+						"phase; mutually exclusive with --any-phase and --terminal",
 				},
 				&cli.BoolFlag{
-					Name: flagAnyState,
-					Usage: "If set, will delete events with their worker in any state; " +
-						"mutually exclusive with all other state flags",
+					Name: flagAnyPhase,
+					Usage: "If set, will delete events with their worker in any phase; " +
+						"mutually exclusive with all other phase flags",
 				},
 				&cli.BoolFlag{
 					Name: flagCanceled,
 					Usage: "If set, will delete events with their worker in a CANCELED " +
-						"state; mutually exclusive with --any-state and --terminal",
+						"phase; mutually exclusive with --any-phase and --terminal",
 				},
 				&cli.BoolFlag{
 					Name: flagFailed,
 					Usage: "If set, will delete events with their worker in a FAILED " +
-						"state; mutually exclusive with --any-state and --terminal",
+						"phase; mutually exclusive with --any-phase and --terminal",
 				},
 				&cli.BoolFlag{
 					Name: flagPending,
 					Usage: "If set, will delete events with their worker in a PENDING " +
-						"state; mutually exclusive with --any-state and --terminal",
+						"phase; mutually exclusive with --any-phase and --terminal",
 				},
 				&cli.StringFlag{
 					Name:     flagProject,
@@ -167,30 +167,30 @@ var eventCommand = &cli.Command{
 				&cli.BoolFlag{
 					Name: flagRunning,
 					Usage: "If set, will abort and delete events with their worker in " +
-						"a RUNNING state; mutually exclusive with --any-state and " +
+						"a RUNNING phase; mutually exclusive with --any-phase and " +
 						"--terminal",
 				},
 				&cli.BoolFlag{
 					Name: flagSucceeded,
 					Usage: "If set, will delete events with their worker in a " +
-						"SUCCEEDED state; mutually exclusive with --any-state and " +
+						"SUCCEEDED phase; mutually exclusive with --any-phase and " +
 						"--terminal",
 				},
 				&cli.BoolFlag{
 					Name: flagTerminal,
 					Usage: "If set, will delete events with their worker in any " +
-						"terminal state; mutually exclusive with all other state flags",
+						"terminal phase; mutually exclusive with all other phase flags",
 				},
 				&cli.BoolFlag{
 					Name: flagTimedOut,
 					Usage: "If set, will delete events with their worker in a " +
-						"TIMED_OUT state; mutually exclusive with --any-state and " +
+						"TIMED_OUT phase; mutually exclusive with --any-phase and " +
 						"--terminal",
 				},
 				&cli.BoolFlag{
 					Name: flagUnknown,
 					Usage: "If set, will delete events with their worker in an UNKNOWN " +
-						"state; mutually exclusive with --any-state and --terminal",
+						"phase; mutually exclusive with --any-phase and --terminal",
 				},
 				&cli.BoolFlag{
 					Name:    flagYes,
@@ -224,29 +224,29 @@ var eventCommand = &cli.Command{
 				&cli.BoolFlag{
 					Name: flagAborted,
 					Usage: "If set, will retrieve events with their worker in an " +
-						"ABORTED state; mutually exclusive with --terminal and " +
+						"ABORTED phase; mutually exclusive with --terminal and " +
 						"--non-terminal",
 				},
 				&cli.BoolFlag{
 					Name: flagCanceled,
 					Usage: "If set, will retrieve events with their worker in a " +
-						"CANCELED state; mutually exclusive with --terminal and " +
+						"CANCELED phase; mutually exclusive with --terminal and " +
 						"--non-terminal",
 				},
 				&cli.BoolFlag{
 					Name: flagFailed,
 					Usage: "If set, will retrieve events with their worker in a FAILED " +
-						"state; mutually exclusive with  --terminal and --non-terminal",
+						"phase; mutually exclusive with  --terminal and --non-terminal",
 				},
 				&cli.BoolFlag{
 					Name: flagNonTerminal,
 					Usage: "If set, will retrieve events with their worker in any " +
-						"non-terminal state; mutually exclusive with all other state flags",
+						"non-terminal phase; mutually exclusive with all other phase flags",
 				},
 				&cli.BoolFlag{
 					Name: flagPending,
 					Usage: "If set, will retrieve events with their worker in a " +
-						"PENDING state; mutually exclusive with --terminal and " +
+						"PENDING phase; mutually exclusive with --terminal and " +
 						"--non-terminal",
 				},
 				&cli.StringFlag{
@@ -258,29 +258,29 @@ var eventCommand = &cli.Command{
 				&cli.BoolFlag{
 					Name: flagRunning,
 					Usage: "If set, will retrieve events with their worker in RUNNING " +
-						"state; mutually exclusive with --terminal and --non-terminal",
+						"phase; mutually exclusive with --terminal and --non-terminal",
 				},
 				&cli.BoolFlag{
 					Name: flagSucceeded,
 					Usage: "If set, will retrieve events with their worker in a " +
-						"SUCCEEDED state; mutually exclusive with --terminal and " +
+						"SUCCEEDED phase; mutually exclusive with --terminal and " +
 						"--non-terminal",
 				},
 				&cli.BoolFlag{
 					Name: flagTerminal,
 					Usage: "If set, will retrieve events with their worker in any " +
-						"terminal state; mutually exclusive with all other state flags",
+						"terminal phase; mutually exclusive with all other phase flags",
 				},
 				&cli.BoolFlag{
 					Name: flagTimedOut,
 					Usage: "If set, will retrieve events with their worker in a " +
-						"TIMED_OUT state; mutually exclusive with --terminal and " +
+						"TIMED_OUT phase; mutually exclusive with --terminal and " +
 						"--non-terminal",
 				},
 				&cli.BoolFlag{
 					Name: flagUnknown,
 					Usage: "If set, will retrieve events with their worker in an " +
-						"UNKNOWN state; mutually exclusive with --terminal and " +
+						"UNKNOWN phase; mutually exclusive with --terminal and " +
 						"--non-terminal",
 				},
 			},
@@ -372,7 +372,7 @@ func eventList(c *cli.Context) error {
 	if c.Bool(flagTerminal) {
 		if len(workerPhases) > 0 {
 			return errors.New(
-				"--terminal is mutually exclusive with all other state flags",
+				"--terminal is mutually exclusive with all other phase flags",
 			)
 		}
 		workerPhases = core.WorkerPhasesTerminal()
@@ -381,7 +381,7 @@ func eventList(c *cli.Context) error {
 	if c.Bool(flagNonTerminal) {
 		if len(workerPhases) > 0 {
 			return errors.New(
-				"--non-terminal is mutually exclusive with all other state flags",
+				"--non-terminal is mutually exclusive with all other phase flags",
 			)
 		}
 		workerPhases = core.WorkerPhasesNonTerminal()
@@ -669,10 +669,10 @@ func eventDeleteMany(c *cli.Context) error {
 		workerPhases = append(workerPhases, core.WorkerPhaseUnknown)
 	}
 
-	if c.Bool(flagAnyState) {
+	if c.Bool(flagAnyPhase) {
 		if len(workerPhases) > 0 {
 			return errors.New(
-				"--any-state is mutually exclusive with all other state flags",
+				"--any-phase is mutually exclusive with all other phase flags",
 			)
 		}
 		workerPhases = core.WorkerPhasesAll()
@@ -681,7 +681,7 @@ func eventDeleteMany(c *cli.Context) error {
 	if c.Bool(flagTerminal) {
 		if len(workerPhases) > 0 {
 			return errors.New(
-				"--terminal is mutually exclusive with all other state flags",
+				"--terminal is mutually exclusive with all other phase flags",
 			)
 		}
 		workerPhases = core.WorkerPhasesTerminal()

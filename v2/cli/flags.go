@@ -3,10 +3,8 @@ package main
 import "github.com/urfave/cli/v2"
 
 const (
-	flagAborted = "aborted"
-	// TODO: All references to "state" should probably change to "phase" for
-	// accuracy's sake.
-	flagAnyState       = "any-state"
+	flagAborted        = "aborted"
+	flagAnyPhase       = "any-phase"
 	flagBrowse         = "browse"
 	flagCanceled       = "canceled"
 	flagContainer      = "container"
