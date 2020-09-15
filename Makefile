@@ -204,7 +204,7 @@ push-logger-windows: build-logger-windows
 
 .PHONY: hack-new-kind-cluster
 hack-new-kind-cluster:
-	./scripts/new-kind-cluster.sh
+	./v2/scripts/new-kind-cluster.sh
 
 .PHONY: hack-install-nfs
 hack-install-nfs:

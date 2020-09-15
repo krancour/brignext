@@ -72,18 +72,21 @@ type LogsService interface {
 
 type logsService struct {
 	authorize     authx.AuthorizeFn
+	projectsStore ProjectsStore
 	eventsStore   EventsStore
 	warmLogsStore LogsStore
 	coolLogsStore LogsStore
 }
 
 func NewLogsService(
+	projectsStore ProjectsStore,
 	eventsStore EventsStore,
 	warmLogsStore LogsStore,
 	coolLogsStore LogsStore,
 ) LogsService {
 	return &logsService{
 		authorize:     authx.Authorize,
+		projectsStore: projectsStore,
 		eventsStore:   eventsStore,
 		warmLogsStore: warmLogsStore,
 		coolLogsStore: coolLogsStore,
@@ -109,10 +112,20 @@ func (l *logsService) Stream(
 		return nil, err
 	}
 
-	// Try warm logs first and fall back on cooler logs if necessary
-	logCh, err := l.warmLogsStore.StreamLogs(ctx, event, selector, opts)
+	project, err := l.projectsStore.Get(ctx, event.ProjectID)
 	if err != nil {
-		logCh, err = l.coolLogsStore.StreamLogs(ctx, event, selector, opts)
+		return nil,
+			errors.Wrapf(
+				err,
+				"error retrieving project %q from store",
+				event.ProjectID,
+			)
+	}
+
+	// Try warm logs first and fall back on cooler logs if necessary
+	logCh, err := l.warmLogsStore.StreamLogs(ctx, project, event, selector, opts)
+	if err != nil {
+		logCh, err = l.coolLogsStore.StreamLogs(ctx, project, event, selector, opts)
 	}
 	return logCh, err
 }
@@ -120,6 +133,7 @@ func (l *logsService) Stream(
 type LogsStore interface {
 	StreamLogs(
 		ctx context.Context,
+		project Project,
 		event Event,
 		selector LogsSelector,
 		opts LogStreamOptions,

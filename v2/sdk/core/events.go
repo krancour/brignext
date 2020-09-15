@@ -92,10 +92,6 @@ type Event struct {
 	// REFERENCES to sensitive details that are useful to properly configured
 	// Workers only.
 	Payload string `json:"payload,omitempty"`
-	// Kubernetes contains Kubernetes-specific details of the Event's Worker's
-	// environment. These details are populated by Brigade. Clients MUST leave
-	// the value of this field nil when using the API to create an Event.
-	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty"`
 	// Worker contains details of the worker that will/is/has handle(d) the Event.
 	Worker *Worker `json:"worker,omitempty"`
 }

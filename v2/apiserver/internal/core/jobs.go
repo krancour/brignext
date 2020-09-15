@@ -141,22 +141,25 @@ type JobsService interface {
 }
 
 type jobsService struct {
-	authorize   authx.AuthorizeFn
-	eventsStore EventsStore
-	jobsStore   JobsStore
-	substrate   Substrate
+	authorize     authx.AuthorizeFn
+	projectsStore ProjectsStore
+	eventsStore   EventsStore
+	jobsStore     JobsStore
+	substrate     Substrate
 }
 
 func NewJobsService(
+	projectsStore ProjectsStore,
 	eventsStore EventsStore,
 	jobsStore JobsStore,
 	substrate Substrate,
 ) JobsService {
 	return &jobsService{
-		authorize:   authx.Authorize,
-		eventsStore: eventsStore,
-		jobsStore:   jobsStore,
-		substrate:   substrate,
+		authorize:     authx.Authorize,
+		projectsStore: projectsStore,
+		eventsStore:   eventsStore,
+		jobsStore:     jobsStore,
+		substrate:     substrate,
 	}
 }
 
@@ -240,6 +243,15 @@ func (j *jobsService) Create(
 		Phase: JobPhasePending,
 	}
 
+	project, err := j.projectsStore.Get(ctx, event.ProjectID)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			event.ProjectID,
+		)
+	}
+
 	if err = j.jobsStore.Create(ctx, eventID, jobName, job); err != nil {
 		return errors.Wrapf(
 			err, "error saving event %q job %q in store",
@@ -248,16 +260,7 @@ func (j *jobsService) Create(
 		)
 	}
 
-	if err = j.substrate.PreScheduleJob(ctx, event, jobName); err != nil {
-		return errors.Wrapf(
-			err,
-			"error pre-scheduling event %q job %q on the substrate",
-			event.ID,
-			jobName,
-		)
-	}
-
-	if err = j.substrate.ScheduleJob(ctx, event, jobName); err != nil {
+	if err = j.substrate.ScheduleJob(ctx, project, event, jobName); err != nil {
 		return errors.Wrapf(
 			err,
 			"error scheduling event %q job %q on the substrate",
@@ -302,7 +305,16 @@ func (j *jobsService) Start(
 		}
 	}
 
-	if err = j.substrate.StartJob(ctx, event, jobName); err != nil {
+	project, err := j.projectsStore.Get(ctx, event.ProjectID)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			event.ProjectID,
+		)
+	}
+
+	if err = j.substrate.StartJob(ctx, project, event, jobName); err != nil {
 		return errors.Wrapf(
 			err,
 			"error starting event %q job %q",

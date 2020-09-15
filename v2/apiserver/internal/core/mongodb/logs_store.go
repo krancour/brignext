@@ -24,6 +24,7 @@ func NewLogsStore(database *mongo.Database) core.LogsStore {
 
 func (l *logsStore) StreamLogs(
 	ctx context.Context,
+	_ core.Project,
 	event core.Event,
 	selector core.LogsSelector,
 	opts core.LogStreamOptions,

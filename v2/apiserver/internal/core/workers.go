@@ -207,22 +207,25 @@ type WorkersService interface {
 }
 
 type workersService struct {
-	authorize    authx.AuthorizeFn
-	eventsStore  EventsStore
-	workersStore WorkersStore
-	substrate    Substrate
+	authorize     authx.AuthorizeFn
+	projectsStore ProjectsStore
+	eventsStore   EventsStore
+	workersStore  WorkersStore
+	substrate     Substrate
 }
 
 func NewWorkersService(
+	projectsStore ProjectsStore,
 	eventsStore EventsStore,
 	workersStore WorkersStore,
 	substrate Substrate,
 ) WorkersService {
 	return &workersService{
-		authorize:    authx.Authorize,
-		eventsStore:  eventsStore,
-		workersStore: workersStore,
-		substrate:    substrate,
+		authorize:     authx.Authorize,
+		projectsStore: projectsStore,
+		eventsStore:   eventsStore,
+		workersStore:  workersStore,
+		substrate:     substrate,
 	}
 }
 
@@ -247,7 +250,16 @@ func (w *workersService) Start(ctx context.Context, eventID string) error {
 		}
 	}
 
-	if err = w.substrate.StartWorker(ctx, event); err != nil {
+	project, err := w.projectsStore.Get(ctx, event.ProjectID)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			event.ProjectID,
+		)
+	}
+
+	if err = w.substrate.StartWorker(ctx, project, event); err != nil {
 		return errors.Wrapf(err, "error starting worker for event %q", event.ID)
 	}
 	return nil

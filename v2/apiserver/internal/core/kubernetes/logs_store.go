@@ -26,6 +26,7 @@ func NewLogsStore(kubeClient *kubernetes.Clientset) core.LogsStore {
 
 func (l *logsStore) StreamLogs(
 	ctx context.Context,
+	project core.Project,
 	event core.Event,
 	selector core.LogsSelector,
 	opts core.LogStreamOptions,
@@ -37,7 +38,7 @@ func (l *logsStore) StreamLogs(
 		podName = fmt.Sprintf("job-%s-%s", event.ID, strings.ToLower(selector.Job))
 	}
 
-	req := l.kubeClient.CoreV1().Pods(event.Kubernetes.Namespace).GetLogs(
+	req := l.kubeClient.CoreV1().Pods(project.Kubernetes.Namespace).GetLogs(
 		podName,
 		&v1.PodLogOptions{
 			Container:  selector.Container,
@@ -50,7 +51,7 @@ func (l *logsStore) StreamLogs(
 			err,
 			"error opening log stream for pod %q in namespace %q",
 			podName,
-			event.Kubernetes.Namespace,
+			project.Kubernetes.Namespace,
 		)
 	}
 

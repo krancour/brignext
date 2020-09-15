@@ -125,9 +125,12 @@ func getAPIServerFromEnvironment() (restmachinery.Server, error) {
 		return nil, err
 	}
 	eventsService := core.NewEventsService(projectsStore, eventsStore, substrate)
-	workersService := core.NewWorkersService(eventsStore, workersStore, substrate)
-	jobsService := core.NewJobsService(eventsStore, jobsStore, substrate)
+	workersService :=
+		core.NewWorkersService(projectsStore, eventsStore, workersStore, substrate)
+	jobsService :=
+		core.NewJobsService(projectsStore, eventsStore, jobsStore, substrate)
 	logsService := core.NewLogsService(
+		projectsStore,
 		eventsStore,
 		coreKubernetes.NewLogsStore(kubeClient),
 		coreMongodb.NewLogsStore(database),

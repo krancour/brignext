@@ -328,14 +328,7 @@ func (p *projectsService) Update(
 			updatedProject.ID,
 		)
 	}
-	if err =
-		p.substrate.UpdateProject(ctx, oldProject, updatedProject); err != nil {
-		return updatedProject, errors.Wrapf(
-			err,
-			"error updating project %q on the substrate",
-			updatedProject.ID,
-		)
-	}
+
 	return updatedProject, nil
 }
 

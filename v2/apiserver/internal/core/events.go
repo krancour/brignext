@@ -56,9 +56,6 @@ type Event struct {
 	// REFERENCES to sensitive details that are useful to properly configured
 	// Workers only.
 	Payload string `json:"payload,omitempty" bson:"payload,omitempty"`
-	// Kubernetes contains Kubernetes-specific details of the Event's Worker's
-	// environment.
-	Kubernetes *KubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"` // nolint: lll
 	// Worker contains details of the worker that will/is/has handle(d) the Event.
 	Worker Worker `json:"worker" bson:"worker"`
 }
@@ -373,17 +370,9 @@ func (e *eventsService) Create(
 		)
 	}
 
-	// Prepare the substrate for the Worker
-	if err = e.substrate.PreScheduleWorker(ctx, event); err != nil {
-		return events, errors.Wrapf(
-			err,
-			"error pre-scheduling event %q worker on the substrate",
-			event.ID,
-		)
-	}
-
-	// Schedule the Worker for async / eventual execution
-	if err = e.substrate.ScheduleWorker(ctx, event); err != nil {
+	// Prepare the substrate for the Worker and schedule the Worker for async /
+	// eventual execution
+	if err = e.substrate.ScheduleWorker(ctx, project, event); err != nil {
 		return events, errors.Wrapf(
 			err,
 			"error scheduling event %q worker on the substrate",
@@ -464,11 +453,20 @@ func (e *eventsService) Cancel(ctx context.Context, id string) error {
 		return err
 	}
 
+	project, err := e.projectsStore.Get(ctx, event.ProjectID)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			event.ProjectID,
+		)
+	}
+
 	if err = e.eventsStore.Cancel(ctx, id); err != nil {
 		return errors.Wrapf(err, "error canceling event %q in store", id)
 	}
 
-	if err = e.substrate.DeleteWorkerAndJobs(ctx, event); err != nil {
+	if err = e.substrate.DeleteWorkerAndJobs(ctx, project, event); err != nil {
 		return errors.Wrapf(
 			err,
 			"error deleting event %q worker and jobs from the substrate",
@@ -508,16 +506,13 @@ func (e *eventsService) CancelMany(
 		}
 	}
 
-	if selector.ProjectID != "" {
-		// Make sure the project exists
-		_, err := e.projectsStore.Get(ctx, selector.ProjectID)
-		if err != nil {
-			return result, errors.Wrapf(
-				err,
-				"error retrieving project %q from store",
-				selector.ProjectID,
-			)
-		}
+	project, err := e.projectsStore.Get(ctx, selector.ProjectID)
+	if err != nil {
+		return result, errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			selector.ProjectID,
+		)
 	}
 
 	events, err := e.eventsStore.CancelMany(ctx, selector)
@@ -534,6 +529,7 @@ func (e *eventsService) CancelMany(
 		for _, event := range events.Items {
 			if err := e.substrate.DeleteWorkerAndJobs(
 				context.Background(), // Deliberately not using request context
+				project,
 				event,
 			); err != nil {
 				log.Println(
@@ -563,11 +559,20 @@ func (e *eventsService) Delete(ctx context.Context, id string) error {
 		return err
 	}
 
+	project, err := e.projectsStore.Get(ctx, event.ProjectID)
+	if err != nil {
+		return errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			event.ProjectID,
+		)
+	}
+
 	if err = e.eventsStore.Delete(ctx, id); err != nil {
 		return errors.Wrapf(err, "error deleting event %q from store", id)
 	}
 
-	if err = e.substrate.DeleteWorkerAndJobs(ctx, event); err != nil {
+	if err = e.substrate.DeleteWorkerAndJobs(ctx, project, event); err != nil {
 		return errors.Wrapf(
 			err,
 			"error deleting event %q worker and jobs from the substrate",
@@ -607,16 +612,13 @@ func (e *eventsService) DeleteMany(
 		}
 	}
 
-	if selector.ProjectID != "" {
-		// Make sure the project exists
-		_, err := e.projectsStore.Get(ctx, selector.ProjectID)
-		if err != nil {
-			return result, errors.Wrapf(
-				err,
-				"error retrieving project %q from store",
-				selector.ProjectID,
-			)
-		}
+	project, err := e.projectsStore.Get(ctx, selector.ProjectID)
+	if err != nil {
+		return result, errors.Wrapf(
+			err,
+			"error retrieving project %q from store",
+			selector.ProjectID,
+		)
 	}
 
 	events, err := e.eventsStore.DeleteMany(ctx, selector)
@@ -633,6 +635,7 @@ func (e *eventsService) DeleteMany(
 		for _, event := range events.Items {
 			if err := e.substrate.DeleteWorkerAndJobs(
 				context.Background(), // Deliberately not using request context
+				project,
 				event,
 			); err != nil {
 				log.Println(
