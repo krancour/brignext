@@ -49,11 +49,12 @@ type User struct {
 	meta.ObjectMeta `json:"metadata"`
 	// Name is the given name and surname of the User.
 	Name string `json:"name,omitempty"`
-	// Locked indicates when the User has been locked out of the system by
-	// an administrator. If this field's value is nil, the User can be presumed
-	// NOT to be locked.
+	// Locked indicates when the User has been locked out of the system by an
+	// administrator. If this field's value is nil, the User is not locked.
 	Locked *time.Time `json:"locked,omitempty"`
-	Roles  []Role     `json:"roles,omitempty"`
+	// Roles is a slice of Roles (both system-level and project-level) assigned to
+	// this User.
+	Roles []Role `json:"roles,omitempty"`
 }
 
 // MarshalJSON amends User instances with type metadata so that clients do
@@ -82,11 +83,12 @@ type UsersClient interface {
 	// Get retrieves a single User specified by their identifier.
 	Get(context.Context, string) (User, error)
 
-	// Lock removes access to the API for a single User specified by their
-	// identifier.
+	// Lock revokes system access for a single User specified by their identifier.
+	// Implementations MUST also delete or invalidate any and all of the User's
+	// existing Sessions.
 	Lock(context.Context, string) error
-	// Unlock restores access to the API for a single User specified by their
-	// identifier.
+	// Unlock restores system access for a single User (after presumably having
+	// been revoked) specified by their identifier.
 	Unlock(context.Context, string) error
 }
 

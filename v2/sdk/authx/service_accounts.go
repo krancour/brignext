@@ -52,10 +52,12 @@ type ServiceAccount struct {
 	// purpose.
 	Description string `json:"description,omitempty"`
 	// Locked indicates when the ServiceAccount has been locked out of the system
-	// by an administrator. If this field's value is nil, the User can be presumed
-	// NOT to be locked.
+	// by an administrator. If this field's value is nil, the ServiceAccount is
+	// not locked.
 	Locked *time.Time `json:"locked,omitempty"`
-	Roles  []Role     `json:"roles,omitempty"`
+	// Roles is a slice of Roles (both system-level and project-level) assigned to
+	// this ServiceAccount.
+	Roles []Role `json:"roles,omitempty"`
 }
 
 // MarshalJSON amends ServiceAccount instances with type metadata so that
@@ -90,11 +92,11 @@ type ServiceAccountsClient interface {
 	// Get retrieves a single ServiceAccount specified by its identifier.
 	Get(context.Context, string) (ServiceAccount, error)
 
-	// Lock removes access to the API for a single ServiceAccount specified by its
+	// Lock revokes system access for a single ServiceAccount specified by its
 	// identifier.
 	Lock(context.Context, string) error
-	// Unlock restores access to the API for a single ServiceAccount specified by
-	// its identifier. It returns a new Token.
+	// Unlock restores system access for a single ServiceAccount (after presumably
+	// having been revoked) specified by its identifier. It returns a new Token.
 	Unlock(context.Context, string) (Token, error)
 }
 

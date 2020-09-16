@@ -1,5 +1,7 @@
 package authx
 
+// APIClient is the root of a tree of more specialied API clients within the
+// authx package.
 type APIClient interface {
 	// ServiceAccounts returns a specialized client for ServiceAccount management.
 	ServiceAccounts() ServiceAccountsClient
@@ -19,6 +21,9 @@ type apiClient struct {
 	usersClient UsersClient
 }
 
+// NewAPIClient returns an APIClient, which is the root of a tree of more
+// specialied API clients within the authx package. It will initialize all
+// clients in the tree so they are ready for immediate use.
 func NewAPIClient(
 	apiAddress,
 	apiToken string,

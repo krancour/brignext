@@ -104,7 +104,8 @@ type KubernetesConfig struct {
 
 // ProjectsSelector represents useful filter criteria when selecting multiple
 // Projects for API group operations like list. It currently has no fields, but
-// exists for future expansion.
+// exists to preserve the possibility of future expansion without having to
+// change client function signatures.
 type ProjectsSelector struct{}
 
 // ProjectList is an ordered and pageable list of Projects.

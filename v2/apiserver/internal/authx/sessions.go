@@ -2,6 +2,7 @@ package authx
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/brigadecore/brigade/v2/apiserver/internal/lib/crypto"
@@ -11,6 +12,50 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"golang.org/x/oauth2"
 )
+
+// OIDCAuthDetails encapsulates all information required for a client
+// authenticating by means of OpenID Connect to complete the authentication
+// process using a third-party identiy provider.
+type OIDCAuthDetails struct {
+	// OAuth2State is an opaque token issued by Brigade that must be sent to the
+	// OIDC identity provider as a query parameter when the OIDC authentication
+	// workflow continues (in the user's web browser). The OIDC identity provider
+	// includes this token when it issues a callback to the Brigade API server
+	// after successful authentication. This permits the Brigade API server to
+	// correlate the successful authentication by the OIDC identity provider with
+	// an existing, but as-yet-unactivated token. This proof of authentication
+	// allows Brigade to activate the token and associate it with the User that
+	// the OIDC identity provider indicates has successfully completed
+	// authentication.
+	OAuth2State string `json:"oauth2State"`
+	// AuthURL is a URL that can be requested in a user's web browser to complete
+	// authentication via a third-party OIDC identity provider.
+	AuthURL string `json:"authURL"`
+	// Token is an opaque bearer token issued by Brigade to correlate a User with
+	// a Session. It remains unactivated (useless) until the OIDC authentication
+	// workflow is successfully completed. Clients may expect that that the token
+	// expires (at an interval determined by a system administrator) and, for
+	// simplicity, is NOT refreshable. When the token has expired, it
+	// re-authentication is required.
+	Token string `json:"token"`
+}
+
+// MarshalJSON amends OIDCAuthDetails instances with type metadata.
+func (o OIDCAuthDetails) MarshalJSON() ([]byte, error) {
+	type Alias OIDCAuthDetails
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "OIDCAuthDetails",
+			},
+			Alias: (Alias)(o),
+		},
+	)
+}
 
 type Session struct {
 	meta.TypeMeta     `json:",inline" bson:",inline"`
@@ -72,20 +117,46 @@ func SessionIDFromContext(ctx context.Context) string {
 	return token.(string)
 }
 
+// SessionsService is the specialized interface for managing Sessions. It's
+// decoupled from underlying technology choices (e.g. data store) to keep
+// business logic reusable and consistent while the underlying tech stack
+// remains free to change.
 type SessionsService interface {
+	// CreateRootSession creates a Session for the root user (if enabled by th
+	// system administrator) and returns a Token with a short expiry period
+	// (determined by a system administrator). If the specified username is not
+	// "root" or the specified password is incorrect, implementations MUST return
+	// a *meta.ErrAuthentication error.
 	CreateRootSession(
 		ctx context.Context,
 		username string,
 		password string,
 	) (Token, error)
-	CreateUserSession(context.Context) (UserSessionAuthDetails, error)
+	// CreateUserSession creates a new User Session and initiates an OpenID
+	// Connect authentication workflow. It returns an OIDCAuthDetails containing
+	// all information required to continue the authentication process with a
+	// third-party OIDC identity provider.
+	CreateUserSession(context.Context) (OIDCAuthDetails, error)
+	// Authenticate completes the final steps of the OpenID Connect authentication
+	// workflow. It uses the provided oauth2State to idenity an as-yet anonymous
+	// Session (with) an as-yet unactivated token). It communicates with the
+	// third-party ODIC identity provider, exchanging the provided oidcCode for
+	// user information. This information can be used to correlate the as-yet
+	// anonymous Session to an existing User. If the User is previously unknown to
+	// Brigade, one is seamlessly created (with read-only permissions) form the
+	// information provided by the identity provider. Finally, the Session's token
+	// is activated.
 	Authenticate(
 		ctx context.Context,
 		oauth2State string,
 		oidcCode string,
 	) error
-	GetByToken(context.Context, string) (Session, error)
-	Delete(context.Context, string) error
+	// GetByToken retrieves the Session having the provided token. If no such
+	// Session is found or is found but is expired, implementations MUST return a
+	// *meta.ErrAuthentication error.
+	GetByToken(ctx context.Context, token string) (Session, error)
+	// Delete deletes the specified Session.
+	Delete(ctx context.Context, id string) error
 }
 
 type sessionsService struct {
@@ -152,8 +223,8 @@ func (s *sessionsService) CreateRootSession(
 
 func (s *sessionsService) CreateUserSession(
 	ctx context.Context,
-) (UserSessionAuthDetails, error) {
-	userSessionAuthDetails := UserSessionAuthDetails{
+) (OIDCAuthDetails, error) {
+	userSessionAuthDetails := OIDCAuthDetails{
 		OAuth2State: crypto.NewToken(30),
 		Token:       crypto.NewToken(256),
 	}

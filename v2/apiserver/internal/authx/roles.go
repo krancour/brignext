@@ -2,62 +2,77 @@ package authx
 
 import "context"
 
+// RoleName is a type whose value maps to a well-defined Brigade Role.
 type RoleName string
 
 const (
-	// RoleNameAdmin is the name of a Role that enables principals to manage
-	// Users, ServiceAccounts, and globally scoped permissions for Users and
+	// RoleNameAdmin is the name of a system-level Role that enables principals to
+	// manage Users, ServiceAccounts, and system-level permissions for Users and
 	// ServiceAccounts.
 	RoleNameAdmin RoleName = "ADMIN"
-	// RoleNameEventCreator is the name of a Role that enables principals to
-	// create Events.
+	// RoleNameEventCreator is the name of a system-level Role that enables
+	// principals to create Events for all Projects.
 	RoleNameEventCreator RoleName = "EVENT_CREATOR"
-	// RoleNameProjectAdmin is the name of a Role that enables principals to
-	// manage all aspects of Projects.
+	// RoleNameProjectAdmin is the name of a project-level Role that enables
+	// principals to manage all aspects of a given Project, including the
+	// Project's secrets.
 	RoleNameProjectAdmin RoleName = "PROJECT_ADMIN"
-	// RoleNameProjectCreator is the name of a Role that enables principals to
-	// create new Projects.
+	// RoleNameProjectCreator is the name of a system-level Role that enables
+	// principals to create new Projects.
 	RoleNameProjectCreator RoleName = "PROJECT_CREATOR"
-	// RoleNameProjectDeveloper is the name of a Role that enables principals to
-	// read and update Projects.
+	// RoleNameProjectDeveloper is the name of a project-level Role that enables
+	// principals to update Projects. This Role does NOT enable event creation
+	// or secret management.
 	RoleNameProjectDeveloper RoleName = "PROJECT_DEVELOPER"
-	// RoleNameProjectUser is the name of a Role that enables principals to
-	// read, create, and manage Events for a Project.
+	// RoleNameProjectUser is the name of a project-level Role that enables
+	// principals to create and manage Events for a Project.
 	RoleNameProjectUser RoleName = "PROJECT_USER"
-	// RoleNameReader is the name of a Role that enables principals to
-	// list and read Projects, Users, and Service Accounts.
+	// RoleNameReader is the name of a system-level Role that enables global read
+	// access.
 	RoleNameReader RoleName = "READER"
 
 	// Special roles
 	//
-	// These are reserved for use by system components and are assignable to Users
-	// and ServiceAccounts.
+	// These are reserved for use by system components and are NOT assignable to
+	// Users and ServiceAccounts.
 
-	// RoleNameObserver is the name of a Role that enables principals to updates
-	// Worker and Job status based on observation of the underlying workload
-	// execution substrate. This Role is exclusively for the use of the Observer
-	// component.
+	// RoleNameObserver is the name of a system-level Role that enables principals
+	// to updates Worker and Job status based on observation of the underlying
+	// workload execution substrate. This Role exists exclusively for use by
+	// Brigade's Observer component.
 	RoleNameObserver RoleName = "OBSERVER"
-	// RoleNameScheduler is the name of a Role that enables principals to initiate
-	// execution of a Worker or Job on the underlying workload execution
-	// substrate. This Role is execlusively for the use of the Scheduler
-	// component.
+	// RoleNameScheduler is the name of a system-level Role that enables
+	// principals to initiate execution of a Worker or Job on the underlying
+	// workload execution substrate. This Role exists execlusively for use by
+	// Brigade's Scheduler component.
 	RoleNameScheduler RoleName = "SCHEDULER"
-	// RoleNameWorker is the name of a Role that enables principals to create new
-	// Jobs. This Role is exclusively for the use of Workers.
+	// RoleNameWorker is the name of an event-level Role that enables principals
+	// to create new Jobs. This Role is exclusively for the use of Brigade
+	// Workers.
 	RoleNameWorker RoleName = "WORKER"
 )
 
 // RoleScopeGlobal represents an unbounded scope.
 const RoleScopeGlobal = "*"
 
-const RoleTypeSystem = "SYSTEM"
-const RoleTypeProject = "PROJECT"
+// RoleType is a type whose values can be used to disambiguate one type of Role
+// from another. This allows, for instance, system-level Roles to be
+// differentiated from project-level Roles.
+type RoleType string
+
+const (
+	// RoleTypeProject represents a project-level Role.
+	RoleTypeProject RoleType = "PROJECT"
+	// RoleTypeSystem represents a system-level Role.
+	RoleTypeSystem RoleType = "SYSTEM"
+)
 
 // Role represents a set of permissions, with domain-specific meaning, held by a
 // principal, such as a User or ServiceAccount.
 type Role struct {
-	Type string `json:"type" bson:"type"`
+	// Type indicates the Role's type, for instance, system-level or
+	// project-level.
+	Type RoleType `json:"type" bson:"type"`
 	// Name is the name of a Role and has domain-specific meaning.
 	Name RoleName `json:"name" bson:"name"`
 	// Scope qualifies the scope of the Role. The value is opaque and has meaning
@@ -65,11 +80,19 @@ type Role struct {
 	Scope string `json:"scope" bson:"scope"`
 }
 
+// RoleAssignment represents the assignment of a Role to a principal.
 type RoleAssignment struct {
-	Role          RoleName      `json:"role"`
-	Scope         string        `json:"scope"`
+	// Role specifies a Role.
+	Role RoleName `json:"role"`
+	// Scope qualifies the scope of the Role. The value is opaque and has meaning
+	// only in relation to a specific RoleName.
+	Scope string `json:"scope"`
+	// PrincipalType qualifies what kind of principal is referenced by the
+	// PrincipalID field.
 	PrincipalType PrincipalType `json:"principalType"`
-	PrincipalID   string        `json:"principalID"`
+	// PrincipalID references a principal. The PrincipalType qualifies what type
+	// of principal that is-- for instance, a User or a ServiceAccount.
+	PrincipalID string `json:"principalID"`
 }
 
 // RoleAdmin returns a Role that enables a principal to manage Users,
@@ -97,6 +120,8 @@ func RoleEventCreator(eventSource string) Role {
 // having an ID field whose value matches that of the Scope field. If the value
 // of the Scope field is RoleScopeGlobal ("*"), then the Role is unbounded and
 // enables a principal to manage all Projects.
+//
+// TODO: This project-level role should probably move into the core package.
 func RoleProjectAdmin(projectID string) Role {
 	return Role{
 		Type:  RoleTypeProject,
@@ -118,6 +143,8 @@ func RoleProjectCreator() Role {
 // update a Project having an ID field whose value matches that of the Scope
 // field. If the value of the Scope field is RoleScopeGlobal ("*"), then the
 // Role is unbounded and enables a principal to read and update all Projects.
+//
+// TODO: This project-level role should probably move into the core package.
 func RoleProjectDeveloper(projectID string) Role {
 	return Role{
 		Type:  RoleTypeProject,
@@ -131,6 +158,8 @@ func RoleProjectDeveloper(projectID string) Role {
 // field. If the value of the Scope field is RoleScopeGlobal ("*"), then the
 // Role is unbounded and enables a principal to read, create, and manage Events
 // for all Projects.
+//
+// TODO: This project-level role should probably move into the core package.
 func RoleProjectUser(projectID string) Role {
 	return Role{
 		Type:  RoleTypeProject,
@@ -147,6 +176,9 @@ func RoleReader() Role {
 		Name: RoleNameReader,
 	}
 }
+
+// TODO: These special roles might not belong here. But what package do they
+// belong in?
 
 // Special roles
 //

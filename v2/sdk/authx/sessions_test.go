@@ -14,7 +14,7 @@ import (
 func TestUserSessionAuthDetailsMarshalJSON(t *testing.T) {
 	requireAPIVersionAndType(
 		t,
-		UserSessionAuthDetails{},
+		OIDCAuthDetails{},
 		"UserSessionAuthDetails",
 	)
 }
@@ -59,7 +59,7 @@ func TestSessionsClientCreateRootSession(t *testing.T) {
 }
 
 func TestSessionsClientCreateUserSession(t *testing.T) {
-	testUserSessionAuthDetails := UserSessionAuthDetails{
+	testUserSessionAuthDetails := OIDCAuthDetails{
 		Token: "opensesame",
 	}
 	server := httptest.NewServer(

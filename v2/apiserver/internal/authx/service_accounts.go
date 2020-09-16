@@ -10,37 +10,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-type ServiceAccount struct {
-	meta.ObjectMeta     `json:"metadata" bson:",inline"`
-	Description         string     `json:"description" bson:"description"`
-	HashedToken         string     `json:"-" bson:"hashedToken"`
-	Locked              *time.Time `json:"locked,omitempty" bson:"locked"`
-	ServiceAccountRoles []Role     `json:"roles,omitempty" bson:"roles,omitempty"`
-}
-
-func (s *ServiceAccount) Roles() []Role {
-	return s.ServiceAccountRoles
-}
-
-func (s ServiceAccount) MarshalJSON() ([]byte, error) {
-	type Alias ServiceAccount
-	return json.Marshal(
-		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
-		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
-				Kind:       "ServiceAccount",
-			},
-			Alias: (Alias)(s),
-		},
-	)
-}
-
 // ServiceAccountsSelector represents useful filter criteria when selecting
 // multiple ServiceAccounts for API group operations like list. It currently has
-// no fields, but exists for future expansion.
+// no fields, but exists to preserve the possibility of future expansion without
+// having to change client function signatures.
 type ServiceAccountsSelector struct{}
 
 // ServiceAccountList is an ordered and pageable list of ServiceAccounts.
@@ -51,6 +24,7 @@ type ServiceAccountList struct {
 	Items []ServiceAccount `json:"items,omitempty"`
 }
 
+// MarshalJSON amends ServiceAccountList instances with type metadata.
 func (s ServiceAccountList) MarshalJSON() ([]byte, error) {
 	type Alias ServiceAccountList
 	return json.Marshal(
@@ -67,30 +41,79 @@ func (s ServiceAccountList) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// ServiceAccount represents a non-human Brigade user, such as an Event
+// gateway.
+type ServiceAccount struct {
+	// ObjectMeta encapsulates ServiceAccount metadata.
+	meta.ObjectMeta `json:"metadata" bson:",inline"`
+	// Description is a natural language description of the ServiceAccount's
+	// purpose.
+	Description string `json:"description" bson:"description"`
+	// HashedToken is a secure, one-way hash of the ServiceAccount's token.
+	HashedToken string `json:"-" bson:"hashedToken"`
+	// Locked indicates when the ServiceAccount has been locked out of the system
+	// by an administrator. If this field's value is nil, the ServiceAccount is
+	// not locked.
+	Locked *time.Time `json:"locked,omitempty" bson:"locked"`
+	// ServiceAccountRoles is a slice of Roles (both system-level and
+	// project-level) assigned to this ServiceAccount.
+	ServiceAccountRoles []Role `json:"roles,omitempty" bson:"roles,omitempty"`
+}
+
+// Roles returns a slice of Roles (both system-level and project-level) assigned
+// to this ServiceAccount.
+func (s *ServiceAccount) Roles() []Role {
+	return s.ServiceAccountRoles
+}
+
+// MarshalJSON amends ServiceAccount instances with type metadata.
+func (s ServiceAccount) MarshalJSON() ([]byte, error) {
+	type Alias ServiceAccount
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "ServiceAccount",
+			},
+			Alias: (Alias)(s),
+		},
+	)
+}
+
 // ServiceAccountsService is the specialized interface for managing
 // ServiceAccounts. It's decoupled from underlying technology choices (e.g. data
 // store) to keep business logic reusable and consistent while the underlying
 // tech stack remains free to change.
 type ServiceAccountsService interface {
-	// Create creates a new ServiceAccount.
+	// Create creates a new ServiceAccount. If a ServiceAccount having the same ID
+	// already exists, implementations MUST return a *meta.ErrConflict error.
 	Create(context.Context, ServiceAccount) (Token, error)
-	// List returns a ServiceAccountList.
+	// List retrieves a ServiceAccountList.
 	List(
 		context.Context,
 		ServiceAccountsSelector,
 		meta.ListOptions,
 	) (ServiceAccountList, error)
-
-	// Get retrieves a single ServiceAccount specified by its identifier.
+	// Get retrieves a single ServiceAccount specified by its identifier. If the
+	// specified ServiceAccount does not exist, implementations MUST return a
+	// *meta.ErrNotFound error.
 	Get(context.Context, string) (ServiceAccount, error)
-	// GetByToken retrieves a single ServiceAccount specified by token.
+	// GetByToken retrieves a single ServiceAccount specified by token. If no
+	// such ServiceAccount exists, implementations MUST return a *meta.ErrNotFound
+	// error.
 	GetByToken(context.Context, string) (ServiceAccount, error)
 
-	// Lock removes access to the API for a single ServiceAccount specified by its
-	// identifier.
+	// Lock revokes system access for a single ServiceAccount specified by its
+	// identifier. If the specified ServiceAccount does not exist, implementations
+	// MUST return a *meta.ErrNotFound error.
 	Lock(context.Context, string) error
-	// Unlock restores access to the API for a single ServiceAccount specified by
-	// its identifier. It returns a new Token.
+	// Unlock restores system access for a single ServiceAccount (after presumably
+	// having been revoked) specified by its identifier. It returns a new Token.
+	// If the specified ServiceAccount does not exist, implementations MUST return
+	// a *meta.ErrNotFound error.
 	Unlock(context.Context, string) (Token, error)
 }
 
@@ -234,15 +257,37 @@ func (s *serviceAccountsService) Unlock(
 	return newToken, nil
 }
 
+// ServiceAccountsStore is an interface for components that implement
+// ServiceAccount persistence concerns.
 type ServiceAccountsStore interface {
+	// Create persists a new Service Account in the underlying data store. If a
+	// ServiceAccount having the same ID already exists, implementations MUST
+	// return a *meta.ErrConflict error.
 	Create(context.Context, ServiceAccount) error
+	// List retrieves a ServiceAccountList from the underlying data store.
 	List(
 		context.Context,
 		ServiceAccountsSelector,
 		meta.ListOptions,
 	) (ServiceAccountList, error)
+	// Get retrieves a single ServiceAccount from the underlying data store. If
+	// the specified ServiceAccount does not exist, implementations MUST return
+	// a *meta.ErrNotFound error.
 	Get(context.Context, string) (ServiceAccount, error)
+	// GetByHashedToken retrieves a single ServiceAccount having the provided
+	// hashed token from the underlying data store. If no such ServiceAccount
+	// exists, implementations MUST return a *meta.ErrNotFound error.
 	GetByHashedToken(context.Context, string) (ServiceAccount, error)
+
+	// Lock updates the specified ServiceAccount in the underlying data store to
+	// reflect that it has been locked out of the system. If the specified
+	// ServiceAccount does not exist, implementations MUST return a
+	// *meta.ErrNotFound error.
 	Lock(context.Context, string) error
+	// Unlock updates the specified ServiceAccount in the underlying data store to
+	// reflect that it's system access (after presumably having been revoked) has
+	// been restored. A hashed token must be provided as a replacement for the
+	// existing token. If the specified ServiceAccount does not exist,
+	// implementations MUST return a *meta.ErrNotFound error.
 	Unlock(ctx context.Context, id string, newHashedToken string) error
 }
