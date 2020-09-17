@@ -6,12 +6,11 @@ import (
 
 const envconfigPrefix = "API_SERVER"
 
-// nolint: lll
 type Config struct {
 	APIAddress                   string          `envconfig:"API_ADDRESS"`
-	DefaultWorkerImage           string          `envconfig:"DEFAULT_WORKER_IMAGE"`
-	DefaultWorkerImagePullPolicy ImagePullPolicy `envconfig:"DEFAULT_WORKER_IMAGE_PULL_POLICY"`
-	WorkspaceStorageClass        string          `envconfig:"WORKSPACE_STORAGE_CLASS"`
+	DefaultWorkerImage           string          `envconfig:"DEFAULT_WORKER_IMAGE"`             // nolint: lll
+	DefaultWorkerImagePullPolicy ImagePullPolicy `envconfig:"DEFAULT_WORKER_IMAGE_PULL_POLICY"` // nolint: lll
+	WorkspaceStorageClass        string          `envconfig:"WORKSPACE_STORAGE_CLASS"`          // nolint: lll
 }
 
 func NewConfigWithDefaults() Config {

@@ -43,7 +43,7 @@ const (
 )
 
 // Job represents a component spawned by a Worker to complete a single task
-// during the handling of an Event.
+// in the course of handling an Event.
 type Job struct {
 	// Spec is the technical blueprint for the Job.
 	Spec JobSpec `json:"spec"`
@@ -66,8 +66,14 @@ type JobSpec struct {
 	// sidecar container), then logic within those containers must account for
 	// these constraints.
 	SidecarContainers map[string]JobContainerSpec `json:"sidecarContainers,omitempty"` // nolint: lll
-	TimeoutSeconds    int64                       `json:"timeoutSeconds,omitempty"`
-	Host              *JobHost                    `json:"host,omitempty"`
+	// TimeoutSeconds specifies the time, in seconds, that must elapse before a
+	// running Job should be considered to have timed out.
+	TimeoutSeconds int64 `json:"timeoutSeconds,omitempty"`
+	// Host specifies criteria for selecting a suitable host (substrate node) for
+	// the Job. This is useful in cases where a Job requires a specific,
+	// non-default operating system (i.e. Windows) or specific hardware (e.g. a
+	// GPU.)
+	Host *JobHost `json:"host,omitempty"`
 }
 
 // MarshalJSON amends JobSpec instances with type metadata so that clients do
@@ -88,8 +94,53 @@ func (j JobSpec) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// JobContainerSpec amends the ContainerSpec type with additional Job-specific
+// fields.
+type JobContainerSpec struct {
+	// ContainerSpec encapsulates generic specifications for an OCI container.
+	ContainerSpec `json:",inline"`
+	// UseWorkspace indicates whether the Job requires the Worker's shared
+	// workspace (if one exists) to be mounted into the OCI container.
+	UseWorkspace bool `json:"useWorkspace"`
+	// WorkspaceMountPath specifies the path in the OCI container's file system
+	// where, if applicable, the Worker's shared workspace should be mounted.
+	WorkspaceMountPath string `json:"workspaceMountPath,omitempty"`
+	// UseSource indicates whether the Job requires source code to be retrieved
+	// from a git repository and mounted into the OCI container. Note this
+	// requires git configuration to have been specified at the Project and/or
+	// Event levels.
+	UseSource bool `json:"useSource"`
+	// SourceMountPath specifie the path in the OCI container's file system where,
+	// if applicable, source code retrieved from a git repository should be
+	// mounted.
+	SourceMountPath string `json:"sourceMountPath,omitempty"`
+	// Privileged indicates whether the OCI container should operate in a
+	// "privileged" (relaxed permissions) mode. This is commonly used to effect
+	// "Docker-in-Docker" ("DinD") scenarios wherein one of a Job's OCI containers
+	// must run its own Docker daemon. Note this field REQUESTS privileged status
+	// for the container, but that may be disallowed by Project-level
+	// configuration.
+	Privileged bool `json:"privileged"`
+	// UseHostDockerSocket indicates whether the OCI container should mount the
+	// host's Docker socket into its own file system. This is commonly used to
+	// effect "Docker-out-of-Docker" ("DooD") scenarios wherein one of a Job's OCI
+	// containers must utilize the host's Docker daemon. GENERALLY, THIS IS HIGHLY
+	// DISCOURAGED. Note this field REQUESTS to mount the host's Docker socket
+	// into the container, but that may be disallowed by Project-level
+	// configuration.
+	UseHostDockerSocket bool `json:"useHostDockerSocket"`
+}
+
+// JobHost represents criteria for selecting a suitable host (substrate node)
+// for a Job.
 type JobHost struct {
-	OS           string            `json:"os,omitempty"`
+	// OS specifies which "family" of operating system is required on a substrate
+	// node to host a Job. Valid values are "linux" and "windows". When empty,
+	// Brigade assumes "linux".
+	OS string `json:"os,omitempty"`
+	// NodeSelector specifies labels that must be present on the substrate node to
+	// host a Job. This provides an opaque mechanism for communicating Job needs
+	// such as specific hardware like an SSD or GPU.
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 }
 

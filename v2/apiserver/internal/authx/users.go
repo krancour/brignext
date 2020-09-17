@@ -36,12 +36,6 @@ func (u User) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// UsersSelector represents useful filter criteria when selecting multiple Users
-// for API group operations like list. It currently has no fields, but exists to
-// preserve the possibility of future expansion without having to change client
-// function signatures.
-type UsersSelector struct{}
-
 // UserList is an ordered and pageable list of Users.
 type UserList struct {
 	// ListMeta contains list metadata.
@@ -72,11 +66,7 @@ func (u UserList) MarshalJSON() ([]byte, error) {
 // change.
 type UsersService interface {
 	// List returns a UserList.
-	List(
-		context.Context,
-		UsersSelector,
-		meta.ListOptions,
-	) (UserList, error)
+	List(context.Context, meta.ListOptions) (UserList, error)
 	// Get retrieves a single User specified by their identifier.
 	Get(context.Context, string) (User, error)
 
@@ -103,7 +93,6 @@ func NewUsersService(usersStore UsersStore) UsersService {
 
 func (u *usersService) List(
 	ctx context.Context,
-	selector UsersSelector,
 	opts meta.ListOptions,
 ) (UserList, error) {
 	if err := u.authorize(ctx, RoleReader()); err != nil {
@@ -113,7 +102,7 @@ func (u *usersService) List(
 	if opts.Limit == 0 {
 		opts.Limit = 20
 	}
-	users, err := u.usersStore.List(ctx, selector, opts)
+	users, err := u.usersStore.List(ctx, opts)
 	if err != nil {
 		return users, errors.Wrap(err, "error retrieving users from store")
 	}
@@ -161,11 +150,7 @@ func (u *usersService) Unlock(ctx context.Context, id string) error {
 type UsersStore interface {
 	Create(context.Context, User) error
 	Count(context.Context) (int64, error)
-	List(
-		context.Context,
-		UsersSelector,
-		meta.ListOptions,
-	) (UserList, error)
+	List(context.Context, meta.ListOptions) (UserList, error)
 	Get(context.Context, string) (User, error)
 	Lock(context.Context, string) error
 	Unlock(context.Context, string) error

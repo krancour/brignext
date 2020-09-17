@@ -9,27 +9,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-type Secret struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
-}
-
-func (s Secret) MarshalJSON() ([]byte, error) {
-	type Alias Secret
-	return json.Marshal(
-		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
-		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
-				Kind:       "Secret",
-			},
-			Alias: (Alias)(s),
-		},
-	)
-}
-
 // SecretList is an ordered and pageable list of Secrets.
 type SecretList struct {
 	// ListMeta contains list metadata.
@@ -50,6 +29,7 @@ func (s SecretList) Less(i, j int) bool {
 	return s.Items[i].Key < s.Items[j].Key
 }
 
+// MarshalJSON amends SecretList instances with type metadata.
 func (s SecretList) MarshalJSON() ([]byte, error) {
 	type Alias SecretList
 	return json.Marshal(
@@ -66,8 +46,37 @@ func (s SecretList) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// Secret represents Project-level sensitive information.
+type Secret struct {
+	// Key is a key by which the secret can referred.
+	Key string `json:"key,omitempty"`
+	// Value is the sensitive information. This is a write-only field.
+	Value string `json:"value,omitempty"`
+}
+
+// MarshalJSON amends Secret instances with type metadata.
+func (s Secret) MarshalJSON() ([]byte, error) {
+	type Alias Secret
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "Secret",
+			},
+			Alias: (Alias)(s),
+		},
+	)
+}
+
+// SecretsService is the specialized interface for managing Secrets. It's
+// decoupled from underlying technology choices (e.g. data store, message bus,
+// etc.) to keep business logic reusable and consistent while the underlying
+// tech stack remains free to change.
 type SecretsService interface {
-	// List returns a SecretList who Items (Secrets) contain Keys only and
+	// List returns a SecretList whose Items (Secrets) contain Keys only and
 	// not Values (all Value fields are empty). i.e. Once a secret is set, end
 	// clients are unable to retrieve values.
 	List(
@@ -76,13 +85,18 @@ type SecretsService interface {
 		opts meta.ListOptions,
 	) (SecretList, error)
 	// Set set the value of a new Secret or updates the value of an existing
-	// Secret.
+	// Secret. If the specified Project does not exist, implementations MUST
+	// return a *meta.ErrNotFound error. If the specified Key does not exist, it
+	// is created. If the specified Key does exist, its corresponding Value is
+	// overwritten.
 	Set(
 		ctx context.Context,
 		projectID string,
 		secret Secret,
 	) error
-	// Unset clears the value of an existing Secret.
+	// Unset clears the value of an existing Secret. If the specified Project does
+	// not exist, implementations MUST return a *meta.ErrNotFound error. If the
+	// specified Key does not exist, no error is returned.
 	Unset(ctx context.Context, projectID string, key string) error
 }
 
@@ -190,6 +204,8 @@ func (s *secretsService) Unset(
 	return nil
 }
 
+// SecretsStore is an interface for components that implement Secret persistence
+// concerns.
 type SecretsStore interface {
 	List(ctx context.Context,
 		project Project,

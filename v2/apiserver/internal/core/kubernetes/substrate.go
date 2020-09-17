@@ -1043,14 +1043,13 @@ func (s *substrate) createJobPod(
 	containers := make([]corev1.Container, len(jobSpec.SidecarContainers)+1)
 
 	// The primary container will be the 0 container in this list.
-	// nolint: lll
 	containers[0] = corev1.Container{
 		Name:            jobName, // Primary container takes the job's name
 		Image:           jobSpec.PrimaryContainer.Image,
-		ImagePullPolicy: corev1.PullPolicy(jobSpec.PrimaryContainer.ImagePullPolicy),
+		ImagePullPolicy: corev1.PullPolicy(jobSpec.PrimaryContainer.ImagePullPolicy), // nolint: lll
 		Command:         jobSpec.PrimaryContainer.Command,
 		Args:            jobSpec.PrimaryContainer.Arguments,
-		Env:             make([]corev1.EnvVar, len(jobSpec.PrimaryContainer.Environment)),
+		Env:             make([]corev1.EnvVar, len(jobSpec.PrimaryContainer.Environment)), // nolint: lll
 		VolumeMounts:    []corev1.VolumeMount{},
 	}
 	i := 0

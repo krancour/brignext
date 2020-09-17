@@ -73,7 +73,6 @@ func (p *projectsStore) Create(
 
 func (p *projectsStore) List(
 	ctx context.Context,
-	_ core.ProjectsSelector,
 	opts meta.ListOptions,
 ) (core.ProjectList, error) {
 	projects := core.ProjectList{}

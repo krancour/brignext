@@ -92,7 +92,7 @@ func (p *ProjectsEndpoints) list(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return p.Service.List(r.Context(), core.ProjectsSelector{}, opts)
+				return p.Service.List(r.Context(), opts)
 			},
 			SuccessCode: http.StatusOK,
 		},

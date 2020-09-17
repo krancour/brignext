@@ -95,11 +95,7 @@ func (s *ServiceAccountEndpoints) list(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return s.Service.List(
-					r.Context(),
-					authx.ServiceAccountsSelector{},
-					opts,
-				)
+				return s.Service.List(r.Context(), opts)
 			},
 			SuccessCode: http.StatusOK,
 		},

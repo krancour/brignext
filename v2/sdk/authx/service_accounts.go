@@ -14,7 +14,8 @@ import (
 
 // ServiceAccountsSelector represents useful filter criteria when selecting
 // multiple ServiceAccounts for API group operations like list. It currently has
-// no fields, but exists for future expansion.
+// no fields, but exists to preserve the possibility of future expansion without
+// having to change client function signatures.
 type ServiceAccountsSelector struct{}
 
 // ServiceAccountList is an ordered and pageable list of ServiceAccounts.

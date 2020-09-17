@@ -83,11 +83,10 @@ type Worker struct {
 }
 
 // WorkerSpec is the technical blueprint for a Worker.
-// nolint: lll
 type WorkerSpec struct {
 	// Container specifies the details of an OCI container that forms the
 	// cornerstone of the Worker.
-	Container *ContainerSpec `json:"container,omitempty" bson:"container,omitempty"`
+	Container *ContainerSpec `json:"container,omitempty" bson:"container,omitempty"` // nolint: lll
 	// UseWorkspace indicates whether the Worker requires a volume to be
 	// provisioned to be shared by itself and any Jobs it creates. This is a
 	// generally useful feature, but by opting out of it (or rather, not
@@ -101,24 +100,24 @@ type WorkerSpec struct {
 	// The value can be expressed in bytes (as a plain integer) or as a
 	// fixed-point integer using one of these suffixes: E, P, T, G, M, K.
 	// Power-of-two equivalents may also be used: Ei, Pi, Ti, Gi, Mi, Ki.
-	WorkspaceSize string `json:"workspaceSize,omitempty" bson:"workspaceSize,omitempty"`
+	WorkspaceSize string `json:"workspaceSize,omitempty" bson:"workspaceSize,omitempty"` // nolint: lll
 	// Git contains git-specific Worker details.
 	Git *WorkerGitConfig `json:"git,omitempty" bson:"git,omitempty"`
 	// Kubernetes contains Kubernetes-specific Worker details.
-	Kubernetes *WorkerKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"`
+	Kubernetes *WorkerKubernetesConfig `json:"kubernetes,omitempty" bson:"kubernetes,omitempty"` // nolint: lll
 	// JobPolicies specifies policies for any Jobs spawned by the Worker.
-	JobPolicies *JobPolicies `json:"jobPolicies,omitempty" bson:"jobPolicies,omitempty"`
+	JobPolicies *JobPolicies `json:"jobPolicies,omitempty" bson:"jobPolicies,omitempty"` // nolint: lll
 	// LogLevel specifies the desired granularity of Worker log output.
 	LogLevel LogLevel `json:"logLevel,omitempty" bson:"logLevel,omitempty"`
 	// ConfigFilesDirectory specifies a directory within the Worker's workspace
 	// where any relevant configuration files (e.g. brigade.json, brigade.js,
 	// etc.) can be located.
-	ConfigFilesDirectory string `json:"configFilesDirectory,omitempty" bson:"configFilesDirectory,omitempty"`
+	ConfigFilesDirectory string `json:"configFilesDirectory,omitempty" bson:"configFilesDirectory,omitempty"` // nolint: lll
 	// DefaultConfigFiles is a map of configuration file names to configuration
 	// file content. This is useful for Workers that do not integrate with any
 	// source control system and would like to embed configuration (e.g.
 	// brigade.json) or scripts (e.g. brigade.js) directly within the WorkerSpec.
-	DefaultConfigFiles map[string]string `json:"defaultConfigFiles,omitempty" bson:"defaultConfigFiles,omitempty"`
+	DefaultConfigFiles map[string]string `json:"defaultConfigFiles,omitempty" bson:"defaultConfigFiles,omitempty"` // nolint: lll
 }
 
 // WorkerGitConfig represents git-specific Worker details.
@@ -182,23 +181,31 @@ type WorkerStatus struct {
 	Phase WorkerPhase `json:"phase,omitempty" bson:"phase,omitempty"`
 }
 
+// WorkersService is the specialized interface for managing Workers. It's
+// decoupled from underlying technology choices (e.g. data store, message bus,
+// etc.) to keep business logic reusable and consistent while the underlying
+// tech stack remains free to change.
 type WorkersService interface {
 	// Start starts the indicated Event's Worker on Brigade's workload
-	// execution substrate.
+	// execution substrate. If the specified Event does not exist, implementations
+	// MUST return a *meta.ErrNotFound.
 	Start(ctx context.Context, eventID string) error
-	// GetStatus returns an Event's Worker's status.
+	// GetStatus returns an Event's Worker's status. If the specified Event does
+	// not exist, implementations MUST return a *meta.ErrNotFound.
 	GetStatus(
 		ctx context.Context,
 		eventID string,
 	) (WorkerStatus, error)
-	// WatchStatus returns a channel over which an Event's Worker's status
-	// is streamed. The channel receives a new WorkerStatus every time there is
-	// any change in that status.
+	// WatchStatus returns a channel over which an Event's Worker's status is
+	// streamed. The channel receives a new WorkerStatus every time there is any
+	// change in that status. If the specified Event does not exist,
+	// implementations MUST return a *meta.ErrNotFound.
 	WatchStatus(
 		ctx context.Context,
 		eventID string,
 	) (<-chan WorkerStatus, error)
-	// UpdateStatus updates the status of an Event's Worker.
+	// UpdateStatus updates the status of an Event's Worker. If the specified
+	// Event does not exist, implementations MUST return a *meta.ErrNotFound.
 	UpdateStatus(
 		ctx context.Context,
 		eventID string,
@@ -214,6 +221,7 @@ type workersService struct {
 	substrate     Substrate
 }
 
+// NewWorkersService returns a specialized interface for managing Workers.
 func NewWorkersService(
 	projectsStore ProjectsStore,
 	eventsStore EventsStore,
@@ -345,6 +353,8 @@ func (w *workersService) UpdateStatus(
 	return nil
 }
 
+// WorkersStore is an interface for components that implement Worker persistence
+// concerns.
 type WorkersStore interface {
 	UpdateSpec(
 		ctx context.Context,

@@ -7,14 +7,30 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ProjectRolesService is the specialized interface for managing project-level
+// RoleAssignments. It's decoupled from underlying technology choices (e.g. data
+// store, message bus, etc.) to keep business logic reusable and consistent
+// while the underlying tech stack remains free to change.
 type ProjectRolesService interface {
+
 	// TODO: This needs a function for listing available project roles
+
 	// TODO: This needs a function for listing role assignments by project
+
+	// Grant grants the project-level Role specified by the RoleAssignment to the
+	// principal also specified by the RoleAssignment. If either of the specified
+	// Project or specified principal does not exist, implementations must return
+	// a *meta.ErrNotFound error.
 	Grant(
 		ctx context.Context,
 		projectID string,
 		roleAssignment authx.RoleAssignment,
 	) error
+
+	// Revoke revokes the project-level Role specified by the RoleAssignment for
+	// the principal also specified by the RoleAssignment. If either of the
+	// specified Project or specified principal does not exist, implementations
+	// must return a *meta.ErrNotFound error.
 	Revoke(
 		ctx context.Context,
 		projectID string,
@@ -30,6 +46,8 @@ type projectRolesService struct {
 	rolesStore           authx.RolesStore
 }
 
+// NewProjectRolesService returns a specialized interface for managing
+// project-level RoleAssignments.
 func NewProjectRolesService(
 	projectsStore ProjectsStore,
 	usersStore authx.UsersStore,

@@ -1,5 +1,7 @@
 package core
 
+// APIClient is the root of a tree of more specialied API clients within the
+// core package.
 type APIClient interface {
 	// Events returns a specialized client for Event management.
 	Events() EventsClient
@@ -14,6 +16,9 @@ type apiClient struct {
 	projectsClient ProjectsClient
 }
 
+// NewAPIClient returns an APIClient, which is the root of a tree of more
+// specialied API clients within the core package. It will initialize all
+// clients in the tree so they are ready for immediate use.
 func NewAPIClient(apiAddress, apiToken string, allowInsecure bool) APIClient {
 	return &apiClient{
 		eventsClient:   NewEventsClient(apiAddress, apiToken, allowInsecure),

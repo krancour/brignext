@@ -50,8 +50,8 @@ func (e EventList) MarshalJSON() ([]byte, error) {
 }
 
 // Event represents an occurrence in some upstream system. Once accepted into
-// the system, Brigade amends each Event with a plan for handling it in the
-// form of a Worker. An Event's status is the status of its Worker.
+// the system, Brigade amends each Event with a plan for handling it in the form
+// of a Worker. An Event's status is, implicitly, the status of its Worker.
 type Event struct {
 	// ObjectMeta contains Event metadata.
 	meta.ObjectMeta `json:"metadata"`
@@ -61,9 +61,15 @@ type Event struct {
 	// a template to create a discrete Event for each subscribed Project.
 	ProjectID string `json:"projectID,omitempty"`
 	// Source specifies the source of the event, e.g. what gateway created it.
+	// Gateways should populate this field with a unique string that clearly
+	// identifies themself as the source of the event. The ServiceAccount used by
+	// each gateway can be authorized (by a admin) to only create events having a
+	// specified value in the Source field, thereby eliminating the possibility of
+	// gateways maliciously creating events that spoof events from another
+	// gateway.
 	Source string `json:"source,omitempty"`
 	// Type specifies the exact event that has occurred in the upstream system.
-	// These are source-specific.
+	// Values are opaque and source-specific.
 	Type string `json:"type,omitempty"`
 	// Labels convey additional event details for the purposes of matching Events
 	// to subscribed projects. For instance, no subscribers to the "GitHub" Source
@@ -88,9 +94,9 @@ type Event struct {
 	// sensitive information. Since Projects SUBSCRIBE to Events, the potential
 	// exists for any Project to express an interest in any or all Events. This
 	// being the case, sensitive details must never be present in payloads. The
-	// common workaround work this constraint is that event payloads may contain
-	// REFERENCES to sensitive details that are useful to properly configured
-	// Workers only.
+	// common workaround work this constraint (which is also a sensible practice
+	// to begin with) is that event payloads may contain REFERENCES to sensitive
+	// details that are useful only to properly configured Workers.
 	Payload string `json:"payload,omitempty"`
 	// Worker contains details of the worker that will/is/has handle(d) the Event.
 	Worker *Worker `json:"worker,omitempty"`
@@ -127,11 +133,17 @@ type EventGitConfig struct {
 	Ref string `json:"ref,omitempty"`
 }
 
+// CancelManyEventsResult represents a summary of a mass Event cancellation
+// operation.
 type CancelManyEventsResult struct {
+	// Count represents the number of Events canceled.
 	Count int64 `json:"count"`
 }
 
+// DeleteManyEventsResult represents a summary of a mass Event deletion
+// operation.
 type DeleteManyEventsResult struct {
+	// Count represents the number of Events deleted.
 	Count int64 `json:"count"`
 }
 
@@ -157,8 +169,10 @@ type EventsClient interface {
 	// parameter.
 	DeleteMany(context.Context, EventsSelector) (DeleteManyEventsResult, error)
 
+	// Workers returns a specialized client for Worker management.
 	Workers() WorkersClient
 
+	// Logs returns a specialized client for Log management.
 	Logs() LogsClient
 }
 

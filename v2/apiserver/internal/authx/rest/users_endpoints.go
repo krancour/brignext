@@ -71,7 +71,7 @@ func (u *UsersEndpoints) list(w http.ResponseWriter, r *http.Request) {
 			W: w,
 			R: r,
 			EndpointLogic: func() (interface{}, error) {
-				return u.Service.List(r.Context(), authx.UsersSelector{}, opts)
+				return u.Service.List(r.Context(), opts)
 			},
 			SuccessCode: http.StatusOK,
 		},

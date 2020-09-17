@@ -10,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// LogsSelector represents useful criteria when requesting a log stream from an
-// Event.
+// LogsSelector represents useful criteria for selecting logs for streaming from
+// a specific container of a Worker or Job.
 type LogsSelector struct {
 	// Job specifies, by name, a Job spawned by the Worker. If this field is
 	// left blank, it is presumed logs are desired for the Worker itself.
@@ -22,8 +22,8 @@ type LogsSelector struct {
 	Container string
 }
 
-// LogStreamOptions represents useful options when requesting a log stream from
-// an Event.
+// LogStreamOptions represents useful options for streaming logs from a specific
+// container of a Worker or Job.
 type LogStreamOptions struct {
 	// Follow indicates whether the stream should conclude after the last
 	// available line of logs has been sent to the client (false) or remain open
@@ -58,10 +58,16 @@ func (l LogEntry) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// LogsService is the specialized interface for managing Logs. It's
+// decoupled from underlying technology choices (e.g. data store, message bus,
+// etc.) to keep business logic reusable and consistent while the underlying
+// tech stack remains free to change.
 type LogsService interface {
-	// Stream returns a channel over which logs for an Event's Worker, or
-	// using the LogsSelector parameter, a Job spawned by that Worker (or specific
-	// container thereof), are streamed.
+	// Stream returns a channel over which logs for an Event's Worker, or using
+	// the LogsSelector parameter, a Job spawned by that Worker (or specific
+	// container thereof), are streamed. If the specified Event, Job, or Container
+	// thereof does not exist, implementations MUST return a *meta.ErrNotFound
+	// error.
 	Stream(
 		ctx context.Context,
 		eventID string,
@@ -130,7 +136,14 @@ func (l *logsService) Stream(
 	return logCh, err
 }
 
+// LogsStore is an interface for components that implement Log persistence
+// concerns.
 type LogsStore interface {
+	// Stream returns a channel over which logs for an Event's Worker, or using
+	// the LogsSelector parameter, a Job spawned by that Worker (or specific
+	// container thereof), are streamed. If the specified Event, Job, or Container
+	// thereof does not exist, implementations MUST return a *meta.ErrNotFound
+	// error.
 	StreamLogs(
 		ctx context.Context,
 		project Project,

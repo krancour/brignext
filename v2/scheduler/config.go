@@ -6,7 +6,6 @@ import (
 
 const envconfigPrefix = "SCHEDULER"
 
-// nolint: lll
 type Config struct {
 	APIAddress            string `envconfig:"API_ADDRESS" required:"true"`
 	APIToken              string `envconfig:"API_TOKEN" required:"true"`

@@ -10,12 +10,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ServiceAccountsSelector represents useful filter criteria when selecting
-// multiple ServiceAccounts for API group operations like list. It currently has
-// no fields, but exists to preserve the possibility of future expansion without
-// having to change client function signatures.
-type ServiceAccountsSelector struct{}
-
 // ServiceAccountList is an ordered and pageable list of ServiceAccounts.
 type ServiceAccountList struct {
 	// ListMeta contains list metadata.
@@ -92,11 +86,7 @@ type ServiceAccountsService interface {
 	// already exists, implementations MUST return a *meta.ErrConflict error.
 	Create(context.Context, ServiceAccount) (Token, error)
 	// List retrieves a ServiceAccountList.
-	List(
-		context.Context,
-		ServiceAccountsSelector,
-		meta.ListOptions,
-	) (ServiceAccountList, error)
+	List(context.Context, meta.ListOptions) (ServiceAccountList, error)
 	// Get retrieves a single ServiceAccount specified by its identifier. If the
 	// specified ServiceAccount does not exist, implementations MUST return a
 	// *meta.ErrNotFound error.
@@ -159,7 +149,6 @@ func (s *serviceAccountsService) Create(
 
 func (s *serviceAccountsService) List(
 	ctx context.Context,
-	selector ServiceAccountsSelector,
 	opts meta.ListOptions,
 ) (ServiceAccountList, error) {
 	if err := s.authorize(ctx, RoleReader()); err != nil {
@@ -169,7 +158,7 @@ func (s *serviceAccountsService) List(
 	if opts.Limit == 0 {
 		opts.Limit = 20
 	}
-	serviceAccounts, err := s.serviceAccountsStore.List(ctx, selector, opts)
+	serviceAccounts, err := s.serviceAccountsStore.List(ctx, opts)
 	if err != nil {
 		return serviceAccounts,
 			errors.Wrap(err, "error retrieving service accounts from store")
@@ -260,16 +249,13 @@ func (s *serviceAccountsService) Unlock(
 // ServiceAccountsStore is an interface for components that implement
 // ServiceAccount persistence concerns.
 type ServiceAccountsStore interface {
-	// Create persists a new Service Account in the underlying data store. If a
+	// Create persists a new ServiceAccount in the underlying data store. If a
 	// ServiceAccount having the same ID already exists, implementations MUST
 	// return a *meta.ErrConflict error.
 	Create(context.Context, ServiceAccount) error
-	// List retrieves a ServiceAccountList from the underlying data store.
-	List(
-		context.Context,
-		ServiceAccountsSelector,
-		meta.ListOptions,
-	) (ServiceAccountList, error)
+	// List retrieves a ServiceAccountList from the underlying data store, with
+	// its Items (ServiceAccounts) ordered by ID.
+	List(context.Context, meta.ListOptions) (ServiceAccountList, error)
 	// Get retrieves a single ServiceAccount from the underlying data store. If
 	// the specified ServiceAccount does not exist, implementations MUST return
 	// a *meta.ErrNotFound error.

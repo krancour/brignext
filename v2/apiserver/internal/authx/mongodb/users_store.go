@@ -71,7 +71,6 @@ func (u *usersStore) Count(ctx context.Context) (int64, error) {
 
 func (u *usersStore) List(
 	ctx context.Context,
-	_ authx.UsersSelector,
 	opts meta.ListOptions,
 ) (authx.UserList, error) {
 	users := authx.UserList{}

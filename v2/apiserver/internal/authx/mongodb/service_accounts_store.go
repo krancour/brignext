@@ -89,7 +89,6 @@ func (s *serviceAccountsStore) Create(
 
 func (s *serviceAccountsStore) List(
 	ctx context.Context,
-	_ authx.ServiceAccountsSelector,
 	opts meta.ListOptions,
 ) (authx.ServiceAccountList, error) {
 	serviceAccounts := authx.ServiceAccountList{}

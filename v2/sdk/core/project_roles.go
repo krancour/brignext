@@ -10,16 +10,23 @@ import (
 	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
 )
 
-// ProjectRolesClient is the specialized client for managing Project Roles with
-// the Brigade API.
+// ProjectRolesClient is the specialized client for managing project-level
+// RoleAssignments with the Brigade API.
 type ProjectRolesClient interface {
+
 	// TODO: This needs a function for listing available project roles
+
 	// TODO: This needs a function for listing role assignments by project
+
+	// Grant grants the project-level Role specified by the RoleAssignment to the
+	// principal also specified by the RoleAssignment.
 	Grant(
 		ctx context.Context,
 		projectID string,
 		roleAssignment authx.RoleAssignment,
 	) error
+	// Revoke revokes the project-level Role specified by the RoleAssignment for
+	// principal also specified by the RoleAssignment.
 	Revoke(
 		ctx context.Context,
 		projectID string,

@@ -7,13 +7,28 @@ import (
 	"github.com/pkg/errors"
 )
 
+// RolesService is the specialized interface for managing project-level
+// RoleAssignments. It's decoupled from underlying technology choices (e.g. data
+// store, message bus, etc.) to keep business logic reusable and consistent
+// while the underlying tech stack remains free to change.
 type RolesService interface {
+
 	// TODO: This needs a function for listing available system roles
+
 	// TODO: This needs a function for listing system role assignments
+
+	// Grant grants the system-level Role specified by the RoleAssignment to the
+	// principal also specified by the RoleAssignment. If the specified specified
+	// principal does not exist, implementations must return a *meta.ErrNotFound
+	// error.
 	Grant(
 		ctx context.Context,
 		roleAssignment authx.RoleAssignment,
 	) error
+
+	// Revoke revokes the system-level Role specified by the RoleAssignment for
+	// the principal also specified by the RoleAssignment. If the principal does
+	// not exist, implementations must return a *meta.ErrNotFound error.
 	Revoke(
 		ctx context.Context,
 		roleAssignment authx.RoleAssignment,
@@ -27,6 +42,8 @@ type rolesService struct {
 	rolesStore           authx.RolesStore
 }
 
+// NewRolesService returns a specialized interface for managing system-level
+// RoleAssignments.
 func NewRolesService(
 	usersStore authx.UsersStore,
 	serviceAccountsStore authx.ServiceAccountsStore,

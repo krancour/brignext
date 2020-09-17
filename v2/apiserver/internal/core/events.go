@@ -15,8 +15,8 @@ import (
 )
 
 // Event represents an occurrence in some upstream system. Once accepted into
-// the system, Brigade amends each Event with a plan for handling it in the
-// form of a Worker. An Event's status is the status of its Worker.
+// the system, Brigade amends each Event with a plan for handling it in the form
+// of a Worker. An Event's status is, implicitly, the status of its Worker.
 type Event struct {
 	// ObjectMeta contains Event metadata.
 	meta.ObjectMeta `json:"metadata" bson:",inline"`
@@ -26,9 +26,15 @@ type Event struct {
 	// a template to create a discrete Event for each subscribed Project.
 	ProjectID string `json:"projectID,omitempty" bson:"projectID,omitempty"`
 	// Source specifies the source of the event, e.g. what gateway created it.
+	// Gateways should populate this field with a unique string that clearly
+	// identifies themself as the source of the event. The ServiceAccount used by
+	// each gateway can be authorized (by a admin) to only create events having a
+	// specified value in the Source field, thereby eliminating the possibility of
+	// gateways maliciously creating events that spoof events from another
+	// gateway.
 	Source string `json:"source,omitempty" bson:"source,omitempty"`
 	// Type specifies the exact event that has occurred in the upstream system.
-	// These are source-specific.
+	// Values are opaque and source-specific.
 	Type string `json:"type,omitempty" bson:"type,omitempty"`
 	// Labels convey additional event details for the purposes of matching Events
 	// to subscribed projects. For instance, no subscribers to the "GitHub" Source
@@ -52,9 +58,9 @@ type Event struct {
 	// sensitive information. Since Projects SUBSCRIBE to Events, the potential
 	// exists for any Project to express an interest in any or all Events. This
 	// being the case, sensitive details must never be present in payloads. The
-	// common workaround work this constraint is that event payloads may contain
-	// REFERENCES to sensitive details that are useful to properly configured
-	// Workers only.
+	// common workaround work this constraint (which is also a sensible practice
+	// to begin with) is that event payloads may contain REFERENCES to sensitive
+	// details that are useful only to properly configured Workers.
 	Payload string `json:"payload,omitempty" bson:"payload,omitempty"`
 	// Worker contains details of the worker that will/is/has handle(d) the Event.
 	Worker Worker `json:"worker" bson:"worker"`
@@ -139,10 +145,14 @@ func (e EventList) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// CancelManyEventsResult represents a summary of a mass Event cancellation
+// operation.
 type CancelManyEventsResult struct {
+	// Count represents the number of Events canceled.
 	Count int64 `json:"count"`
 }
 
+// MarshalJSON amends CancelManyEventsResult instances with type metadata.
 func (c CancelManyEventsResult) MarshalJSON() ([]byte, error) {
 	type Alias CancelManyEventsResult
 	return json.Marshal(
@@ -159,10 +169,14 @@ func (c CancelManyEventsResult) MarshalJSON() ([]byte, error) {
 	)
 }
 
+// DeleteManyEventsResult represents a summary of a mass Event deletion
+// operation.
 type DeleteManyEventsResult struct {
+	// Count represents the number of Events deleted.
 	Count int64 `json:"count"`
 }
 
+// MarshalJSON amends DeleteManyEventsResult instances with type metadata.
 func (d DeleteManyEventsResult) MarshalJSON() ([]byte, error) {
 	type Alias DeleteManyEventsResult
 	return json.Marshal(
@@ -189,30 +203,40 @@ type EventsService interface {
 		EventList,
 		error,
 	)
-	// List returns an EventList, with its Items (Events) ordered by
-	// age, newest first. Criteria for which Events should be retrieved can be
-	// specified using the EventListOptions parameter.
+	// List retrieves an EventList, with its Items (Events) ordered by age, newest
+	// first. Criteria for which Events should be retrieved can be specified using
+	// the EventListOptions parameter.
 	List(
 		context.Context,
 		EventsSelector,
 		meta.ListOptions,
 	) (EventList, error)
-	// Get retrieves a single Event specified by its identifier.
+	// Get retrieves a single Event specified by its identifier. If no such event
+	// is found, implementations MUST return a *meta.ErrNotFound error.
 	Get(context.Context, string) (Event, error)
 	// GetByWorkerToken retrieves a single Event specified by its Worker's token.
+	// If no such event is found, implementations MUST return a *meta.ErrNotFound
+	// error.
 	GetByWorkerToken(context.Context, string) (Event, error)
-	// Cancel cancels a single Event specified by its identifier.
+	// Cancel cancels a single Event specified by its identifier. If no such event
+	// is found, implementations MUST return a *meta.ErrNotFound error.
+	// Implementations MUST only cancel events whose Workers have not already
+	// reached a terminal state. If the specified Event's Worker has already
+	// reached a terminal state, implementations MUST return a *meta.ErrConflict.
 	Cancel(context.Context, string) error
-	// CancelMany cancels multiple Events specified by the EventListOptions
-	// parameter.
+	// CancelMany cancels multiple Events specified by the EventsSelector
+	// parameter. Implementations MUST only cancel events whose Workers have not
+	// already reached a terminal state.
 	CancelMany(
 		context.Context,
 		EventsSelector,
 	) (CancelManyEventsResult, error)
-	// Delete deletes a single Event specified by its identifier.
+	// Delete unconditionally deletes a single Event specified by its identifier.
+	// If no such event is found, implementations MUST return a *meta.ErrNotFound
+	// error.
 	Delete(context.Context, string) error
-	// DeleteMany deletes multiple Events specified by the EventListOptions
-	// parameter.
+	// DeleteMany unconditionaly deletes multiple Events specified by the
+	// EventsSelector parameter.
 	DeleteMany(
 		context.Context,
 		EventsSelector,
@@ -652,21 +676,50 @@ func (e *eventsService) DeleteMany(
 	return result, nil
 }
 
+// EventsStore is an interface for components that implement Event persistence
+// concerns.
 type EventsStore interface {
+	// Create persists a new Event in the underlying data store. If n Event having
+	// the same ID already exists, implementations MUST return a *meta.ErrConflict
+	// error.
 	Create(context.Context, Event) error
+	// List retrieves an EventList from the underlying data store, with its Items
+	// (Events) ordered by age, newest first. Criteria for which Events should be
+	// retrieved can be specified using the EventListOptions parameter.
 	List(
 		context.Context,
 		EventsSelector,
 		meta.ListOptions,
 	) (EventList, error)
+	// Get retrieves a single Event from the underlying data store. If the
+	// specified Event does not exist, implementations MUST return a
+	// *meta.ErrNotFound error.
 	Get(context.Context, string) (Event, error)
+	// Get retrieves a single Event having the provided hashed Worker token from
+	// the underlying data store. If no such Event exists, implementations MUST
+	// return a *meta.ErrNotFound error.
 	GetByHashedWorkerToken(context.Context, string) (Event, error)
+	// Cancel updates the specified Event in the underlying data store to reflect
+	// that it has been canceled. Implementations MAY assume the Event's existence
+	// has been pre-confirmed by the caller. Implementations MUST only cancel
+	// events whose Workers have not already reached a terminal state. If the
+	// specified Event's Worker has already reached a terminal state,
+	// implementations MUST return a *meta.ErrConflict.
 	Cancel(context.Context, string) error
+	// CancelMany updates multiple Events specified by the EventsSelector
+	// parameter in the underlying data store to reflect that they have been
+	// canceled. Implementations MUST only cancel events whose Workers have not
+	// already reached a terminal state.
 	CancelMany(
 		context.Context,
 		EventsSelector,
 	) (EventList, error)
+	// Delete unconditionally deletes the specified Event from the underlying data
+	// store. If the specified Event does not exist, implementations MUST
+	// return a *meta.ErrNotFound error.
 	Delete(context.Context, string) error
+	// DeleteMany unconditionaly deletes multiple Events specified by the
+	// EventsSelector parameter from the underlying data store.
 	DeleteMany(
 		context.Context,
 		EventsSelector,

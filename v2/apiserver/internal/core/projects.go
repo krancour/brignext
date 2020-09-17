@@ -11,6 +11,31 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+// ProjectList is an ordered and pageable list of Projects.
+type ProjectList struct {
+	// ListMeta contains list metadata.
+	meta.ListMeta `json:"metadata"`
+	// Items is a slice of Projects.
+	Items []Project `json:"items"`
+}
+
+// MarshalJSON amends ProjectList instances with type metadata.
+func (p ProjectList) MarshalJSON() ([]byte, error) {
+	type Alias ProjectList
+	return json.Marshal(
+		struct {
+			meta.TypeMeta `json:",inline"`
+			Alias         `json:",inline"`
+		}{
+			TypeMeta: meta.TypeMeta{
+				APIVersion: meta.APIVersion,
+				Kind:       "ProjectList",
+			},
+			Alias: (Alias)(p),
+		},
+	)
+}
+
 // Project is Brigade's fundamental management construct. Through a
 // ProjectSpec, it pairs EventSubscriptions with a template WorkerSpec.
 type Project struct {
@@ -102,56 +127,27 @@ type KubernetesConfig struct {
 	Namespace string `json:"namespace,omitempty" bson:"namespace,omitempty"`
 }
 
-// ProjectsSelector represents useful filter criteria when selecting multiple
-// Projects for API group operations like list. It currently has no fields, but
-// exists to preserve the possibility of future expansion without having to
-// change client function signatures.
-type ProjectsSelector struct{}
-
-// ProjectList is an ordered and pageable list of Projects.
-type ProjectList struct {
-	// ListMeta contains list metadata.
-	meta.ListMeta `json:"metadata"`
-	// Items is a slice of Projects.
-	Items []Project `json:"items"`
-}
-
-// MarshalJSON amends ProjectList instances with type metadata.
-func (p ProjectList) MarshalJSON() ([]byte, error) {
-	type Alias ProjectList
-	return json.Marshal(
-		struct {
-			meta.TypeMeta `json:",inline"`
-			Alias         `json:",inline"`
-		}{
-			TypeMeta: meta.TypeMeta{
-				APIVersion: meta.APIVersion,
-				Kind:       "ProjectList",
-			},
-			Alias: (Alias)(p),
-		},
-	)
-}
-
 // ProjectsService is the specialized interface for managing Projects. It's
 // decoupled from underlying technology choices (e.g. data store, message bus,
 // etc.) to keep business logic reusable and consistent while the underlying
 // tech stack remains free to change.
 type ProjectsService interface {
-	// Create creates a new Project.
+	// Create creates a new Project. If a Project with the specified identifier
+	// already exists, implementations MUST return a *meta.ErrConflict error.
 	Create(context.Context, Project) (Project, error)
 	// List returns a ProjectList, with its Items (Projects) ordered
 	// alphabetically by Project ID.
-	List(
-		context.Context,
-		ProjectsSelector,
-		meta.ListOptions,
-	) (ProjectList, error)
-	// Get retrieves a single Project specified by its identifier.
+	List(context.Context, meta.ListOptions) (ProjectList, error)
+	// Get retrieves a single Project specified by its identifier. If the
+	// specified Project does not exist, implementations MUST return a
+	// *meta.ErrNotFound error.
 	Get(context.Context, string) (Project, error)
-	// Update updates an existing Project.
+	// Update updates an existing Project. If the specified Project does not
+	// exist, implementations MUST return a *meta.ErrNotFound error.
 	Update(context.Context, Project) (Project, error)
-	// Delete deletes a single Project specified by its identifier.
+	// Delete deletes a single Project specified by its identifier. If the
+	// specified Project does not exist, implementations MUST return a
+	// *meta.ErrNotFound error.
 	Delete(context.Context, string) error
 }
 
@@ -255,7 +251,6 @@ func (p *projectsService) Create(
 
 func (p *projectsService) List(
 	ctx context.Context,
-	selector ProjectsSelector,
 	opts meta.ListOptions,
 ) (ProjectList, error) {
 	if err := p.authorize(ctx, authx.RoleReader()); err != nil {
@@ -265,7 +260,7 @@ func (p *projectsService) List(
 	if opts.Limit == 0 {
 		opts.Limit = 20
 	}
-	projects, err := p.projectsStore.List(ctx, selector, opts)
+	projects, err := p.projectsStore.List(ctx, opts)
 	if err != nil {
 		return projects, errors.Wrap(err, "error retrieving projects from store")
 	}
@@ -356,11 +351,12 @@ func (p *projectsService) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
+// ProjectsStore is an interface for components that implement Project
+// persistence concerns.
 type ProjectsStore interface {
 	Create(context.Context, Project) error
 	List(
 		context.Context,
-		ProjectsSelector,
 		meta.ListOptions,
 	) (ProjectList, error)
 	ListSubscribers(

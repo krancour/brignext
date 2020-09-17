@@ -66,7 +66,7 @@ func (s Secret) MarshalJSON() ([]byte, error) {
 // SecretsClient is the specialized client for managing Secrets with the
 // Brigade API.
 type SecretsClient interface {
-	// List returns a SecretList who Items (Secrets) contain Keys only and not
+	// List returns a SecretList whose Items (Secrets) contain Keys only and not
 	// Values (all Value fields are empty). i.e. Once a secret is set, end clients
 	// are unable to retrieve values.
 	List(
@@ -75,9 +75,11 @@ type SecretsClient interface {
 		opts meta.ListOptions,
 	) (SecretList, error)
 	// Set sets the value of a new Secret or updates the value of an existing
-	// Secret.
+	// Secret. If the specified Key does not exist, it is created. If the
+	// specified Key does exist, its corresponding Value is overwritten.
 	Set(ctx context.Context, projectID string, secret Secret) error
-	// Unset clears the value of an existing Secret.
+	// Unset clears the value of an existing Secret. If the specified Key does not
+	// exist, no error is returned.
 	Unset(ctx context.Context, projectID string, key string) error
 }
 

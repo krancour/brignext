@@ -12,12 +12,8 @@ import (
 
 const envconfigPrefix = "OIDC"
 
-// nolint: lll
 type config struct {
-	Enabled bool `envconfig:"ENABLED"`
-	// ProviderURL examples:
-	//   Google: https://accounts.google.com
-	//   Azure Active Directory: https://login.microsoftonline.com/{tenant id}/v2.0
+	Enabled         bool   `envconfig:"ENABLED"`
 	ProviderURL     string `envconfig:"PROVIDER_URL"`
 	ClientID        string `envconfig:"CLIENT_ID"`
 	ClientSecret    string `envconfig:"CLIENT_SECRET"`

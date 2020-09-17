@@ -13,7 +13,8 @@ import (
 
 // ProjectsSelector represents useful filter criteria when selecting multiple
 // Projects for API group operations like list. It currently has no fields, but
-// exists for future expansion.
+// exists to preserve the possibility of future expansion without having to
+// change client function signatures.
 type ProjectsSelector struct{}
 
 // ProjectList is an ordered and pageable list of ProjectS.
@@ -42,8 +43,16 @@ func (p ProjectList) MarshalJSON() ([]byte, error) {
 	)
 }
 
-// Project is Brigade's fundamental management construct. Through a
-// ProjectSpec, it pairs EventSubscriptions with a template WorkerSpec.
+// Project is Brigade's fundamental configuration, management, and isolation
+// construct.
+// - Configuration: Users define Projects to pair EventSubscriptions with
+//   template WorkerSpecs.
+// - Management: Project administrators govern Project access by granting and
+//   revoking project-level Roles to/from principals (such as Users or
+//   ServiceAccounts)
+// - Isolation: All workloads (Workers and Jobs) spawned to handle a given
+//   Project's Events are isolated from other Projects' workloads in the
+//   underlying workload execution substrate.
 type Project struct {
 	// ObjectMeta contains Project metadata.
 	meta.ObjectMeta `json:"metadata"`

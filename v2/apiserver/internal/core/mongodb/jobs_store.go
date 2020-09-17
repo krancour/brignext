@@ -80,7 +80,7 @@ func (j *jobsStore) UpdateStatus(
 	}
 	if res.MatchedCount == 0 {
 		return &meta.ErrNotFound{
-			Type: "Event",
+			Type: "Job",
 			ID:   eventID,
 		}
 	}

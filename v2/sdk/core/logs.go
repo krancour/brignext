@@ -12,6 +12,8 @@ import (
 	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
 )
 
+// LogsSelector represents useful criteria for selecting logs for streaming from
+// a specific container of a Worker or Job.
 type LogsSelector struct {
 	// Job specifies, by name, a Job spawned by the Worker. If this field is
 	// left blank, it is presumed logs are desired for the Worker itself.
@@ -22,7 +24,13 @@ type LogsSelector struct {
 	Container string
 }
 
+// LogStreamOptions represents useful options for streaming logs from a specific
+// container of a Worker or Job.
 type LogStreamOptions struct {
+	// Follow indicates whether the stream should conclude after the last
+	// available line of logs has been sent to the client (false) or remain open
+	// until closed by the client (true), continuing to send new lines as they
+	// become available.
 	Follow bool `json:"follow"`
 }
 
@@ -34,8 +42,7 @@ type LogEntry struct {
 	Message string `json:"message,omitempty"`
 }
 
-// LogsClient is the specialized client for managing Event Logs with the
-// Brigade API.
+// LogsClient is the specialized client for managing Logs with the Brigade API.
 type LogsClient interface {
 	// Stream returns a channel over which logs for an Event's Worker, or using
 	// the LogsSelector parameter, a Job spawned by that Worker (or a specific

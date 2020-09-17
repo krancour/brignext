@@ -9,12 +9,20 @@ import (
 	"github.com/brigadecore/brigade/v2/sdk/internal/restmachinery"
 )
 
-// RolesClient is the specialized client for managing System Roles with
-// the Brigade API.
+// RolesClient is the specialized client for managing system-level
+// RoleAssignments with the Brigade API.
 type RolesClient interface {
+
 	// TODO: This needs a function for listing available system roles
+
 	// TODO: This needs a function for listing system role assignments
+
+	// Grant grants the system-level Role specified by the RoleAssignment to the
+	// principal also specified by the RoleAssignment.
 	Grant(context.Context, authx.RoleAssignment) error
+
+	// Revoke revokes the system-level Role specified by the RoleAssignment for
+	// principal also specified by the RoleAssignment.
 	Revoke(context.Context, authx.RoleAssignment) error
 }
 
