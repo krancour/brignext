@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/brigadecore/brigade/v2/sdk/core"
-	"github.com/brigadecore/brigade/v2/sdk/meta"
+	"github.com/brigadecore/brigade/sdk/v2/core"
+	"github.com/brigadecore/brigade/sdk/v2/meta"
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
 	"github.com/pkg/errors"

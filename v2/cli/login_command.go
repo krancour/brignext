@@ -6,7 +6,7 @@ import (
 	"runtime"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/brigadecore/brigade/v2/sdk/authx"
+	"github.com/brigadecore/brigade/sdk/v2/authx"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -78,13 +78,13 @@ func login(c *cli.Context) error {
 		}
 		tokenStr = token.Value
 	} else {
-		userSessionAuthDetails, err :=
+		OIDCAuthDetails, err :=
 			client.CreateUserSession(c.Context)
 		if err != nil {
 			return err
 		}
-		authURL = userSessionAuthDetails.AuthURL
-		tokenStr = userSessionAuthDetails.Token
+		authURL = OIDCAuthDetails.AuthURL
+		tokenStr = OIDCAuthDetails.Token
 	}
 
 	if err := saveConfig(

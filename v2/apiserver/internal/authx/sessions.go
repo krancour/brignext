@@ -224,27 +224,27 @@ func (s *sessionsService) CreateRootSession(
 func (s *sessionsService) CreateUserSession(
 	ctx context.Context,
 ) (OIDCAuthDetails, error) {
-	userSessionAuthDetails := OIDCAuthDetails{
+	oidcAuthDetails := OIDCAuthDetails{
 		OAuth2State: crypto.NewToken(30),
 		Token:       crypto.NewToken(256),
 	}
 	session := NewUserSession(
-		userSessionAuthDetails.OAuth2State,
-		userSessionAuthDetails.Token,
+		oidcAuthDetails.OAuth2State,
+		oidcAuthDetails.Token,
 	)
 	now := time.Now()
 	session.Created = &now
 	if err := s.sessionsStore.Create(ctx, session); err != nil {
-		return userSessionAuthDetails, errors.Wrapf(
+		return oidcAuthDetails, errors.Wrapf(
 			err,
 			"error storing new user session %q",
 			session.ID,
 		)
 	}
-	userSessionAuthDetails.AuthURL = s.oauth2Config.AuthCodeURL(
-		userSessionAuthDetails.OAuth2State,
+	oidcAuthDetails.AuthURL = s.oauth2Config.AuthCodeURL(
+		oidcAuthDetails.OAuth2State,
 	)
-	return userSessionAuthDetails, nil
+	return oidcAuthDetails, nil
 }
 
 func (s *sessionsService) Authenticate(

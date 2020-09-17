@@ -3,11 +3,11 @@ package main
 import (
 	"log"
 
+	"github.com/brigadecore/brigade/sdk/v2/core"
 	"github.com/brigadecore/brigade/v2/internal/kubernetes"
 	"github.com/brigadecore/brigade/v2/internal/signals"
 	"github.com/brigadecore/brigade/v2/internal/version"
 	"github.com/brigadecore/brigade/v2/scheduler/internal/queue/amqp"
-	"github.com/brigadecore/brigade/v2/sdk/core"
 )
 
 func main() {

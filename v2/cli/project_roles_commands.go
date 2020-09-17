@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/brigadecore/brigade/v2/sdk/authx"
+	"github.com/brigadecore/brigade/sdk/v2/authx"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )

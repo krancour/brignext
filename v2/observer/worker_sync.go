@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/brigadecore/brigade/sdk/v2/core"
 	myk8s "github.com/brigadecore/brigade/v2/internal/kubernetes"
-	"github.com/brigadecore/brigade/v2/sdk/core"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

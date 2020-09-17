@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/brigadecore/brigade/sdk/v2/core"
 	myk8s "github.com/brigadecore/brigade/v2/internal/kubernetes"
-	"github.com/brigadecore/brigade/v2/sdk/core"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"

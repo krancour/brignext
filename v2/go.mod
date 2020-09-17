@@ -2,12 +2,12 @@ module github.com/brigadecore/brigade/v2
 
 go 1.14
 
-replace github.com/brigadecore/brigade/v2/sdk => ./sdk
+replace github.com/brigadecore/brigade/sdk/v2 => ../sdk/v2
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.0.7
 	github.com/Azure/go-amqp v0.12.7
-	github.com/brigadecore/brigade/v2/sdk v0.0.0-00010101000000-000000000000
+	github.com/brigadecore/brigade/sdk/v2 v2.0.0-00010101000000-000000000000
 	github.com/coreos/go-oidc v2.2.1+incompatible
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/ghodss/yaml v1.0.0

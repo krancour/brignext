@@ -4,7 +4,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 
-	"github.com/brigadecore/brigade/v2/sdk"
+	"github.com/brigadecore/brigade/sdk/v2"
 )
 
 func getClient(c *cli.Context) (sdk.APIClient, error) {

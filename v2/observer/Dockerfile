@@ -3,13 +3,15 @@ ARG VERSION
 ARG COMMIT
 ENV CGO_ENABLED=0
 WORKDIR /src
-COPY observer/ observer/
-COPY internal/ internal/
 COPY sdk/ sdk/
-COPY go.mod go.mod
-COPY go.sum go.sum
+WORKDIR /src/v2
+COPY v2/observer/ observer/
+COPY v2/internal/ internal/
+COPY v2/go.mod go.mod
+COPY v2/go.sum go.sum
+
 RUN go build \
-  -o bin/observer \
+  -o ../bin/observer \
   -ldflags "-w -X github.com/brigadecore/brigade/v2/internal/version.version=$VERSION -X github.com/brigadecore/brigade/v2/internal/version.commit=$COMMIT" \
   ./observer
 

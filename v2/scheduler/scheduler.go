@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/brigadecore/brigade/sdk/v2/core"
 	"github.com/brigadecore/brigade/v2/scheduler/internal/queue"
-	"github.com/brigadecore/brigade/v2/sdk/core"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
