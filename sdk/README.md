@@ -41,7 +41,7 @@ level, it's broken into:
 | Function | Returns | Purpose |
 |----------|---------|---------|
 | `Authx()`| `authx.APIClient` | Manages `User`s, `ServiceAccount`s, and related concerns. |
-| `Core()` | `core.APIClient` | Manages "core" Brigade componnets such as `Project`s and `Event`s. |
+| `Core()` | `core.APIClient` | Manages "core" Brigade components such as `Project`s and `Event`s. |
 | `System()` | `system.APIClient` | Manages miscellaneous system-wide concerns. |
 
 Each of these, in turn, provides access to even more specialized clients.
@@ -88,13 +88,13 @@ $ <prototype directory>/bin/brig-<os>-<arch> service-account create \
 
 The command will return the token.
 
-# Contributing
+## Contributing
 
 The Brigade 2 SDK for Go accepts contributions via GitHub pull requests. The
 [Contributing](../../CONTRIBUTING.md) document outlines the process to help get
 your contribution accepted.
 
-# Support & Feedback
+## Support & Feedback
 
 We have a slack channel!
 [Kubernetes/#brigade](https://kubernetes.slack.com/messages/C87MF1RFD) Feel free
