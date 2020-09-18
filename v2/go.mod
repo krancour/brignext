@@ -2,7 +2,7 @@ module github.com/brigadecore/brigade/v2
 
 go 1.14
 
-replace github.com/brigadecore/brigade/sdk/v2 => ../sdk/v2
+replace github.com/brigadecore/brigade/sdk/v2 => github.com/krancour/brigade/sdk/v2 v2.0.0-20200918111245-9a0a51a60754
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.0.7

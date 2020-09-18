@@ -2,8 +2,8 @@ FROM krancour/go-tools:v0.3.0
 ARG VERSION
 ARG COMMIT
 ENV CGO_ENABLED=0
-WORKDIR /src
-COPY sdk/ sdk/
+# WORKDIR /src
+# COPY sdk/ sdk/
 WORKDIR /src/v2
 COPY v2/observer/ observer/
 COPY v2/internal/ internal/

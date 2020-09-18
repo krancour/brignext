@@ -80,11 +80,13 @@ resolve-js-dependencies:
 
 .PHONY: lint-go
 lint-go:
-	$(GO_DOCKER_CMD) sh -c 'cd sdk/v2 && golangci-lint run --config ../../golangci.yaml && cd ../../v2 && golangci-lint run --config ../golangci.yaml ./... && '
+	# $(GO_DOCKER_CMD) sh -c 'cd sdk/v2 && golangci-lint run --config ../../golangci.yaml && cd ../../v2 && golangci-lint run --config ../golangci.yaml ./...'
+	$(GO_DOCKER_CMD) sh -c 'cd v2 && golangci-lint run --config ../golangci.yaml ./... '
 
 .PHONY: test-unit-go
 test-unit-go:
-	$(GO_DOCKER_CMD) sh -c 'cd sdk/v2 && go test -v -timeout=30s -race -coverprofile=coverage.txt -covermode=atomic ./... && cd ../../v2 && go test -v -timeout=30s -race -coverprofile=coverage.txt -covermode=atomic ./...'
+	# $(GO_DOCKER_CMD) sh -c 'cd sdk/v2 && go test -v -timeout=30s -race -coverprofile=coverage.txt -covermode=atomic ./... && cd ../../v2 && go test -v -timeout=30s -race -coverprofile=coverage.txt -covermode=atomic ./...'
+	$(GO_DOCKER_CMD) sh -c 'cd v2 && go test -v -timeout=30s -race -coverprofile=coverage.txt -covermode=atomic ./...'
 
 .PHONY: verify-vendored-js-code
 verify-vendored-js-code:
