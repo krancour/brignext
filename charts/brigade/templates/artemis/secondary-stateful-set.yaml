@@ -107,6 +107,12 @@ spec:
       - name: data
         emptyDir: {}
       {{- end }}
+      {{- if .Values.artemis.persistence.enabled }}
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+      {{- end }}
   {{- if .Values.artemis.persistence.enabled }}
   volumeClaimTemplates:
   - metadata:
