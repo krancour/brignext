@@ -7,6 +7,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/brigadecore/brigade/sdk/v2/authx"
+	"github.com/brigadecore/brigade/sdk/v2/restmachinery"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
@@ -54,7 +55,9 @@ func login(c *cli.Context) error {
 	client := authx.NewSessionsClient(
 		address,
 		"",
-		c.Bool(flagInsecure),
+		&restmachinery.APIClientOptions{
+			AllowInsecureConnections: c.Bool(flagInsecure),
+		},
 	)
 
 	var tokenStr, authURL string

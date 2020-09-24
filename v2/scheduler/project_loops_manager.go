@@ -4,9 +4,6 @@ import (
 	"context"
 	"log"
 	"time"
-
-	"github.com/brigadecore/brigade/sdk/v2/core"
-	"github.com/brigadecore/brigade/sdk/v2/meta"
 )
 
 func (s *scheduler) manageProjectLoops(ctx context.Context) {
@@ -17,12 +14,9 @@ func (s *scheduler) manageProjectLoops(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
+	// TODO: This loop needs to page through all projects
 	for {
-		projects, err := s.coreClient.Projects().List(
-			ctx,
-			core.ProjectsSelector{},
-			meta.ListOptions{},
-		)
+		projects, err := s.coreClient.Projects().List(ctx, nil, nil)
 		if err != nil {
 			select {
 			case s.errCh <- err:

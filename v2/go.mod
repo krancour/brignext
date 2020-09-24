@@ -1,13 +1,13 @@
 module github.com/brigadecore/brigade/v2
 
-go 1.14
+go 1.15
 
-replace github.com/brigadecore/brigade/sdk/v2 => github.com/krancour/brigade/sdk/v2 v2.0.0-20200918111245-9a0a51a60754
+// replace github.com/brigadecore/brigade/sdk/v2 => github.com/krancour/brigade/sdk/v2 v2.0.0-20200923022431-8fd92cf0f5f6
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.0.7
 	github.com/Azure/go-amqp v0.12.7
-	github.com/brigadecore/brigade/sdk/v2 v2.0.0-00010101000000-000000000000
+	github.com/brigadecore/brigade/sdk/v2 v2.0.0-20200923171232-9f56c474d8bf
 	github.com/coreos/go-oidc v2.2.1+incompatible
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/ghodss/yaml v1.0.0

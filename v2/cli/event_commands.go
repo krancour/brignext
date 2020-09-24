@@ -403,7 +403,7 @@ func eventList(c *cli.Context) error {
 	opts := meta.ListOptions{}
 
 	for {
-		events, err := client.Core().Events().List(c.Context, selector, opts)
+		events, err := client.Core().Events().List(c.Context, &selector, &opts)
 		if err != nil {
 			return err
 		}

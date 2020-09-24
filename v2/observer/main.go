@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/brigadecore/brigade/sdk/v2/core"
+	"github.com/brigadecore/brigade/sdk/v2/restmachinery"
 	"github.com/brigadecore/brigade/v2/internal/kubernetes"
 	"github.com/brigadecore/brigade/v2/internal/signals"
 	"github.com/brigadecore/brigade/v2/internal/version"
@@ -24,7 +25,9 @@ func main() {
 	workersClient := core.NewWorkersClient(
 		config.APIAddress,
 		config.APIToken,
-		config.IgnoreAPICertWarnings,
+		&restmachinery.APIClientOptions{
+			AllowInsecureConnections: config.IgnoreAPICertWarnings,
+		},
 	)
 
 	kubeClient, err := kubernetes.Client()

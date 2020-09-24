@@ -93,7 +93,7 @@ func secretsList(c *cli.Context) error {
 
 	for {
 		secrets, err :=
-			client.Core().Projects().Secrets().List(c.Context, projectID, opts)
+			client.Core().Projects().Secrets().List(c.Context, projectID, &opts)
 		if err != nil {
 			return err
 		}

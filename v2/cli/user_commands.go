@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/brigadecore/brigade/sdk/v2/authx"
 	"github.com/brigadecore/brigade/sdk/v2/meta"
 	"github.com/ghodss/yaml"
 	"github.com/gosuri/uitable"
@@ -87,7 +86,7 @@ func userList(c *cli.Context) error {
 
 	for {
 		users, err :=
-			client.Authx().Users().List(c.Context, authx.UsersSelector{}, opts)
+			client.Authx().Users().List(c.Context, nil, &opts)
 		if err != nil {
 			return err
 		}

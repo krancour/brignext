@@ -5,6 +5,7 @@ import (
 	"github.com/urfave/cli/v2"
 
 	"github.com/brigadecore/brigade/sdk/v2"
+	"github.com/brigadecore/brigade/sdk/v2/restmachinery"
 )
 
 func getClient(c *cli.Context) (sdk.APIClient, error) {
@@ -18,6 +19,8 @@ func getClient(c *cli.Context) (sdk.APIClient, error) {
 	return sdk.NewAPIClient(
 		config.APIAddress,
 		config.APIToken,
-		c.Bool(flagInsecure),
+		&restmachinery.APIClientOptions{
+			AllowInsecureConnections: c.Bool(flagInsecure),
+		},
 	), nil
 }
