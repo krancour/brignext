@@ -3,6 +3,7 @@ import * as groups from "./brigadier/groups"
 import { Event, EventRegistry } from "./brigadier/events"
 import { Logger } from "./brigadier/logger"
 import axios from 'axios'
+import * as https from 'https'
 import * as http2 from 'http2'
 
 let currentEvent: Event
@@ -34,6 +35,11 @@ export class Job extends jobs.Job {
     this.logger.log(`Creating job ${this.name}`)
     try {
       let response = await axios({
+        httpsAgent: new https.Agent(
+          {
+            rejectUnauthorized: false
+          }
+        ),
         method: "put",
         url: `${currentEvent.worker.apiAddress}/v2/events/${currentEvent.id}/worker/jobs/${this.name}`,
         headers: {
@@ -68,7 +74,13 @@ export class Job extends jobs.Job {
       let req: http2.ClientHttp2Stream
       
       let startMonitorReq = () => {
-        const client = http2.connect(currentEvent.worker.apiAddress)
+        const client = http2.connect(
+          currentEvent.worker.apiAddress,
+          {
+            // TODO: Get our hands on the API server's CA to validate the cert
+            rejectUnauthorized: false,
+          }
+        )
         client.on('error', (err: any) => console.error(err))
         req = client.request({
           ':path': `/v2/events/${currentEvent.id}/worker/jobs/${this.name}/status?watch=true`,
@@ -128,7 +140,13 @@ export class Job extends jobs.Job {
     return new Promise((resolve, reject) => {
       let logs = ""
 
-      const client = http2.connect(currentEvent.worker.apiAddress)
+      const client = http2.connect(
+        currentEvent.worker.apiAddress,
+        {
+          // TODO: Get our hands on the API server's CA to validate the cert
+          rejectUnauthorized: false,
+        }
+      )
       client.on('error', (err: any) => console.error(err))
       
       let req = client.request({
