@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/brigadecore/brigade/v2/apiserver/internal/authx"
+	"github.com/brigadecore/brigade/v2/apiserver/internal/core"
 	"github.com/brigadecore/brigade/v2/apiserver/internal/meta"
 	"github.com/stretchr/testify/require"
 )
@@ -64,9 +65,13 @@ func TestTokenAuthFilterWithTokenInvalid(t *testing.T) {
 		func(context.Context, string) (authx.Session, error) {
 			return authx.Session{}, &meta.ErrNotFound{}
 		},
+		func(ctx context.Context, token string) (core.Event, error) {
+			return core.Event{}, &meta.ErrNotFound{}
+		},
 		nil,
-		nil,
-		nil,
+		func(ctx context.Context, token string) (authx.ServiceAccount, error) {
+			return authx.ServiceAccount{}, &meta.ErrNotFound{}
+		},
 		false,
 		testSchedulerToken,
 		testObserverToken,
@@ -91,11 +96,15 @@ func TestTokenAuthFilterWithUnauthenticatedSession(t *testing.T) {
 		func(context.Context, string) (authx.Session, error) {
 			return authx.Session{}, nil
 		},
-		nil,
+		func(ctx context.Context, token string) (core.Event, error) {
+			return core.Event{}, &meta.ErrNotFound{}
+		},
 		func(context.Context, string) (authx.User, error) {
 			return authx.User{}, nil
 		},
-		nil,
+		func(ctx context.Context, token string) (authx.ServiceAccount, error) {
+			return authx.ServiceAccount{}, &meta.ErrNotFound{}
+		},
 		false,
 		testSchedulerToken,
 		testObserverToken,
@@ -128,11 +137,15 @@ func TestTokenAuthFilterWithAuthenticatedSession(t *testing.T) {
 				Expires:       &expiry,
 			}, nil
 		},
-		nil,
+		func(ctx context.Context, token string) (core.Event, error) {
+			return core.Event{}, &meta.ErrNotFound{}
+		},
 		func(context.Context, string) (authx.User, error) {
 			return authx.User{}, nil
 		},
-		nil,
+		func(ctx context.Context, token string) (authx.ServiceAccount, error) {
+			return authx.ServiceAccount{}, &meta.ErrNotFound{}
+		},
 		false,
 		testSchedulerToken,
 		testObserverToken,

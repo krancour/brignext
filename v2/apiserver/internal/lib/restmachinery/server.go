@@ -7,6 +7,7 @@ import (
 
 	"github.com/brigadecore/brigade/v2/internal/file"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 )
@@ -22,7 +23,7 @@ type server struct {
 	*BaseEndpoints // The server itself exposes health check endpoints
 	config         Config
 	endpoints      []Endpoints
-	router         *mux.Router
+	handler        http.Handler
 }
 
 // NewServer returns a REST API server
@@ -42,7 +43,11 @@ func NewServer(
 		BaseEndpoints: baseEndpoints,
 		config:        config,
 		endpoints:     endpoints,
-		router:        router,
+		handler: cors.New(
+			cors.Options{
+				AllowedMethods: []string{"DELETE", "GET", "POST", "PUT"},
+			},
+		).Handler(router),
 	}
 
 	// Health check
@@ -67,7 +72,7 @@ func (s *server) ListenAndServe() error {
 			address,
 			s.config.TLSCertPath(),
 			s.config.TLSKeyPath(),
-			s.router,
+			s.handler,
 		)
 	}
 	log.Printf(
@@ -76,7 +81,7 @@ func (s *server) ListenAndServe() error {
 	)
 	return http.ListenAndServe(
 		address,
-		h2c.NewHandler(s.router, &http2.Server{}),
+		h2c.NewHandler(s.handler, &http2.Server{}),
 	)
 }
 
